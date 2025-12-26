@@ -1,0 +1,10 @@
+[project]
+name = "ipk-doc-autopiolot"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "keyring>=25.7.0",
+    "playwright>=1.57.0",
+]
