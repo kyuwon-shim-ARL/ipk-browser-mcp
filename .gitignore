@@ -2,6 +2,7 @@
 .env
 .credentials
 config.json
+*.token.json
 
 # Screenshots (may contain sensitive info)
 screenshots/
@@ -11,6 +12,24 @@ __pycache__/
 *.pyc
 .venv/
 
+# Node.js
+node_modules/
+dist/
+
+# OMC state (session-specific, not project data)
+.omc/
+.history.json
+
+# Claude Code
+.claude/
+
 # IDE
 .idea/
 .vscode/
+
+# Personal input data
+input/
+
+# OS
+.DS_Store
+Thumbs.db
