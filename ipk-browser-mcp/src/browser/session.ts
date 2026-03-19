@@ -19,6 +19,7 @@ interface SessionState {
  * - Graceful shutdown on SIGTERM/SIGINT
  */
 export class SessionManager {
+  private static SESSION_TTL_MS = 30 * 60 * 1000; // 30 minutes
   private browser: Browser | null = null;
   private session: SessionState | null = null;
   private config: Config;
@@ -183,7 +184,12 @@ export class SessionManager {
   }
 
   isLoggedIn(): boolean {
-    return this.session?.loggedIn ?? false;
+    if (!this.session?.loggedIn) return false;
+    // Check if session is stale
+    if (Date.now() - this.session.lastActivity > SessionManager.SESSION_TTL_MS) {
+      return false;
+    }
+    return true;
   }
 
   getUserInfo(): SessionState["userInfo"] | null {
