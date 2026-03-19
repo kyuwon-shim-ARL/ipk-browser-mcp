@@ -21088,7 +21088,9 @@ function loadConfig() {
 import { chromium } from "playwright";
 import * as fs from "fs";
 import * as path from "path";
-var SessionManager = class {
+var SessionManager = class _SessionManager {
+  static SESSION_TTL_MS = 30 * 60 * 1e3;
+  // 30 minutes
   browser = null;
   session = null;
   config;
@@ -21217,7 +21219,11 @@ var SessionManager = class {
     return page.frame("main_menu");
   }
   isLoggedIn() {
-    return this.session?.loggedIn ?? false;
+    if (!this.session?.loggedIn) return false;
+    if (Date.now() - this.session.lastActivity > _SessionManager.SESSION_TTL_MS) {
+      return false;
+    }
+    return true;
   }
   getUserInfo() {
     return this.session?.userInfo || null;
@@ -21312,6 +21318,8 @@ async function setFieldValue(frame, selector, value) {
       const el = document.querySelector(args.sel);
       if (el) {
         el.value = args.val;
+        el.dispatchEvent(new Event("input", { bubbles: true }));
+        el.dispatchEvent(new Event("change", { bubbles: true }));
         return true;
       }
       return false;
@@ -21359,7 +21367,11 @@ async function submitForm(page, frame, method = "check_form_request") {
         })
       ]);
     }
-    await page.waitForTimeout(2e3);
+    try {
+      await frame.waitForURL("**/document_view.php**", { timeout: 1e4 });
+    } catch {
+      await page.waitForTimeout(3e3);
+    }
     const frameUrl = frame.url();
     if (frameUrl.includes("document_view.php") && frameUrl.includes("doc_id=")) {
       const match = frameUrl.match(/doc_id=([^&]+)/);
@@ -21367,7 +21379,11 @@ async function submitForm(page, frame, method = "check_form_request") {
     }
     return null;
   } catch {
-    await page.waitForTimeout(3e3);
+    try {
+      await frame.waitForURL("**/document_view.php**", { timeout: 1e4 });
+    } catch {
+      await page.waitForTimeout(3e3);
+    }
     const frameUrl = frame.url();
     if (frameUrl.includes("doc_id=")) {
       const match = frameUrl.match(/doc_id=([^&]+)/);
@@ -21477,33 +21493,37 @@ async function submitLeave(page, frame, sessionManager2, config3, params, mode) 
   await setFieldValue(frame, 'input[name="end_date[]"]', endDate);
   if (isHourly) {
     await frame.evaluate(
-      (args) => {
+      (st) => {
         const startEl = document.querySelector('select[name="start_time[]"]');
-        const endEl = document.querySelector('select[name="end_time[]"]');
-        if (startEl && args.st) {
+        if (startEl && st) {
           const opt = document.createElement("option");
-          opt.value = args.st;
-          opt.textContent = args.st;
+          opt.value = st;
+          opt.textContent = st;
           startEl.textContent = "";
           startEl.appendChild(opt);
-          startEl.value = args.st;
+          startEl.value = st;
           startEl.dispatchEvent(new Event("change", { bubbles: true }));
         }
-        if (endEl && args.et) {
-          setTimeout(() => {
-            const opt = document.createElement("option");
-            opt.value = args.et;
-            opt.textContent = args.et;
-            endEl.textContent = "";
-            endEl.appendChild(opt);
-            endEl.value = args.et;
-            endEl.dispatchEvent(new Event("change", { bubbles: true }));
-          }, 500);
+      },
+      params.start_time
+    );
+    await page.waitForTimeout(500);
+    await frame.evaluate(
+      (et) => {
+        const endEl = document.querySelector('select[name="end_time[]"]');
+        if (endEl && et) {
+          const opt = document.createElement("option");
+          opt.value = et;
+          opt.textContent = et;
+          endEl.textContent = "";
+          endEl.appendChild(opt);
+          endEl.value = et;
+          endEl.dispatchEvent(new Event("change", { bubbles: true }));
         }
       },
-      { st: params.start_time, et: params.end_time }
+      params.end_time
     );
-    await page.waitForTimeout(700);
+    await page.waitForTimeout(500);
   }
   await setFieldValue(frame, 'input[name="purpose"]', purpose);
   await setFieldValue(frame, 'input[name="destination"]', destination);
@@ -21549,6 +21569,11 @@ async function submitLeave(page, frame, sessionManager2, config3, params, mode) 
   } catch {
     await setFallbackSubstitute(frame, substituteName);
   }
+  if (params.attachment_path) {
+    const fileInput = frame.locator('input[name="doc_attach_file[]"]').first();
+    await fileInput.setInputFiles(params.attachment_path);
+    await page.waitForTimeout(1e3);
+  }
   await page.waitForTimeout(1e3);
   await setFormMode(frame, mode);
   const docId = await submitForm(page, frame, "check_form_request");
@@ -21566,6 +21591,13 @@ async function submitLeave(page, frame, sessionManager2, config3, params, mode) 
   });
 }
 async function submitExpense(page, frame, sessionManager2, config3, params, mode) {
+  if (params.amount !== void 0 && (typeof params.amount !== "number" || params.amount <= 0 || !Number.isFinite(params.amount))) {
+    return textResult({
+      error: true,
+      code: "INVALID_AMOUNT",
+      message: "Amount must be a positive number"
+    });
+  }
   const date3 = params.start_date || params.work_date || todayStr();
   const amount = params.amount || 15e3;
   const amountNoVat = Math.floor(amount / 1.1);

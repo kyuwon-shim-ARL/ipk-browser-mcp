@@ -74,6 +74,8 @@ export async function setFieldValue(
       const el = document.querySelector(args.sel) as HTMLInputElement | HTMLTextAreaElement | null;
       if (el) {
         el.value = args.val;
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+        el.dispatchEvent(new Event('change', { bubbles: true }));
         return true;
       }
       return false;
@@ -148,8 +150,13 @@ export async function submitForm(
       ]);
     }
 
-    // Wait a bit for redirect to complete
-    await page.waitForTimeout(2000);
+    // Try to wait for redirect to document_view.php
+    try {
+      await frame.waitForURL('**/document_view.php**', { timeout: 10000 });
+    } catch {
+      // Fallback: wait a bit for slow redirects
+      await page.waitForTimeout(3000);
+    }
 
     // Extract doc_id from URL
     const frameUrl = frame.url();
@@ -160,7 +167,13 @@ export async function submitForm(
 
     return null;
   } catch {
-    await page.waitForTimeout(3000);
+    // Try to wait for redirect to document_view.php
+    try {
+      await frame.waitForURL('**/document_view.php**', { timeout: 10000 });
+    } catch {
+      // Fallback: wait a bit for slow redirects
+      await page.waitForTimeout(3000);
+    }
     const frameUrl = frame.url();
     if (frameUrl.includes("doc_id=")) {
       const match = frameUrl.match(/doc_id=([^&]+)/);

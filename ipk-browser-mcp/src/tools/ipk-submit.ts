@@ -147,35 +147,41 @@ async function submitLeave(
   await setFieldValue(frame, 'input[name="end_date[]"]', endDate);
 
   if (isHourly) {
-    // Set time dropdowns via parameterized evaluate
+    // Set start_time dropdown
     await frame.evaluate(
-      (args: { st: string; et: string }) => {
+      (st: string) => {
         const startEl = document.querySelector('select[name="start_time[]"]') as HTMLSelectElement;
-        const endEl = document.querySelector('select[name="end_time[]"]') as HTMLSelectElement;
-        if (startEl && args.st) {
+        if (startEl && st) {
           const opt = document.createElement("option");
-          opt.value = args.st;
-          opt.textContent = args.st;
+          opt.value = st;
+          opt.textContent = st;
           startEl.textContent = "";
           startEl.appendChild(opt);
-          startEl.value = args.st;
+          startEl.value = st;
           startEl.dispatchEvent(new Event("change", { bubbles: true }));
         }
-        if (endEl && args.et) {
-          setTimeout(() => {
-            const opt = document.createElement("option");
-            opt.value = args.et;
-            opt.textContent = args.et;
-            endEl.textContent = "";
-            endEl.appendChild(opt);
-            endEl.value = args.et;
-            endEl.dispatchEvent(new Event("change", { bubbles: true }));
-          }, 500);
+      },
+      params.start_time
+    );
+    await page.waitForTimeout(500);
+
+    // Set end_time dropdown after start_time change has settled
+    await frame.evaluate(
+      (et: string) => {
+        const endEl = document.querySelector('select[name="end_time[]"]') as HTMLSelectElement;
+        if (endEl && et) {
+          const opt = document.createElement("option");
+          opt.value = et;
+          opt.textContent = et;
+          endEl.textContent = "";
+          endEl.appendChild(opt);
+          endEl.value = et;
+          endEl.dispatchEvent(new Event("change", { bubbles: true }));
         }
       },
-      { st: params.start_time, et: params.end_time }
+      params.end_time
     );
-    await page.waitForTimeout(700);
+    await page.waitForTimeout(500);
   }
 
   await setFieldValue(frame, 'input[name="purpose"]', purpose);
@@ -233,6 +239,13 @@ async function submitLeave(
     await setFallbackSubstitute(frame, substituteName);
   }
 
+  // Handle attachment if provided
+  if (params.attachment_path) {
+    const fileInput = frame.locator('input[name="doc_attach_file[]"]').first();
+    await fileInput.setInputFiles(params.attachment_path);
+    await page.waitForTimeout(1000);
+  }
+
   await page.waitForTimeout(1000);
 
   // Set mode and submit
@@ -263,6 +276,14 @@ async function submitExpense(
   params: Record<string, any>,
   mode: "draft" | "request"
 ) {
+  if (params.amount !== undefined && (typeof params.amount !== 'number' || params.amount <= 0 || !Number.isFinite(params.amount))) {
+    return textResult({
+      error: true,
+      code: "INVALID_AMOUNT",
+      message: "Amount must be a positive number",
+    });
+  }
+
   const date = params.start_date || params.work_date || todayStr();
   const amount = params.amount || 15000;
   const amountNoVat = Math.floor(amount / 1.1);
