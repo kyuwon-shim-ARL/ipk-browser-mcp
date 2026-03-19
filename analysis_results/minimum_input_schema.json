@@ -1,0 +1,77 @@
+{
+  "analysis_date": "2025-12-29",
+  "forms": {
+    "leave": {
+      "minimum_required": [
+        "leave_kind",
+        "begin_date",
+        "end_date",
+        "purpose",
+        "destination"
+      ],
+      "auto_infer": [
+        "subject",
+        "drafter",
+        "department",
+        "document_no",
+        "retention"
+      ],
+      "history_based": [
+        "substitute",
+        "emergency_contact"
+      ],
+      "popup_based": [
+        "substitute"
+      ]
+    },
+    "expense": {
+      "minimum_required": [
+        "budget_type",
+        "budget_code",
+        "item_name",
+        "item_amount",
+        "attachment"
+      ],
+      "auto_infer": [
+        "subject",
+        "drafter",
+        "department",
+        "document_no"
+      ],
+      "history_based": [],
+      "popup_based": []
+    },
+    "working": {
+      "minimum_required": [
+        "work_date",
+        "budget_type",
+        "budget_code",
+        "sub_subject"
+      ],
+      "auto_infer": [
+        "subject",
+        "drafter",
+        "meal_expense"
+      ],
+      "history_based": [
+        "budget_code"
+      ],
+      "popup_based": []
+    },
+    "travel": {
+      "minimum_required": [
+        "pdoc_id",
+        "summary"
+      ],
+      "auto_infer": [
+        "date",
+        "destination",
+        "purpose"
+      ],
+      "history_based": [],
+      "popup_based": [
+        "pdoc_id"
+      ]
+    }
+  }
+}

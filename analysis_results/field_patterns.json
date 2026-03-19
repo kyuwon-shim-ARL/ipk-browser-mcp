@@ -1,0 +1,42 @@
+{
+  "leave": {
+    "template": {
+      "total_inputs": 35,
+      "total_selects": 7,
+      "readonly_count": 7,
+      "required_count": 0,
+      "popup_count": 2
+    },
+    "documents_analyzed": 3
+  },
+  "expense": {
+    "template": {
+      "total_inputs": 759,
+      "total_selects": 8,
+      "readonly_count": 217,
+      "required_count": 0,
+      "popup_count": 1
+    },
+    "documents_analyzed": 3
+  },
+  "working": {
+    "template": {
+      "total_inputs": 33,
+      "total_selects": 5,
+      "readonly_count": 2,
+      "required_count": 0,
+      "popup_count": 1
+    },
+    "documents_analyzed": 3
+  },
+  "travel": {
+    "template": {
+      "total_inputs": 36,
+      "total_selects": 4,
+      "readonly_count": 5,
+      "required_count": 0,
+      "popup_count": 1
+    },
+    "documents_analyzed": 3
+  }
+}

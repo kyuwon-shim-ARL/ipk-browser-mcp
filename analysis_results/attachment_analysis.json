@@ -1,0 +1,801 @@
+{
+  "leave": {
+    "form_name": "leave",
+    "file_inputs": [
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      }
+    ],
+    "attachment_validation": {
+      "found": true,
+      "lines": [
+        "\t$(\"select[name='file_attach_cnt']\").val(\"1\");",
+        "\tattach_reseth();",
+        "\t\t\tif($(\"input[name='doc_attach_file[]']:eq(0)\").val() == '' && 'insert' != 'update')",
+        "\t\t\t\t$(\"input[name='doc_attach_file[]']:eq(0)\").focus();",
+        "\t\t\talert('Please attach the file.');",
+        "function attach_reseth() {",
+        "\tvar obj = document.getElementsByName('doc_attach_file[]');",
+        "\tvar obj1 = document.getElementById('file_attach_cnt');"
+      ]
+    },
+    "conditional_attachments": [
+      "if(leave_kind == \"02\" || leave_kind == \"03\" || leave_kind == \"05\" || leave_kind == \"07\" || leave_kind == \"13\" || leave_kind == \"15\"){\n\t\t\tif($(\"input[name='doc_attach_file[]']:eq(0)\").val() == '' && 'insert' != 'update')\n\t\t\t{\n\t\t\t\tflag = true;\n\t\t\t\t$(\"input[name='doc_attach",
+      "if(flag) {\n\t\tif ( error_code == \"9\" ) {\n\t\t\talert('Please attach"
+    ],
+    "scripts_mentioning_attach": [
+      {
+        "matches": [
+          "function attach_reseth"
+        ],
+        "snippet": "\n//<![CDATA[\n\nfunction Reset_Form() {\n\tvar obj = document.getElementById('pannel1');\n\tvar obj1 = document.getElementById('pannel2');\n\t\n\tif (obj1.outerHTML) {\n\t\tstringOuterHTML=obj1.outerHTML;\n\t} else {\n\t\tstringOuterHTML=(new XMLSerializer).serializeToString(obj1);\n\t}\n\n\tobj.innerHTML = stringOuterHTML;\t\t\n\t$(\"select[name='file_attach_cnt']\").val(\"1\");\n\tattach_reseth();\n\n}\n\nfunction Check_Form_Request(flag) {\n\t\n\tvar s_date, e_date;\n\tvar flag = false;\n\tvar obj_nm = \"\", error_code = \"\";\n\t\n\t\n\t$(\"table"
+      }
+    ],
+    "ui_hints": [
+      {
+        "tag": "TH",
+        "text": "File Attachment List",
+        "className": "l02"
+      },
+      {
+        "tag": "TH",
+        "text": "Attach Approved Document",
+        "className": "l02"
+      }
+    ]
+  },
+  "expense": {
+    "form_name": "expense",
+    "file_inputs": [
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      }
+    ],
+    "attachment_validation": {
+      "found": true,
+      "lines": [
+        "\t\tattach_reseth();",
+        "\tfunction attach_reseth()",
+        "\t\tobj = document.getElementsByName('doc_attach_file[]');",
+        "\t\tobj1 = document.getElementsByName('file_attach_cnt');",
+        "\t\tvar attach_file_cnt = 0",
+        "\t\t$(\".doc_attach_file\").each(function(i) {",
+        "\t\t\tif ( $(this).val() != \"\" ) attach_file_cnt++",
+        "\t\tattach_file_cnt += $(\".attatch_file_link\").length;",
+        "\t\tif ( attach_file_cnt == 0 ) {",
+        "\t\t\talert('Please attach at least one file.');",
+        "\t\t\t$(\".doc_attach_file:eq(0)\").focus();"
+      ]
+    },
+    "conditional_attachments": [
+      "if ( attach_file_cnt == 0 ) {\n\t\t\talert('Please attach at least one file.');\n\t\t\t$(\".doc_attach"
+    ],
+    "scripts_mentioning_attach": [
+      {
+        "matches": [
+          "function attach_reseth",
+          "attach_file_cnt =",
+          "attach_file_cnt ="
+        ],
+        "snippet": "\n\n\nvar first_flag='';\n\n\n\n\tfunction Reset_Form()\n\t{\n\t\t\n\tobj = document.getElementsByName('pannel1');\n\t\t\n\t\tobj1 = document.getElementsByName('pannel2');\n\n\n\t\t  if (obj1[0].outerHTML) {\n\t\t    stringOuterHTML=obj1[0].outerHTML;\n\t\t  } else {\n\t\t    stringOuterHTML=(new XMLSerializer).serializeToString(obj1[0]);\n\t\t  }\n\t\t\n\t\tobj[0].innerHTML = stringOuterHTML;\t\t\n\n\t\tattach_reseth();\n\t\t\n\t\tobj11 = document.getElementById('budget_code');\n\t\tif('insert' == 'update' || '' != '')\n\t\t{\n\t\t\t\t\t\t\t\t\t\t\t\t\t\n\t\t\t\n\t\t\tobj = do"
+      }
+    ],
+    "ui_hints": [
+      {
+        "tag": "TH",
+        "text": "File Attachment List",
+        "className": "l02"
+      },
+      {
+        "tag": "TH",
+        "text": "Attach Approved Document",
+        "className": "l02"
+      }
+    ]
+  },
+  "working": {
+    "form_name": "working",
+    "file_inputs": [
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      }
+    ],
+    "attachment_validation": {
+      "found": true,
+      "lines": [
+        "\t\t\tattach_reseth();",
+        "\tfunction attach_reseth()",
+        "\t\tobj = document.getElementsByName('doc_attach_file[]');",
+        "\t\tobj1 = document.getElementById('file_attach_cnt');"
+      ]
+    },
+    "conditional_attachments": [],
+    "scripts_mentioning_attach": [
+      {
+        "matches": [
+          "function attach_reseth"
+        ],
+        "snippet": "\n\n\tfunction Reset_Form()\n\t{\n\n\t\tobj = document.getElementById('pannel1');\n\t\t\n\t\tobj1 = document.getElementById('pannel2');\n\n\n\t\t  if (obj1.outerHTML) {\n\t\t    stringOuterHTML=obj1.outerHTML;\n\t\t  } else {\n\t\t    stringOuterHTML=(new XMLSerializer).serializeToString(obj1);\n\t\t  }\n\t\t\n\t\tobj.innerHTML = stringOuterHTML;\t\t\t\t\n\t\t\n\t\t\tattach_reseth();\n\t\t\t\n\t\t\t\n\t\t\tdocument.getElementById('budget_type').value = '';\n\t\t\tsub_code_view('')\t\t\t\t\t\t\t\t\t\n\t\t\t\n\t\t\tobj = document.getElementById('budget_code');\n\t\t\t\n\t\t\tobj.value "
+      }
+    ],
+    "ui_hints": [
+      {
+        "tag": "TH",
+        "text": "File Attachment List",
+        "className": "l02"
+      },
+      {
+        "tag": "TH",
+        "text": "Attach Approved Document",
+        "className": "l02"
+      }
+    ]
+  },
+  "travel": {
+    "form_name": "travel",
+    "file_inputs": [
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      },
+      {
+        "name": "doc_attach_file[]",
+        "id": "",
+        "accept": "",
+        "required": false,
+        "multiple": false,
+        "parentText": ""
+      }
+    ],
+    "attachment_validation": {
+      "found": true,
+      "lines": [
+        "\t$(\"select[name='file_attach_cnt']\").val(\"1\");",
+        "\tattach_reseth();",
+        "function attach_reseth() {",
+        "\tvar obj = document.getElementsByName('doc_attach_file[]');",
+        "\tvar obj1 = document.getElementById('file_attach_cnt');"
+      ]
+    },
+    "conditional_attachments": [],
+    "scripts_mentioning_attach": [
+      {
+        "matches": [
+          "function attach_reseth"
+        ],
+        "snippet": "\n//<![CDATA[\n\nfunction Reset_Form() {\n\tvar obj = document.getElementById('pannel1');\n\tvar obj1 = document.getElementById('pannel2');\n\t\n\tif (obj1.outerHTML) {\n\t\tstringOuterHTML=obj1.outerHTML;\n\t} else {\n\t\tstringOuterHTML=(new XMLSerializer).serializeToString(obj1);\n\t}\n\n\tobj.innerHTML = stringOuterHTML;\t\t\n\t$(\"select[name='file_attach_cnt']\").val(\"1\");\n\tattach_reseth();\n}\n\nfunction Check_Form_Request(flag) {\n\tvar flag = false;\n\tvar obj_nm = \"\";\n\t\n\t$(\".validate\").each(function() {\n\t\tif ( $(this).val"
+      }
+    ],
+    "ui_hints": [
+      {
+        "tag": "TH",
+        "text": "File Attachment List",
+        "className": "l02"
+      },
+      {
+        "tag": "TH",
+        "text": "Attach Approved Document",
+        "className": "l02"
+      }
+    ]
+  }
+}

@@ -1,0 +1,301 @@
+{
+  "leave_options": [
+    {
+      "value": "",
+      "text": "== select Leave kind =="
+    },
+    {
+      "value": "01",
+      "text": "Annual leave"
+    },
+    {
+      "value": "11",
+      "text": "Compensatory leave"
+    },
+    {
+      "value": "14",
+      "text": "Saved Annual leave"
+    },
+    {
+      "value": "02",
+      "text": "Sick leave"
+    },
+    {
+      "value": "03",
+      "text": "Special leave"
+    },
+    {
+      "value": "15",
+      "text": "Paternity Leave"
+    },
+    {
+      "value": "04",
+      "text": "Menstruation leave(UnPaid)"
+    },
+    {
+      "value": "05",
+      "text": "Official leave"
+    },
+    {
+      "value": "07",
+      "text": "Child delivery and Nursing leave"
+    },
+    {
+      "value": "08",
+      "text": "Unpaid leave"
+    },
+    {
+      "value": "09",
+      "text": "Childcare leave"
+    },
+    {
+      "value": "10",
+      "text": "Temporary Rest"
+    },
+    {
+      "value": "13",
+      "text": "Fetus Checkup"
+    },
+    {
+      "value": "12",
+      "text": "Other"
+    }
+  ],
+  "attachment_requirements": {
+    "01": {
+      "name": "Annual leave",
+      "ui_state": {
+        "attachmentLabels": [
+          "0 (0)*",
+          "0 (0)*",
+          "File Attachment List",
+          "Attach Approved Document"
+        ],
+        "requiredIndicators": [
+          false
+        ],
+        "alertMessages": []
+      }
+    },
+    "11": {
+      "name": "Compensatory leave",
+      "ui_state": {
+        "attachmentLabels": [
+          "0 (0)*",
+          "0 (0)*",
+          "File Attachment List",
+          "Attach Approved Document"
+        ],
+        "requiredIndicators": [
+          false
+        ],
+        "alertMessages": []
+      }
+    },
+    "14": {
+      "name": "Saved Annual leave",
+      "ui_state": {
+        "attachmentLabels": [
+          "0 (0)*",
+          "0 (0)*",
+          "File Attachment List",
+          "Attach Approved Document"
+        ],
+        "requiredIndicators": [
+          false
+        ],
+        "alertMessages": []
+      }
+    },
+    "02": {
+      "name": "Sick leave",
+      "ui_state": {
+        "attachmentLabels": [
+          "0 (0)*",
+          "0 (0)*",
+          "File Attachment List",
+          "Attach Approved Document"
+        ],
+        "requiredIndicators": [
+          false
+        ],
+        "alertMessages": []
+      }
+    },
+    "03": {
+      "name": "Special leave",
+      "ui_state": {
+        "attachmentLabels": [
+          "0 (0)*",
+          "0 (0)*",
+          "File Attachment List",
+          "Attach Approved Document"
+        ],
+        "requiredIndicators": [
+          false
+        ],
+        "alertMessages": []
+      }
+    },
+    "15": {
+      "name": "Paternity Leave",
+      "ui_state": {
+        "attachmentLabels": [
+          "0 (0)*",
+          "0 (0)*",
+          "File Attachment List",
+          "Attach Approved Document"
+        ],
+        "requiredIndicators": [
+          false
+        ],
+        "alertMessages": []
+      }
+    },
+    "04": {
+      "name": "Menstruation leave(UnPaid)",
+      "ui_state": {
+        "attachmentLabels": [
+          "0 (0)*",
+          "0 (0)*",
+          "File Attachment List",
+          "Attach Approved Document"
+        ],
+        "requiredIndicators": [
+          false
+        ],
+        "alertMessages": []
+      }
+    },
+    "05": {
+      "name": "Official leave",
+      "ui_state": {
+        "attachmentLabels": [
+          "0 (0)*",
+          "0 (0)*",
+          "File Attachment List",
+          "Attach Approved Document"
+        ],
+        "requiredIndicators": [
+          false
+        ],
+        "alertMessages": []
+      }
+    },
+    "07": {
+      "name": "Child delivery and Nursing leave",
+      "ui_state": {
+        "attachmentLabels": [
+          "0 (0)*",
+          "0 (0)*",
+          "File Attachment List",
+          "Attach Approved Document"
+        ],
+        "requiredIndicators": [
+          false
+        ],
+        "alertMessages": []
+      }
+    },
+    "08": {
+      "name": "Unpaid leave",
+      "ui_state": {
+        "attachmentLabels": [
+          "0 (0)*",
+          "0 (0)*",
+          "File Attachment List",
+          "Attach Approved Document"
+        ],
+        "requiredIndicators": [
+          false
+        ],
+        "alertMessages": []
+      }
+    },
+    "09": {
+      "name": "Childcare leave",
+      "ui_state": {
+        "attachmentLabels": [
+          "0 (0)*",
+          "0 (0)*",
+          "File Attachment List",
+          "Attach Approved Document"
+        ],
+        "requiredIndicators": [
+          false
+        ],
+        "alertMessages": []
+      }
+    },
+    "10": {
+      "name": "Temporary Rest",
+      "ui_state": {
+        "attachmentLabels": [
+          "0 (0)*",
+          "0 (0)*",
+          "File Attachment List",
+          "Attach Approved Document"
+        ],
+        "requiredIndicators": [
+          false
+        ],
+        "alertMessages": []
+      }
+    },
+    "13": {
+      "name": "Fetus Checkup",
+      "ui_state": {
+        "attachmentLabels": [
+          "0 (0)*",
+          "0 (0)*",
+          "File Attachment List",
+          "Attach Approved Document"
+        ],
+        "requiredIndicators": [
+          false
+        ],
+        "alertMessages": []
+      }
+    },
+    "12": {
+      "name": "Other",
+      "ui_state": {
+        "attachmentLabels": [
+          "0 (0)*",
+          "0 (0)*",
+          "File Attachment List",
+          "Attach Approved Document"
+        ],
+        "requiredIndicators": [
+          false
+        ],
+        "alertMessages": []
+      }
+    }
+  },
+  "existing_requirements": {
+    "02": "진단서/입원확인서 (Sick leave)",
+    "03": "증빙서류 (Special leave)",
+    "05": "증빙서류 (Official leave)",
+    "07": "증빙서류 (Child delivery)",
+    "13": "증빙서류 (Fetus checkup)",
+    "15": "출생증명서 (Paternity leave)"
+  },
+  "branch_logic": [
+    {
+      "match": "leave_kind == \"03\"",
+      "value": "03",
+      "context": "} } } if(leave_kind == \"02\" || leave_kind == \"03\" || leave_kind == \"05\" || leave_kind == \"07\" || leave_kind == \"13\" || leave_kind == \"15\"){ if($(\"input[name='doc_attach_file[]']:"
+    },
+    {
+      "match": "leave_kind == \"15\"",
+      "value": "15",
+      "context": "5\" || leave_kind == \"07\" || leave_kind == \"13\" || leave_kind == \"15\"){ if($(\"input[name='doc_attach_file[]']:eq(0)\").val() == '' && 'insert' != 'update') { flag = true; $(\"input[name='do"
+    },
+    {
+      "match": "leave_kind == \"15\"",
+      "value": "15",
+      "context": "5\" || leave_kind == \"07\" || leave_kind == \"13\" || leave_kind == \"15\"){ if($(\"input[name='doc_attach_file[]']:eq(0)\").val() == '' && 'insert' != 'update') { flag = true; $(\"input[name='do"
+    }
+  ]
+}
