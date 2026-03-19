@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "ipk-browser": {
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/dist/ipk-browser-mcp.mjs"],
+      "env": {
+        "IPK_USERNAME": "${IPK_USERNAME}",
+        "IPK_PASSWORD": "${IPK_PASSWORD}",
+        "IPK_BASE_URL": "${IPK_BASE_URL}",
+        "BROWSER_HEADLESS": "${BROWSER_HEADLESS}",
+        "SCREENSHOT_DIR": "${SCREENSHOT_DIR}",
+        "SCREENSHOT_TTL_MINUTES": "${SCREENSHOT_TTL_MINUTES}",
+        "NAV_TIMEOUT_MS": "${NAV_TIMEOUT_MS}",
+        "STORAGE_STATE_DIR": "${STORAGE_STATE_DIR}"
+      }
+    }
+  }
+}
