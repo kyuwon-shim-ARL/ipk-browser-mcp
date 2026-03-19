@@ -4,15 +4,19 @@ export type FormType = "leave" | "expense" | "working" | "travel";
 /** Leave type codes */
 export const LEAVE_TYPES: Record<string, string> = {
   annual: "01",
-  compensatory: "11",
-  saved_annual: "14",
   sick: "02",
   special: "03",
-  paternity: "15",
   menstruation: "04",
   official: "05",
   childcare: "07",
+  unpaid: "08",
+  childcare_hours: "09",
+  temporary_suspension: "10",
+  compensatory: "11",
+  other: "12",
   fetus_checkup: "13",
+  saved_annual: "14",
+  paternity: "15",
 };
 
 /** Leave types that require attachment */
@@ -36,13 +40,19 @@ export const FORM_CODES: Record<FormType, string> = {
 /** Human-readable leave names */
 export const LEAVE_NAMES: Record<string, string> = {
   annual: "Annual leave",
-  compensatory: "Compensatory leave",
-  paternity: "Paternity Leave",
   sick: "Sick leave",
-  fetus_checkup: "Fetus Checkup",
   special: "Special leave",
+  menstruation: "Menstruation leave",
   official: "Official leave",
   childcare: "Child delivery and Nursing leave",
+  unpaid: "Unpaid leave",
+  childcare_hours: "Childcare hours",
+  temporary_suspension: "Temporary suspension",
+  compensatory: "Compensatory leave",
+  other: "Other leave",
+  fetus_checkup: "Fetus Checkup",
+  saved_annual: "Saved annual leave",
+  paternity: "Paternity Leave",
 };
 
 /** MCP tool error response */
@@ -126,15 +136,48 @@ export interface Config {
   storageStateDir: string;
 }
 
+const CONFIG_DIR = `${process.env.HOME}/.config/ipk-browser-mcp`;
+const ENV_FILE = `${CONFIG_DIR}/.env`;
+
+/** Load .env file from ~/.config/ipk-browser-mcp/.env as fallback */
+function loadDotenv(): Record<string, string> {
+  try {
+    const { readFileSync } = require("fs");
+    const content = readFileSync(ENV_FILE, "utf-8");
+    const vars: Record<string, string> = {};
+    for (const line of content.split("\n")) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) continue;
+      const eqIdx = trimmed.indexOf("=");
+      if (eqIdx === -1) continue;
+      const key = trimmed.slice(0, eqIdx).trim();
+      let val = trimmed.slice(eqIdx + 1).trim();
+      // Strip surrounding quotes
+      if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+        val = val.slice(1, -1);
+      }
+      vars[key] = val;
+    }
+    return vars;
+  } catch {
+    return {};
+  }
+}
+
+/** Get env var with dotenv fallback */
+function env(key: string, fallback: string = ""): string {
+  return process.env[key] || loadDotenv()[key] || fallback;
+}
+
 export function loadConfig(): Config {
   return {
-    baseUrl: process.env.IPK_BASE_URL || "https://gw.ip-korea.org",
-    username: process.env.IPK_USERNAME || "",
-    password: process.env.IPK_PASSWORD || "",
-    headless: process.env.BROWSER_HEADLESS !== "false",
-    screenshotDir: process.env.SCREENSHOT_DIR || "/tmp/ipk-mcp-screenshots",
-    screenshotTtlMinutes: parseInt(process.env.SCREENSHOT_TTL_MINUTES || "60", 10),
-    navTimeoutMs: parseInt(process.env.NAV_TIMEOUT_MS || "30000", 10),
-    storageStateDir: process.env.STORAGE_STATE_DIR || `${process.env.HOME}/.config/ipk-mcp/profiles`,
+    baseUrl: env("IPK_BASE_URL", "https://gw.ip-korea.org"),
+    username: env("IPK_USERNAME"),
+    password: env("IPK_PASSWORD"),
+    headless: env("BROWSER_HEADLESS") !== "false",
+    screenshotDir: env("SCREENSHOT_DIR", "/tmp/ipk-mcp-screenshots"),
+    screenshotTtlMinutes: parseInt(env("SCREENSHOT_TTL_MINUTES", "60"), 10),
+    navTimeoutMs: parseInt(env("NAV_TIMEOUT_MS", "30000"), 10),
+    storageStateDir: env("STORAGE_STATE_DIR", `${process.env.HOME}/.config/ipk-mcp/profiles`),
   };
 }

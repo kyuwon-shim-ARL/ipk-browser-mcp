@@ -1,0 +1,15 @@
+{
+  "name": "ipk-browser-mcp",
+  "version": "0.1.0",
+  "description": "IPK Groupware browser automation MCP server - automates leave, expense, working, and travel form submissions via Playwright",
+  "author": {
+    "name": "Kyuwon Shim",
+    "url": "https://github.com/kyuwon-shim-ARL"
+  },
+  "repository": "https://github.com/kyuwon-shim-ARL/ipk-browser-mcp",
+  "homepage": "https://github.com/kyuwon-shim-ARL/ipk-browser-mcp",
+  "license": "MIT",
+  "keywords": ["ipk", "groupware", "browser", "automation", "mcp", "playwright"],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json"
+}

@@ -131,10 +131,13 @@ async function submitLeave(
     subject = `${leaveName}, ${startDate}~${endDate}, ${destination}, ${userInfo.name}`;
   }
 
-  // Attachment warning
-  let warning = "";
+  // Warnings
+  const warnings: string[] = [];
   if (leaveCode in ATTACHMENT_REQUIRED_LEAVES) {
-    warning = `Note: ${leaveName} requires attachment (${ATTACHMENT_REQUIRED_LEAVES[leaveCode]}). Add it manually after draft save.`;
+    warnings.push(`${leaveName} requires attachment (${ATTACHMENT_REQUIRED_LEAVES[leaveCode]}). Add it manually after draft save.`);
+  }
+  if (substituteName === "N/A") {
+    warnings.push("Substitute person not configured. Set IPK_SUBSTITUTE_NAME env var or pass substitute_name parameter.");
   }
 
   // Set all form fields via parameterized evaluate
@@ -247,7 +250,7 @@ async function submitLeave(
       message: docId
         ? `Leave ${mode === "draft" ? "draft saved" : "submitted"} (doc_id: ${docId})`
         : `Leave ${mode === "draft" ? "draft" : "request"} completed (doc_id could not be extracted)`,
-      warning: warning || undefined,
+      warning: warnings.length > 0 ? warnings.join(" | ") : undefined,
     },
   });
 }
@@ -264,22 +267,25 @@ async function submitExpense(
   const amount = params.amount || 15000;
   const amountNoVat = Math.floor(amount / 1.1);
   const vat = amount - amountNoVat;
-  const subject = "[Card] overtime meal";
+  const itemName = params.reason || params.purpose || "overtime meal";
+  const subject = params.title || `[Card] ${itemName}`;
+  const budgetType = params.budget_type || "02";
   const budgetCode = params.budget_code || "NN2512-0001";
   const participants = params.participants || "";
   const purpose = params.purpose || "overtime work";
+  const pReason = params.reason || `${itemName} - receipt attached`;
 
   // Step 1: Set subject and budget_type
   await setFieldValue(frame, 'input[name="subject"]', subject);
-  await setSelectValue(frame, 'select[name="budget_type"]', "02");
+  await setSelectValue(frame, 'select[name="budget_type"]', budgetType);
   await page.waitForTimeout(1000);
 
   // Step 2: Set remaining fields
   await setSelectValue(frame, 'select[name="budget_code"]', budgetCode);
   await setSelectValue(frame, 'select[name="pay_kind"]', "04");
-  await setFieldValue(frame, 'textarea[name="p_reason"]', "overtime meal - receipt attached");
+  await setFieldValue(frame, 'textarea[name="p_reason"]', pReason);
   await setFieldValue(frame, 'input[name="invoice[]"]', date);
-  await setFieldValue(frame, 'input[name="item_desc[]"]', "overtime meal");
+  await setFieldValue(frame, 'input[name="item_desc[]"]', itemName);
   await setFieldValue(frame, 'input[name="item_qty[]"]', "1");
   await setFieldValue(frame, 'input[name="item_amount[]"]', String(amountNoVat));
   await setFieldValue(frame, 'input[name="item_amount_vat[]"]', String(vat));
@@ -413,11 +419,18 @@ async function submitTravel(
   await setFieldValue(frame, '.validate[name="date_field"]', schedule);
   await setFieldValue(frame, '.validate[name="org_field"]', organization);
   await setFieldValue(frame, '.validate[name="person_field"]', attendees);
-  await setFieldValue(frame, '.validate[name="discuss_field"]', purpose);
-  await setFieldValue(frame, '.validate[name="agenda_field"]', purpose);
-  await setFieldValue(frame, '.validate[name="result_field"]', "Expected outcomes from travel");
+  await setFieldValue(frame, '.validate[name="discuss_field"]', params.details || purpose);
+  await setFieldValue(frame, '.validate[name="agenda_field"]', params.schedule || purpose);
+  await setFieldValue(frame, '.validate[name="result_field"]', params.reason || `Expected outcomes: ${purpose}`);
   await setFieldValue(frame, '.validate[name="other_field"]', "N/A");
-  await setFieldValue(frame, '.validate[name="conclusion_field"]', `Travel request for ${purpose}`);
+  await setFieldValue(frame, '.validate[name="conclusion_field"]', params.destination ? `${purpose} at ${destination}` : `Travel for ${purpose}`);
+
+  // Handle attachment if provided
+  if (params.attachment_path) {
+    const fileInput = frame.locator('input[name="doc_attach_file[]"]').first();
+    await fileInput.setInputFiles(params.attachment_path);
+    await page.waitForTimeout(1000);
+  }
 
   await page.waitForTimeout(1000);
 
