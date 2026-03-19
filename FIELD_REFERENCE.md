@@ -43,23 +43,25 @@ Paternity Leave, 2025-11-24~2025-11-27, Seoul, Kyuwon Shim
 | 비상 전화 | `emergency_telephone` |
 
 ### 휴가 종류 코드
-| 코드 | 설명 |
-|-----|------|
-| 01 | Annual leave (연차) |
-| 11 | Compensatory leave (보상휴가) |
-| 14 | Saved Annual leave |
-| 02 | Sick leave (병가) |
-| 03 | Special leave |
-| 15 | Paternity Leave (육아휴직) |
-| 04 | Menstruation leave (UnPaid) |
-| 05 | Official leave |
-| 07 | Child delivery and Nursing leave |
+| 코드 | 설명 | 첨부파일 |
+|-----|------|---------|
+| 01 | Annual leave (연차) | ❌ 불필요 |
+| 11 | Compensatory leave (보상휴가) | ❌ 불필요 |
+| 14 | Saved Annual leave | ❌ 불필요 |
+| 04 | Menstruation leave (UnPaid) | ❌ 불필요 |
+| 02 | Sick leave (병가) | ✅ **필수** (진단서, 입원확인서) |
+| 03 | Special leave | ✅ **필수** (증빙서류) |
+| 05 | Official leave | ✅ **필수** (증빙서류) |
+| 07 | Child delivery and Nursing leave | ✅ **필수** (증빙서류) |
+| 13 | Fetus Checkup (태아검진) | ✅ **필수** (증빙서류) |
+| 15 | Paternity Leave (육아휴직) | ✅ **필수** (출생증명서) |
 
 ---
 
 ## 2. R&D 경비청구 (R&D Expense Request)
 - **폼 코드**: AppFrm-021
 - **사용 빈도**: 야근식대 30건, R&D경비 17건, 기타카드 36건
+- **첨부파일**: ✅ **필수** (영수증/인보이스)
 
 ### 제목 패턴
 ```
@@ -136,6 +138,7 @@ Application for Working on 2025-12-16, Kyuwon Shim
 ## 4. 출장보고서 (Travel Report)
 - **폼 코드**: AppFrm-076
 - **사용 빈도**: 해외출장 8건, 미팅요청 8건
+- **첨부파일**: 권장 (출장 수집 자료, 발표자료 등)
 
 ### 제목 패턴
 ```
