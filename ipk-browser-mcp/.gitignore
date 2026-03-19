@@ -1,4 +1,4 @@
 node_modules/
-dist/
+# dist/ is committed for plugin distribution
 *.js.map
 .credentials

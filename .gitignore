@@ -14,7 +14,10 @@ __pycache__/
 
 # Node.js
 node_modules/
-dist/
+
+# Dist (ignore root-level, but keep ipk-browser-mcp/dist/ for plugin distribution)
+/dist/
+!ipk-browser-mcp/dist/
 
 # OMC state (session-specific, not project data)
 .omc/

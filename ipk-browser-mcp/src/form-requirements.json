@@ -1,0 +1,380 @@
+{
+  "_description": "IPK Groupware Form Field Requirements v2 — STRICT/INFERABLE 2-tier model",
+  "_design": "STRICT 필드만 검증/차단. INFERABLE 필드는 raw_context에서 AI가 추론. 틀려도 반려 안됨.",
+  "_language_rule": "ALL form field values MUST be written in English. Never submit Korean text to any form field. Korean user input must be translated to English before submission.",
+  "_tiers": {
+    "STRICT": "값이 틀리면 반려되거나 운영 오류 발생. 반드시 정확해야 함. 추론 가능하지만(inference_allowed), 추론 결과가 모호하면 사용자 확인 필수.",
+    "INFERABLE": "구색맞추기. raw_context에서 AI가 자유롭게 추론. 적당히 그럴듯하면 통과.",
+    "CONFIG": "한번 설정하면 거의 안 바뀜. env var 또는 초기 설정. 미설정시 제출 차단.",
+    "AUTO": "코드/시스템이 자동 생성. 사용자 개입 불필요."
+  },
+
+  "leave": {
+    "_form_code": "AppFrm-073",
+    "_description": "휴가신청서",
+    "_raw_context_hint": "최소 입력 예시: '내일 연차', '3/25~3/27 병가 (진단서 첨부)', '오후반차 14~17시'",
+    "_raw_context_what_ai_needs": "휴가 종류, 날짜 범위. 나머지는 이전 패턴 또는 기본값으로 충분.",
+
+    "strict_fields": {
+      "leave_kind": {
+        "html_name": "leave_kind[]",
+        "description": "휴가 종류",
+        "why_strict": "종류에 따라 첨부파일 요구사항이 달라짐. 잘못 선택하면 반려.",
+        "valid_values": {
+          "01": "연차", "02": "병가", "03": "경조사", "04": "생리",
+          "05": "공가", "07": "출산/육아", "08": "무급", "09": "육아시간",
+          "10": "일시휴직", "11": "보상", "12": "기타", "13": "태아검진",
+          "14": "적치연차", "15": "배우자출산"
+        },
+        "inference_allowed": true,
+        "inference_note": "'연차' → 01, '병가' → 02 등 한글 매핑 가능. 모호하면 확인 요청."
+      },
+      "start_date": {
+        "html_name": "begin_date[]",
+        "description": "시작일",
+        "format": "YYYY-MM-DD",
+        "why_strict": "날짜 오류 시 즉시 반려.",
+        "validation": ["must_be_valid_date"],
+        "inference_allowed": true,
+        "inference_note": "'내일' → 내일 날짜, '다음주 월요일' → 계산 가능"
+      },
+      "end_date": {
+        "html_name": "end_date[]",
+        "description": "종료일",
+        "format": "YYYY-MM-DD",
+        "why_strict": "날짜 오류 시 즉시 반려.",
+        "validation": ["must_be_valid_date", "must_be_gte_start_date"],
+        "inference_allowed": true,
+        "inference_note": "미지정 시 start_date와 동일 (당일 휴가)"
+      },
+      "start_time": {
+        "html_name": "start_time[]",
+        "description": "시작 시간",
+        "condition": "시간단위 휴가일 때만 STRICT",
+        "hourly_leave_kinds": ["01", "14"],
+        "why_strict": "시간 단위 잘못되면 근태 기록 오류.",
+        "inference_allowed": true,
+        "inference_note": "'오후반차' → 14시, '오전반차' → 09시 추론 가능"
+      },
+      "end_time": {
+        "html_name": "end_time[]",
+        "description": "종료 시간",
+        "condition": "시간단위 휴가일 때만 STRICT",
+        "hourly_leave_kinds": ["01", "14"],
+        "why_strict": "시간 단위 잘못되면 근태 기록 오류.",
+        "inference_allowed": true,
+        "inference_note": "'오후반차' → 18시 추론 가능"
+      },
+      "attachment": {
+        "description": "첨부파일",
+        "triggered_by": "leave_kind",
+        "condition_map": {
+          "02": {"required": true, "document": "진단서 또는 입원확인서"},
+          "03": {"required": true, "document": "경조사 증빙서류"},
+          "05": {"required": true, "document": "공가 증빙서류"},
+          "07": {"required": true, "document": "출산/육아 증빙서류"},
+          "13": {"required": true, "document": "산전진찰 확인서"},
+          "15": {"required": true, "document": "출생증명서"}
+        },
+        "why_strict": "미첨부 시 JS에서 제출 차단 또는 사후 반려."
+      }
+    },
+
+    "inferable_fields": {
+      "purpose": {
+        "html_name": "purpose",
+        "description": "휴가 사유",
+        "default": "personal",
+        "inference_context": "특별한 이유 없으면 'personal'. 병가면 '몸 안좋아서' 등."
+      },
+      "destination": {
+        "html_name": "destination",
+        "description": "행선지",
+        "default": "Seoul",
+        "inference_context": "보통 자택. 특별히 언급 없으면 기본값 사용."
+      }
+    },
+
+    "config_fields": {
+      "substitute_name": {
+        "html_name": "substitute_name",
+        "source": "IPK_SUBSTITUTE_NAME",
+        "why_strict": "업무대행자 지정은 필수이지만 거의 안 바뀜."
+      },
+      "emergency_address": { "html_name": "emergency_address", "source": "IPK_EMERGENCY_ADDRESS" },
+      "emergency_telephone": { "html_name": "emergency_telephone", "source": "IPK_EMERGENCY_TELEPHONE" }
+    },
+
+    "auto_fields": {
+      "subject": { "pattern": "{휴가종류}, {시작일}~{종료일}, {행선지}, {이름}" },
+      "using_type": { "rule": "시간 지정 있으면 04, 없으면 01" },
+      "drafter": "시스템",
+      "document_no": "시스템",
+      "close_date": "시스템"
+    }
+  },
+
+  "expense": {
+    "_form_code": "AppFrm-021",
+    "_description": "경비정산서",
+    "_raw_context_hint": "최소 입력 예시: '어제 야근식대 15000원', '택시비 32000원 3/15 영수증 있음'",
+    "_raw_context_what_ai_needs": "금액, 항목명, 날짜. 영수증 파일 경로.",
+
+    "strict_fields": {
+      "amount": {
+        "description": "금액 (VAT 포함 총액, 원). 사용자 입력값이며 여러 HTML 필드로 분해됨.",
+        "why_strict": "금액 오류 = 재무 문제. 반드시 정확.",
+        "validation": ["must_be_positive_number"],
+        "inference_allowed": true,
+        "inference_note": "'15000원' → 15000. '만오천원' → 15000.",
+        "html_mapping": {
+          "item_amount[]": "floor(amount / 1.1) — 공급가액 (세전)",
+          "item_amount_vat[]": "amount - floor(amount / 1.1) — 부가세",
+          "item_amount_ral[]": "amount — 총액",
+          "total_amt": "amount — 총액"
+        }
+      },
+      "budget_type": {
+        "html_name": "budget_type",
+        "description": "예산유형 (01=일반, 02=R&D)",
+        "why_strict": "잘못된 예산유형 = 회계 오류.",
+        "default": "02",
+        "inference_allowed": true,
+        "inference_note": "대부분 R&D(02). 특별히 언급 없으면 02 기본 적용."
+      },
+      "budget_code": {
+        "html_name": "budget_code",
+        "description": "예산코드",
+        "why_strict": "잘못된 코드 = 예산 집행 오류.",
+        "default": "NN2512-0001",
+        "inference_allowed": true,
+        "inference_note": "최근 사용 코드 기본 적용. 프로젝트 변경 시 명시 필요."
+      },
+      "attachment": {
+        "description": "영수증/세금계산서",
+        "always_required": true,
+        "why_strict": "미첨부 시 JS에서 제출 차단. 예외 없음."
+      }
+    },
+
+    "inferable_fields": {
+      "item_name": {
+        "html_name": "item_desc[]",
+        "description": "항목명",
+        "inference_context": "'야근식대' → overtime meal, '택시비' → taxi fare"
+      },
+      "subject": {
+        "html_name": "subject",
+        "description": "제목",
+        "inference_context": "항목명 + 날짜로 자동 구성"
+      },
+      "pay_kind": {
+        "html_name": "pay_kind",
+        "description": "지급방식",
+        "default": "04",
+        "inference_context": "대부분 개인비환급(04). '법인카드' 언급 시 변경."
+      },
+      "invoice_date": {
+        "html_name": "invoice[]",
+        "description": "영수증 날짜",
+        "inference_context": "'어제' → 어제 날짜. 미지정 시 오늘."
+      },
+      "p_reason": {
+        "html_name": "p_reason",
+        "description": "지급사유",
+        "inference_context": "항목명에서 추론. '야근식대' → 'overtime meal - receipt attached'"
+      },
+      "participants": {
+        "html_name": "ov_member",
+        "description": "참석자 (식대일 때)",
+        "inference_context": "미언급 시 빈값. '팀원들이랑' 등 있으면 추출."
+      },
+      "purpose": {
+        "html_name": "ov_purpose",
+        "description": "용도",
+        "inference_context": "항목명에서 추론. 미지정 시 'overtime work'"
+      }
+    },
+
+    "config_fields": {},
+
+    "auto_fields": {
+      "item_amount_vat": "총액 - floor(총액/1.1)",
+      "item_amount_ral": "= 총액",
+      "total_amt": "= 총액",
+      "item_qty": "1"
+    }
+  },
+
+  "working": {
+    "_form_code": "AppFrm-027",
+    "_description": "휴일근무신청서",
+    "_raw_context_hint": "최소 입력 예시: '이번주 토요일 실험', '3/22 데이터 분석'",
+    "_raw_context_what_ai_needs": "날짜, 무슨 업무인지 한줄.",
+
+    "strict_fields": {
+      "desired_date": {
+        "html_name": "desired_date",
+        "description": "근무 희망일",
+        "format": "YYYY-MM-DD",
+        "why_strict": "날짜 오류 시 근태 기록 불일치.",
+        "validation": ["must_be_valid_date"],
+        "inference_allowed": true,
+        "inference_note": "'이번주 토요일' → 계산 가능"
+      }
+    },
+
+    "inferable_fields": {
+      "sub_subject": {
+        "html_name": "sub_subject",
+        "description": "업무 내용 (간략)",
+        "inference_context": "'실험' → 'experiment', '데이터 분석' → 'data analysis'"
+      },
+      "details": {
+        "html_name": "contents1",
+        "description": "상세 업무 내용",
+        "inference_context": "sub_subject를 좀 더 풀어쓰기. 미지정 시 sub_subject 복사."
+      },
+      "budget_type": {
+        "html_name": "budget_type",
+        "description": "예산유형",
+        "default": "02",
+        "inference_context": "대부분 R&D(02). 일반 업무면 01."
+      },
+      "budget_code": {
+        "html_name": "budget_code",
+        "description": "예산코드",
+        "default": "NN2512-0001",
+        "inference_context": "최근 사용 코드 기본 적용."
+      },
+      "wroking_place": {
+        "html_name": "wroking_place",
+        "description": "근무 장소 (note: HTML field name typo 'wroking' is intentional — matches original groupware)",
+        "default": "IPK",
+        "inference_context": "보통 IPK. '집에서' → home, '학교' → university"
+      }
+    },
+
+    "config_fields": {},
+
+    "auto_fields": {
+      "subject": "Application for Working on {날짜}, {이름}",
+      "division": "시스템 (소속)",
+      "requester": "시스템 (신청자)"
+    },
+
+    "attachment_rules": { "required": false }
+  },
+
+  "travel": {
+    "_form_code": "AppFrm-076",
+    "_description": "출장보고서",
+    "_raw_context_hint": "최소 입력 예시: 학회 URL, 포럼 프로그램 PDF, 받아적은 메모, 이메일 초대장 등",
+    "_raw_context_what_ai_needs": "어디(장소), 언제(날짜), 왜(목적/학회명), 무엇을(프로그램/세션). 이 4가지만 있으면 나머지 모두 추론 가능.",
+    "_inference_example": "사용자: '2026 KMB Winter Symposium, Shenzhen, 1/6~1/10' → AI가 제목, 목적, 기관, 토의안건, 의제, 결과예상, 결론 모두 추론",
+
+    "strict_fields": {
+      "start_date": {
+        "html_name": "start_day",
+        "description": "출장 시작일",
+        "format": "YYYY-MM-DD",
+        "why_strict": "날짜 오류 시 출장비/일비 정산 불가.",
+        "inference_allowed": true,
+        "inference_note": "'1/6' → 2026-01-06. 학회 일정에서 추출 가능."
+      },
+      "end_date": {
+        "html_name": "end_day",
+        "description": "출장 종료일",
+        "format": "YYYY-MM-DD",
+        "why_strict": "날짜 오류 시 출장비/일비 정산 불가.",
+        "validation": ["must_be_valid_date", "must_be_gte_start_date"],
+        "inference_allowed": true
+      },
+      "destination": {
+        "html_name": "report_dest",
+        "description": "출장지",
+        "why_strict": ".validate 필드. 빈값이면 제출 차단.",
+        "inference_allowed": true,
+        "inference_note": "학회 장소에서 추출. 'Shenzhen, China' 등."
+      }
+    },
+
+    "inferable_fields": {
+      "title": {
+        "html_name": "subject",
+        "description": "출장 제목",
+        "inference_context": "학회명 + 출장 유형. 예: '2026 KMB Winter Symposium 참석'"
+      },
+      "purpose": {
+        "html_name": "purpose_field",
+        "description": "출장 목적",
+        "inference_context": "학회 참석, 공동연구, 장비 점검 등. raw context에서 추론."
+      },
+      "organization": {
+        "html_name": "org_field",
+        "description": "방문 기관/학회명",
+        "inference_context": "학회명 또는 기관명. 'KMB', 'KAIST' 등."
+      },
+      "discuss_field": {
+        "html_name": "discuss_field",
+        "description": "토의 안건",
+        "inference_context": "학회 세션, 발표 주제, 미팅 안건 등. 프로그램에서 추출 가능."
+      },
+      "agenda_field": {
+        "html_name": "agenda_field",
+        "description": "회의 의제",
+        "inference_context": "구체적 세션명, 포스터 발표, 워크숍 등. 프로그램에서 추출."
+      },
+      "result_field": {
+        "html_name": "result_field",
+        "description": "출장 결과/성과 (사전: 기대성과, 사후: 실제성과)",
+        "inference_context": "사전제출: 'Expected to learn about...', 사후제출: 실제 성과 기술."
+      },
+      "attendees": {
+        "html_name": "person_field",
+        "description": "참석자",
+        "default": "본인 이름",
+        "inference_context": "동행자 언급 있으면 추가."
+      },
+      "conclusion_field": {
+        "html_name": "conclusion_field",
+        "description": "결론/소감",
+        "inference_context": "목적 + 기대효과 기반 자동 생성."
+      },
+      "other_field": {
+        "html_name": "other_field",
+        "description": "기타사항",
+        "default": "N/A",
+        "inference_context": "특이사항 없으면 N/A."
+      }
+    },
+
+    "config_fields": {
+      "report_name": { "html_name": "report_name", "source": "session userInfo.name" },
+      "report_post": { "html_name": "report_post", "source": "IPK_USER_POSITION", "default": "Researcher" },
+      "report_group": {
+        "html_name": "report_group",
+        "source": "IPK_USER_DEPT",
+        "why_strict": ".validate 필드. 빈값이면 차단.",
+        "must_not_be_empty": true,
+        "behavior_if_unset": "block_submit_with_message",
+        "unset_message": "IPK_USER_DEPT 환경변수를 설정하세요"
+      },
+      "report_leader": {
+        "html_name": "report_leader",
+        "source": "IPK_GROUP_LEADER",
+        "why_strict": ".validate 필드. 빈값이면 차단.",
+        "must_not_be_empty": true,
+        "behavior_if_unset": "block_submit_with_message",
+        "unset_message": "IPK_GROUP_LEADER 환경변수를 설정하세요"
+      }
+    },
+
+    "auto_fields": {
+      "schedule": "{시작일} ~ {종료일}",
+      "report_date": "오늘 날짜"
+    },
+
+    "attachment_rules": { "required": false, "note": "권장 (학회 참석증 등), JS 강제 없음" }
+  }
+}
