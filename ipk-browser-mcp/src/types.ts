@@ -1,5 +1,5 @@
 /** Supported form types in IPK groupware */
-export type FormType = "leave" | "expense" | "working" | "travel";
+export type FormType = "leave" | "expense" | "working" | "travel" | "travel_request";
 
 /** Leave type codes */
 export const LEAVE_TYPES: Record<string, string> = {
@@ -35,6 +35,7 @@ export const FORM_CODES: Record<FormType, string> = {
   expense: "AppFrm-021",
   working: "AppFrm-027",
   travel: "AppFrm-076",
+  travel_request: "AppFrm-023",
 };
 
 /** Human-readable leave names */

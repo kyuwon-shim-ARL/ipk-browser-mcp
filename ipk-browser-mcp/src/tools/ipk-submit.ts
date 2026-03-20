@@ -17,7 +17,7 @@ import {
 } from "../types.js";
 
 export const ipkSubmitFormSchema = {
-  form_type: z.enum(["leave", "expense", "working", "travel"]).describe("Form type to submit"),
+  form_type: z.enum(["leave", "expense", "working", "travel", "travel_request"]).describe("Form type to submit"),
   draft_only: z.boolean().default(true).describe("Save as draft (true) or submit for approval (false). Defaults to true for safety."),
   confirm_submit: z.boolean().default(false).describe("Must be true to actually submit for approval. Ignored when draft_only=true."),
 
@@ -53,7 +53,7 @@ export const ipkSubmitFormSchema = {
 };
 
 export const ipkSubmitFormDescription =
-  "Submit a form in IPK groupware. Supports: leave (휴가), expense (경비), working (휴일근무), travel (출장). " +
+  "Submit a form in IPK groupware. Supports: leave (휴가), expense (경비), working (휴일근무), travel (출장보고), travel_request (출장신청). " +
   "By default saves as draft (draft_only=true). To actually submit for approval, set draft_only=false AND confirm_submit=true.";
 
 export async function handleIpkSubmitForm(
@@ -94,6 +94,8 @@ export async function handleIpkSubmitForm(
         return await submitWorking(page, frame, sessionManager, config, params, mode);
       case "travel":
         return await submitTravel(page, frame, sessionManager, config, params, mode);
+      case "travel_request":
+        return await submitTravelRequest(page, frame, sessionManager, config, params, mode);
       default:
         return textResult({ error: true, code: "UNKNOWN_FORM", message: `Unknown form type: ${formType}` });
     }
@@ -470,6 +472,89 @@ async function submitTravel(
       message: docId
         ? `Travel ${mode === "draft" ? "draft saved" : "submitted"} (doc_id: ${docId})`
         : `Travel ${mode} completed`,
+    },
+  });
+}
+
+async function submitTravelRequest(
+  page: any,
+  frame: any,
+  sessionManager: SessionManager,
+  config: Config,
+  params: Record<string, any>,
+  mode: "draft" | "request"
+) {
+  const userInfo = sessionManager.getUserInfo()!;
+  const title = params.title || "Business Travel Request";
+  const destination = params.destination || "";
+  const startDate = params.start_date || todayStr();
+  const endDate = params.end_date || startDate;
+  const purpose = params.purpose || "Business travel";
+  const budgetType = params.budget_type || "02";
+  const budgetCode = params.budget_code || "NN2512-0001";
+
+  const subject = `[Request] ${title}`;
+
+  // Set common fields
+  await setFieldValue(frame, 'input[name="subject"]', subject);
+
+  // Try budget fields (may exist on travel request forms)
+  await setSelectValue(frame, 'select[name="budget_type"]', budgetType);
+  await page.waitForTimeout(1000);
+  await setSelectValue(frame, 'select[name="budget_code"]', budgetCode);
+
+  // Travel-specific fields - try various selectors that might exist
+  await setFieldValue(frame, 'input[name="start_day"]', startDate);
+  await setFieldValue(frame, 'input[name="end_day"]', endDate);
+  await setFieldValue(frame, '.validate[name="start_day"]', startDate);
+  await setFieldValue(frame, '.validate[name="end_day"]', endDate);
+  await setFieldValue(frame, 'input[name="destination"]', destination);
+  await setFieldValue(frame, 'textarea[name="destination"]', destination);
+  await setFieldValue(frame, '.validate[name="report_dest"]', destination);
+  await setFieldValue(frame, 'input[name="purpose"]', purpose);
+  await setFieldValue(frame, 'textarea[name="purpose"]', purpose);
+  await setFieldValue(frame, '.validate[name="purpose_field"]', purpose);
+
+  // Organization and attendees
+  if (params.organization) {
+    await setFieldValue(frame, '.validate[name="org_field"]', params.organization);
+    await setFieldValue(frame, 'input[name="organization"]', params.organization);
+  }
+  if (params.attendees) {
+    await setFieldValue(frame, '.validate[name="person_field"]', params.attendees);
+    await setFieldValue(frame, 'input[name="attendees"]', params.attendees);
+  }
+  if (params.schedule) {
+    await setFieldValue(frame, '.validate[name="date_field"]', params.schedule);
+  }
+  if (params.details) {
+    await setFieldValue(frame, 'textarea[name="contents1"]', params.details);
+    await setFieldValue(frame, '.validate[name="discuss_field"]', params.details);
+  }
+
+  // Handle attachment if provided
+  if (params.attachment_path) {
+    const fileInput = frame.locator('input[name="doc_attach_file[]"]').first();
+    await fileInput.setInputFiles(params.attachment_path);
+    await page.waitForTimeout(1000);
+  }
+
+  await page.waitForTimeout(1000);
+
+  await setFormMode(frame, mode);
+  const docId = await submitForm(page, frame, "check_form_request");
+
+  return textResult({
+    error: false,
+    data: {
+      success: true,
+      docId,
+      mode,
+      formType: "travel_request",
+      subject,
+      message: docId
+        ? `Travel request ${mode === "draft" ? "draft saved" : "submitted"} (doc_id: ${docId})`
+        : `Travel request ${mode} completed`,
     },
   });
 }
