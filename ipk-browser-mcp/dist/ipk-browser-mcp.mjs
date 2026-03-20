@@ -21021,7 +21021,12 @@ var FORM_CODES = {
   expense: "AppFrm-021",
   working: "AppFrm-027",
   travel: "AppFrm-076",
-  travel_request: "AppFrm-023"
+  travel_request: "AppFrm-023",
+  budget_transfer: "AppFrm-039"
+};
+var BUDGET_TRANSFER_CODES = {
+  rnd: "AppFrm-039",
+  general: "AppFrm-053"
 };
 var LEAVE_NAMES = {
   annual: "Annual leave",
@@ -21396,7 +21401,7 @@ async function submitForm(page, frame, method = "check_form_request") {
 
 // src/tools/ipk-submit.ts
 var ipkSubmitFormSchema = {
-  form_type: external_exports.enum(["leave", "expense", "working", "travel", "travel_request"]).describe("Form type to submit"),
+  form_type: external_exports.enum(["leave", "expense", "working", "travel", "travel_request", "budget_transfer"]).describe("Form type to submit"),
   draft_only: external_exports.boolean().default(true).describe("Save as draft (true) or submit for approval (false). Defaults to true for safety."),
   confirm_submit: external_exports.boolean().default(false).describe("Must be true to actually submit for approval. Ignored when draft_only=true."),
   // Leave fields
@@ -21424,9 +21429,14 @@ var ipkSubmitFormSchema = {
   title: external_exports.string().optional().describe("Travel title"),
   organization: external_exports.string().optional().describe("Organization/institution"),
   attendees: external_exports.string().optional().describe("Attendees"),
-  schedule: external_exports.string().optional().describe("Schedule details")
+  schedule: external_exports.string().optional().describe("Schedule details"),
+  // Budget transfer fields
+  from_budget_code: external_exports.string().optional().describe("Source budget code to transfer FROM"),
+  to_budget_code: external_exports.string().optional().describe("Destination budget code to transfer TO"),
+  transfer_amount: external_exports.number().optional().describe("Amount to transfer in KRW"),
+  transfer_type: external_exports.enum(["rnd", "general"]).default("rnd").describe("Budget transfer type: rnd (R&D, AppFrm-039) or general (AppFrm-053)")
 };
-var ipkSubmitFormDescription = "Submit a form in IPK groupware. Supports: leave (\uD734\uAC00), expense (\uACBD\uBE44), working (\uD734\uC77C\uADFC\uBB34), travel (\uCD9C\uC7A5\uBCF4\uACE0), travel_request (\uCD9C\uC7A5\uC2E0\uCCAD). By default saves as draft (draft_only=true). To actually submit for approval, set draft_only=false AND confirm_submit=true.";
+var ipkSubmitFormDescription = "Submit a form in IPK groupware. Supports: leave (\uD734\uAC00), expense (\uACBD\uBE44), working (\uD734\uC77C\uADFC\uBB34), travel (\uCD9C\uC7A5\uBCF4\uACE0), travel_request (\uCD9C\uC7A5\uC2E0\uCCAD), budget_transfer (\uBC84\uC82F\uD2B8\uB79C\uC2A4\uD37C). By default saves as draft (draft_only=true). To actually submit for approval, set draft_only=false AND confirm_submit=true. For budget_transfer, use transfer_type='rnd' (AppFrm-039, default) or transfer_type='general' (AppFrm-053).";
 async function handleIpkSubmitForm(sessionManager2, config3, params) {
   if (!sessionManager2.isLoggedIn()) {
     return textResult({ error: true, code: "NOT_LOGGED_IN", message: "Call ipk_login first" });
@@ -21442,6 +21452,18 @@ async function handleIpkSubmitForm(sessionManager2, config3, params) {
   }
   const mode = params.draft_only !== false ? "draft" : "request";
   try {
+    if (formType === "budget_transfer") {
+      const btCode = BUDGET_TRANSFER_CODES[params.transfer_type || "rnd"] || BUDGET_TRANSFER_CODES.rnd;
+      const btUrl = `${config3.baseUrl}/Document/document_write.php?approve_type=${btCode}`;
+      const mainFrame = page.frame("main_menu");
+      if (!mainFrame) {
+        return textResult({ error: true, code: "FRAME_NOT_FOUND", message: "main_menu frame not found" });
+      }
+      await mainFrame.goto(btUrl, { timeout: config3.navTimeoutMs });
+      await mainFrame.waitForLoadState("networkidle");
+      await page.waitForTimeout(1500);
+      return await submitBudgetTransfer(page, mainFrame, sessionManager2, config3, params, mode);
+    }
     const frame = await navigateToForm(page, formType, config3);
     if (!frame) {
       return textResult({ error: true, code: "NAVIGATION_FAILED", message: "Failed to navigate to form" });
@@ -21795,6 +21817,74 @@ async function submitTravelRequest(page, frame, sessionManager2, config3, params
       formType: "travel_request",
       subject,
       message: docId ? `Travel request ${mode === "draft" ? "draft saved" : "submitted"} (doc_id: ${docId})` : `Travel request ${mode} completed`
+    }
+  });
+}
+async function submitBudgetTransfer(page, frame, sessionManager2, config3, params, mode) {
+  const userInfo = sessionManager2.getUserInfo();
+  const transferType = params.transfer_type || "rnd";
+  const fromBudget = params.from_budget_code || "";
+  const toBudget = params.to_budget_code || "";
+  const amount = params.transfer_amount || params.amount || 0;
+  const reason = params.reason || params.purpose || "Budget reallocation";
+  const title = params.title || `Budget Transfer: ${fromBudget} -> ${toBudget}`;
+  if (amount !== void 0 && amount !== 0 && (typeof amount !== "number" || amount <= 0 || !Number.isFinite(amount))) {
+    return textResult({
+      error: true,
+      code: "INVALID_AMOUNT",
+      message: "Transfer amount must be a positive number"
+    });
+  }
+  const subject = `[Budget Transfer] ${title}`;
+  await setFieldValue(frame, 'input[name="subject"]', subject);
+  if (transferType === "rnd") {
+    await setSelectValue(frame, 'select[name="budget_type"]', "02");
+  } else {
+    await setSelectValue(frame, 'select[name="budget_type"]', "01");
+  }
+  await page.waitForTimeout(1e3);
+  if (fromBudget) {
+    await setSelectValue(frame, 'select[name="budget_code"]', fromBudget);
+    await setSelectValue(frame, 'select[name="from_budget_code"]', fromBudget);
+    await setSelectValue(frame, 'select[name="budget_code_from"]', fromBudget);
+    await setFieldValue(frame, 'input[name="from_budget"]', fromBudget);
+    await setFieldValue(frame, 'input[name="budget_code_from"]', fromBudget);
+  }
+  if (toBudget) {
+    await setSelectValue(frame, 'select[name="to_budget_code"]', toBudget);
+    await setSelectValue(frame, 'select[name="budget_code_to"]', toBudget);
+    await setFieldValue(frame, 'input[name="to_budget"]', toBudget);
+    await setFieldValue(frame, 'input[name="budget_code_to"]', toBudget);
+  }
+  if (amount) {
+    await setFieldValue(frame, 'input[name="amount"]', String(amount));
+    await setFieldValue(frame, 'input[name="transfer_amount"]', String(amount));
+    await setFieldValue(frame, 'input[name="item_amount[]"]', String(amount));
+    await setFieldValue(frame, 'input[name="total_amt"]', String(amount));
+  }
+  await setFieldValue(frame, 'textarea[name="reason"]', reason);
+  await setFieldValue(frame, 'textarea[name="p_reason"]', reason);
+  await setFieldValue(frame, 'textarea[name="contents1"]', reason);
+  await setFieldValue(frame, 'input[name="sub_subject"]', reason);
+  if (params.attachment_path) {
+    const fileInput = frame.locator('input[name="doc_attach_file[]"]').first();
+    await fileInput.setInputFiles(params.attachment_path);
+    await page.waitForTimeout(1e3);
+  }
+  await page.waitForTimeout(1e3);
+  await setFormMode(frame, mode);
+  const docId = await submitForm(page, frame, "check_form_request");
+  return textResult({
+    error: false,
+    data: {
+      success: true,
+      docId,
+      mode,
+      formType: "budget_transfer",
+      subject,
+      transferType,
+      message: docId ? `Budget transfer ${mode === "draft" ? "draft saved" : "submitted"} (doc_id: ${docId})` : `Budget transfer ${mode} completed`,
+      note: "Field selectors are best-effort. After first use, verify the form was filled correctly via screenshot tool and report any missing fields."
     }
   });
 }
