@@ -1,0 +1,141 @@
+{
+  "form_code": "AppFrm-043",
+  "form_name": "Seminar/Event Public Disclosure",
+  "analysis_basis": "21 documents (talks, seminars, posters, journal submissions)",
+  "fixed_fields": {
+    "saving_years": "5 years",
+    "predatory_check_confirmed": true,
+    "section_6_text": "To promote responsible research activities, we have shared the Predatory Journals/Conferences Prevention Guide and the Pre-Participation Checklist via the groupware. Researchers participating in academic activities are required to use these materials to verify that the conference they plan to attend is not a predatory one"
+  },
+  "field_schema": {
+    "subject": {
+      "type": "text",
+      "required": true,
+      "source": "user_input",
+      "note": "Title of the seminar/event/publication"
+    },
+    "requester": {
+      "type": "text",
+      "required": true,
+      "source": "profile",
+      "note": "Name of the person presenting/submitting (drafter by default)"
+    },
+    "disclosure_purpose": {
+      "type": "textarea",
+      "required": true,
+      "source": "user_input",
+      "note": "Section 1: Why the material is being publicly disclosed"
+    },
+    "disclosure_date": {
+      "type": "date",
+      "required": true,
+      "source": "user_input",
+      "note": "Section 2: Date of the seminar/event/submission"
+    },
+    "material_description": {
+      "type": "text",
+      "required": true,
+      "source": "user_input",
+      "note": "Section 3: Filename and size of the material (e.g. slides.pptx (12345678 byte))"
+    },
+    "conference_or_journal": {
+      "type": "text",
+      "required": true,
+      "source": "user_input",
+      "note": "Section 4: Name of the conference, seminar, or journal"
+    },
+    "patent_filed": {
+      "type": "radio",
+      "required": false,
+      "source": "user_input",
+      "values": ["Y", "N", ""],
+      "distribution": {"Y": 0.33, "N": 0.19, "not_answered": 0.48},
+      "note": "Q1: Did you file a patent with the presenting material?"
+    },
+    "patent_planned_within_year": {
+      "type": "radio",
+      "required": false,
+      "source": "user_input",
+      "values": ["Y", "N", ""],
+      "distribution": {"Y": 0.10, "N": 0.05, "not_answered": 0.86},
+      "note": "Q2: Planning to file patent within a year? (only relevant if Q1=N)"
+    },
+    "material_published": {
+      "type": "radio",
+      "required": false,
+      "source": "user_input",
+      "values": ["N", "Y", ""],
+      "distribution": {"N": 0.67, "Y": 0.19, "not_answered": 0.14},
+      "note": "Q3: Is the presenting material published?"
+    },
+    "collaborator_approval_obtained": {
+      "type": "radio",
+      "required": false,
+      "source": "user_input",
+      "values": ["Y", ""],
+      "distribution": {"Y": 0.76, "not_answered": 0.24},
+      "note": "Q4: Got approval from collaborators? Most common answer: Y"
+    },
+    "contains_ipk_confidential_info": {
+      "type": "radio",
+      "required": false,
+      "source": "user_input",
+      "values": ["N", ""],
+      "distribution": {"N": 0.67, "not_answered": 0.33},
+      "note": "Q5: Does material contain IPK confidential info? Most common answer: N"
+    }
+  },
+  "inference_rules": [
+    {
+      "description": "Predatory check always confirmed",
+      "then_set": "check:chk410306",
+      "to": "on",
+      "note": "All 21 docs had this checked; it is a mandatory acknowledgment"
+    },
+    {
+      "description": "Default Q4 collaborator approval",
+      "if_field": "collaborator_approval_obtained",
+      "is_empty": true,
+      "then_set": "radio:Q4",
+      "to": "Y",
+      "note": "76% of docs answered Y; default to Y"
+    },
+    {
+      "description": "Default Q5 confidential info",
+      "if_field": "contains_ipk_confidential_info",
+      "is_empty": true,
+      "then_set": "radio:Q5",
+      "to": "N",
+      "note": "67% of docs answered N; default to N"
+    },
+    {
+      "description": "Default Q3 material published",
+      "if_field": "material_published",
+      "is_empty": true,
+      "then_set": "radio:Q3",
+      "to": "N",
+      "note": "67% of docs answered N; default to N"
+    }
+  ],
+  "radio_field_map": {
+    "patent_filed": "radio:Q1",
+    "patent_planned_within_year": "radio:Q2",
+    "material_published": "radio:Q3",
+    "collaborator_approval_obtained": "radio:Q4",
+    "contains_ipk_confidential_info": "radio:Q5"
+  },
+  "minimum_user_input": [
+    "subject",
+    "disclosure_purpose",
+    "disclosure_date",
+    "material_description",
+    "conference_or_journal"
+  ],
+  "optional_user_input": [
+    "patent_filed",
+    "patent_planned_within_year",
+    "material_published",
+    "collaborator_approval_obtained",
+    "contains_ipk_confidential_info"
+  ]
+}
