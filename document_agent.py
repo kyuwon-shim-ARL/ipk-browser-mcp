@@ -471,13 +471,729 @@ class DocumentAgent:
         return user_input if user_input else None
 
 
+class SmartFormAgent:
+    """Natural language form parsing agent for IPK groupware.
+
+    Usage:
+        agent = SmartFormAgent()
+        form_code = agent.classify_form("다음주 화요일 BEXCO 출장 BC-2026-0045")
+        parsed = agent.parse_input("다음주 화 BEXCO 학회 BC-2026-0045", form_code)
+        result = agent.fill_and_validate(form_code, parsed)
+    """
+
+    # Form type detection keywords
+    FORM_KEYWORDS = {
+        "AppFrm-023": ["출장신청", "출장", "travel request", "학회", "컨퍼런스", "conference"],
+        "AppFrm-054": ["출장정산", "정산", "domestic settlement", "settlement"],
+        "AppFrm-073": ["휴가", "연차", "대휴", "반차", "leave"],
+        "AppFrm-020": ["카드", "영수증", "법인카드", "card", "expense"],
+        "AppFrm-028": ["휴가복귀", "복귀", "return"],
+        "AppFrm-043": ["세미나", "학회발표", "공개", "seminar", "disclosure"],
+        "AppFrm-026": ["해외출장", "해외", "overseas"],
+        "AppFrm-039": ["예산전용", "예산", "전용", "budget transfer", "budget", "transfer"],
+    }
+
+    # Priority order for disambiguation (more specific first)
+    FORM_PRIORITY = [
+        "AppFrm-028",  # 휴가복귀 before 휴가
+        "AppFrm-026",  # 해외출장 before 출장
+        "AppFrm-054",  # 출장정산 before 출장
+        "AppFrm-043",
+        "AppFrm-023",
+        "AppFrm-073",
+        "AppFrm-020",
+        "AppFrm-039",
+    ]
+
+    # Korean weekday map
+    WEEKDAY_KO = {"월": 0, "화": 1, "수": 2, "목": 3, "금": 4, "토": 5, "일": 6}
+
+    # Seoul/metro area city keywords
+    SEOUL_KEYWORDS = ["서울", "seoul", "coex", "코엑스", "삼성", "강남", "홍대", "여의도"]
+    GYEONGGI_SUWON_KEYWORDS = ["수원", "suwon"]
+    BUSAN_KEYWORDS = ["부산", "busan", "bexco", "벡스코"]
+    DAEJEON_KEYWORDS = ["대전", "daejeon", "dcc"]
+
+    def __init__(self, profiles_path: str = None, templates_dir: str = None):
+        base = Path(__file__).parent
+        self._profiles_path = profiles_path or str(base / "analysis_results" / "traveler_profiles.json")
+        self._templates_dir = templates_dir or str(base / "form_templates")
+        self._classification_path = str(base / "form_templates" / "FIELD_CLASSIFICATION.json")
+        self._profiles: Optional[Dict] = None
+        self._classification: Optional[Dict] = None
+
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
+
+    def classify_form(self, raw_text: str) -> str:
+        """Detect which of the 8 form types from natural language text.
+
+        Returns the AppFrm-XXX code string, or raises ValueError if ambiguous/unknown.
+        """
+        import re
+        text_lower = raw_text.lower()
+
+        # BC-XXXX-XXXX is a strong signal for travel request (AppFrm-023)
+        # ARL-XXXXXX-XX is a strong signal for leave return (AppFrm-028)
+        if re.search(r'\bBC-\d{4}-\d{4}\b', raw_text, re.IGNORECASE):
+            # Overseas beats domestic
+            for kw in self.FORM_KEYWORDS["AppFrm-026"]:
+                if kw.lower() in text_lower:
+                    return "AppFrm-026"
+            # Settlement beats travel request
+            for kw in self.FORM_KEYWORDS["AppFrm-054"]:
+                if kw.lower() in text_lower:
+                    return "AppFrm-054"
+            return "AppFrm-023"
+
+        if re.search(r'\bARL-\d{6}-\d{2,}\b', raw_text, re.IGNORECASE):
+            # "정산" with ARL → travel settlement, not leave return
+            for kw in self.FORM_KEYWORDS["AppFrm-054"]:
+                if kw.lower() in text_lower:
+                    return "AppFrm-054"
+            return "AppFrm-028"
+
+        # Receipt pattern: control number (XXXXXXXX-XX) + amount in 원 → card expense
+        if re.search(r'\d{8}-\d{2}', raw_text) and re.search(r'\d[\d,]*원', raw_text):
+            return "AppFrm-020"
+
+        for form_code in self.FORM_PRIORITY:
+            for kw in self.FORM_KEYWORDS[form_code]:
+                if kw.lower() in text_lower:
+                    return form_code
+        raise ValueError(
+            f"Cannot classify form from: '{raw_text}'. "
+            f"Try adding keywords like 출장/휴가/정산/카드/해외/예산."
+        )
+
+    def parse_input(self, raw_text: str, form_code: str = None) -> dict:
+        """Extract structured fields from unstructured natural language text.
+
+        Parses: dates, amounts, doc references, locations, purposes.
+        Returns a dict of field_name -> value for all detectable fields.
+        """
+        parsed: Dict[str, Any] = {}
+
+        # --- Dates ---
+        dates = self._parse_dates(raw_text)
+        if len(dates) == 1:
+            parsed["start_date"] = dates[0]
+            parsed["end_date"] = dates[0]
+        elif len(dates) >= 2:
+            parsed["start_date"] = dates[0]
+            parsed["end_date"] = dates[1]
+
+        # --- Document references ---
+        # ARL-XXXXXX-XX format (leave docs)
+        import re
+        arl_match = re.search(r'\bARL-\d{6}-\d{2,}\b', raw_text, re.IGNORECASE)
+        if arl_match:
+            parsed["original_leave_doc"] = arl_match.group(0).upper()
+
+        # BC-XXXX-XXXX format (budget control no)
+        bc_match = re.search(r'\bBC-\d{4}-\d{4}\b', raw_text, re.IGNORECASE)
+        if bc_match:
+            parsed["budget_control_no"] = bc_match.group(0).upper()
+
+        # --- Amounts (숫자원, 콤마 숫자) ---
+        amount_match = re.search(r'([\d,]+)\s*원', raw_text)
+        if amount_match:
+            parsed["amount"] = int(amount_match.group(1).replace(",", ""))
+
+        # Plain large number (>= 4 digits, no trailing text = could be amount)
+        if "amount" not in parsed:
+            plain_num = re.search(r'\b(\d{4,})\b', raw_text)
+            if plain_num:
+                parsed["_raw_number"] = int(plain_num.group(1))
+
+        # --- Destination / location ---
+        dest = self._parse_destination(raw_text)
+        if dest:
+            parsed["destination"] = dest
+
+        # --- Purpose / travel type from keywords ---
+        purpose_kw = self._parse_purpose_keywords(raw_text)
+        if purpose_kw:
+            parsed["_purpose_keywords"] = purpose_kw
+
+        # --- Leave type ---
+        leave_type = self._parse_leave_type(raw_text)
+        if leave_type:
+            parsed["leave_type"] = leave_type
+
+        # --- Card expense fields (AppFrm-020) ---
+        if form_code == "AppFrm-020":
+            # Control number: XXXXXXXX-XX
+            ctrl_match = re.search(r'\b(\d{8}-\d{2})\b', raw_text)
+            if ctrl_match:
+                parsed["item_control_no"] = ctrl_match.group(1)
+
+            # Amount parsing: "공급가+부가세=합계" or just total
+            # Pattern: "23819+2381=26200" or "23,819+2,381=26,200"
+            vat_split = re.search(r'([\d,]+)\s*\+\s*([\d,]+)\s*=\s*([\d,]+)', raw_text)
+            if vat_split:
+                parsed["item_amount_excl_vat"] = vat_split.group(1)
+                parsed["item_vat"] = vat_split.group(2)
+                parsed["item_total_amount"] = vat_split.group(3)
+            elif "amount" in parsed:
+                # Just total amount — estimate VAT split (10%)
+                total = parsed["amount"]
+                excl = round(total / 1.1)
+                vat = total - excl
+                parsed["item_amount_excl_vat"] = f"{excl:,}"
+                parsed["item_vat"] = f"{vat:,}"
+                parsed["item_total_amount"] = f"{total:,}"
+
+            # Vendor: last Korean/English word cluster that isn't a keyword
+            # Simple heuristic: find vendor-like tokens
+            tokens = raw_text.split()
+            skip_words = {"카드", "팀미팅", "미팅", "회의", "커피", "점심", "저녁", "원"}
+            for token in tokens:
+                clean = re.sub(r'[\d,원+=%]', '', token).strip()
+                if clean and len(clean) >= 2 and clean not in skip_words:
+                    if not re.match(r'\d{8}-\d{2}', token):
+                        parsed["item_vendor"] = clean
+                        break
+
+            # Date: if parsed start_date, use as item_date
+            if "start_date" in parsed:
+                parsed["item_date"] = parsed["start_date"]
+
+        return parsed
+
+    def fill_and_validate(self, form_code: str, parsed: dict) -> dict:
+        """Auto-fill form fields using templates and profiles.
+
+        Returns structured result with auto_filled, needs_confirmation, missing_required.
+        """
+        classification = self._load_classification()
+        form_cls = classification.get(form_code, {})
+        form_name = form_cls.get("form_name", form_code)
+
+        fields: Dict[str, Any] = {}
+        auto_filled: List[str] = []
+        needs_confirmation: List[Dict] = []
+        missing_required: List[str] = []
+
+        cls_fields = form_cls.get("fields", {})
+
+        # 1. FIXED fields — fill silently
+        for item in cls_fields.get("FIXED", []):
+            fname = item.get("field")
+            fval = item.get("value")
+            if fname and fval is not None:
+                fields[fname] = fval
+
+        # 2. Merge parsed user inputs
+        for k, v in parsed.items():
+            if not k.startswith("_"):
+                fields[k] = v
+
+        # 3. DERIVED fields — calculate deterministically
+        self._apply_derived(form_code, fields, cls_fields)
+
+        # 4. INFERABLE_HIGH — fill and note as auto_filled
+        for item in cls_fields.get("INFERABLE_HIGH", []):
+            fname = item.get("field")
+            if not fname or fname in fields:
+                continue
+            value = self._infer_high(form_code, fname, fields, parsed, item)
+            if value is not None:
+                fields[fname] = value
+                auto_filled.append(fname)
+
+        # 5. PROFILE_DEFAULT — fill from profile, mark needs_confirmation
+        profiles = self._load_profiles()
+        default_profile = self._get_default_profile(profiles)
+        for item in cls_fields.get("PROFILE_DEFAULT", []):
+            fname = item.get("field")
+            if not fname or fname in fields:
+                continue
+            value, confidence = self._infer_profile(fname, default_profile, item)
+            if value is not None:
+                fields[fname] = value
+                needs_confirmation.append({
+                    "field": fname,
+                    "value": value,
+                    "confidence": confidence,
+                    "reason": "profile default",
+                })
+
+        # 6. INFERABLE_MEDIUM — fill but mark needs_confirmation
+        for item in cls_fields.get("INFERABLE_MEDIUM", []):
+            fname = item.get("field")
+            if not fname or fname in fields:
+                continue
+            value, confidence, reason = self._infer_medium(form_code, fname, fields, parsed, item)
+            if value is not None:
+                fields[fname] = value
+                needs_confirmation.append({
+                    "field": fname,
+                    "value": value,
+                    "confidence": confidence,
+                    "reason": reason,
+                })
+
+        # 7. MANDATORY_EXACT — if not in fields, mark missing
+        for item in cls_fields.get("MANDATORY_EXACT", []):
+            fname = item.get("field")
+            if not fname:
+                continue
+            if fname not in fields or fields[fname] is None:
+                missing_required.append(fname)
+
+        # 8. CONDITIONAL_OWN_VEHICLE — only if transport_mode is own vehicle
+        transport = fields.get("transport_mode", "")
+        if "Own Vehicle" in str(transport):
+            for item in cls_fields.get("CONDITIONAL_OWN_VEHICLE", []):
+                fname = item.get("field")
+                category = item.get("category", "MANDATORY_EXACT")
+                if not fname or fname in fields:
+                    continue
+                if category == "MANDATORY_EXACT":
+                    missing_required.append(fname)
+                elif category == "INFERABLE_HIGH":
+                    # distance_km can be noted as needing Naver Maps lookup
+                    needs_confirmation.append({
+                        "field": fname,
+                        "value": None,
+                        "confidence": item.get("confidence", 0.95),
+                        "reason": item.get("rule", "Naver Maps lookup needed"),
+                    })
+
+        ready = len(missing_required) == 0
+
+        return {
+            "form_code": form_code,
+            "form_name": form_name,
+            "fields": fields,
+            "auto_filled": auto_filled,
+            "needs_confirmation": needs_confirmation,
+            "missing_required": missing_required,
+            "ready": ready,
+        }
+
+    # ------------------------------------------------------------------
+    # Date parsing
+    # ------------------------------------------------------------------
+
+    def _parse_dates(self, text: str) -> List[str]:
+        """Extract dates from natural language text. Returns list of YYYY-MM-DD strings."""
+        import re
+        today = datetime.now()
+        results = []
+
+        def _next_monday_base():
+            skip = (7 - today.weekday()) % 7 or 7
+            return today + timedelta(days=skip)
+
+        def _this_monday_base():
+            return today - timedelta(days=today.weekday())
+
+        # Check ranges BEFORE single-day to avoid consuming first day of range
+        # "다음주 화~수" — explicit next week range
+        next_week_range = re.search(
+            r'다음\s*주\s*([월화수목금토일])\s*[~\-]\s*([월화수목금토일])', text)
+        if next_week_range:
+            base = _next_monday_base()
+            wd1 = self.WEEKDAY_KO[next_week_range.group(1)]
+            wd2 = self.WEEKDAY_KO[next_week_range.group(2)]
+            results.append((base + timedelta(days=wd1)).strftime("%Y-%m-%d"))
+            results.append((base + timedelta(days=wd2)).strftime("%Y-%m-%d"))
+
+        # "이번주 화~수"
+        if not results:
+            this_week_range = re.search(
+                r'이번\s*주\s*([월화수목금토일])\s*[~\-]\s*([월화수목금토일])', text)
+            if this_week_range:
+                base = _this_monday_base()
+                wd1 = self.WEEKDAY_KO[this_week_range.group(1)]
+                wd2 = self.WEEKDAY_KO[this_week_range.group(2)]
+                results.append((base + timedelta(days=wd1)).strftime("%Y-%m-%d"))
+                results.append((base + timedelta(days=wd2)).strftime("%Y-%m-%d"))
+
+        # Bare range "화~수" with context clue nearby
+        if not results:
+            range_match = re.search(r'([월화수목금토일])\s*[~\-]\s*([월화수목금토일])', text)
+            if range_match:
+                nearby = text[max(0, range_match.start() - 10):range_match.start()]
+                base = _next_monday_base() if '다음' in nearby else _this_monday_base()
+                wd1 = self.WEEKDAY_KO[range_match.group(1)]
+                wd2 = self.WEEKDAY_KO[range_match.group(2)]
+                results.append((base + timedelta(days=wd1)).strftime("%Y-%m-%d"))
+                results.append((base + timedelta(days=wd2)).strftime("%Y-%m-%d"))
+
+        # Single day: "다음주 화요일" / "다음주 화"
+        if not results:
+            next_week_match = re.search(r'다음\s*주\s*([월화수목금토일])', text)
+            if next_week_match:
+                base = _next_monday_base()
+                wd = self.WEEKDAY_KO[next_week_match.group(1)]
+                results.append((base + timedelta(days=wd)).strftime("%Y-%m-%d"))
+
+        # "이번주 화" / "이번 주 화요일"
+        if not results:
+            this_week_match = re.search(r'이번\s*주\s*([월화수목금토일])', text)
+            if this_week_match:
+                base = _this_monday_base()
+                wd = self.WEEKDAY_KO[this_week_match.group(1)]
+                results.append((base + timedelta(days=wd)).strftime("%Y-%m-%d"))
+
+        if results:
+            return results
+
+        # ISO date: 2026-03-25
+        iso_dates = re.findall(r'\b(20\d{2})-(\d{1,2})-(\d{1,2})\b', text)
+        for y, m, d in iso_dates:
+            results.append(f"{y}-{int(m):02d}-{int(d):02d}")
+        if results:
+            return results
+
+        # Short date: 3/25 or 3.25
+        short_dates = re.findall(r'\b(\d{1,2})[/.](\d{1,2})\b', text)
+        for m, d in short_dates:
+            results.append(f"{today.year}-{int(m):02d}-{int(d):02d}")
+        if results:
+            return results
+
+        return results
+
+    # ------------------------------------------------------------------
+    # Destination / location parsing
+    # ------------------------------------------------------------------
+
+    def _parse_destination(self, text: str) -> Optional[str]:
+        """Extract destination venue/city from text."""
+        text_lower = text.lower()
+
+        # Known venue names (check verbatim first)
+        venues = {
+            "bexco": "BEXCO (부산)",
+            "벡스코": "BEXCO (부산)",
+            "coex": "COEX (서울)",
+            "코엑스": "COEX (서울)",
+            "kintex": "KINTEX (고양)",
+            "킨텍스": "KINTEX (고양)",
+            "dcc": "DCC (대전)",
+            "송도": "인천 송도",
+        }
+        for kw, venue in venues.items():
+            if kw in text_lower:
+                return venue
+
+        # City names
+        cities = {
+            "부산": "부산", "busan": "부산",
+            "대전": "대전", "daejeon": "대전",
+            "수원": "수원", "suwon": "수원",
+            "서울": "서울", "seoul": "서울",
+            "인천": "인천",
+            "광주": "광주",
+            "대구": "대구",
+            "제주": "제주",
+        }
+        for kw, city in cities.items():
+            if kw in text_lower:
+                return city
+
+        return None
+
+    # ------------------------------------------------------------------
+    # Purpose keyword parsing
+    # ------------------------------------------------------------------
+
+    def _parse_purpose_keywords(self, text: str) -> List[str]:
+        """Extract purpose-related keywords from text."""
+        keywords = []
+        text_lower = text.lower()
+        kw_map = {
+            "conference": ["학회", "conference", "컨퍼런스", "심포지엄", "symposium"],
+            "seminar": ["세미나", "seminar", "워크샵", "workshop"],
+            "sampling": ["샘플링", "sampling", "채취", "collection"],
+            "visit": ["방문", "visit", "미팅", "meeting"],
+            "training": ["교육", "training", "훈련"],
+            "presentation": ["발표", "presentation", "poster", "포스터", "paper"],
+        }
+        for category, words in kw_map.items():
+            for w in words:
+                if w.lower() in text_lower:
+                    keywords.append(category)
+                    break
+        return keywords
+
+    # ------------------------------------------------------------------
+    # Leave type parsing
+    # ------------------------------------------------------------------
+
+    def _parse_leave_type(self, text: str) -> Optional[str]:
+        """Detect leave type from Korean text."""
+        leave_kw = {
+            "annual": ["연차", "연가"],
+            "compensatory": ["대휴", "보상휴가", "compensatory"],
+            "half": ["반차", "half day", "오전반차", "오후반차"],
+            "sick": ["병가", "병원", "sick"],
+            "paternity": ["출산", "육아휴직", "paternity"],
+            "special": ["특별휴가", "경조"],
+            "official": ["공가", "공무"],
+        }
+        text_lower = text.lower()
+        for leave_type, keywords in leave_kw.items():
+            for kw in keywords:
+                if kw in text_lower:
+                    return leave_type
+        return None
+
+    # ------------------------------------------------------------------
+    # Inference helpers
+    # ------------------------------------------------------------------
+
+    def _apply_derived(self, form_code: str, fields: dict, cls_fields: dict):
+        """Calculate derived fields from other fields."""
+        # nights/days from dates
+        if "start_date" in fields and "end_date" in fields:
+            try:
+                sd = datetime.strptime(fields["start_date"], "%Y-%m-%d")
+                ed = datetime.strptime(fields["end_date"], "%Y-%m-%d")
+                nights = (ed - sd).days
+                fields.setdefault("nights", nights)
+                fields.setdefault("days", nights + 1)
+            except (ValueError, TypeError):
+                pass
+
+    def _infer_high(self, form_code: str, fname: str, fields: dict,
+                    parsed: dict, item: dict) -> Optional[Any]:
+        """Infer INFERABLE_HIGH fields."""
+        # subject
+        if fname == "subject":
+            return self._build_subject(form_code, fields)
+
+        # daily_expense from nights
+        if fname == "daily_expense":
+            nights = fields.get("nights", 0)
+            return 30000 if nights >= 1 else 20000
+
+        # nights_days (already done in derived, skip)
+        if fname in ("nights_days", "nights", "days"):
+            return None  # already handled in _apply_derived
+
+        # account_code from budget_type
+        if fname == "account_code":
+            btype = fields.get("budget_type", "R&D")
+            return "410201" if "R&D" in str(btype) else "420312"
+
+        # business_travel_type from purpose keywords
+        if fname == "business_travel_type":
+            kws = parsed.get("_purpose_keywords", [])
+            if any(k in kws for k in ["conference", "seminar"]):
+                return "Participation in the conference/seminar"
+            if any(k in kws for k in ["sampling", "visit"]):
+                return "Simple visit to vendor & etc"
+            if "training" in kws:
+                return "Training"
+            if "presentation" in kws:
+                return "Post or Paper presentation"
+            return None
+
+        # purpose_category (AppFrm-054) — same logic
+        if fname == "purpose_category":
+            kws = parsed.get("_purpose_keywords", [])
+            if any(k in kws for k in ["conference", "seminar"]):
+                return "Participation in the conference/seminar"
+            if any(k in kws for k in ["sampling", "visit"]):
+                return "Simple visit to vendor & etc"
+            return None
+
+        # predatory_check_confirmed (AppFrm-043) — always on
+        if fname == "predatory_check_confirmed":
+            return "on"
+
+        # collaborator_approval_obtained — default Y
+        if fname == "collaborator_approval_obtained":
+            return "Y"
+
+        # contains_ipk_confidential_info — default N
+        if fname == "contains_ipk_confidential_info":
+            return "N"
+
+        # material_published — default N
+        if fname == "material_published":
+            return "N"
+
+        # travel_with_invitation — default No
+        if fname == "travel_with_invitation":
+            return "No"
+
+        # car_rent — default No
+        if fname == "car_rent":
+            return "No"
+
+        # leave_type lookup for AppFrm-028
+        if fname == "leave_type":
+            # Try to get from original doc context (not available here, use default)
+            return None
+
+        return None
+
+    def _infer_profile(self, fname: str, profile: Optional[dict],
+                       item: dict) -> Tuple[Optional[Any], float]:
+        """Infer PROFILE_DEFAULT fields from traveler profile."""
+        if not profile:
+            return None, 0.0
+
+        if fname == "corp_card":
+            corp = profile.get("corp_card", {})
+            val = corp.get("default")
+            conf = corp.get("confidence", 0.7)
+            # Return last 4 digits for display
+            if val and val != "---" and "-" in val:
+                return val.split("-")[-1], conf
+            return val, conf
+
+        if fname == "traveler":
+            return profile.get("traveler"), 1.0
+
+        if fname == "budget_account_code":
+            accounts = profile.get("budget_accounts", {}).get("ranked_by_recency", [])
+            if accounts:
+                return accounts[0], 0.8
+            return None, 0.0
+
+        if fname in ("substitute_name",):
+            # Hardcoded from classification: Kyuwon's default is Guinam Wee (88%)
+            return "Guinam Wee (00528)", 0.88
+
+        if fname in ("address", "telephone"):
+            drafter = profile.get("drafter_info", "")
+            return drafter or None, 0.9
+
+        return None, 0.0
+
+    def _infer_medium(self, form_code: str, fname: str, fields: dict,
+                      parsed: dict, item: dict) -> Tuple[Optional[Any], float, str]:
+        """Infer INFERABLE_MEDIUM fields. Returns (value, confidence, reason)."""
+        if fname == "transport_mode":
+            dest = fields.get("destination", "")
+            dest_lower = dest.lower()
+            nights = fields.get("nights", 0)
+
+            # Seoul day-trip: public transport
+            if any(kw in dest_lower for kw in self.SEOUL_KEYWORDS) and nights == 0:
+                return "Other Public Transportation", 0.85, "Seoul day-trip default"
+            # Seoul overnight: still usually public
+            if any(kw in dest_lower for kw in self.SEOUL_KEYWORDS):
+                return "Other Public Transportation", 0.67, "Seoul default"
+            # Busan: split
+            if any(kw in dest_lower for kw in self.BUSAN_KEYWORDS):
+                return "Other Public Transportation", 0.60, "Busan: public or own vehicle"
+            # Suwon: own vehicle majority
+            if any(kw in dest_lower for kw in self.GYEONGGI_SUWON_KEYWORDS):
+                return "Own Vehicle - Gasoline", 0.67, "Suwon: own vehicle default"
+            # Daejeon: own vehicle
+            if any(kw in dest_lower for kw in self.DAEJEON_KEYWORDS):
+                return "Own Vehicle - Gasoline", 0.85, "Daejeon: own vehicle default"
+
+            return None, 0.0, ""
+
+        if fname in ("start_time", "end_time"):
+            nights = fields.get("nights", 0)
+            if nights == 0:  # day-trip only
+                val = "09:00" if fname == "start_time" else "18:00"
+                return val, 0.66, "day-trip default time"
+            return None, 0.0, ""
+
+        if fname in ("transport_fee", "accommodation", "food_expense"):
+            return 0, 0.60, "default 0, provide actual amount"
+
+        if fname == "venue":
+            return "4th floor meeting room", 0.88, "lab default venue"
+
+        if fname == "participants":
+            return None, 0.70, "recurring team members — specify"
+
+        if fname == "budget_type":
+            return "R&D", 0.84, "R&D default (84% of docs)"
+
+        return None, 0.0, ""
+
+    def _build_subject(self, form_code: str, fields: dict) -> Optional[str]:
+        """Build subject line from available fields."""
+        dest = fields.get("destination", "")
+        start = fields.get("start_date", "")
+        end = fields.get("end_date", "")
+        purpose_kws = fields.get("_purpose_keywords", [])
+
+        date_str = start if start == end else f"{start}~{end}"
+
+        if form_code == "AppFrm-023":
+            # [Travel] Destination Purpose dates
+            purpose_label = "Conference" if "conference" in purpose_kws or "seminar" in purpose_kws else "Visit"
+            if dest:
+                return f"[Travel] {dest} {purpose_label} {date_str}".strip()
+            return f"[Travel] Business Trip {date_str}".strip()
+
+        if form_code == "AppFrm-054":
+            return f"[Settlement] {dest} {date_str}".strip()
+
+        if form_code == "AppFrm-073":
+            leave_type = fields.get("leave_type", "Annual")
+            return f"{leave_type}, {date_str}".strip()
+
+        if form_code == "AppFrm-020":
+            return f"[Card] ER_Team activities"
+
+        if form_code == "AppFrm-028":
+            original = fields.get("original_leave_doc", "")
+            return f"Leave return {original}".strip()
+
+        if form_code == "AppFrm-026":
+            country = fields.get("country", "")
+            conf = fields.get("conference_name", "")
+            return f"[Settlement] {conf or country}".strip()
+
+        return None
+
+    # ------------------------------------------------------------------
+    # Data loaders
+    # ------------------------------------------------------------------
+
+    def _load_profiles(self) -> Dict:
+        if self._profiles is None:
+            try:
+                with open(self._profiles_path, "r", encoding="utf-8") as f:
+                    self._profiles = json.load(f)
+            except (FileNotFoundError, json.JSONDecodeError):
+                self._profiles = {}
+        return self._profiles
+
+    def _load_classification(self) -> Dict:
+        if self._classification is None:
+            try:
+                with open(self._classification_path, "r", encoding="utf-8") as f:
+                    self._classification = json.load(f)
+            except (FileNotFoundError, json.JSONDecodeError):
+                self._classification = {}
+        return self._classification
+
+    def _get_default_profile(self, profiles: Dict) -> Optional[Dict]:
+        """Return the Kyuwon Shim profile as default (primary user)."""
+        for key, val in profiles.items():
+            if "Kyuwon" in key or "00565" in key:
+                return val
+        # Fallback: first profile
+        if profiles:
+            return next(iter(profiles.values()))
+        return None
+
+
 def main():
     import argparse
 
     parser = argparse.ArgumentParser(description="문서 자동화 에이전트")
     parser.add_argument("form_type", nargs="?", default=None,
-                        choices=["leave", "working", "expense", "travel"],
-                        help="문서 유형")
+                        help="문서 유형 (leave/working/expense/travel/smart)")
+    parser.add_argument("text", nargs="?", default=None,
+                        help="smart 모드: 자연어 입력 텍스트")
     parser.add_argument("--check", "-c", action="store_true",
                         help="요구사항만 확인")
     parser.add_argument("--non-interactive", "-n", action="store_true",
@@ -485,17 +1201,63 @@ def main():
 
     args = parser.parse_args()
 
+    # Smart form agent mode
+    if args.form_type == "smart":
+        raw = args.text or ""
+        if not raw:
+            print("Usage: python document_agent.py smart \"<natural language input>\"")
+            print("Example: python document_agent.py smart \"다음주 화 COEX 학회 BC-2026-0045\"")
+            return
+
+        agent = SmartFormAgent()
+        try:
+            form_code = agent.classify_form(raw)
+        except ValueError as e:
+            print(f"Error: {e}")
+            return
+
+        parsed = agent.parse_input(raw, form_code)
+        result = agent.fill_and_validate(form_code, parsed)
+
+        print(f"\nForm: {result['form_code']} - {result['form_name']}")
+        print("=" * 60)
+
+        print("\nAuto-filled fields (green):")
+        for f in result["auto_filled"]:
+            print(f"  [auto] {f}: {result['fields'].get(f)}")
+
+        print("\nNeeds confirmation (yellow):")
+        for item in result["needs_confirmation"]:
+            print(f"  [confirm] {item['field']}: {item['value']} ({item['confidence']:.0%}) — {item['reason']}")
+
+        if result["missing_required"]:
+            print("\nMissing required fields (red):")
+            for f in result["missing_required"]:
+                print(f"  [MISSING] {f}")
+
+        print(f"\nReady to submit: {result['ready']}")
+        return
+
+    # Original DocumentAgent modes
     agent = DocumentAgent()
+    valid_types = list(DocumentAgent.FORM_REQUIREMENTS.keys())
 
     if not args.form_type:
         print("\n문서 자동화 에이전트")
         print("=" * 40)
         print("\n사용 가능한 문서 유형:")
-        for form_type in DocumentAgent.FORM_REQUIREMENTS.keys():
+        for form_type in valid_types:
             reqs = agent.get_requirements(form_type)
             print(f"\n  {form_type}:")
             print(f"    필수: {', '.join(reqs['required'])}")
             print(f"    이력추론: {', '.join(reqs['history_infer']) or '없음'}")
+        print("\n  smart: 자연어 입력 → 폼 자동 분류 및 작성")
+        print("    예: python document_agent.py smart \"다음주 화 COEX 학회 BC-2026-0045\"")
+        return
+
+    if args.form_type not in valid_types:
+        print(f"알 수 없는 문서 유형: {args.form_type}")
+        print(f"사용 가능: {', '.join(valid_types + ['smart'])}")
         return
 
     if args.non_interactive:
