@@ -764,6 +764,14 @@ class SmartFormAgent:
 
         ready = len(missing_required) == 0
 
+        # Overall confidence: LOW if missing required, MEDIUM if confirmations, HIGH if ready
+        if missing_required:
+            confidence_level = "LOW"
+        elif needs_confirmation:
+            confidence_level = "MEDIUM"
+        else:
+            confidence_level = "HIGH"
+
         return {
             "form_code": form_code,
             "form_name": form_name,
@@ -772,6 +780,7 @@ class SmartFormAgent:
             "needs_confirmation": needs_confirmation,
             "missing_required": missing_required,
             "ready": ready,
+            "confidence_level": confidence_level,
         }
 
     # ------------------------------------------------------------------
@@ -1063,9 +1072,13 @@ class SmartFormAgent:
             # Hardcoded from classification: Kyuwon's default is Guinam Wee (88%)
             return "Guinam Wee (00528)", 0.88
 
-        if fname in ("address", "telephone"):
-            drafter = profile.get("drafter_info", "")
-            return drafter or None, 0.9
+        if fname == "address":
+            val = profile.get("address")
+            return val, 0.9 if val else 0.0
+
+        if fname == "telephone":
+            val = profile.get("telephone")
+            return val, 0.9 if val else 0.0
 
         return None, 0.0
 
@@ -1198,6 +1211,8 @@ def main():
                         help="요구사항만 확인")
     parser.add_argument("--non-interactive", "-n", action="store_true",
                         help="비대화형 모드 (JSON 입력)")
+    parser.add_argument("--json", "-j", action="store_true",
+                        help="smart 모드: JSON 출력 (skill/MCP 연동용)")
 
     args = parser.parse_args()
 
@@ -1219,7 +1234,29 @@ def main():
         parsed = agent.parse_input(raw, form_code)
         result = agent.fill_and_validate(form_code, parsed)
 
+        # MCP form_type mapping
+        MCP_FORM_TYPE = {
+            "AppFrm-023": "travel_request",
+            "AppFrm-054": "travel_settlement",
+            "AppFrm-073": "leave",
+            "AppFrm-028": "leave_return",
+            "AppFrm-020": "card_expense",
+            "AppFrm-043": "seminar_disclosure",
+            "AppFrm-026": "overseas_travel",
+            "AppFrm-039": "budget_transfer",
+        }
+        result["mcp_form_type"] = MCP_FORM_TYPE.get(form_code, form_code)
+
+        if args.json:
+            # Clean fields: remove internal keys starting with _
+            clean_fields = {k: v for k, v in result["fields"].items()
+                           if not k.startswith("_")}
+            result["fields"] = clean_fields
+            print(json.dumps(result, ensure_ascii=False, indent=2, default=str))
+            return
+
         print(f"\nForm: {result['form_code']} - {result['form_name']}")
+        print(f"Confidence: {result['confidence_level']}")
         print("=" * 60)
 
         print("\nAuto-filled fields (green):")
@@ -1236,6 +1273,7 @@ def main():
                 print(f"  [MISSING] {f}")
 
         print(f"\nReady to submit: {result['ready']}")
+        print(f"MCP form_type: {result['mcp_form_type']}")
         return
 
     # Original DocumentAgent modes
