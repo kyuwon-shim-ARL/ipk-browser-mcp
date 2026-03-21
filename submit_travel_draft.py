@@ -64,9 +64,7 @@ Recommendations:
 Key Takeaway: AI-biotechnology convergence has reached practical application phase; Korean infrastructure (Biofoundry, K-BDS) provides valuable collaborative resources"""
 
 
-def escape_js_string(s):
-    """Escape string for JavaScript"""
-    return s.replace('\\', '\\\\').replace('"', '\\"').replace('\n', '\\n').replace('\r', '\\r')
+from form_utils import escape_js_double as escape_js_string
 
 
 def main():

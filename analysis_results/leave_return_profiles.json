@@ -1,0 +1,78 @@
+{
+  "Guinam Wee": {
+    "writer": "Guinam Wee",
+    "n_documents": 3,
+    "low_confidence": true,
+    "leave_type_distribution": {
+      "Compensatory leave": 2,
+      "Annual leave": 1
+    },
+    "return_days_distribution": {
+      "1": 2,
+      "0": 1
+    },
+    "return_hours_distribution": {
+      "0": 2,
+      "1": 1
+    },
+    "drafter_info": "Antibacterial Resistance Lab - Team Member - Guinam Wee (00528)"
+  },
+  "Kyuwon Shim": {
+    "writer": "Kyuwon Shim",
+    "n_documents": 3,
+    "low_confidence": true,
+    "leave_type_distribution": {
+      "Annual leave": 2,
+      "Compensatory leave": 1
+    },
+    "return_days_distribution": {
+      "1": 2,
+      "0": 1
+    },
+    "return_hours_distribution": {
+      "0": 2,
+      "1": 1
+    },
+    "drafter_info": "Antibacterial Resistance Lab - Team Member - Kyuwon Shim (00565)"
+  },
+  "Minjeong Woo": {
+    "writer": "Minjeong Woo",
+    "n_documents": 9,
+    "low_confidence": false,
+    "leave_type_distribution": {
+      "Compensatory leave": 6,
+      "Annual leave": 3
+    },
+    "return_days_distribution": {
+      "0": 7,
+      "1": 2
+    },
+    "return_hours_distribution": {
+      "1": 4,
+      "0": 2,
+      "4": 1,
+      "3": 1,
+      "5": 1
+    },
+    "drafter_info": "Antibacterial Resistance Lab - Team Member - Minjeong Woo (00316)"
+  },
+  "Sol Lee": {
+    "writer": "Sol Lee",
+    "n_documents": 9,
+    "low_confidence": false,
+    "leave_type_distribution": {
+      "Compensatory leave": 5,
+      "Annual leave": 4
+    },
+    "return_days_distribution": {
+      "1": 5,
+      "0": 4
+    },
+    "return_hours_distribution": {
+      "0": 5,
+      "3": 3,
+      "4": 1
+    },
+    "drafter_info": "Antibacterial Resistance Lab - Team Member - Sol Lee (00493)"
+  }
+}

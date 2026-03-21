@@ -1,0 +1,294 @@
+{
+  "form_code": "AppFrm-023",
+  "form_name": "Domestic Travel Request",
+  "url_pattern": "/Document/document_write.php?approve_type=AppFrm-023",
+  "total_docs_analyzed": 108,
+  "fixed_fields": {
+    "retention": {
+      "value": "5",
+      "text": "5 years"
+    },
+    "miscellaneous": 0,
+    "additional_daily": 0
+  },
+  "field_schema": {
+    "subject": {
+      "type": "text",
+      "required": true,
+      "source": "user_input"
+    },
+    "start_date": {
+      "type": "date",
+      "required": true,
+      "source": "user_input"
+    },
+    "end_date": {
+      "type": "date",
+      "required": true,
+      "source": "user_input"
+    },
+    "start_time": {
+      "type": "time",
+      "required": false,
+      "source": "user_input",
+      "note": "only for day-trips"
+    },
+    "end_time": {
+      "type": "time",
+      "required": false,
+      "source": "user_input"
+    },
+    "purpose": {
+      "type": "textarea",
+      "required": true,
+      "source": "user_input"
+    },
+    "destination": {
+      "type": "text",
+      "required": true,
+      "source": "user_input"
+    },
+    "budget_control_no": {
+      "type": "text",
+      "required": true,
+      "source": "user_input",
+      "note": "from IPK budget system"
+    }
+  },
+  "inference_rules": {
+    "nights_days": {
+      "description": "Infer nights/days from date range",
+      "rule": "nights = (end_date - start_date).days; days = nights + 1"
+    },
+    "daily_expense": {
+      "description": "Infer daily expense from nights",
+      "rule": "if nights == 0: 20000 (66% of corpus); if nights >= 1: 30000 (31%)",
+      "values": {
+        "day_trip": 20000,
+        "overnight": 30000
+      },
+      "confidence": 0.97
+    },
+    "budget_account_from_bc": {
+      "description": "Budget Control No -> Budget Account Code (deterministic lookup)",
+      "rule": "100% deterministic: each BC# maps to exactly one budget_account",
+      "confidence": 1.0,
+      "note": "BC# is required user input, not inferrable"
+    },
+    "account_code_from_budget_type": {
+      "description": "Budget type determines account code",
+      "rule": "R&D -> 410201 (Domestic Business Travel); General -> 420312 (Business Travel - Domestic)",
+      "values": {
+        "R&D": "410201",
+        "General": "420312"
+      },
+      "confidence": 1.0
+    },
+    "corp_card": {
+      "description": "Per-traveler soft default from profile",
+      "rule": "lookup traveler_profiles.json -> corp_card.default",
+      "confidence_range": "60-100% depending on traveler",
+      "note": "shared lab resource, always confirm with user"
+    },
+    "transport_from_destination": {
+      "description": "Transport mode partially inferrable from destination region",
+      "rules": [
+        {
+          "condition": "Seoul day-trip",
+          "transport": "Other Public Transportation",
+          "confidence": 0.85
+        },
+        {
+          "condition": "Gyeonggi-do",
+          "transport": "variable (public 33% vs vehicle 67%)",
+          "confidence": 0.67
+        },
+        {
+          "condition": "outside metro (Gangwon, Busan, etc)",
+          "transport": "Own Vehicle",
+          "confidence": 0.8
+        }
+      ]
+    },
+    "business_travel_type": {
+      "description": "Infer from purpose keywords",
+      "rules": [
+        {
+          "keywords": [
+            "conference",
+            "symposium",
+            "seminar",
+            "workshop",
+            "meeting",
+            "forum"
+          ],
+          "value": "Participation in the conference/seminar",
+          "code": "2"
+        },
+        {
+          "keywords": [
+            "sampling",
+            "collection",
+            "visit",
+            "survey"
+          ],
+          "value": "Simple visit to vendor & etc",
+          "code": "5"
+        },
+        {
+          "keywords": [
+            "training",
+            "교육"
+          ],
+          "value": "Training",
+          "code": "3"
+        },
+        {
+          "keywords": [
+            "presentation",
+            "poster",
+            "paper"
+          ],
+          "value": "Post or Paper presentation",
+          "code": "4"
+        }
+      ],
+      "distribution": {
+        "conference/seminar": 0.47,
+        "vendor visit": 0.44,
+        "training": 0.04,
+        "presentation": 0.02
+      }
+    }
+  },
+  "ajax_cascade_sequence": [
+    {
+      "field": "bound_code",
+      "delay_ms": 1500,
+      "note": "triggers province_code options"
+    },
+    {
+      "field": "province_code",
+      "delay_ms": 2000,
+      "note": "triggers city_code options"
+    },
+    {
+      "field": "city_code",
+      "delay_ms": 1500,
+      "note": "triggers travel_type_code options"
+    },
+    {
+      "field": "travel_type_code",
+      "delay_ms": 1000
+    },
+    {
+      "field": "budget_type",
+      "delay_ms": 2000,
+      "note": "triggers budget_code options"
+    },
+    {
+      "field": "budget_code",
+      "delay_ms": 1500,
+      "note": "triggers item_no options"
+    },
+    {
+      "field": "item_no",
+      "delay_ms": 1000
+    }
+  ],
+  "city_transport_lookup": {
+    "Seoul (서울특별시) - Seoul (서울)": [
+      {
+        "transport": "Other Public Transporation",
+        "count": 31
+      },
+      {
+        "transport": "Own Vehicle - Gasoline",
+        "count": 18
+      }
+    ],
+    "Gyeonggi-do (경기도) - Suwon (수원)": [
+      {
+        "transport": "Own Vehicle - Gasoline",
+        "count": 14
+      },
+      {
+        "transport": "Other Public Transporation",
+        "count": 7
+      },
+      {
+        "transport": "Own Vehicle - Diesel",
+        "count": 1
+      }
+    ],
+    "Daejeon (대전광역시) - Daejeon (대전광역시)": [
+      {
+        "transport": "Own Vehicle - Gasoline",
+        "count": 12
+      },
+      {
+        "transport": "Other Public Transporation",
+        "count": 2
+      }
+    ],
+    "Busan (부산광역시) - Busan (부산광역시)": [
+      {
+        "transport": "Own Vehicle - Gasoline",
+        "count": 6
+      },
+      {
+        "transport": "Other Public Transporation",
+        "count": 4
+      }
+    ],
+    "Gangwon-do (강원도) - Other (기타)": [
+      {
+        "transport": "Own Vehicle - Gasoline",
+        "count": 3
+      },
+      {
+        "transport": "Own Vehicle - Diesel",
+        "count": 1
+      }
+    ],
+    "Jeju-do (제주도) - Jeju (제주)": [
+      {
+        "transport": "Other Public Transporation",
+        "count": 2
+      }
+    ],
+    "Gyeongsangbuk-do (경상북도) - Pohang (포항)": [
+      {
+        "transport": "Other Public Transporation",
+        "count": 2
+      }
+    ],
+    "Gyeongsangbuk-do (경상북도) - Gimcheon (김천)": [
+      {
+        "transport": "Other Public Transporation",
+        "count": 1
+      }
+    ],
+    "Gangwon-do (강원도) - Chuncheon (춘천)": [
+      {
+        "transport": "Own Vehicle - Gasoline",
+        "count": 1
+      }
+    ]
+  },
+  "minimum_required_inputs": [
+    "subject",
+    "start_date",
+    "end_date",
+    "destination",
+    "budget_control_no",
+    "purpose"
+  ],
+  "optional_inputs": [
+    "start_time",
+    "end_time",
+    "corp_card_override",
+    "business_travel_type_override",
+    "transport_override"
+  ]
+}

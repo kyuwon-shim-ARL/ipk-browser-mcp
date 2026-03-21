@@ -1,0 +1,251 @@
+{
+  "form_code": "AppFrm-026",
+  "form_name": "Overseas Travel Settlement",
+  "analysis_basis": "14 documents (Vietnam x7, France x3, USA x2, Poland x2)",
+  "fixed_fields": {
+    "saving_years": "5 years"
+  },
+  "field_schema": {
+    "subject": {
+      "type": "text",
+      "required": true,
+      "source": "inference",
+      "note": "Auto: '[Settlement] {conference_name}' or '[Settlement] Overseas Business Travel ({conference_name})'"
+    },
+    "traveler": {
+      "type": "text",
+      "required": true,
+      "source": "profile",
+      "note": "Name and payroll ID of the traveler, format: 'Name(XXXXXX)'"
+    },
+    "budget_control_no": {
+      "type": "text",
+      "required": true,
+      "source": "user_input",
+      "note": "Budget control number from the original travel request approval"
+    },
+    "country": {
+      "type": "text",
+      "required": true,
+      "source": "user_input",
+      "note": "Destination country and city, e.g. 'USA (San Francisco)', 'Vietnam'"
+    },
+    "conference_name": {
+      "type": "text",
+      "required": true,
+      "source": "user_input",
+      "note": "Full name of the conference or organization visited"
+    },
+    "purpose": {
+      "type": "textarea",
+      "required": true,
+      "source": "user_input",
+      "note": "Section: Purpose of Business Travel (narrative description)"
+    },
+    "travel_with_invitation": {
+      "type": "radio",
+      "required": true,
+      "source": "user_input",
+      "values": ["Yes", "No"],
+      "distribution": {"No": 1.0},
+      "note": "All 14 docs: No. Default to No unless explicitly invited"
+    },
+    "car_rent": {
+      "type": "radio",
+      "required": true,
+      "source": "user_input",
+      "values": ["Yes", "No"],
+      "distribution": {"No": 1.0},
+      "note": "All 14 docs: No"
+    },
+    "business_materials": {
+      "type": "text",
+      "required": false,
+      "source": "user_input",
+      "note": "Attached business-related materials (filename and byte size)"
+    },
+    "budget_account_code": {
+      "type": "text",
+      "required": true,
+      "source": "profile",
+      "note": "Full grant account string, e.g. 'R&D - ... - Overseas Business Travel [410202] (Period: ...)'"
+    },
+    "payment_date": {
+      "type": "date",
+      "required": true,
+      "source": "user_input",
+      "note": "Date of settlement payment; appears in approval section header"
+    },
+    "travel_start": {
+      "type": "date",
+      "required": true,
+      "source": "user_input",
+      "note": "Departure date from Korea"
+    },
+    "travel_end": {
+      "type": "date",
+      "required": true,
+      "source": "user_input",
+      "note": "Arrival back in Korea"
+    },
+    "schedule_rows": {
+      "type": "array",
+      "required": true,
+      "source": "user_input",
+      "item_schema": {
+        "from": "date",
+        "to": "date",
+        "schedule": "text",
+        "transportation": "text"
+      },
+      "note": "Daily itinerary table rows"
+    },
+    "transport_fee_total_budget": {
+      "type": "integer",
+      "required": false,
+      "source": "user_input",
+      "note": "Approved transport budget (KRW). Present in 79% of docs"
+    },
+    "transport_fee_corp_card": {
+      "type": "integer",
+      "required": false,
+      "source": "user_input",
+      "note": "Amount paid via institute credit card for transport"
+    },
+    "transport_fee_cash": {
+      "type": "integer",
+      "required": false,
+      "source": "user_input",
+      "note": "Amount paid via personal card/cash for transport"
+    },
+    "daily_expense_total_budget": {
+      "type": "integer",
+      "required": true,
+      "source": "user_input",
+      "note": "Daily allowance budget. Present in 100% of docs"
+    },
+    "daily_expense_cash": {
+      "type": "integer",
+      "required": true,
+      "source": "user_input",
+      "note": "Daily allowance paid as cash/personal card"
+    },
+    "accommodation_total_budget": {
+      "type": "integer",
+      "required": false,
+      "source": "user_input",
+      "note": "Accommodation budget. Present in 71% of docs"
+    },
+    "accommodation_corp_card": {
+      "type": "integer",
+      "required": false,
+      "source": "user_input",
+      "note": "Accommodation paid via institute credit card"
+    },
+    "food_expense_total_budget": {
+      "type": "integer",
+      "required": true,
+      "source": "user_input",
+      "note": "Food expense budget. Present in 100% of docs"
+    },
+    "food_expense_cash": {
+      "type": "integer",
+      "required": true,
+      "source": "user_input",
+      "note": "Food expense paid as cash/personal card"
+    },
+    "miscellaneous_total_budget": {
+      "type": "integer",
+      "required": false,
+      "source": "user_input",
+      "note": "Misc expenses (visa, insurance etc). Present in 14% of docs"
+    },
+    "corp_card_no": {
+      "type": "text",
+      "required": false,
+      "source": "profile",
+      "note": "Institute credit card number, format: XXXX-XXXX-XXXX-XXXX. Present in 93% of docs"
+    },
+    "settle_amount": {
+      "type": "integer",
+      "required": true,
+      "source": "derived",
+      "note": "Total settled amount (KRW). Range across docs: 300,240 ~ 6,185,439, avg ~2,638,485"
+    },
+    "reimbursement_to_traveler": {
+      "type": "integer",
+      "required": true,
+      "source": "derived",
+      "note": "Amount to be reimbursed to traveler for out-of-pocket expenses"
+    }
+  },
+  "inference_rules": [
+    {
+      "description": "Subject auto-generation",
+      "then_set": "subject",
+      "template": "[Settlement] {conference_name}",
+      "note": "Some docs use '[Settlement] Overseas Business Travel ({conference_name})'"
+    },
+    {
+      "description": "Default travel_with_invitation",
+      "then_set": "travel_with_invitation",
+      "to": "No",
+      "note": "100% of docs: No"
+    },
+    {
+      "description": "Default car_rent",
+      "then_set": "car_rent",
+      "to": "No",
+      "note": "100% of docs: No"
+    },
+    {
+      "description": "Corp card from profile",
+      "then_set": "corp_card_no",
+      "to_profile_key": "corp_card.default",
+      "soft_default": true,
+      "note": "May be shared lab resource; verify before use"
+    },
+    {
+      "description": "Budget account from profile ranked by recency",
+      "then_set": "budget_account_code",
+      "to_profile_key": "budget_accounts.ranked_by_recency[0]",
+      "note": "Grant-cycle dependent; use most recent active grant"
+    }
+  ],
+  "traveler_profiles": {
+    "note": "9 unique travelers identified in 14 documents",
+    "fields": ["corp_card", "budget_accounts", "countries_visited", "drafter_info"]
+  },
+  "budget_summary": {
+    "settle_amount_range_krw": [300240, 6185439],
+    "settle_amount_avg_krw": 2638485,
+    "common_categories": ["Transport Fee", "Daily Expense", "Accommodation", "Food Expense", "Miscellaneous"]
+  },
+  "minimum_user_input": [
+    "budget_control_no",
+    "country",
+    "conference_name",
+    "purpose",
+    "travel_start",
+    "travel_end",
+    "payment_date",
+    "daily_expense_total_budget",
+    "daily_expense_cash",
+    "food_expense_total_budget",
+    "food_expense_cash",
+    "settle_amount",
+    "reimbursement_to_traveler"
+  ],
+  "optional_user_input": [
+    "transport_fee_total_budget",
+    "transport_fee_corp_card",
+    "transport_fee_cash",
+    "accommodation_total_budget",
+    "accommodation_corp_card",
+    "miscellaneous_total_budget",
+    "business_materials",
+    "schedule_rows",
+    "corp_card_no",
+    "budget_account_code"
+  ]
+}

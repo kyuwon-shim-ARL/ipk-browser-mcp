@@ -1,0 +1,493 @@
+{
+  "Connor Joseph Wood (00454 )": {
+    "traveler": "Connor Joseph Wood (00454 )",
+    "n_documents": 5,
+    "low_confidence": true,
+    "corp_card": {
+      "default": "---",
+      "confidence": 0.8,
+      "all_used": {
+        "---": 4,
+        "5525-7642-1694-9988": 1
+      },
+      "note": "shared lab resource, soft default only"
+    },
+    "budget_accounts": {
+      "ranked_by_recency": [
+        "R&D - 2026 Healthcare Technology Research Program_2nd_Connor Wood_최종종료) [EZ: KD2602-0000] [KD2602-0001] - Domestic Business Travel[410201]\n(Period : 2026-01-01~2026-12-31)",
+        "R&D - 2025 Healthcare Technology Research Program_1st_Connor Wood [EZ: KD2503-0000] [KD2503-0001] - Domestic Business Travel[410201]\n(Period : 2025-04-01~2025-12-31)",
+        "R&D - 2024 Korea-EU Collaboration Promotion Program_1st_Soojin Jang [EZ: NN2413-0000] [NN2413-0001] - Domestic Business Travel[410201]\n(Period : 2024-10-01~2025-09-30)",
+        "General - 과제수당_ARRL [GW170000] [GW17_ARRL] - Business Travel - Domestic[420312]\n(Period : 2017-01-01~2033-12-31)"
+      ],
+      "total_unique": 4,
+      "note": "grant-cycle dependent, ranked by most recent use"
+    },
+    "city_transport_patterns": {
+      "Gyeonggi-do (경기도) - Suwon (수원) - Own Vehicle - Gasoline": 2,
+      "Seoul (서울특별시) - Seoul (서울) - Other Public Transporation": 2,
+      "Seoul (서울특별시) - Seoul (서울) - Own Vehicle - Gasoline": 1
+    },
+    "travel_type_distribution": {
+      "Technical meeting": 2,
+      "Simple visit to vendor & etc": 2,
+      "Participation in the conference/seminar": 1
+    },
+    "daily_expense_values": {
+      "20000": 5
+    },
+    "drafter_info": "Antibacterial Resistance Lab - Team Member - Connor Joseph Wood (00454)"
+  },
+  "Guinam Wee (00528 )": {
+    "traveler": "Guinam Wee (00528 )",
+    "n_documents": 11,
+    "low_confidence": false,
+    "corp_card": {
+      "default": "5525-7642-1492-9594",
+      "confidence": 0.73,
+      "all_used": {
+        "5525-7642-1492-9594": 8,
+        "4518-4445-1265-8391": 2,
+        "---": 1
+      },
+      "note": "shared lab resource, soft default only"
+    },
+    "budget_accounts": {
+      "ranked_by_recency": [
+        "R&D - 2022 GARDP FFS_Soojin Jang (ARL) [FS2214-0000] [FS2214-0001] - Domestic Business Travel[410201]\n(Period : 2022-01-01~2028-08-18)",
+        "R&D - 2025 GloPID-R Program(생명연 위탁)_1st_Soojin Jang [EZ: NN2509-0000] [NN2509-0001] - Domestic Business Travel[410201]\n(Period : 2025-01-01~2025-12-31)",
+        "R&D - 2025 Mid-career Research Program_1st_Soojin Jang [EZ: NN2512-0000] [NN2512-0001] - Domestic Business Travel[410201]\n(Period : 2025-03-01~2026-02-28)"
+      ],
+      "total_unique": 3,
+      "note": "grant-cycle dependent, ranked by most recent use"
+    },
+    "city_transport_patterns": {
+      "Seoul (서울특별시) - Seoul (서울) - Other Public Transporation": 7,
+      "Gyeonggi-do (경기도) - Suwon (수원) - Other Public Transporation": 2,
+      "Daejeon (대전광역시) - Daejeon (대전광역시) - Other Public Transporation": 1,
+      "Busan (부산광역시) - Busan (부산광역시) - Own Vehicle - Gasoline": 1
+    },
+    "travel_type_distribution": {
+      "Simple visit to vendor & etc": 6,
+      "Participation in the conference/seminar": 5
+    },
+    "daily_expense_values": {
+      "20000": 9,
+      "30000": 2
+    },
+    "drafter_info": "Antibacterial Resistance Lab - Team Member - Guinam Wee (00528)"
+  },
+  "Hyun-Jung Lee (00383 )": {
+    "traveler": "Hyun-Jung Lee (00383 )",
+    "n_documents": 7,
+    "low_confidence": false,
+    "corp_card": {
+      "default": "---",
+      "confidence": 0.71,
+      "all_used": {
+        "---": 5,
+        "4518-4445-1265-8391": 2
+      },
+      "note": "shared lab resource, soft default only"
+    },
+    "budget_accounts": {
+      "ranked_by_recency": [
+        "R&D - 연구지원계정_Soojin Jang [IPK-RS] [RS_JSJ] - Domestic Business Travel[410201]\n(Period : 2025-11-10~2035-12-31)",
+        "R&D - 2022 GARDP FFS_Soojin Jang (ARL) [FS2214-0000] [FS2214-0001] - Domestic Business Travel[410201]\n(Period : 2022-01-01~2028-08-18)",
+        "R&D - 2025 Bio-medical program (POSTEC 대형장비과제)_2nd_Inhee Choi (ARL) [EZ: NN2503-0000] [NN2503-0002] - Domestic Business Travel[410201]\n(Period : 2025-01-01~2025-12-31)",
+        "R&D - 2022 Peptoide FFS_Soojin Jang (Direct) [FS2226-0000] [FS2226-0001] - Domestic Business Travel[410201]\n(Period : 2022-12-01~2027-08-31)"
+      ],
+      "total_unique": 4,
+      "note": "grant-cycle dependent, ranked by most recent use"
+    },
+    "city_transport_patterns": {
+      "Seoul (서울특별시) - Seoul (서울) - Other Public Transporation": 2,
+      "Daejeon (대전광역시) - Daejeon (대전광역시) - Own Vehicle - Gasoline": 1,
+      "Jeju-do (제주도) - Jeju (제주) - Other Public Transporation": 1,
+      "Gyeonggi-do (경기도) - Suwon (수원) - Own Vehicle - Diesel": 1,
+      "Gyeonggi-do (경기도) - Suwon (수원) - Other Public Transporation": 1
+    },
+    "travel_type_distribution": {
+      "Simple visit to vendor & etc": 3,
+      "Participation in the conference/seminar": 3,
+      "Post or Paper presentation": 1
+    },
+    "daily_expense_values": {
+      "20000": 4,
+      "30000": 3
+    },
+    "drafter_info": "Antibacterial Resistance Lab - Team Member - Hyun-Jung Lee (00383)"
+  },
+  "Hyungjun Kim (00282 )": {
+    "traveler": "Hyungjun Kim (00282 )",
+    "n_documents": 5,
+    "low_confidence": true,
+    "corp_card": {
+      "default": "5525-7642-1492-9594",
+      "confidence": 0.8,
+      "all_used": {
+        "5525-7642-1492-9594": 4,
+        "4518-4445-1265-8391": 1
+      },
+      "note": "shared lab resource, soft default only"
+    },
+    "budget_accounts": {
+      "ranked_by_recency": [
+        "R&D - 2025 Mid-career Research Program_1st_Soojin Jang [EZ: NN2512-0000] [NN2512-0001] - Domestic Business Travel[410201]\n(Period : 2025-03-01~2026-02-28)",
+        "R&D - 2025 Bio-medical program (POSTEC 대형장비과제)_2nd_Inhee Choi (ARL) [EZ: NN2503-0000] [NN2503-0002] - Domestic Business Travel[410201]\n(Period : 2025-01-01~2025-12-31)",
+        "R&D - 2024 Korea-EU Collaboration Promotion Program_1st_Soojin Jang [EZ: NN2413-0000] [NN2413-0001] - Domestic Business Travel[410201]\n(Period : 2024-10-01~2025-09-30)"
+      ],
+      "total_unique": 3,
+      "note": "grant-cycle dependent, ranked by most recent use"
+    },
+    "city_transport_patterns": {
+      "Seoul (서울특별시) - Seoul (서울) - Other Public Transporation": 2,
+      "Gangwon-do (강원도) - Other (기타) - Own Vehicle - Gasoline": 1,
+      "Gyeonggi-do (경기도) - Suwon (수원) - Own Vehicle - Gasoline": 1,
+      "Busan (부산광역시) - Busan (부산광역시) - Other Public Transporation": 1
+    },
+    "travel_type_distribution": {
+      "Participation in the conference/seminar": 4,
+      "Simple visit to vendor & etc": 1
+    },
+    "daily_expense_values": {
+      "20000": 3,
+      "30000": 2
+    },
+    "drafter_info": "Antibacterial Resistance Lab - Team Member - Hyungjun Kim (00282)"
+  },
+  "Juchan Hwang (00456 )": {
+    "traveler": "Juchan Hwang (00456 )",
+    "n_documents": 7,
+    "low_confidence": false,
+    "corp_card": {
+      "default": "5525-7642-1492-9594",
+      "confidence": 0.71,
+      "all_used": {
+        "5525-7642-1492-9594": 5,
+        "5525-7641-9891-4919": 2
+      },
+      "note": "shared lab resource, soft default only"
+    },
+    "budget_accounts": {
+      "ranked_by_recency": [
+        "R&D - 2025 GloPID-R Program(생명연 위탁)_1st_Soojin Jang [EZ: NN2509-0000] [NN2509-0001] - Domestic Business Travel[410201]\n(Period : 2025-01-01~2025-12-31)",
+        "R&D - 2025 Mid-career Research Program_1st_Soojin Jang [EZ: NN2512-0000] [NN2512-0001] - Domestic Business Travel[410201]\n(Period : 2025-03-01~2026-02-28)"
+      ],
+      "total_unique": 2,
+      "note": "grant-cycle dependent, ranked by most recent use"
+    },
+    "city_transport_patterns": {
+      "Seoul (서울특별시) - Seoul (서울) - Other Public Transporation": 6,
+      "Busan (부산광역시) - Busan (부산광역시) - Other Public Transporation": 1
+    },
+    "travel_type_distribution": {
+      "Simple visit to vendor & etc": 5,
+      "Participation in the conference/seminar": 2
+    },
+    "daily_expense_values": {
+      "20000": 6,
+      "30000": 1
+    },
+    "drafter_info": "Antibacterial Resistance Lab - Team Member - Juchan Hwang (00456)"
+  },
+  "Kyungbae Min (00467 )": {
+    "traveler": "Kyungbae Min (00467 )",
+    "n_documents": 5,
+    "low_confidence": true,
+    "corp_card": {
+      "default": "5525-7642-1492-9594",
+      "confidence": 1.0,
+      "all_used": {
+        "5525-7642-1492-9594": 5
+      },
+      "note": "shared lab resource, soft default only"
+    },
+    "budget_accounts": {
+      "ranked_by_recency": [
+        "R&D - 2025 Bio-medical program (POSTEC 대형장비과제)_2nd_Inhee Choi (ARL) [EZ: NN2503-0000] [NN2503-0002] - Domestic Business Travel[410201]\n(Period : 2025-01-01~2025-12-31)",
+        "R&D - 2022 GARDP FFS_Soojin Jang (ARL) [FS2214-0000] [FS2214-0001] - Domestic Business Travel[410201]\n(Period : 2022-01-01~2028-08-18)"
+      ],
+      "total_unique": 2,
+      "note": "grant-cycle dependent, ranked by most recent use"
+    },
+    "city_transport_patterns": {
+      "Gyeonggi-do (경기도) - Suwon (수원) - Other Public Transporation": 1,
+      "Within Metropolitan (관내) - Other Public Transporation": 1,
+      "Gyeongsangbuk-do (경상북도) - Pohang (포항) - Other Public Transporation": 1,
+      "Seoul (서울특별시) - Seoul (서울) - Other Public Transporation": 1,
+      "Busan (부산광역시) - Busan (부산광역시) - Other Public Transporation": 1
+    },
+    "travel_type_distribution": {
+      "Participation in the conference/seminar": 3,
+      "Simple visit to vendor & etc": 1,
+      "Post or Paper presentation": 1
+    },
+    "daily_expense_values": {
+      "20000": 2,
+      "30000": 2,
+      "15000": 1
+    },
+    "drafter_info": "Antibacterial Resistance Lab - Team Member - Kyungbae Min (00467)"
+  },
+  "Kyuwon Shim (00565 )": {
+    "traveler": "Kyuwon Shim (00565 )",
+    "n_documents": 8,
+    "low_confidence": false,
+    "corp_card": {
+      "default": "5525-7642-1492-9594",
+      "confidence": 0.88,
+      "all_used": {
+        "5525-7642-1492-9594": 7,
+        "---": 1
+      },
+      "note": "shared lab resource, soft default only"
+    },
+    "budget_accounts": {
+      "ranked_by_recency": [
+        "R&D - 연구지원계정_Soojin Jang [IPK-RS] [RS_JSJ] - Domestic Business Travel[410201]\n(Period : 2025-11-10~2035-12-31)",
+        "R&D - 2025 Mid-career Research Program_1st_Soojin Jang [EZ: NN2512-0000] [NN2512-0001] - Domestic Business Travel[410201]\n(Period : 2025-03-01~2026-02-28)",
+        "R&D - 2025 GloPID-R Program(생명연 위탁)_1st_Soojin Jang [EZ: NN2509-0000] [NN2509-0001] - Domestic Business Travel[410201]\n(Period : 2025-01-01~2025-12-31)"
+      ],
+      "total_unique": 3,
+      "note": "grant-cycle dependent, ranked by most recent use"
+    },
+    "city_transport_patterns": {
+      "Seoul (서울특별시) - Seoul (서울) - Other Public Transporation": 5,
+      "Gangwon-do (강원도) - Other (기타) - Own Vehicle - Diesel": 1,
+      "Daejeon (대전광역시) - Daejeon (대전광역시) - Other Public Transporation": 1,
+      "Gyeonggi-do (경기도) - Suwon (수원) - Other Public Transporation": 1
+    },
+    "travel_type_distribution": {
+      "Participation in the conference/seminar": 5,
+      "Simple visit to vendor & etc": 3
+    },
+    "daily_expense_values": {
+      "20000": 6,
+      "30000": 2
+    },
+    "drafter_info": "Antibacterial Resistance Lab - Team Member - Kyuwon Shim (00565)"
+  },
+  "Minjeong Woo (00316 )": {
+    "traveler": "Minjeong Woo (00316 )",
+    "n_documents": 5,
+    "low_confidence": true,
+    "corp_card": {
+      "default": "5525-7642-1694-9988",
+      "confidence": 0.8,
+      "all_used": {
+        "5525-7642-1694-9988": 4,
+        "---": 1
+      },
+      "note": "shared lab resource, soft default only"
+    },
+    "budget_accounts": {
+      "ranked_by_recency": [
+        "R&D - 2026 Healthcare Technology Research Program_2nd_Connor Wood_최종종료) [EZ: KD2602-0000] [KD2602-0001] - Domestic Business Travel[410201]\n(Period : 2026-01-01~2026-12-31)",
+        "R&D - 2025 Healthcare Technology Research Program_1st_Connor Wood [EZ: KD2503-0000] [KD2503-0001] - Domestic Business Travel[410201]\n(Period : 2025-04-01~2025-12-31)",
+        "R&D - 2024 Korea-EU Collaboration Promotion Program_1st_Soojin Jang [EZ: NN2413-0000] [NN2413-0001] - Domestic Business Travel[410201]\n(Period : 2024-10-01~2025-09-30)"
+      ],
+      "total_unique": 3,
+      "note": "grant-cycle dependent, ranked by most recent use"
+    },
+    "city_transport_patterns": {
+      "Gyeonggi-do (경기도) - Suwon (수원) - Own Vehicle - Gasoline": 3,
+      "Seoul (서울특별시) - Seoul (서울) - Other Public Transporation": 2
+    },
+    "travel_type_distribution": {
+      "Technical meeting": 2,
+      "Training": 1,
+      "Participation in the conference/seminar": 1,
+      "Simple visit to vendor & etc": 1
+    },
+    "daily_expense_values": {
+      "20000": 5
+    },
+    "drafter_info": "Antibacterial Resistance Lab - Team Member - Minjeong Woo (00316)"
+  },
+  "Sol Lee (00493 )": {
+    "traveler": "Sol Lee (00493 )",
+    "n_documents": 3,
+    "low_confidence": true,
+    "corp_card": {
+      "default": "4518-4445-1265-8391",
+      "confidence": 1.0,
+      "all_used": {
+        "4518-4445-1265-8391": 3
+      },
+      "note": "shared lab resource, soft default only"
+    },
+    "budget_accounts": {
+      "ranked_by_recency": [
+        "R&D - 2022 GARDP FFS_Soojin Jang (ARL) [FS2214-0000] [FS2214-0001] - Domestic Business Travel[410201]\n(Period : 2022-01-01~2028-08-18)",
+        "R&D - 2022 Peptoide FFS_Soojin Jang (Direct) [FS2226-0000] [FS2226-0001] - Domestic Business Travel[410201]\n(Period : 2022-12-01~2027-08-31)"
+      ],
+      "total_unique": 2,
+      "note": "grant-cycle dependent, ranked by most recent use"
+    },
+    "city_transport_patterns": {
+      "Gyeonggi-do (경기도) - Suwon (수원) - Other Public Transporation": 1,
+      "Seoul (서울특별시) - Seoul (서울) - Other Public Transporation": 1,
+      "Busan (부산광역시) - Busan (부산광역시) - Own Vehicle - Gasoline": 1
+    },
+    "travel_type_distribution": {
+      "Participation in the conference/seminar": 2,
+      "Simple visit to vendor & etc": 1
+    },
+    "daily_expense_values": {
+      "20000": 2,
+      "30000": 1
+    },
+    "drafter_info": "Antibacterial Resistance Lab - Team Member - Sol Lee (00493)"
+  },
+  "Soojin Jang (00307 / Y )": {
+    "traveler": "Soojin Jang (00307 / Y )",
+    "n_documents": 43,
+    "low_confidence": false,
+    "corp_card": {
+      "default": "0000-0000-0000-0000",
+      "confidence": 0.95,
+      "all_used": {
+        "0000-0000-0000-0000": 41,
+        "---": 2
+      },
+      "note": "shared lab resource, soft default only"
+    },
+    "budget_accounts": {
+      "ranked_by_recency": [
+        "R&D - 2026 Korea-French Collaboration Research Program_2nd_Soojin Jang_이월금 [EZ: NN2604-0000] [NN2604-0002] - Domestic Business Travel[410201]\n(Period : 2026-01-01~2026-12-31)",
+        "R&D - 연구지원계정_Soojin Jang [IPK-RS] [RS_JSJ] - Domestic Business Travel[410201]\n(Period : 2025-11-10~2035-12-31)",
+        "R&D - 2025 Korea-French Collaboration Research Program (PI: Soojin Jang) [EZ: NN2516-0000] [NN2516-0001] - Domestic Business Travel[410201]\n(Period : 2025-07-01~2025-12-31)",
+        "R&D - 2022 Peptoide FFS_Soojin Jang (Direct) [FS2226-0000] [FS2226-0001] - Domestic Business Travel[410201]\n(Period : 2022-12-01~2027-08-31)",
+        "General - 과제수당_ARRL [GW170000] [GW17_ARRL] - Business Travel - Domestic[420312]\n(Period : 2017-01-01~2033-12-31)",
+        "R&D - 2025 Mid-career Research Program_1st_Soojin Jang [EZ: NN2512-0000] [NN2512-0001] - Domestic Business Travel[410201]\n(Period : 2025-03-01~2026-02-28)",
+        "R&D - 2022 GARDP FFS_Soojin Jang (ARL) [FS2214-0000] [FS2214-0001] - Domestic Business Travel[410201]\n(Period : 2022-01-01~2028-08-18)",
+        "R&D - 2025 GloPID-R Program(생명연 위탁)_1st_Soojin Jang [EZ: NN2509-0000] [NN2509-0001] - Domestic Business Travel[410201]\n(Period : 2025-01-01~2025-12-31)",
+        "R&D - 2025 Bio-medical research program (조선대 위탁과제)_3rd_Soojin Jang [EZ: NN2508-0000] [NN2508-0001] - Domestic Business Travel[410201]\n(Period : 2025-01-01~2025-12-31)",
+        "R&D - 2025 Bio-medical program (POSTEC 대형장비과제)_2nd_Inhee Choi (ARL) [EZ: NN2503-0000] [NN2503-0002] - Domestic Business Travel[410201]\n(Period : 2025-01-01~2025-12-31)"
+      ],
+      "total_unique": 14,
+      "note": "grant-cycle dependent, ranked by most recent use"
+    },
+    "city_transport_patterns": {
+      "Seoul (서울특별시) - Seoul (서울) - Own Vehicle - Gasoline": 16,
+      "Daejeon (대전광역시) - Daejeon (대전광역시) - Own Vehicle - Gasoline": 11,
+      "Gyeonggi-do (경기도) - Suwon (수원) - Own Vehicle - Gasoline": 6,
+      "Within Metropolitan (관내) - Own Vehicle": 2,
+      "Busan (부산광역시) - Busan (부산광역시) - Own Vehicle - Gasoline": 2
+    },
+    "travel_type_distribution": {
+      "Simple visit to vendor & etc": 22,
+      "Participation in the conference/seminar": 20,
+      "Training": 1
+    },
+    "daily_expense_values": {
+      "20000": 22,
+      "30000": 19,
+      "15000": 2
+    },
+    "drafter_info": "Antibacterial Resistance Lab - Team Head (R) - Soojin Jang (00307)"
+  },
+  "Sunju Kim (00564 )": {
+    "traveler": "Sunju Kim (00564 )",
+    "n_documents": 3,
+    "low_confidence": true,
+    "corp_card": {
+      "default": "4518-4445-1265-8391",
+      "confidence": 1.0,
+      "all_used": {
+        "4518-4445-1265-8391": 3
+      },
+      "note": "shared lab resource, soft default only"
+    },
+    "budget_accounts": {
+      "ranked_by_recency": [
+        "R&D - 2025 GloPID-R Program(생명연 위탁)_1st_Soojin Jang [EZ: NN2509-0000] [NN2509-0001] - Domestic Business Travel[410201]\n(Period : 2025-01-01~2025-12-31)",
+        "R&D - 2022 GARDP FFS_Soojin Jang (ARL) [FS2214-0000] [FS2214-0001] - Domestic Business Travel[410201]\n(Period : 2022-01-01~2028-08-18)"
+      ],
+      "total_unique": 2,
+      "note": "grant-cycle dependent, ranked by most recent use"
+    },
+    "city_transport_patterns": {
+      "Seoul (서울특별시) - Seoul (서울) - Other Public Transporation": 2,
+      "Gyeonggi-do (경기도) - Suwon (수원) - Other Public Transporation": 1
+    },
+    "travel_type_distribution": {
+      "Simple visit to vendor & etc": 2,
+      "Participation in the conference/seminar": 1
+    },
+    "daily_expense_values": {
+      "20000": 3
+    },
+    "drafter_info": "Antibacterial Resistance Lab - Team Member - Sunju Kim (00564)"
+  },
+  "Vijayan Ramachandran (00568 )": {
+    "traveler": "Vijayan Ramachandran (00568 )",
+    "n_documents": 1,
+    "low_confidence": true,
+    "corp_card": {
+      "default": "---",
+      "confidence": 1.0,
+      "all_used": {
+        "---": 1
+      },
+      "note": "shared lab resource, soft default only"
+    },
+    "budget_accounts": {
+      "ranked_by_recency": [
+        "R&D - 2022 GARDP FFS_Soojin Jang (ARL) [FS2214-0000] [FS2214-0001] - Domestic Business Travel[410201]\n(Period : 2022-01-01~2028-08-18)"
+      ],
+      "total_unique": 1,
+      "note": "grant-cycle dependent, ranked by most recent use"
+    },
+    "city_transport_patterns": {
+      "Seoul (서울특별시) - Seoul (서울) - Own Vehicle - Gasoline": 1
+    },
+    "travel_type_distribution": {
+      "Participation in the conference/seminar": 1
+    },
+    "daily_expense_values": {
+      "20000": 1
+    },
+    "drafter_info": "Antibacterial Resistance Lab - Team Member - Vijayan Ramachandran (00568)"
+  },
+  "YunMi LEE (00227 )": {
+    "traveler": "YunMi LEE (00227 )",
+    "n_documents": 5,
+    "low_confidence": true,
+    "corp_card": {
+      "default": "---",
+      "confidence": 0.6,
+      "all_used": {
+        "---": 3,
+        "4518-4445-1265-8391": 1,
+        "5525-7642-1492-9594": 1
+      },
+      "note": "shared lab resource, soft default only"
+    },
+    "budget_accounts": {
+      "ranked_by_recency": [
+        "R&D - 2022 Peptoide FFS_Soojin Jang (Direct) [FS2226-0000] [FS2226-0001] - Domestic Business Travel[410201]\n(Period : 2022-12-01~2027-08-31)",
+        "R&D - 2025 Bio-medical program (POSTEC 대형장비과제)_2nd_Inhee Choi (ARL) [EZ: NN2503-0000] [NN2503-0002] - Domestic Business Travel[410201]\n(Period : 2025-01-01~2025-12-31)",
+        "R&D - 2022 GARDP FFS_Soojin Jang (ARL) [FS2214-0000] [FS2214-0001] - Domestic Business Travel[410201]\n(Period : 2022-01-01~2028-08-18)"
+      ],
+      "total_unique": 3,
+      "note": "grant-cycle dependent, ranked by most recent use"
+    },
+    "city_transport_patterns": {
+      "Gyeonggi-do (경기도) - Suwon (수원) - Own Vehicle - Gasoline": 2,
+      "Gangwon-do (강원도) - Other (기타) - Own Vehicle - Gasoline": 1,
+      "Seoul (서울특별시) - Seoul (서울) - Other Public Transporation": 1,
+      "Busan (부산광역시) - Busan (부산광역시) - Own Vehicle - Gasoline": 1
+    },
+    "travel_type_distribution": {
+      "Participation in the conference/seminar": 3,
+      "Training": 1,
+      "Simple visit to vendor & etc": 1
+    },
+    "daily_expense_values": {
+      "20000": 3,
+      "30000": 2
+    },
+    "drafter_info": "Antibacterial Resistance Lab - Team Member - YunMi LEE (00227)"
+  }
+}

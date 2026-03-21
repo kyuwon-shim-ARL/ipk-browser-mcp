@@ -1,0 +1,159 @@
+{
+  "Sol Lee": {
+    "total_docs": 53,
+    "low_confidence": false,
+    "common_venues": {
+      "4th floor meeting room": 26,
+      "URP Pasteur": 3,
+      "URP pasteur": 3,
+      "URP IPK (4th floor meeting room)": 2,
+      "Starbucks": 2
+    },
+    "common_purposes": {
+      "To discuss what we did and what we will do for projects": 28,
+      "To discuss what we did and what we will do.": 9,
+      "Team building after the town hall meeting": 2,
+      "We did team activity altogether to celebrate the last of this year and for team work.": 2,
+      "Seminar with CEO and researchers from Omphalos co.": 1
+    },
+    "common_vendors": {
+      "유알피파스퇴르": 14,
+      "스타벅스코리아": 11,
+      "㈜우아한형제들": 8,
+      "쿠팡": 8,
+      "카페마마스 판교점": 1
+    },
+    "budget_codes": {
+      "[GW17_ARRL] 과제수당_ARRL\n(Period : 2017-01-01~2033-12-31)": 53
+    },
+    "account_codes": {
+      "420421": 51,
+      "420374": 1,
+      "420420": 1
+    },
+    "descriptions": {
+      "Team activities": 51,
+      "Other Commissions": 1,
+      "Conference: Meeting with External Specialists": 1
+    },
+    "subject_patterns": {
+      "[Card] ER_coffee for meeting": 12,
+      "[Card] ER_coffee for lab meeting": 6,
+      "[Card] ER_coffee": 6,
+      "[Card] ER_team lunch": 3,
+      "[Card] ER_coffee for seminar": 2
+    },
+    "avg_amount_krw": 126171
+  },
+  "Minjeong Woo": {
+    "total_docs": 4,
+    "low_confidence": false,
+    "common_venues": {
+      "Nicolle": 3
+    },
+    "common_purposes": {
+      "Discussion on the experimental timeline and drug administration regimen for the tuberculosis mouse efficacy study.": 1,
+      "Discussion on the schedule for the mouse anti-TB efficacy study.": 1,
+      "Discussion on anti-tuberculosis drug efficacy testing in the mouse model": 1
+    },
+    "common_vendors": {
+      "유알피파스퇴르": 2,
+      "쿠팡": 1,
+      "25102388-01": 1
+    },
+    "budget_codes": {
+      "[GW17_ARRL] 과제수당_ARRL\n(Period : 2017-01-01~2033-12-31)": 4
+    },
+    "account_codes": {
+      "420421": 3,
+      "420375": 1
+    },
+    "descriptions": {
+      "Team activities": 3,
+      "Registration & Subscription": 1
+    },
+    "subject_patterns": {
+      "[Card] General Expense Request": 3,
+      "[Card] Expense Request": 1
+    },
+    "avg_amount_krw": 18022
+  },
+  "Hyun-Jung Lee": {
+    "total_docs": 1,
+    "low_confidence": true,
+    "common_venues": {
+      "URP 파스퇴르 cafe": 1
+    },
+    "common_purposes": {
+      "Discussion for future research cooperation": 1
+    },
+    "common_vendors": {
+      "유알피파스퇴르": 1
+    },
+    "budget_codes": {
+      "[GW17_ARRL] 과제수당_ARRL\n(Period : 2017-01-01~2033-12-31)": 1
+    },
+    "account_codes": {
+      "420420": 1
+    },
+    "descriptions": {
+      "Conference: Meeting with External Specialists": 1
+    },
+    "subject_patterns": {
+      "[Card] General Expense for meeting": 1
+    },
+    "avg_amount_krw": 12800
+  },
+  "YunMi LEE": {
+    "total_docs": 1,
+    "low_confidence": true,
+    "common_venues": {
+      "4th floor": 1
+    },
+    "common_purposes": {
+      "Welcome to Posdoct VJ": 1
+    },
+    "common_vendors": {
+      "유알피파스퇴르": 1
+    },
+    "budget_codes": {
+      "[GW17_ARRL] 과제수당_ARRL\n(Period : 2017-01-01~2033-12-31)": 1
+    },
+    "account_codes": {
+      "420421": 1
+    },
+    "descriptions": {
+      "Team activities": 1
+    },
+    "subject_patterns": {
+      "[Card] ER_ Veverage for welcome Posdoct VJ": 1
+    },
+    "avg_amount_krw": 28100
+  },
+  "Hyungjun Kim": {
+    "total_docs": 1,
+    "low_confidence": true,
+    "common_venues": {
+      "Job candidate selection": 1
+    },
+    "common_purposes": {
+      "Scoring and review of job interview.process\nSharing impression and technical skills\nPositive and negative feedbacks": 1
+    },
+    "common_vendors": {
+      "유알피파스퇴르": 1
+    },
+    "budget_codes": {
+      "[GW17_ARRL] 과제수당_ARRL\n(Period : 2017-01-01~2033-12-31)": 1
+    },
+    "account_codes": {
+      "420421": 1
+    },
+    "descriptions": {
+      "Team activities": 1
+    },
+    "subject_patterns": {
+      "[Card] Discussion for job candidate selection": 1
+    },
+    "avg_amount_krw": 20900
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "Connor Joseph Wood": {
+    "writer": "Connor Joseph Wood",
+    "n_documents": 2,
+    "low_confidence": true,
+    "sample_purposes": [
+      "I have been invited to present work via an oral presentation while attending the Korean Acadamy of Tuberculosis and Resiratory Disease International Conference on October 30th, which is an upgrade from my planned poster presentation as in document ARL-250811-10.",
+      "When attending the Korean Acadamy of Tuberculosis and Resiratory Disease International Conference in October, I plan to present our work on developing fluorescent reporter non-tuberculosis strains that can be used in drug discovery pipelines as well as for disease modeling."
+    ],
+    "predatory_check_rate": 1.0,
+    "drafter_info": "Antibacterial Resistance Lab - Team Member - Connor Joseph Wood (00454)"
+  },
+  "Hyun-Jung Lee": {
+    "writer": "Hyun-Jung Lee",
+    "n_documents": 3,
+    "low_confidence": true,
+    "sample_purposes": [
+      "This presentation file has been prepared for seminar.",
+      "This presentation file has been prepared for seminar.",
+      "This abstract has been prepared for poster presentation in 2025 KMB Annual Meeting & International Symposium."
+    ],
+    "predatory_check_rate": 1.0,
+    "drafter_info": "Antibacterial Resistance Lab - Team Member - Hyun-Jung Lee (00383)"
+  },
+  "Kyungbae Min": {
+    "writer": "Kyungbae Min",
+    "n_documents": 1,
+    "low_confidence": true,
+    "sample_purposes": [
+      "Purpose of this request is for participating poster presentation session with several research results performed in KMEDI hub project."
+    ],
+    "q4_collaborator_approval": {
+      "Y": 1
+    },
+    "predatory_check_rate": 1.0,
+    "drafter_info": "Antibacterial Resistance Lab - Team Member - Kyungbae Min (00467)"
+  },
+  "Soojin Jang": {
+    "writer": "Soojin Jang",
+    "n_documents": 15,
+    "low_confidence": false,
+    "sample_purposes": [
+      "I was asked to give a talk at Animal and Plant Quarantine Agency and these materials will be presented at the seminar.",
+      "I will give a short talk at the memorial symposium for Dr. Spencer Shorte in IP Paris. The materials are for the event.",
+      "I was invited for a talk at KAIST 바이오 및 뇌공학과 seminar. These slides will be presented there."
+    ],
+    "q4_collaborator_approval": {
+      "Y": 15
+    },
+    "predatory_check_rate": 1.0,
+    "drafter_info": "Antibacterial Resistance Lab - Team Head (R) - Soojin Jang (00307)"
+  }
+}

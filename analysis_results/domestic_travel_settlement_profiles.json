@@ -1,0 +1,360 @@
+{
+  "Kyuwon Shim": {
+    "total_docs": 7,
+    "low_confidence": false,
+    "purpose_category_distribution": {
+      "Participation in the conference/seminar": 4,
+      "Simple visit to vendor & etc": 3
+    },
+    "common_city_transportation": {
+      "Seoul (서울특별시) - Seoul (서울) - Other Public Transporation": 5,
+      "Daejeon (대전광역시) - Daejeon (대전광역시) - Other Public Transporation": 1,
+      "Gyeonggi-do (경기도) - Suwon (수원) - Other Public Transporation": 1
+    },
+    "transport_mode_distribution": {
+      "Other Public Transporation": 7
+    },
+    "budget_type_distribution": {
+      "R&D": 7
+    },
+    "travel_with_invitation": {
+      "No": 7
+    },
+    "typical_budget": {
+      "avg_total_sum": 68207,
+      "avg_nights": 0.57
+    }
+  },
+  "Minjeong Woo": {
+    "total_docs": 5,
+    "low_confidence": true,
+    "purpose_category_distribution": {
+      "Technical meeting": 2,
+      "Training": 1,
+      "Participation in the conference/seminar": 1,
+      "Simple visit to vendor & etc": 1
+    },
+    "common_city_transportation": {
+      "Gyeonggi-do (경기도) - Suwon (수원) - Own Vehicle - Gasoline": 3,
+      "Seoul (서울특별시) - Seoul (서울) - Other Public Transporation": 2
+    },
+    "transport_mode_distribution": {
+      "Own Vehicle": 3,
+      "Other Public Transporation": 2
+    },
+    "budget_type_distribution": {
+      "R&D": 5
+    },
+    "travel_with_invitation": {
+      "No": 5
+    },
+    "typical_budget": {
+      "avg_total_sum": 28895,
+      "avg_nights": 0.2
+    }
+  },
+  "Connor Joseph Wood": {
+    "total_docs": 5,
+    "low_confidence": true,
+    "purpose_category_distribution": {
+      "Technical meeting": 2,
+      "Simple visit to vendor & etc": 2,
+      "Participation in the conference/seminar": 1
+    },
+    "common_city_transportation": {
+      "Gyeonggi-do (경기도) - Suwon (수원) - Own Vehicle - Gasoline": 2,
+      "Seoul (서울특별시) - Seoul (서울) - Other Public Transporation": 2,
+      "Seoul (서울특별시) - Seoul (서울) - Own Vehicle - Gasoline": 1
+    },
+    "transport_mode_distribution": {
+      "Own Vehicle": 3,
+      "Other Public Transporation": 2
+    },
+    "budget_type_distribution": {
+      "R&D": 4,
+      "General": 1
+    },
+    "travel_with_invitation": {
+      "No": 5
+    },
+    "typical_budget": {
+      "avg_total_sum": 32879,
+      "avg_nights": 0.4
+    }
+  },
+  "Hyungjun Kim": {
+    "total_docs": 5,
+    "low_confidence": true,
+    "purpose_category_distribution": {
+      "Participation in the conference/seminar": 4,
+      "Simple visit to vendor & etc": 1
+    },
+    "common_city_transportation": {
+      "Seoul (서울특별시) - Seoul (서울) - Other Public Transporation": 2,
+      "Gangwon-do (강원도) - Other (기타) - Own Vehicle - Gasoline": 1,
+      "Gyeonggi-do (경기도) - Suwon (수원) - Own Vehicle - Gasoline": 1,
+      "Busan (부산광역시) - Busan (부산광역시) - Other Public Transporation": 1
+    },
+    "transport_mode_distribution": {
+      "Other Public Transporation": 3,
+      "Own Vehicle": 2
+    },
+    "budget_type_distribution": {
+      "R&D": 5
+    },
+    "travel_with_invitation": {
+      "No": 5
+    },
+    "typical_budget": {
+      "avg_total_sum": 202183,
+      "avg_nights": 1.2
+    }
+  },
+  "YunMi LEE": {
+    "total_docs": 5,
+    "low_confidence": true,
+    "purpose_category_distribution": {
+      "Participation in the conference/seminar": 3,
+      "Training": 1,
+      "Simple visit to vendor & etc": 1
+    },
+    "common_city_transportation": {
+      "Gyeonggi-do (경기도) - Suwon (수원) - Own Vehicle - Gasoline": 2,
+      "Gangwon-do (강원도) - Other (기타) - Own Vehicle - Gasoline": 1,
+      "Busan (부산광역시) - Busan (부산광역시) - Own Vehicle - Gasoline": 1,
+      "Seoul (서울특별시) - Seoul (서울) - Other Public Transporation": 1
+    },
+    "transport_mode_distribution": {
+      "Own Vehicle": 4,
+      "Other Public Transporation": 1
+    },
+    "budget_type_distribution": {
+      "R&D": 5
+    },
+    "travel_with_invitation": {
+      "No": 5
+    },
+    "typical_budget": {
+      "avg_total_sum": 221142,
+      "avg_nights": 1.2
+    }
+  },
+  "Soojin Jang": {
+    "total_docs": 37,
+    "low_confidence": false,
+    "purpose_category_distribution": {
+      "Participation in the conference/seminar": 19,
+      "Simple visit to vendor & etc": 17,
+      "Training": 1
+    },
+    "common_city_transportation": {
+      "Seoul (서울특별시) - Seoul (서울) - Own Vehicle - Gasoline": 14,
+      "Daejeon (대전광역시) - Daejeon (대전광역시) - Own Vehicle - Gasoline": 11,
+      "Gyeonggi-do (경기도) - Suwon (수원) - Own Vehicle - Gasoline": 5,
+      "Busan (부산광역시) - Busan (부산광역시) - Own Vehicle - Gasoline": 2,
+      "Gangwon-do (강원도) - Other (기타) - Own Vehicle - Gasoline": 1
+    },
+    "transport_mode_distribution": {
+      "Own Vehicle": 34,
+      "Other Public Transporation": 3
+    },
+    "budget_type_distribution": {
+      "R&D": 22,
+      "General": 15
+    },
+    "travel_with_invitation": {
+      "No": 37
+    },
+    "typical_budget": {
+      "avg_total_sum": 115284,
+      "avg_nights": 0.16
+    }
+  },
+  "Sunju Kim": {
+    "total_docs": 3,
+    "low_confidence": true,
+    "purpose_category_distribution": {
+      "Simple visit to vendor & etc": 2,
+      "Participation in the conference/seminar": 1
+    },
+    "common_city_transportation": {
+      "Seoul (서울특별시) - Seoul (서울) - Other Public Transporation": 2,
+      "Gyeonggi-do (경기도) - Suwon (수원) - Other Public Transporation": 1
+    },
+    "transport_mode_distribution": {
+      "Other Public Transporation": 3
+    },
+    "budget_type_distribution": {
+      "R&D": 3
+    },
+    "travel_with_invitation": {
+      "No": 3
+    },
+    "typical_budget": {
+      "avg_total_sum": 20000,
+      "avg_nights": 0.0
+    }
+  },
+  "Guinam Wee": {
+    "total_docs": 10,
+    "low_confidence": false,
+    "purpose_category_distribution": {
+      "Simple visit to vendor & etc": 5,
+      "Participation in the conference/seminar": 5
+    },
+    "common_city_transportation": {
+      "Seoul (서울특별시) - Seoul (서울) - Other Public Transporation": 6,
+      "Gyeonggi-do (경기도) - Suwon (수원) - Other Public Transporation": 2,
+      "Daejeon (대전광역시) - Daejeon (대전광역시) - Other Public Transporation": 1,
+      "Busan (부산광역시) - Busan (부산광역시) - Own Vehicle - Gasoline": 1
+    },
+    "transport_mode_distribution": {
+      "Other Public Transporation": 9,
+      "Own Vehicle": 1
+    },
+    "budget_type_distribution": {
+      "R&D": 10
+    },
+    "travel_with_invitation": {
+      "No": 10
+    },
+    "typical_budget": {
+      "avg_total_sum": 109168,
+      "avg_nights": 0.6
+    }
+  },
+  "Vijayan Ramachandran": {
+    "total_docs": 1,
+    "low_confidence": true,
+    "purpose_category_distribution": {
+      "Participation in the conference/seminar": 1
+    },
+    "common_city_transportation": {
+      "Seoul (서울특별시) - Seoul (서울) - Own Vehicle - Gasoline": 1
+    },
+    "transport_mode_distribution": {
+      "Own Vehicle": 1
+    },
+    "budget_type_distribution": {
+      "R&D": 1
+    },
+    "travel_with_invitation": {
+      "No": 1
+    },
+    "typical_budget": {
+      "avg_total_sum": 28036,
+      "avg_nights": 0.0
+    }
+  },
+  "Hyun-Jung Lee": {
+    "total_docs": 6,
+    "low_confidence": false,
+    "purpose_category_distribution": {
+      "Participation in the conference/seminar": 3,
+      "Simple visit to vendor & etc": 2,
+      "Post or Paper presentation": 1
+    },
+    "common_city_transportation": {
+      "Seoul (서울특별시) - Seoul (서울) - Other Public Transporation": 2,
+      "Gyeonggi-do (경기도) - Suwon (수원) - Own Vehicle - Diesel": 1,
+      "Gyeonggi-do (경기도) - Suwon (수원) - Other Public Transporation": 1,
+      "Jeju-do (제주도) - Jeju (제주) - Other Public Transporation": 1,
+      "Busan (부산광역시) - Busan (부산광역시) - Own Vehicle - Gasoline": 1
+    },
+    "transport_mode_distribution": {
+      "Other Public Transporation": 4,
+      "Own Vehicle": 2
+    },
+    "budget_type_distribution": {
+      "R&D": 6
+    },
+    "travel_with_invitation": {
+      "No": 5,
+      "Accommodation\tsupported by KIOST\nMiscellaneous(e.g honorarium)\tconsultation fee (300,000 won)": 1
+    },
+    "typical_budget": {
+      "avg_total_sum": 146565,
+      "avg_nights": 0.83
+    }
+  },
+  "Kyungbae Min": {
+    "total_docs": 4,
+    "low_confidence": true,
+    "purpose_category_distribution": {
+      "Participation in the conference/seminar": 2,
+      "Simple visit to vendor & etc": 1,
+      "Post or Paper presentation": 1
+    },
+    "common_city_transportation": {
+      "Gyeonggi-do (경기도) - Suwon (수원) - Other Public Transporation": 1,
+      "Gyeongsangbuk-do (경상북도) - Pohang (포항) - Other Public Transporation": 1,
+      "Seoul (서울특별시) - Seoul (서울) - Other Public Transporation": 1,
+      "Busan (부산광역시) - Busan (부산광역시) - Other Public Transporation": 1
+    },
+    "transport_mode_distribution": {
+      "Other Public Transporation": 4
+    },
+    "budget_type_distribution": {
+      "R&D": 4
+    },
+    "travel_with_invitation": {
+      "No": 4
+    },
+    "typical_budget": {
+      "avg_total_sum": 265581,
+      "avg_nights": 1.25
+    }
+  },
+  "Sol Lee": {
+    "total_docs": 3,
+    "low_confidence": true,
+    "purpose_category_distribution": {
+      "Participation in the conference/seminar": 2,
+      "Simple visit to vendor & etc": 1
+    },
+    "common_city_transportation": {
+      "Gyeonggi-do (경기도) - Suwon (수원) - Other Public Transporation": 1,
+      "Seoul (서울특별시) - Seoul (서울) - Other Public Transporation": 1,
+      "Busan (부산광역시) - Busan (부산광역시) - Own Vehicle - Gasoline": 1
+    },
+    "transport_mode_distribution": {
+      "Other Public Transporation": 2,
+      "Own Vehicle": 1
+    },
+    "budget_type_distribution": {
+      "R&D": 3
+    },
+    "travel_with_invitation": {
+      "No": 3
+    },
+    "typical_budget": {
+      "avg_total_sum": 240910,
+      "avg_nights": 1.67
+    }
+  },
+  "Juchan Hwang": {
+    "total_docs": 7,
+    "low_confidence": false,
+    "purpose_category_distribution": {
+      "Simple visit to vendor & etc": 5,
+      "Participation in the conference/seminar": 2
+    },
+    "common_city_transportation": {
+      "Seoul (서울특별시) - Seoul (서울) - Other Public Transporation": 6,
+      "Busan (부산광역시) - Busan (부산광역시) - Other Public Transporation": 1
+    },
+    "transport_mode_distribution": {
+      "Other Public Transporation": 7
+    },
+    "budget_type_distribution": {
+      "R&D": 7
+    },
+    "travel_with_invitation": {
+      "No": 7
+    },
+    "typical_budget": {
+      "avg_total_sum": 105223,
+      "avg_nights": 0.29
+    }
+  }
+}

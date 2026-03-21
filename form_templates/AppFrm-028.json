@@ -1,0 +1,96 @@
+{
+  "form_code": "AppFrm-028",
+  "form_name": "Leave Return",
+  "analysis_basis": "24 documents (14 compensatory, 10 annual)",
+  "fixed_fields": {
+    "saving_years": "5 years"
+  },
+  "field_schema": {
+    "original_leave_doc": {
+      "type": "text",
+      "required": true,
+      "source": "user_input",
+      "note": "Document number of the original leave being returned (e.g. ARL-260121-02)"
+    },
+    "leave_type": {
+      "type": "select",
+      "required": true,
+      "source": "inference",
+      "values": ["Annual leave", "Compensatory leave"],
+      "distribution": {"Compensatory leave": 0.58, "Annual leave": 0.42},
+      "note": "Must match the leave type of the original leave doc"
+    },
+    "period_start": {
+      "type": "date",
+      "required": true,
+      "source": "user_input",
+      "note": "Start date of the leave being returned"
+    },
+    "period_end": {
+      "type": "date",
+      "required": true,
+      "source": "user_input",
+      "note": "End date of the leave being returned (same as start for single-day)"
+    },
+    "requested_days_hours": {
+      "type": "text",
+      "required": true,
+      "source": "inference",
+      "format": "D / H",
+      "note": "Original amount requested in the leave form (days / hours)"
+    },
+    "return_days_hours": {
+      "type": "text",
+      "required": true,
+      "source": "user_input",
+      "format": "D / H",
+      "note": "Amount actually being returned. Full day: '1 / 0'; 1 hour: '0 / 1'"
+    },
+    "return_days": {
+      "type": "integer",
+      "required": true,
+      "source": "derived",
+      "note": "Integer days component of return_days_hours"
+    },
+    "return_hours": {
+      "type": "integer",
+      "required": true,
+      "source": "derived",
+      "note": "Integer hours component of return_days_hours"
+    },
+    "description": {
+      "type": "textarea",
+      "required": true,
+      "source": "user_input",
+      "note": "Reason for returning the leave (e.g. came back to work, hospitalization ended early)"
+    },
+    "subject": {
+      "type": "text",
+      "required": true,
+      "source": "inference",
+      "note": "Auto-generated: 'Leave return {N}day(s)/{N}hour(s) {original_leave_doc}'"
+    }
+  },
+  "inference_rules": [
+    {
+      "description": "Subject auto-generation",
+      "then_set": "subject",
+      "template": "Leave return {return_label} {original_leave_doc}",
+      "note": "return_label = '1day' if return_days==1, '1hour' if return_hours==1, etc."
+    },
+    {
+      "description": "Leave type inferred from original leave doc",
+      "then_set": "leave_type",
+      "source": "original_leave_doc lookup",
+      "note": "Look up original leave document to confirm leave_type"
+    }
+  ],
+  "return_type_distribution": {
+    "full_day_returns": 11,
+    "partial_hour_returns": 13,
+    "note": "Nearly even split; partial-hour returns are slightly more common"
+  },
+  "subject_pattern": "Leave return {1day|1hour|Xdays|Xhours} {original_doc_number}",
+  "minimum_user_input": ["original_leave_doc", "period_start", "period_end", "return_days_hours", "description"],
+  "optional_user_input": []
+}

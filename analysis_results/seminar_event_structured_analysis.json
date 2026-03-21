@@ -1,0 +1,524 @@
+{
+  "form_code": "AppFrm-043",
+  "total_documents": 21,
+  "field_coverage": {
+    "drafter_info": {
+      "count": 21,
+      "rate": 1.0
+    },
+    "subject": {
+      "count": 21,
+      "rate": 1.0
+    },
+    "requester": {
+      "count": 21,
+      "rate": 1.0
+    },
+    "disclosure_purpose": {
+      "count": 21,
+      "rate": 1.0
+    },
+    "disclosure_date": {
+      "count": 21,
+      "rate": 1.0
+    },
+    "material_description": {
+      "count": 21,
+      "rate": 1.0
+    },
+    "material_files": {
+      "count": 21,
+      "rate": 1.0
+    },
+    "conference_or_journal": {
+      "count": 21,
+      "rate": 1.0
+    },
+    "patent_filed": {
+      "count": 11,
+      "rate": 0.52
+    },
+    "patent_planned_within_year": {
+      "count": 3,
+      "rate": 0.14
+    },
+    "material_published": {
+      "count": 18,
+      "rate": 0.86
+    },
+    "collaborator_approval_obtained": {
+      "count": 16,
+      "rate": 0.76
+    },
+    "contains_ipk_confidential_info": {
+      "count": 14,
+      "rate": 0.67
+    },
+    "predatory_check_confirmed": {
+      "count": 21,
+      "rate": 1.0
+    },
+    "submit_date": {
+      "count": 21,
+      "rate": 1.0
+    },
+    "writer": {
+      "count": 21,
+      "rate": 1.0
+    },
+    "doc_id": {
+      "count": 21,
+      "rate": 1.0
+    },
+    "doc_no": {
+      "count": 21,
+      "rate": 1.0
+    },
+    "date": {
+      "count": 21,
+      "rate": 1.0
+    }
+  },
+  "structured_data": [
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Head (R) - Soojin Jang (00307)",
+      "subject": "A seminar at Animal and Plant Quarantine Agency",
+      "requester": "Soojin Jang",
+      "disclosure_purpose": "I was asked to give a talk at Animal and Plant Quarantine Agency and these materials will be presented at the seminar.",
+      "disclosure_date": "2026-03-17",
+      "material_description": "20260317_검염본부_SJ.pptx (49252750 byte)",
+      "material_files": [
+        "20260317_검염본부_SJ.pptx"
+      ],
+      "conference_or_journal": "A seminar at Animal and Plant Quarantine Agency",
+      "patent_filed": "N",
+      "patent_planned_within_year": "N",
+      "material_published": "N",
+      "collaborator_approval_obtained": "Y",
+      "contains_ipk_confidential_info": "N",
+      "predatory_check_confirmed": true,
+      "submit_date": "2026-03-12",
+      "writer": "Soojin Jang",
+      "doc_id": "290448",
+      "doc_no": "ARL-260313-03",
+      "date": "2026-03-12"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Head (R) - Soojin Jang (00307)",
+      "subject": "A talk at the memorial symposium for Dr. Spencer Shorte",
+      "requester": "Soojin Jang",
+      "disclosure_purpose": "I will give a short talk at the memorial symposium for Dr. Spencer Shorte in IP Paris. The materials are for the event.",
+      "disclosure_date": "2026-01-28",
+      "material_description": "20260128_Spencer_symposium_v2.pptx (23645736 byte)",
+      "material_files": [
+        "20260128_Spencer_symposium_v2.pptx"
+      ],
+      "conference_or_journal": "the memorial symposium for Dr. Spencer Shorte",
+      "patent_filed": "N",
+      "material_published": "N",
+      "collaborator_approval_obtained": "Y",
+      "predatory_check_confirmed": true,
+      "submit_date": "2026-01-22",
+      "writer": "Soojin Jang",
+      "doc_id": "288312",
+      "doc_no": "ARL-260122-05",
+      "date": "2026-01-22"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Head (R) - Soojin Jang (00307)",
+      "subject": "Seminar at KAIST",
+      "requester": "Soojin Jang",
+      "disclosure_purpose": "I was invited for a talk at KAIST 바이오 및 뇌공학과 seminar. These slides will be presented there.",
+      "disclosure_date": "2025-11-26",
+      "material_description": "20251126_KAIST_SJ_v1.pptx (25727938 byte)",
+      "material_files": [
+        "20251126_KAIST_SJ_v1.pptx"
+      ],
+      "conference_or_journal": "KAIST 바이오 및 뇌공학과 seminar",
+      "material_published": "Y",
+      "collaborator_approval_obtained": "Y",
+      "contains_ipk_confidential_info": "N",
+      "predatory_check_confirmed": true,
+      "submit_date": "2025-11-17",
+      "writer": "Soojin Jang",
+      "doc_id": "284611",
+      "doc_no": "ARL-251118-02",
+      "date": "2025-11-17"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Head (R) - Soojin Jang (00307)",
+      "subject": "MasterMediTech seminar",
+      "requester": "Soojin Jang",
+      "disclosure_purpose": "MasterMediTech, a collaborators for KHIDI grant, invited me for a talk which will be on Nov. 28. These slides will be presented at the seminar.",
+      "disclosure_date": "2025-11-28",
+      "material_description": "마스터메디텍_20251128_장수진_v1.pptx (15529428 byte)",
+      "material_files": [
+        "마스터메디텍_20251128_장수진_v1.pptx"
+      ],
+      "conference_or_journal": "MasterMediTech seminar",
+      "patent_filed": "Y",
+      "material_published": "N",
+      "collaborator_approval_obtained": "Y",
+      "contains_ipk_confidential_info": "N",
+      "predatory_check_confirmed": true,
+      "submit_date": "2025-11-17",
+      "writer": "Soojin Jang",
+      "doc_id": "284603",
+      "doc_no": "ARL-251118-01",
+      "date": "2025-11-17"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Hyun-Jung Lee (00383)",
+      "subject": "Public Disclosure Request for workshop",
+      "requester": "Hyun-Jung Lee",
+      "disclosure_purpose": "This presentation file has been prepared for seminar.",
+      "disclosure_date": "2025-11-03",
+      "material_description": "KIOST_Abstract_Hyunjung_Lee.docx (17240 byte)",
+      "material_files": [
+        "KIOST_Abstract_Hyunjung_Lee.docx"
+      ],
+      "conference_or_journal": "\"해양 공생미생물 기반 해양 천연물 의약소재 발굴 및 생산수율 향상을 위한 기획연구\"의 KIOST (해양과학기술원)워크숍",
+      "patent_filed": "N",
+      "patent_planned_within_year": "Y",
+      "material_published": "N",
+      "predatory_check_confirmed": true,
+      "submit_date": "2025-10-24",
+      "writer": "Hyun-Jung Lee",
+      "doc_id": "283173",
+      "doc_no": "ARL-251029-02",
+      "date": "2025-10-24"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Connor Joseph Wood (00454)",
+      "subject": "KATRD International Conference 2025",
+      "requester": "Connor Joseph Wood",
+      "disclosure_purpose": "I have been invited to present work via an oral presentation while attending the Korean Acadamy of Tuberculosis and Resiratory Disease International Conference on October 30th, which is an upgrade from my planned poster presentation as in document ARL-250811-10.",
+      "disclosure_date": "2025-10-30",
+      "material_description": "[KATRDIC_2025]_KA-0102_Connor_Wood_Oral05_TB_NTM2.pptx (69246113 byte)",
+      "material_files": [
+        "[KATRDIC_2025]_KA-0102_Connor_Wood_Oral05_TB_NTM2.pptx"
+      ],
+      "conference_or_journal": "Korean Acadamy of Tuberculosis and Resiratory Disease International Conference 2025",
+      "material_published": "N",
+      "contains_ipk_confidential_info": "N",
+      "predatory_check_confirmed": true,
+      "submit_date": "2025-10-24",
+      "writer": "Connor Joseph Wood",
+      "doc_id": "283078",
+      "doc_no": "ARL-251027-12",
+      "date": "2025-10-24"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Head (R) - Soojin Jang (00307)",
+      "subject": "스크립스 symposium",
+      "requester": "Soojin Jang",
+      "disclosure_purpose": "I have been invited for a talk at Interantional Symposium on Infectious Diseases & AI Drug Discovery hosted by SKAI 미래감염병연구센터 on Oct. 28th.",
+      "disclosure_date": "2025-10-28",
+      "material_description": "20251028_스크립스_v1.pptx (15676009 byte)",
+      "material_files": [
+        "20251028_스크립스_v1.pptx"
+      ],
+      "conference_or_journal": "Interantional Symposium on Infectious Diseases & AI Drug Discovery hosted by SKAI 미래감염병연구센터",
+      "patent_filed": "N",
+      "patent_planned_within_year": "Y",
+      "material_published": "N",
+      "collaborator_approval_obtained": "Y",
+      "contains_ipk_confidential_info": "N",
+      "predatory_check_confirmed": true,
+      "submit_date": "2025-10-20",
+      "writer": "Soojin Jang",
+      "doc_id": "282727",
+      "doc_no": "ARL-251020-17",
+      "date": "2025-10-20"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Hyun-Jung Lee (00383)",
+      "subject": "Public Disclosure Request for workshop",
+      "requester": "Hyun-Jung Lee",
+      "disclosure_purpose": "This presentation file has been prepared for seminar.",
+      "disclosure_date": "2025-10-30",
+      "material_description": "IAMRT_Abstract_Hyunjung_Lee.docx (15855 byte)",
+      "material_files": [
+        "IAMRT_Abstract_Hyunjung_Lee.docx"
+      ],
+      "conference_or_journal": "\"Workshop on Antimicrobial Resistance & Development\"",
+      "material_published": "N",
+      "predatory_check_confirmed": true,
+      "submit_date": "2025-10-17",
+      "writer": "Hyun-Jung Lee",
+      "doc_id": "282678",
+      "doc_no": "ARL-251020-16",
+      "date": "2025-10-17"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Head (R) - Soojin Jang (00307)",
+      "subject": "KPEC seminar",
+      "requester": "Soojin Jang",
+      "disclosure_purpose": "I have been invited to give a talk for a seminar at the Korea Preclinical Evaluation Center.",
+      "disclosure_date": "2025-10-21",
+      "material_description": "20251021_KPEC_v1.pptx (18663093 byte)",
+      "material_files": [
+        "20251021_KPEC_v1.pptx"
+      ],
+      "conference_or_journal": "A seminar at the Korea Preclinical Evaluation Center.",
+      "patent_filed": "Y",
+      "material_published": "Y",
+      "collaborator_approval_obtained": "Y",
+      "contains_ipk_confidential_info": "N",
+      "predatory_check_confirmed": true,
+      "submit_date": "2025-10-15",
+      "writer": "Soojin Jang",
+      "doc_id": "282584",
+      "doc_no": "ARL-251016-07",
+      "date": "2025-10-15"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Kyungbae Min (00467)",
+      "subject": "Public Disclosure Request for Poster presentation in Institut Pasteur Korea Global Infectious Diseases Symposium",
+      "requester": "Kyungbae Min",
+      "disclosure_purpose": "Purpose of this request is for participating poster presentation session with several research results performed in KMEDI hub project.",
+      "disclosure_date": "2025-09-29",
+      "material_description": "09.29_IPK_Poster_ARL_민경배.pdf (1972056 byte)",
+      "material_files": [
+        "09.29_IPK_Poster_ARL_민경배.pdf"
+      ],
+      "conference_or_journal": "Exhibitiing the poster that presents results of K-MEDI hub research project in Institut Pasteur Korea Global Infectious Diseases Symposium",
+      "patent_filed": "Y",
+      "material_published": "N",
+      "collaborator_approval_obtained": "Y",
+      "predatory_check_confirmed": true,
+      "submit_date": "2025-09-10",
+      "writer": "Kyungbae Min",
+      "doc_id": "280761",
+      "doc_no": "ARL-250916-04",
+      "date": "2025-09-10"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Head (R) - Soojin Jang (00307)",
+      "subject": "2025 Gyeongbuk Bio Industry Expo",
+      "requester": "Soojin Jang",
+      "disclosure_purpose": "I will present a research progress for the currently on going project under POSTECH 대형장비과제 at the 2025 Gyeongbuk Bio Industry Expo on Sep 11, 2025.",
+      "disclosure_date": "2025-09-11",
+      "material_description": "대형장비과제_20250911_v1.pptx (27623757 byte)",
+      "material_files": [
+        "대형장비과제_20250911_v1.pptx"
+      ],
+      "conference_or_journal": "2025 Gyeongbuk Bio Industry Expo",
+      "patent_filed": "Y",
+      "material_published": "N",
+      "collaborator_approval_obtained": "Y",
+      "contains_ipk_confidential_info": "N",
+      "predatory_check_confirmed": true,
+      "submit_date": "2025-08-21",
+      "writer": "Soojin Jang",
+      "doc_id": "279645",
+      "doc_no": "ARL-250822-06",
+      "date": "2025-08-21"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Head (R) - Soojin Jang (00307)",
+      "subject": "Forum on Private Sector Engagement on Antimicrobial Resistance",
+      "requester": "Soojin Jang",
+      "disclosure_purpose": "I have been invited to give a talk to the Forum on Private Sector Engagement on Antimicrobial Resistance hosted by Food and Agriculture Organization of the United Nation (FAO) Reginal Office for Asia and the Pacific, which will be held on Sep 15, 2025.",
+      "disclosure_date": "2025-09-15",
+      "material_description": "20250915_FAO_Seoul_v1.pptx (36025464 byte)",
+      "material_files": [
+        "20250915_FAO_Seoul_v1.pptx"
+      ],
+      "conference_or_journal": "Forum on Private Sector Engagement on Antimicrobial Resistance",
+      "patent_filed": "Y",
+      "material_published": "Y",
+      "collaborator_approval_obtained": "Y",
+      "contains_ipk_confidential_info": "N",
+      "predatory_check_confirmed": true,
+      "submit_date": "2025-08-21",
+      "writer": "Soojin Jang",
+      "doc_id": "279628",
+      "doc_no": "ARL-250822-05",
+      "date": "2025-08-21"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Connor Joseph Wood (00454)",
+      "subject": "KATRD International Conference 2025",
+      "requester": "Connor Joseph Wood",
+      "disclosure_purpose": "When attending the Korean Acadamy of Tuberculosis and Resiratory Disease International Conference in October, I plan to present our work on developing fluorescent reporter non-tuberculosis strains that can be used in drug discovery pipelines as well as for disease modeling.",
+      "disclosure_date": "2025-10-29",
+      "material_description": "KATRD_2025_Abstract.docx (13243 byte)",
+      "material_files": [
+        "KATRD_2025_Abstract.docx"
+      ],
+      "conference_or_journal": "Korean Acadamy of Tuberculosis and Resiratory Disease International Conference 2025",
+      "material_published": "N",
+      "contains_ipk_confidential_info": "N",
+      "predatory_check_confirmed": true,
+      "submit_date": "2025-08-08",
+      "writer": "Connor Joseph Wood",
+      "doc_id": "279014",
+      "doc_no": "ARL-250811-10",
+      "date": "2025-08-08"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Head (R) - Soojin Jang (00307)",
+      "subject": "공동연구기관_강연",
+      "requester": "Soojin Jang",
+      "disclosure_purpose": "I have been invited for a talk at a symposium hosted by Sundo Soft inc. which is a collaborator of an on-going grant based project supported by Ministry of Environment.",
+      "disclosure_date": "2025-08-05",
+      "material_description": "선도소프트_20250805.pptx (51461208 byte)",
+      "material_files": [
+        "선도소프트_20250805.pptx"
+      ],
+      "conference_or_journal": "The symposium of Sundo Soft inc.",
+      "patent_filed": "Y",
+      "material_published": "Y",
+      "collaborator_approval_obtained": "Y",
+      "predatory_check_confirmed": true,
+      "submit_date": "2025-07-29",
+      "writer": "Soojin Jang",
+      "doc_id": "278456",
+      "doc_no": "ARL-250730-02",
+      "date": "2025-07-29"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Head (R) - Soojin Jang (00307)",
+      "subject": "감염병 대응 연구개발 심포지엄",
+      "requester": "Soojin Jang",
+      "disclosure_purpose": "I have been invited to give a talk at 제3회 감염병 대응 연구개발 심포지엄 hosted by 감염병기술전략센터 in KRICT. The materials will be presented at the symposium.",
+      "disclosure_date": "2025-06-19",
+      "material_description": "20250619_감염병대응_연구개발_심포지엄_SJ_v1.pptx (15229642 byte)",
+      "material_files": [
+        "20250619_감염병대응_연구개발_심포지엄_SJ_v1.pptx"
+      ],
+      "conference_or_journal": "제3회 감염병 대응 연구개발 심포지엄",
+      "material_published": "N",
+      "collaborator_approval_obtained": "Y",
+      "predatory_check_confirmed": true,
+      "submit_date": "2025-06-11",
+      "writer": "Soojin Jang",
+      "doc_id": "275928",
+      "doc_no": "ARL-250612-05",
+      "date": "2025-06-11"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Head (R) - Soojin Jang (00307)",
+      "subject": "FAO Regional workshop for Private Sector Engagement on Antimicrobial Resistance",
+      "requester": "Soojin Jang",
+      "disclosure_purpose": "I have been invited to give a talk at the regional workshop for Private Sector Engagement on Antimicrobial Resistance hosted by Food and Agriculture Organization of the United Nations, World Health Organization, World Organisation for Animal Health, and the European Union. The workshop will be held on June 23rd and I will participate it online.",
+      "disclosure_date": "2025-06-23",
+      "material_description": "20250623_FAO_v1.pptx (35847466 byte)",
+      "material_files": [
+        "20250623_FAO_v1.pptx"
+      ],
+      "conference_or_journal": "FAO Regional workshop for Private Sector Engagement on Antimicrobial Resistance",
+      "collaborator_approval_obtained": "Y",
+      "contains_ipk_confidential_info": "N",
+      "predatory_check_confirmed": true,
+      "submit_date": "2025-06-09",
+      "writer": "Soojin Jang",
+      "doc_id": "275808",
+      "doc_no": "ARL-250610-01",
+      "date": "2025-06-09"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Hyun-Jung Lee (00383)",
+      "subject": "Public Disclosure Request for poster presentation",
+      "requester": "Hyun-Jung Lee",
+      "disclosure_purpose": "This abstract has been prepared for poster presentation in 2025 KMB Annual Meeting & International Symposium.",
+      "disclosure_date": "2025-06-04",
+      "material_description": "Abstract_Development_and_optimization_of_infection_models_for_the_discovery_of_new_antimicrobial_molecules.docx (17154 byte)",
+      "material_files": [
+        "Abstract_Development_and_optimization_of_infection_models_for_the_discovery_of_new_antimicrobial_molecules.docx"
+      ],
+      "conference_or_journal": "KMB Annual Meeting & International Symposium",
+      "material_published": "N",
+      "contains_ipk_confidential_info": "N",
+      "predatory_check_confirmed": true,
+      "submit_date": "2025-06-04",
+      "writer": "Hyun-Jung Lee",
+      "doc_id": "275624",
+      "doc_no": "ARL-250609-06",
+      "date": "2025-06-04"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Head (R) - Soojin Jang (00307)",
+      "subject": "Seminar at Ehwa Womans Univ.",
+      "requester": "Soojin Jang",
+      "disclosure_purpose": "I have been invited for a seminar at Ehwa Womans Univ graduate school.",
+      "disclosure_date": "2025-05-28",
+      "material_description": "이대BK_20250528_v1.pptx (27419150 byte)",
+      "material_files": [
+        "이대BK_20250528_v1.pptx"
+      ],
+      "conference_or_journal": "a seminar at Ehwa Womans Univ graduate school.",
+      "patent_filed": "Y",
+      "material_published": "N",
+      "collaborator_approval_obtained": "Y",
+      "contains_ipk_confidential_info": "N",
+      "predatory_check_confirmed": true,
+      "submit_date": "2025-05-23",
+      "writer": "Soojin Jang",
+      "doc_id": "275064",
+      "doc_no": "ARL-250524-01",
+      "date": "2025-05-23"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Head (R) - Soojin Jang (00307)",
+      "subject": "ARPA-H 제안자의 날",
+      "requester": "Soojin Jang",
+      "disclosure_purpose": "I will present the brief research plan that my collaborators and I have been developed at \"제안자의 날\" for ARPA-H project.",
+      "disclosure_date": "2025-05-14",
+      "material_description": "ARPA-H_제안자의_날_Soojin_Jang_발표자료.pptx (27090533 byte)",
+      "material_files": [
+        "ARPA-H_제안자의_날_Soojin_Jang_발표자료.pptx"
+      ],
+      "conference_or_journal": "ARPA-H 제안자의 날",
+      "collaborator_approval_obtained": "Y",
+      "contains_ipk_confidential_info": "N",
+      "predatory_check_confirmed": true,
+      "submit_date": "2025-05-13",
+      "writer": "Soojin Jang",
+      "doc_id": "274518",
+      "doc_no": "ARL-250513-09",
+      "date": "2025-05-13"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Head (R) - Soojin Jang (00307)",
+      "subject": "A seminar at 국립중앙의료원",
+      "requester": "Soojin Jang",
+      "disclosure_purpose": "I have been invited for a talk at 국립중앙의료원, which will be held on April 24, 2025. The materials will be presented at the seminar.",
+      "disclosure_date": "2025-04-24",
+      "material_description": "20250424_국립중앙의료원_v1.pptx (22016194 byte)",
+      "material_files": [
+        "20250424_국립중앙의료원_v1.pptx"
+      ],
+      "conference_or_journal": "국립중앙의료원 중앙감염병병원 정례 연구세미나",
+      "material_published": "N",
+      "collaborator_approval_obtained": "Y",
+      "contains_ipk_confidential_info": "N",
+      "predatory_check_confirmed": true,
+      "submit_date": "2025-04-17",
+      "writer": "Soojin Jang",
+      "doc_id": "273469",
+      "doc_no": "ARL-250417-04",
+      "date": "2025-04-17"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Head (R) - Soojin Jang (00307)",
+      "subject": "2025 한-EU 연구혁신의 날(EU-Kor R&I Day 2025)",
+      "requester": "Soojin Jang",
+      "disclosure_purpose": "I will introduce Pasteur Network and IPK at the 2025 한-EU 연구혁신의 날(EU-Kor R&I Day 2025), which will be held on Mar. 6th.",
+      "disclosure_date": "2025-03-06",
+      "material_description": "EU-Korea_R&I_Day_Soojin_Jang.pdf (3899939 byte)",
+      "material_files": [
+        "EU-Korea_R&I_Day_Soojin_Jang.pdf"
+      ],
+      "conference_or_journal": "2025 한-EU 연구혁신의 날(EU-Kor R&I Day 2025)",
+      "collaborator_approval_obtained": "Y",
+      "predatory_check_confirmed": true,
+      "submit_date": "2025-03-04",
+      "writer": "Soojin Jang",
+      "doc_id": "271503",
+      "doc_no": "ARL-250305-02",
+      "date": "2025-03-04"
+    }
+  ]
+}

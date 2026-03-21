@@ -1,0 +1,359 @@
+{
+  "form_code": "AppFrm-054",
+  "form_name": "Domestic Travel Settlement",
+  "url_pattern": "/Document/document_write.php?approve_type=AppFrm-054",
+  "analysis_basis": "98 documents (49% conference/seminar, 42% vendor visit, 4% technical meeting, 3% training, 2% presentation)",
+  "fixed_fields": {
+    "retention": {
+      "value": "5",
+      "text": "5 years"
+    },
+    "travel_with_invitation": "No",
+    "miscellaneous": 0,
+    "additional_daily": 0
+  },
+  "field_schema": {
+    "subject": {
+      "type": "text",
+      "required": true,
+      "source": "user_input",
+      "note": "Convention: '[Settlement] <original travel request subject>'"
+    },
+    "start_date": {
+      "type": "date",
+      "required": true,
+      "source": "user_input"
+    },
+    "end_date": {
+      "type": "date",
+      "required": true,
+      "source": "user_input"
+    },
+    "start_time": {
+      "type": "time",
+      "required": false,
+      "source": "user_input",
+      "note": "Only for day-trips (nights=0). Present in 76% of docs."
+    },
+    "end_time": {
+      "type": "time",
+      "required": false,
+      "source": "user_input",
+      "note": "Only for day-trips (nights=0). Present in 76% of docs."
+    },
+    "purpose_category": {
+      "type": "select",
+      "required": true,
+      "source": "inference",
+      "values": [
+        "Participation in the conference/seminar",
+        "Simple visit to vendor & etc",
+        "Technical meeting",
+        "Training",
+        "Post or Paper presentation"
+      ],
+      "distribution": {
+        "Participation in the conference/seminar": 0.49,
+        "Simple visit to vendor & etc": 0.42,
+        "Technical meeting": 0.04,
+        "Training": 0.03,
+        "Post or Paper presentation": 0.02
+      }
+    },
+    "purpose": {
+      "type": "textarea",
+      "required": true,
+      "source": "user_input",
+      "note": "Free text detail matching the original travel request purpose"
+    },
+    "destination": {
+      "type": "text",
+      "required": true,
+      "source": "user_input",
+      "note": "Organization/venue name; copied or refined from original travel request"
+    },
+    "province": {
+      "type": "select",
+      "required": true,
+      "source": "inference",
+      "note": "Part of cascading City & Transportation selector"
+    },
+    "city": {
+      "type": "select",
+      "required": true,
+      "source": "inference",
+      "note": "Part of cascading City & Transportation selector"
+    },
+    "transport_mode": {
+      "type": "select",
+      "required": true,
+      "source": "inference",
+      "values": [
+        "Other Public Transporation",
+        "Own Vehicle - Gasoline",
+        "Own Vehicle - Diesel"
+      ],
+      "note": "Part of cascading City & Transportation selector"
+    },
+    "budget_control_no": {
+      "type": "text",
+      "required": true,
+      "source": "user_input",
+      "note": "Must match the BC# from the corresponding approved travel request"
+    },
+    "budget_type": {
+      "type": "select",
+      "required": true,
+      "source": "inference",
+      "values": ["R&D", "General"],
+      "distribution": {
+        "R&D": 0.84,
+        "General": 0.16
+      }
+    },
+    "daily_expense": {
+      "type": "number",
+      "required": true,
+      "source": "inference",
+      "note": "Per-day stipend. 20,000 for day-trips (nights=0); 30,000/day for overnight"
+    },
+    "transport_fee": {
+      "type": "number",
+      "required": false,
+      "source": "user_input",
+      "note": "Actual transport receipts amount (train, bus, etc). Default 0."
+    },
+    "accommodation": {
+      "type": "number",
+      "required": false,
+      "source": "user_input",
+      "note": "Actual accommodation receipts amount. Default 0."
+    },
+    "food_expense": {
+      "type": "number",
+      "required": false,
+      "source": "user_input",
+      "note": "Actual food expense. Default 0."
+    },
+    "attached_approved_doc_ref": {
+      "type": "text",
+      "required": true,
+      "source": "user_input",
+      "note": "Doc number of the corresponding approved travel request (AppFrm-023)"
+    }
+  },
+  "inference_rules": [
+    {
+      "description": "Subject auto-generation from original travel request subject",
+      "then_set": "subject",
+      "template": "[Settlement] {original_travel_request_subject}"
+    },
+    {
+      "description": "Infer nights/days from date range",
+      "then_set": "nights",
+      "rule": "nights = (end_date - start_date).days; days = nights + 1"
+    },
+    {
+      "description": "Daily expense from nights",
+      "then_set": "daily_expense",
+      "rule": "if nights == 0: 20000; if nights >= 1: 30000 per night",
+      "values": {
+        "day_trip (0 nights)": 20000,
+        "overnight (per night)": 30000
+      },
+      "confidence": 0.97
+    },
+    {
+      "description": "Purpose category from subject/purpose keywords",
+      "then_set": "purpose_category",
+      "rules": [
+        {
+          "keywords": ["conference", "symposium", "seminar", "workshop", "meeting", "forum"],
+          "value": "Participation in the conference/seminar",
+          "confidence": 0.9
+        },
+        {
+          "keywords": ["sampling", "collection", "visit", "survey", "vendor"],
+          "value": "Simple visit to vendor & etc",
+          "confidence": 0.85
+        },
+        {
+          "keywords": ["training", "교육"],
+          "value": "Training",
+          "confidence": 0.9
+        },
+        {
+          "keywords": ["presentation", "poster", "paper"],
+          "value": "Post or Paper presentation",
+          "confidence": 0.85
+        }
+      ]
+    },
+    {
+      "description": "Transport mode from province/city (matches AppFrm-023 logic)",
+      "then_set": "transport_mode",
+      "rules": [
+        {
+          "condition": "Seoul day-trip",
+          "transport": "Other Public Transporation",
+          "confidence": 0.66
+        },
+        {
+          "condition": "Gyeonggi-do (Suwon)",
+          "transport": "variable: Own Vehicle - Gasoline (67%) vs Other Public (33%)",
+          "confidence": 0.67
+        },
+        {
+          "condition": "Daejeon, Busan, Gangwon-do, out-of-metro",
+          "transport": "Own Vehicle - Gasoline",
+          "confidence": 0.82
+        }
+      ]
+    },
+    {
+      "description": "Budget type from budget_account_code prefix",
+      "then_set": "budget_type",
+      "rule": "starts with 'R&D' -> R&D (84%); starts with 'General' -> General (16%)"
+    }
+  ],
+  "ajax_cascade_sequence": [
+    {
+      "field": "province",
+      "delay_ms": 1500,
+      "note": "triggers city options (same as AppFrm-023)"
+    },
+    {
+      "field": "city",
+      "delay_ms": 2000,
+      "note": "triggers transport_mode options"
+    },
+    {
+      "field": "transport_mode",
+      "delay_ms": 1000
+    },
+    {
+      "field": "budget_type",
+      "delay_ms": 2000,
+      "note": "triggers budget_code options"
+    },
+    {
+      "field": "budget_code",
+      "delay_ms": 1500,
+      "note": "triggers item_no options"
+    },
+    {
+      "field": "item_no",
+      "delay_ms": 1000
+    }
+  ],
+  "city_transport_lookup": {
+    "Seoul (서울특별시) - Seoul (서울)": [
+      {"transport": "Other Public Transporation", "count": 30},
+      {"transport": "Own Vehicle - Gasoline", "count": 16}
+    ],
+    "Gyeonggi-do (경기도) - Suwon (수원)": [
+      {"transport": "Own Vehicle - Gasoline", "count": 13},
+      {"transport": "Other Public Transporation", "count": 7}
+    ],
+    "Daejeon (대전광역시) - Daejeon (대전광역시)": [
+      {"transport": "Own Vehicle - Gasoline", "count": 11},
+      {"transport": "Other Public Transporation", "count": 2}
+    ],
+    "Busan (부산광역시) - Busan (부산광역시)": [
+      {"transport": "Own Vehicle - Gasoline", "count": 6},
+      {"transport": "Other Public Transporation", "count": 4}
+    ],
+    "Gangwon-do (강원도) - Other (기타)": [
+      {"transport": "Own Vehicle - Gasoline", "count": 3}
+    ],
+    "Jeju-do (제주도) - Jeju (제주)": [
+      {"transport": "Other Public Transporation", "count": 2}
+    ],
+    "Gyeongsangbuk-do (경상북도) - Pohang (포항)": [
+      {"transport": "Other Public Transporation", "count": 2}
+    ],
+    "Gyeonggi-do (경기도) - Suwon (수원) - Own Vehicle - Diesel": [
+      {"transport": "Own Vehicle - Diesel", "count": 1}
+    ]
+  },
+  "writer_profiles": {
+    "Kyuwon Shim": {
+      "total_docs": 7,
+      "low_confidence": false,
+      "common_purpose_category": "Participation in the conference/seminar",
+      "common_city_transportation": "Seoul (서울특별시) - Seoul (서울) - Other Public Transporation",
+      "transport_mode": "Other Public Transporation",
+      "budget_type": "R&D",
+      "travel_with_invitation": "No",
+      "avg_total_sum": 68207,
+      "avg_nights": 0.57
+    },
+    "Soojin Jang": {
+      "total_docs": 37,
+      "low_confidence": false,
+      "common_purpose_category": "Participation in the conference/seminar",
+      "common_city_transportation": "Seoul (서울특별시) - Seoul (서울) - Own Vehicle - Gasoline",
+      "transport_mode": "Own Vehicle - Gasoline",
+      "budget_type": "R&D",
+      "travel_with_invitation": "No",
+      "avg_total_sum": 115284,
+      "avg_nights": 0.16
+    },
+    "Guinam Wee": {
+      "total_docs": 10,
+      "low_confidence": false,
+      "common_purpose_category": "Participation in the conference/seminar",
+      "common_city_transportation": "Seoul (서울특별시) - Seoul (서울) - Other Public Transporation",
+      "transport_mode": "Other Public Transporation",
+      "budget_type": "R&D",
+      "travel_with_invitation": "No",
+      "avg_total_sum": 109168,
+      "avg_nights": 0.6
+    },
+    "Juchan Hwang": {
+      "total_docs": 7,
+      "low_confidence": false,
+      "common_purpose_category": "Simple visit to vendor & etc",
+      "common_city_transportation": "Seoul (서울특별시) - Seoul (서울) - Other Public Transporation",
+      "transport_mode": "Other Public Transporation",
+      "budget_type": "R&D",
+      "travel_with_invitation": "No",
+      "avg_total_sum": 105223,
+      "avg_nights": 0.29
+    },
+    "Hyun-Jung Lee": {
+      "total_docs": 6,
+      "low_confidence": false,
+      "common_purpose_category": "Participation in the conference/seminar",
+      "common_city_transportation": "Seoul (서울특별시) - Seoul (서울) - Other Public Transporation",
+      "transport_mode": "Other Public Transporation",
+      "budget_type": "R&D",
+      "travel_with_invitation": "No",
+      "avg_total_sum": 146565,
+      "avg_nights": 0.83
+    }
+  },
+  "account_code_from_budget_type": {
+    "R&D": "410201",
+    "General": "420312",
+    "note": "Appended to budget account code string as - Domestic Business Travel[<code>]"
+  },
+  "minimum_required_inputs": [
+    "subject",
+    "start_date",
+    "end_date",
+    "destination",
+    "budget_control_no",
+    "purpose",
+    "attached_approved_doc_ref"
+  ],
+  "optional_inputs": [
+    "start_time",
+    "end_time",
+    "transport_fee",
+    "accommodation",
+    "food_expense",
+    "purpose_category_override",
+    "transport_mode_override"
+  ]
+}

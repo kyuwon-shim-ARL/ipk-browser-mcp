@@ -1,0 +1,193 @@
+{
+  "form_code": "AppFrm-020",
+  "form_name": "Card Expense Request",
+  "analysis_basis": "60 documents (53 Sol Lee, 4 Minjeong Woo, 1 each: Hyun-Jung Lee, YunMi LEE, Hyungjun Kim)",
+  "fixed_fields": {
+    "saving_years": "5 years",
+    "budget_type": "General",
+    "payment": "Corporate Credit Card",
+    "card_number": "4518-4445-1265-8391",
+    "item_cate_no": "none",
+    "item_pc": "N/N"
+  },
+  "field_schema": {
+    "subject": {
+      "type": "text",
+      "required": true,
+      "source": "user_input",
+      "note": "Common patterns: '[Card] ER_coffee for meeting', '[Card] ER_coffee for lab meeting', '[Card] ER_team lunch', '[Card] General Expense Request'"
+    },
+    "budget_code": {
+      "type": "text",
+      "required": true,
+      "source": "profile",
+      "note": "100% of docs use '[GW17_ARRL] 과제수당_ARRL (Period: 2017-01-01~2033-12-31)'"
+    },
+    "item_date": {
+      "type": "date",
+      "required": true,
+      "source": "user_input",
+      "note": "Date of the actual purchase/invoice"
+    },
+    "item_account_code": {
+      "type": "select",
+      "required": true,
+      "source": "user_input",
+      "values": ["420421", "420420", "420374", "420375"],
+      "distribution": {
+        "420421": 0.93,
+        "420420": 0.03,
+        "420374": 0.02,
+        "420375": 0.02
+      },
+      "note": "420421=Team activities (93%), 420420=Conference: Meeting with External Specialists, 420374=Other Commissions, 420375=Registration & Subscription"
+    },
+    "item_description": {
+      "type": "text",
+      "required": true,
+      "source": "inference",
+      "note": "Embedded in Account Code cell as '[XXXXX]\\nDescription'. Common: 'Team activities' (93%)"
+    },
+    "item_amount_excl_vat": {
+      "type": "text",
+      "required": true,
+      "source": "user_input",
+      "note": "Amount excluding VAT, Korean comma-formatted integer (e.g. '23,819')"
+    },
+    "item_vat": {
+      "type": "text",
+      "required": true,
+      "source": "user_input",
+      "note": "VAT amount, Korean comma-formatted integer"
+    },
+    "item_total_amount": {
+      "type": "text",
+      "required": true,
+      "source": "user_input",
+      "note": "Total amount including VAT"
+    },
+    "item_control_no": {
+      "type": "text",
+      "required": true,
+      "source": "user_input",
+      "note": "Card receipt control number (e.g. '25103268-01')"
+    },
+    "item_vendor": {
+      "type": "text",
+      "required": true,
+      "source": "user_input",
+      "note": "Vendor/payee name (Korean or English)"
+    },
+    "venue": {
+      "type": "text",
+      "required": true,
+      "source": "inference",
+      "coverage": 0.97,
+      "note": "Location of meeting/activity. 2/60 docs (accommodation, special expense) have no venue."
+    },
+    "participants": {
+      "type": "text",
+      "required": true,
+      "source": "inference",
+      "coverage": 0.97,
+      "note": "Comma-separated list of attendees"
+    },
+    "purpose_minutes": {
+      "type": "text",
+      "required": true,
+      "source": "inference",
+      "coverage": 0.97,
+      "note": "Purpose and brief meeting minutes"
+    },
+    "notes": {
+      "type": "text",
+      "required": false,
+      "source": "user_input",
+      "coverage": 0.03,
+      "note": "Only present for special cases (accommodation, etc.)"
+    }
+  },
+  "inference_rules": [
+    {
+      "description": "Default budget code from profile",
+      "then_set": "budget_code",
+      "to_profile_key": "budget_codes",
+      "fallback": "[GW17_ARRL] 과제수당_ARRL\n(Period : 2017-01-01~2033-12-31)"
+    },
+    {
+      "description": "Default account code (Team activities) for routine meeting expenses",
+      "if_field": "item_description",
+      "equals": "Team activities",
+      "then_set": "item_account_code",
+      "to": "420421"
+    },
+    {
+      "description": "Default venue from profile",
+      "then_set": "venue",
+      "to_profile_key": "common_venues",
+      "fallback": "4th floor meeting room"
+    },
+    {
+      "description": "Default purpose from profile",
+      "then_set": "purpose_minutes",
+      "to_profile_key": "common_purposes",
+      "fallback": "To discuss what we did and what we will do for projects"
+    },
+    {
+      "description": "Subject auto-generation",
+      "then_set": "subject",
+      "template": "[Card] ER_{expense_type}"
+    }
+  ],
+  "writer_profiles": {
+    "Sol Lee": {
+      "total_docs": 53,
+      "low_confidence": false,
+      "budget_code": "[GW17_ARRL] 과제수당_ARRL\n(Period : 2017-01-01~2033-12-31)",
+      "top_venue": "4th floor meeting room",
+      "top_account_code": "420421",
+      "top_description": "Team activities",
+      "top_purpose": "To discuss what we did and what we will do for projects",
+      "avg_amount_krw": 126171
+    },
+    "Minjeong Woo": {
+      "total_docs": 4,
+      "low_confidence": false,
+      "budget_code": "[GW17_ARRL] 과제수당_ARRL\n(Period : 2017-01-01~2033-12-31)",
+      "top_venue": "Nicolle",
+      "top_account_code": "420421",
+      "top_description": "Team activities",
+      "top_purpose": "Discussion on the experimental timeline and drug administration regimen for the tuberculosis mouse efficacy study.",
+      "avg_amount_krw": 18022
+    },
+    "Hyun-Jung Lee": {
+      "total_docs": 1,
+      "low_confidence": true,
+      "budget_code": "[GW17_ARRL] 과제수당_ARRL\n(Period : 2017-01-01~2033-12-31)",
+      "top_venue": "URP 파스퇴르 cafe",
+      "top_account_code": "420420",
+      "top_description": "Conference: Meeting with External Specialists",
+      "avg_amount_krw": 12800
+    },
+    "YunMi LEE": {
+      "total_docs": 1,
+      "low_confidence": true,
+      "budget_code": "[GW17_ARRL] 과제수당_ARRL\n(Period : 2017-01-01~2033-12-31)",
+      "top_venue": "4th floor",
+      "top_account_code": "420421",
+      "top_description": "Team activities",
+      "avg_amount_krw": 28100
+    },
+    "Hyungjun Kim": {
+      "total_docs": 1,
+      "low_confidence": true,
+      "budget_code": "[GW17_ARRL] 과제수당_ARRL\n(Period : 2017-01-01~2033-12-31)",
+      "top_venue": "Job candidate selection",
+      "top_account_code": "420421",
+      "top_description": "Team activities",
+      "avg_amount_krw": 20900
+    }
+  },
+  "minimum_user_input": ["subject", "item_date", "item_amount_excl_vat", "item_vat", "item_total_amount", "item_control_no", "item_vendor"],
+  "optional_user_input": ["venue", "participants", "purpose_minutes", "notes", "item_account_code", "item_description"]
+}

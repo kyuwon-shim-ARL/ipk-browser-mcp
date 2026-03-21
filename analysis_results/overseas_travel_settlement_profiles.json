@@ -1,0 +1,292 @@
+{
+  "Connor Joseph Wood": {
+    "traveler": "Connor Joseph Wood",
+    "n_documents": 1,
+    "low_confidence": true,
+    "corp_card": {
+      "default": "5525-7642-1492-9594",
+      "confidence": 1.0,
+      "all_used": {
+        "5525-7642-1492-9594": 1
+      },
+      "note": "may be shared lab resource"
+    },
+    "budget_accounts": {
+      "ranked_by_recency": [
+        "R&D - 2025 LigaChem Biosciences FFS_Soojin Jang - ARL (Direct) [FS2504-0000] [FS2504-0001] - Overseas Business Travel [410202]\n(Period : 2025-03-01~2026-12-31)"
+      ],
+      "total_unique": 1,
+      "note": "grant-cycle dependent"
+    },
+    "countries_visited": {
+      "France (Paris)": 1
+    },
+    "settle_amounts": [
+      6185439
+    ],
+    "invitation_pattern": {
+      "Daily Expense\t750 €": 1
+    },
+    "drafter_info": "Antibacterial Resistance Lab - Team Member - Connor Joseph Wood (00454)"
+  },
+  "Guinam Wee": {
+    "traveler": "Guinam Wee",
+    "n_documents": 3,
+    "low_confidence": true,
+    "corp_card": {
+      "default": "5525-7642-1492-9594",
+      "confidence": 1.0,
+      "all_used": {
+        "5525-7642-1492-9594": 3
+      },
+      "note": "may be shared lab resource"
+    },
+    "budget_accounts": {
+      "ranked_by_recency": [
+        "R&D - 2025 Mid-career Research Program_1st_Soojin Jang [EZ: NN2512-0000] [NN2512-0001] - Overseas Business Travel [410202]\n(Period : 2025-03-01~2026-02-28)",
+        "R&D - 2025 GloPID-R Program(생명연 위탁)_1st_Soojin Jang [EZ: NN2509-0000] [NN2509-0001] - Overseas Business Travel [410202]\n(Period : 2025-01-01~2025-12-31)",
+        "R&D - 2024 Korea-EU Collaboration Promotion Program_1st_Soojin Jang [EZ: NN2413-0000] [NN2413-0001] - Overseas Business Travel [410202]\n(Period : 2024-10-01~2025-09-30)"
+      ],
+      "total_unique": 3,
+      "note": "grant-cycle dependent"
+    },
+    "countries_visited": {
+      "USA (San Francisco)": 1,
+      "Vietnam": 1,
+      "Poland": 1
+    },
+    "settle_amounts": [
+      6089747,
+      3776225,
+      305480
+    ],
+    "invitation_pattern": {
+      "No": 2,
+      "Transport Fee\tAround $400\nAccommodation\tAround $85 (2 nights)": 1
+    },
+    "drafter_info": "Antibacterial Resistance Lab - Team Member - Guinam Wee (00528)"
+  },
+  "Hyun-Jung Lee": {
+    "traveler": "Hyun-Jung Lee",
+    "n_documents": 2,
+    "low_confidence": true,
+    "corp_card": {
+      "default": "5525-7642-1139-7571",
+      "confidence": 0.5,
+      "all_used": {
+        "5525-7642-1139-7571": 1,
+        "4518-4445-1265-8391": 1
+      },
+      "note": "may be shared lab resource"
+    },
+    "budget_accounts": {
+      "ranked_by_recency": [
+        "R&D - 2025 Human Frontier Science Program (HFSP)_Hyungjung Lee_단년도 [EZ: NN2518-0000] [NN2518-0001] - Overseas Business Travel [410202]\n(Period : 2025-09-01~2026-08-31)",
+        "R&D - 2022 GARDP FFS_Soojin Jang (ARL) [FS2214-0000] [FS2214-0001] - Overseas Business Travel [410202]\n(Period : 2022-01-01~2028-08-18)"
+      ],
+      "total_unique": 2,
+      "note": "grant-cycle dependent"
+    },
+    "countries_visited": {
+      "USA (San Francisco)": 1,
+      "Vietnam": 1
+    },
+    "settle_amounts": [
+      3833975,
+      953760
+    ],
+    "invitation_pattern": {
+      "No": 1,
+      "Car Rent": 1
+    },
+    "drafter_info": "Antibacterial Resistance Lab - Team Member - Hyun-Jung Lee (00383)"
+  },
+  "Juchan Hwang": {
+    "traveler": "Juchan Hwang",
+    "n_documents": 2,
+    "low_confidence": true,
+    "corp_card": {
+      "default": "5525-7642-1492-9594",
+      "confidence": 1.0,
+      "all_used": {
+        "5525-7642-1492-9594": 2
+      },
+      "note": "may be shared lab resource"
+    },
+    "budget_accounts": {
+      "ranked_by_recency": [
+        "R&D - 2025 GloPID-R Program(생명연 위탁)_1st_Soojin Jang [EZ: NN2509-0000] [NN2509-0001] - Overseas Business Travel [410202]\n(Period : 2025-01-01~2025-12-31)",
+        "R&D - 2024 Korea-EU Collaboration Promotion Program_1st_Soojin Jang [EZ: NN2413-0000] [NN2413-0001] - Overseas Business Travel [410202]\n(Period : 2024-10-01~2025-09-30)"
+      ],
+      "total_unique": 2,
+      "note": "grant-cycle dependent"
+    },
+    "countries_visited": {
+      "Vietnam": 1,
+      "Poland": 1
+    },
+    "settle_amounts": [
+      6000300,
+      300240
+    ],
+    "invitation_pattern": {
+      "Transport Fee\tflight round way (Korea - Nha Trang, amount 550USD)\nAccommodation\t2 night hotel ( amount 100USD)": 1,
+      "No": 1
+    },
+    "drafter_info": "Antibacterial Resistance Lab - Team Member - Juchan Hwang (00456)"
+  },
+  "Kyungbae Min": {
+    "traveler": "Kyungbae Min",
+    "n_documents": 1,
+    "low_confidence": true,
+    "corp_card": {
+      "default": "4518-4445-1265-8391",
+      "confidence": 1.0,
+      "all_used": {
+        "4518-4445-1265-8391": 1
+      },
+      "note": "may be shared lab resource"
+    },
+    "budget_accounts": {
+      "ranked_by_recency": [
+        "R&D - 2022 GARDP FFS_Soojin Jang (ARL) [FS2214-0000] [FS2214-0001] - Overseas Business Travel [410202]\n(Period : 2022-01-01~2028-08-18)"
+      ],
+      "total_unique": 1,
+      "note": "grant-cycle dependent"
+    },
+    "countries_visited": {
+      "Vietnam": 1
+    },
+    "settle_amounts": [
+      937112
+    ],
+    "invitation_pattern": {
+      "No": 1
+    },
+    "drafter_info": "Antibacterial Resistance Lab - Team Member - Kyungbae Min (00467)"
+  },
+  "Minjeong Woo": {
+    "traveler": "Minjeong Woo",
+    "n_documents": 1,
+    "low_confidence": true,
+    "corp_card": {
+      "default": "5525-7642-1492-9594",
+      "confidence": 1.0,
+      "all_used": {
+        "5525-7642-1492-9594": 1
+      },
+      "note": "may be shared lab resource"
+    },
+    "budget_accounts": {
+      "ranked_by_recency": [
+        "R&D - 2025 LigaChem Biosciences FFS_Soojin Jang - ARL (Direct) [FS2504-0000] [FS2504-0001] - Overseas Business Travel [410202]\n(Period : 2025-03-01~2026-12-31)"
+      ],
+      "total_unique": 1,
+      "note": "grant-cycle dependent"
+    },
+    "countries_visited": {
+      "France (Paris)": 1
+    },
+    "settle_amounts": [
+      3763524
+    ],
+    "invitation_pattern": {
+      "Transport Fee\t250 EUR\nAccommodation\t750 EUR": 1
+    },
+    "drafter_info": "Antibacterial Resistance Lab - Team Member - Minjeong Woo (00316)"
+  },
+  "Sol Lee": {
+    "traveler": "Sol Lee",
+    "n_documents": 1,
+    "low_confidence": true,
+    "corp_card": {
+      "default": "4518-4445-1265-8391",
+      "confidence": 1.0,
+      "all_used": {
+        "4518-4445-1265-8391": 1
+      },
+      "note": "may be shared lab resource"
+    },
+    "budget_accounts": {
+      "ranked_by_recency": [
+        "R&D - 2022 GARDP FFS_Soojin Jang (ARL) [FS2214-0000] [FS2214-0001] - Overseas Business Travel [410202]\n(Period : 2022-01-01~2028-08-18)"
+      ],
+      "total_unique": 1,
+      "note": "grant-cycle dependent"
+    },
+    "countries_visited": {
+      "Vietnam": 1
+    },
+    "settle_amounts": [
+      945573
+    ],
+    "invitation_pattern": {
+      "No": 1
+    },
+    "drafter_info": "Antibacterial Resistance Lab - Team Member - Sol Lee (00493)"
+  },
+  "Soojin Jang(00307 / Y)": {
+    "traveler": "Soojin Jang(00307 / Y)",
+    "n_documents": 2,
+    "low_confidence": true,
+    "corp_card": {
+      "default": "5525-7642-1492-9594",
+      "confidence": 1.0,
+      "all_used": {
+        "5525-7642-1492-9594": 1
+      },
+      "note": "may be shared lab resource"
+    },
+    "budget_accounts": {
+      "ranked_by_recency": [
+        "R&D - 2025 Korea-French Collaboration Research Program (PI: Soojin Jang) [EZ: NN2516-0000] [NN2516-0001] - Overseas Business Travel [410202]\n(Period : 2025-07-01~2025-12-31)",
+        "R&D - 2025 GloPID-R Program(생명연 위탁)_1st_Soojin Jang [EZ: NN2509-0000] [NN2509-0001] - Overseas Business Travel [410202]\n(Period : 2025-01-01~2025-12-31)"
+      ],
+      "total_unique": 2,
+      "note": "grant-cycle dependent"
+    },
+    "countries_visited": {
+      "France (Paris)": 1,
+      "Vietnam": 1
+    },
+    "settle_amounts": [
+      2701561,
+      336864
+    ],
+    "invitation_pattern": {
+      "No": 1,
+      "Miscellaneous(e.g visa fees)\tlocal transport fees": 1
+    },
+    "drafter_info": "Antibacterial Resistance Lab - Team Head (R) - Soojin Jang (00307)"
+  },
+  "YunMi LEE": {
+    "traveler": "YunMi LEE",
+    "n_documents": 1,
+    "low_confidence": true,
+    "corp_card": {
+      "default": "4518-4445-1265-8391",
+      "confidence": 1.0,
+      "all_used": {
+        "4518-4445-1265-8391": 1
+      },
+      "note": "may be shared lab resource"
+    },
+    "budget_accounts": {
+      "ranked_by_recency": [
+        "R&D - 2022 GARDP FFS_Soojin Jang (ARL) [FS2214-0000] [FS2214-0001] - Overseas Business Travel [410202]\n(Period : 2022-01-01~2028-08-18)"
+      ],
+      "total_unique": 1,
+      "note": "grant-cycle dependent"
+    },
+    "countries_visited": {
+      "Vietnam": 1
+    },
+    "settle_amounts": [
+      808997
+    ],
+    "invitation_pattern": {
+      "No": 1
+    },
+    "drafter_info": "Antibacterial Resistance Lab - Team Member - YunMi LEE (00227)"
+  }
+}

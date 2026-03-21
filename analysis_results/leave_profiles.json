@@ -1,0 +1,35 @@
+{
+  "Kyuwon Shim": {
+    "total_docs": 68,
+    "low_confidence": false,
+    "leave_type_distribution": {
+      "Annual leave": 38,
+      "Compensatory leave": 26,
+      "Paternity Leave": 3,
+      "Sick leave": 1
+    },
+    "common_purposes": {
+      "child care": 56,
+      "Annual leave": 5,
+      "physical therapy & child care": 2,
+      "Paternity Leave": 2,
+      "Hospitalized by car accident": 1
+    },
+    "common_destinations": {
+      "Seoul": 47,
+      "101dong, 501ho, 20, Jegi-ro, Dongdaemun-gu, Seoul, Republic of Korea": 15,
+      "127 Hallim-ro, Hallim-eup, Jeju-si, Jeju-do, 63010, Republic of Korea": 2,
+      "365MAEIL KOREAN MEDICINE HOSPITAL, 3 Cheonho-daero, Dongdaemun-gu, Seoul, 02582, Republic of Korea": 1,
+      "101dong 501ho 20 Jegi-ro, Dongdaemun-gu, Seoul, 02475, Republic of Korea": 1
+    },
+    "preferred_substitute": {
+      "Guinam Wee": 60,
+      "Juchan Hwang": 5,
+      "Sunju Kim": 3
+    },
+    "typical_duration": {
+      "avg_days": 0.5,
+      "avg_hours": 1.6470588235294117
+    }
+  }
+}

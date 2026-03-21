@@ -1,0 +1,145 @@
+{
+  "form_code": "AppFrm-073",
+  "form_name": "Leave Request",
+  "analysis_basis": "68 documents (38 annual, 26 compensatory, 3 paternity, 1 sick)",
+  "fixed_fields": {
+    "saving_years": "5 years"
+  },
+  "field_schema": {
+    "leave_type": {
+      "type": "select",
+      "required": true,
+      "source": "user_input",
+      "values": ["Annual leave", "Compensatory leave", "Paternity Leave", "Sick leave"],
+      "distribution": {"Annual leave": 0.56, "Compensatory leave": 0.38, "Paternity Leave": 0.04, "Sick leave": 0.01}
+    },
+    "start_date": {
+      "type": "date",
+      "required": true,
+      "source": "user_input"
+    },
+    "end_date": {
+      "type": "date",
+      "required": true,
+      "source": "user_input"
+    },
+    "start_hour": {
+      "type": "number",
+      "required": false,
+      "source": "user_input",
+      "note": "Only for partial-day leave (81% of cases). Common: 14~17, 15~17, 16~17"
+    },
+    "end_hour": {
+      "type": "number",
+      "required": false,
+      "source": "user_input"
+    },
+    "purpose": {
+      "type": "text",
+      "required": true,
+      "source": "inference",
+      "note": "82% are 'child care' for Kyuwon Shim"
+    },
+    "destination": {
+      "type": "text",
+      "required": true,
+      "source": "inference",
+      "note": "69% are 'Seoul', 22% are home address"
+    },
+    "substitute_name": {
+      "type": "text",
+      "required": true,
+      "source": "profile",
+      "note": "88% Guinam Wee, 7% Juchan Hwang, 4% Sunju Kim"
+    },
+    "substitute_payroll": {
+      "type": "text",
+      "required": true,
+      "source": "profile",
+      "linked_to": "substitute_name"
+    },
+    "substitute_position": {
+      "type": "text",
+      "required": true,
+      "source": "profile",
+      "linked_to": "substitute_name"
+    },
+    "substitute_contact": {
+      "type": "text",
+      "required": true,
+      "source": "profile",
+      "linked_to": "substitute_name"
+    },
+    "address": {
+      "type": "text",
+      "required": true,
+      "source": "profile"
+    },
+    "telephone": {
+      "type": "text",
+      "required": true,
+      "source": "profile"
+    }
+  },
+  "inference_rules": [
+    {
+      "description": "Default purpose by leave type",
+      "if_field": "leave_type",
+      "equals": "Annual leave",
+      "then_set": "purpose",
+      "to_profile_key": "common_purpose",
+      "fallback": "Annual leave"
+    },
+    {
+      "description": "Default purpose for compensatory",
+      "if_field": "leave_type",
+      "equals": "Compensatory leave",
+      "then_set": "purpose",
+      "to_profile_key": "common_purpose",
+      "fallback": "Compensatory leave"
+    },
+    {
+      "description": "Default purpose for paternity",
+      "if_field": "leave_type",
+      "equals": "Paternity Leave",
+      "then_set": "purpose",
+      "to": "Paternity Leave"
+    },
+    {
+      "description": "Default destination from profile",
+      "then_set": "destination",
+      "to_profile_key": "common_destination",
+      "fallback": "Seoul"
+    },
+    {
+      "description": "Substitute from profile (soft default)",
+      "then_set": "substitute_name",
+      "to_profile_key": "preferred_substitute",
+      "soft_default": true
+    },
+    {
+      "description": "Subject auto-generation",
+      "then_set": "subject",
+      "template": "{leave_type}, {start_date}~{end_date}, {destination}, {writer_name}"
+    }
+  ],
+  "substitute_lookup": {
+    "Guinam Wee": {
+      "payroll": "00528",
+      "position": "Antibacterial Resistance Lab/Team Member",
+      "contact": "031-8018-8195"
+    },
+    "Juchan Hwang": {
+      "payroll": "00577",
+      "position": "Antibacterial Resistance Lab/Team Member",
+      "contact": "031-8018-8014"
+    },
+    "Sunju Kim": {
+      "payroll": "00542",
+      "position": "Antibacterial Resistance Lab/Team Member",
+      "contact": "031-8018-8014"
+    }
+  },
+  "minimum_user_input": ["leave_type", "start_date", "end_date"],
+  "optional_user_input": ["start_hour", "end_hour", "purpose", "destination", "substitute_name"]
+}

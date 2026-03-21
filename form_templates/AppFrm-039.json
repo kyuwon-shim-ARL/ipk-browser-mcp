@@ -1,0 +1,238 @@
+{
+  "form_code": "AppFrm-039",
+  "form_name": "Purchase Request / Budget Transfer",
+  "url_pattern": "/Document/document_write.php?approve_type=AppFrm-039",
+  "total_docs_analyzed": 107,
+  "fixed_fields": {
+    "retention": {
+      "value": "5",
+      "text": "5 years"
+    },
+    "transfer_type": "Transfer"
+  },
+  "field_schema": {
+    "subject": {
+      "type": "text",
+      "required": true,
+      "source": "user_input",
+      "coverage": "100%",
+      "note": "Free-form title describing the transfer purpose, e.g. 'Budget Transfer_ProjectName' or item name"
+    },
+    "account_no": {
+      "type": "text",
+      "required": true,
+      "source": "user_input",
+      "coverage": "100%",
+      "note": "Budget account/project code, e.g. NN2512-0001, FS2226-0001, RS_JSJ"
+    },
+    "project_title": {
+      "type": "text",
+      "required": true,
+      "source": "user_input",
+      "coverage": "100%",
+      "note": "Full project title corresponding to account_no"
+    },
+    "project_period": {
+      "type": "text",
+      "required": true,
+      "source": "user_input",
+      "coverage": "100%",
+      "format": "YYYY-MM-DD ~ YYYY-MM-DD"
+    },
+    "transfer_items": {
+      "type": "table",
+      "required": true,
+      "source": "user_input",
+      "coverage": "100%",
+      "note": "One or more rows of source/target/amount. 81% of docs have exactly 1 row.",
+      "item_schema": {
+        "source": {
+          "type": "text",
+          "note": "Source budget account code and name, e.g. '[ 410703] Reagent & Supplies'"
+        },
+        "target": {
+          "type": "text",
+          "note": "Target budget account code and name, e.g. '[ 410201] Domestic Business Travel'"
+        },
+        "amount": {
+          "type": "number",
+          "note": "Amount in KRW, formatted with commas"
+        }
+      },
+      "distribution": {
+        "1_item": 0.81,
+        "2_items": 0.12,
+        "3_items": 0.05,
+        "4_or_more_items": 0.02
+      }
+    },
+    "control_no": {
+      "type": "text",
+      "required": true,
+      "source": "user_input",
+      "coverage": "100%",
+      "note": "Budget control number from IPK budget system, e.g. 26000266"
+    },
+    "description": {
+      "type": "textarea",
+      "required": true,
+      "source": "user_input",
+      "coverage": "100%",
+      "note": "Reason/purpose for the budget transfer"
+    },
+    "equipment_name": {
+      "type": "text",
+      "required": false,
+      "source": "user_input",
+      "coverage": "10%",
+      "note": "Only for equipment/tool purchases targeting [ 120312] Tools or [ 120336] Office devices asset"
+    },
+    "manufacturer": {
+      "type": "text",
+      "required": false,
+      "source": "user_input",
+      "coverage": "10%",
+      "linked_to": "equipment_name"
+    },
+    "features": {
+      "type": "text",
+      "required": false,
+      "source": "user_input",
+      "coverage": "10%",
+      "linked_to": "equipment_name"
+    },
+    "price_krw": {
+      "type": "number",
+      "required": false,
+      "source": "user_input",
+      "coverage": "10%",
+      "linked_to": "equipment_name"
+    },
+    "purchase_purpose": {
+      "type": "textarea",
+      "required": false,
+      "source": "user_input",
+      "coverage": "10%",
+      "linked_to": "equipment_name"
+    }
+  },
+  "inference_rules": [
+    {
+      "description": "Equipment block required when target is a tools/asset account",
+      "if_field": "target_account_code",
+      "matches": ["120312", "120336"],
+      "then_require": ["equipment_name", "manufacturer", "features", "price_krw", "purchase_purpose"]
+    },
+    {
+      "description": "Subject auto-suggestion from transfer pattern",
+      "template": "Budget Transfer_{project_tag}_{account_no}",
+      "note": "Many subjects follow 'Budget Transfer Request', 'Budget Transfer_ProjectName', or item name"
+    },
+    {
+      "description": "Common source accounts by frequency",
+      "source_account_distribution": {
+        "[ 410703] Reagent & Supplies": 0.40,
+        "[ 410705] Assay & Test": 0.19,
+        "[ 410201] Domestic Business Travel": 0.13,
+        "[ 410310] Conferences:Meeting with External Specialists": 0.08,
+        "[ 410911] Commission": 0.07,
+        "other": 0.13
+      }
+    },
+    {
+      "description": "Common target accounts by frequency",
+      "target_account_distribution": {
+        "[ 410201] Domestic Business Travel": 0.14,
+        "[ 410306] Participating in Conferences": 0.13,
+        "[ 410920] Office devices (General-purpose)": 0.12,
+        "[ 410705] Assay & Test": 0.12,
+        "[ 410318] IT Software (IT Subscription)": 0.10,
+        "[ 410312] Inviting or consulting specialists": 0.07,
+        "[ 120336] Office devices asset (General-purpose)": 0.06,
+        "[ 410911] Commission": 0.06,
+        "[ 120312] Tools": 0.05,
+        "[ 410901] Office supplies": 0.05,
+        "[ 410202] Overseas Business Travel": 0.05,
+        "other": 0.05
+      }
+    }
+  ],
+  "common_source_target_pairs": [
+    {"source": "[ 410703] Reagent & Supplies", "target": "[ 410306] Participating in Conferences", "count": 5},
+    {"source": "[ 410703] Reagent & Supplies", "target": "[ 410201] Domestic Business Travel", "count": 5},
+    {"source": "[ 410705] Assay & Test", "target": "[ 410306] Participating in Conferences", "count": 4},
+    {"source": "[ 410705] Assay & Test", "target": "[ 410201] Domestic Business Travel", "count": 4},
+    {"source": "[ 410703] Reagent & Supplies", "target": "[ 410318] IT Software (IT Subscription)", "count": 4},
+    {"source": "[ 410705] Assay & Test", "target": "[ 410318] IT Software (IT Subscription)", "count": 3},
+    {"source": "[ 410703] Reagent & Supplies", "target": "[ 120312] Tools", "count": 3},
+    {"source": "[ 410310] Conferences:Meeting with External Specialists", "target": "[ 410312] Inviting or consulting specialists", "count": 3},
+    {"source": "[ 412103] Overtime Meals", "target": "[ 410920] Office devices (General-purpose)", "count": 3},
+    {"source": "[ 410201] Domestic Business Travel", "target": "[ 410306] Participating in Conferences", "count": 3}
+  ],
+  "writer_profiles": {
+    "Hyungjun Kim": {
+      "total_docs": 33,
+      "avg_amount_krw": 4055896,
+      "equipment_purchases": 6,
+      "common_account_nos": ["NN2503-0002", "FS2226-0001", "NN2508-0001"]
+    },
+    "Minjeong Woo": {
+      "total_docs": 14,
+      "avg_amount_krw": 4239403,
+      "equipment_purchases": 3
+    },
+    "Hyun-Jung Lee": {
+      "total_docs": 13,
+      "avg_amount_krw": 1295256,
+      "equipment_purchases": 0
+    },
+    "Sol Lee": {
+      "total_docs": 12,
+      "avg_amount_krw": 436235,
+      "equipment_purchases": 0
+    },
+    "Guinam Wee": {
+      "total_docs": 12,
+      "avg_amount_krw": 4471746,
+      "equipment_purchases": 1
+    },
+    "YunMi LEE": {
+      "total_docs": 10,
+      "avg_amount_krw": 1786664,
+      "equipment_purchases": 0
+    },
+    "Juchan Hwang": {
+      "total_docs": 6,
+      "avg_amount_krw": 6815075,
+      "equipment_purchases": 1
+    },
+    "Kyuwon Shim": {
+      "total_docs": 4,
+      "avg_amount_krw": 2300000,
+      "equipment_purchases": 0,
+      "common_account_nos": ["NN2512-0001", "RS_JSJ"]
+    }
+  },
+  "amount_stats": {
+    "min_krw": 600,
+    "max_krw": 30000000,
+    "avg_krw": 3221568,
+    "total_corpus_krw": 344707865
+  },
+  "minimum_required_inputs": [
+    "subject",
+    "account_no",
+    "project_title",
+    "project_period",
+    "transfer_items",
+    "control_no",
+    "description"
+  ],
+  "optional_inputs": [
+    "equipment_name",
+    "manufacturer",
+    "features",
+    "price_krw",
+    "purchase_purpose"
+  ]
+}

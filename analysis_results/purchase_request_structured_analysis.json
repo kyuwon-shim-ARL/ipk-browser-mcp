@@ -1,0 +1,3372 @@
+{
+  "form_code": "AppFrm-039",
+  "total_documents": 107,
+  "structured_data": [
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Kyuwon Shim (00565)",
+      "draft_date": "2026-01-27",
+      "subject": "budget transfer",
+      "transfer_type": "Transfer",
+      "account_no": "RS_JSJ",
+      "project_title": "연구지원계정_Soojin Jang",
+      "project_period": "2025-11-10 ~ 2035-12-31",
+      "project_start": "2025-11-10",
+      "project_end": "2035-12-31",
+      "transfer_items": [
+        {
+          "source": "[ 412107] Team Activities (RS only)",
+          "target": "[ 410911] Commission",
+          "amount": "200,000"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 412107] Team Activities (RS only)",
+      "target_account": "[ 410911] Commission",
+      "amount": "200,000",
+      "total_amount": "200,000",
+      "control_no": "26000266",
+      "description": "request for prepaid accommodation",
+      "doc_id": "288531",
+      "doc_no": "ARL-260128-01",
+      "writer": "Kyuwon Shim",
+      "date": "2026-01-27",
+      "source": "approved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Kyuwon Shim (00565)",
+      "draft_date": "2026-01-05",
+      "subject": "Budget Transfer",
+      "transfer_type": "Transfer",
+      "account_no": "NN2512-0001",
+      "project_title": "2025 Mid-career Research Program_1st_Soojin Jang",
+      "project_period": "2025-03-01 ~ 2026-02-28",
+      "project_start": "2025-03-01",
+      "project_end": "2026-02-28",
+      "transfer_items": [
+        {
+          "source": "[ 410705] Assay & Test",
+          "target": "[ 410306] Participating in Conferences",
+          "amount": "2,000,000"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410705] Assay & Test",
+      "target_account": "[ 410306] Participating in Conferences",
+      "amount": "2,000,000",
+      "total_amount": "2,000,000",
+      "control_no": "26000016",
+      "description": "To attend 2026 KMB winter and reserve for the future request.",
+      "doc_id": "287574",
+      "doc_no": "ARL-260106-08",
+      "writer": "Kyuwon Shim",
+      "date": "2026-01-05",
+      "source": "approved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Kyuwon Shim (00565)",
+      "draft_date": "2026-01-05",
+      "subject": "Budget Transfer",
+      "transfer_type": "Transfer",
+      "account_no": "NN2512-0001",
+      "project_title": "2025 Mid-career Research Program_1st_Soojin Jang",
+      "project_period": "2025-03-01 ~ 2026-02-28",
+      "project_start": "2025-03-01",
+      "project_end": "2026-02-28",
+      "transfer_items": [
+        {
+          "source": "[ 410705] Assay & Test",
+          "target": "[ 410201] Domestic Business Travel",
+          "amount": "2,000,000"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410705] Assay & Test",
+      "target_account": "[ 410201] Domestic Business Travel",
+      "amount": "2,000,000",
+      "total_amount": "2,000,000",
+      "control_no": "26000015",
+      "description": "To attend 2026 KMB winter and reserve for the future request.",
+      "doc_id": "287573",
+      "doc_no": "ARL-260106-04",
+      "writer": "Kyuwon Shim",
+      "date": "2026-01-05",
+      "source": "approved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Kyuwon Shim (00565)",
+      "draft_date": "2025-10-24",
+      "subject": "Assay & Test , Overseas Business Travel to IT Software (IT Subscription)",
+      "transfer_type": "Transfer",
+      "account_no": "NN2512-0001",
+      "project_title": "2025 Mid-career Research Program_1st_Soojin Jang",
+      "project_period": "2025-03-01 ~ 2026-02-28",
+      "project_start": "2025-03-01",
+      "project_end": "2026-02-28",
+      "transfer_items": [
+        {
+          "source": "[ 410705] Assay & Test",
+          "target": "[ 410318] IT Software (IT Subscription)",
+          "amount": "2,500,000"
+        },
+        {
+          "source": "[ 410202] Overseas Business Travel",
+          "target": "[ 410318] IT Software (IT Subscription)",
+          "amount": "2,500,000"
+        }
+      ],
+      "transfer_item_count": 2,
+      "total_amount": "5,000,000",
+      "control_no": "25004166",
+      "description": "Need to pay for subscription fee more than 400,000 won /month including claude code max plan (220$ /month)\nRequest budget transfer for seamless research execution",
+      "doc_id": "283129",
+      "doc_no": "ARL-251024-06",
+      "writer": "Kyuwon Shim",
+      "date": "2025-10-24",
+      "source": "approved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Hyungjun Kim (00282)",
+      "draft_date": "2026-03-13",
+      "subject": "Assay and test to IT software (IT subscription)",
+      "transfer_type": "Transfer",
+      "account_no": "NN2606-0001",
+      "project_title": "2026 Mid-career Research Program_2nd_Soojin Jang",
+      "project_period": "2026-03-01 ~ 2027-02-28",
+      "project_start": "2026-03-01",
+      "project_end": "2027-02-28",
+      "transfer_items": [
+        {
+          "source": "[ 410705] Assay & Test",
+          "target": "[ 410318] IT Software (IT Subscription)",
+          "amount": "11,000,000"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410705] Assay & Test",
+      "target_account": "[ 410318] IT Software (IT Subscription)",
+      "amount": "11,000,000",
+      "total_amount": "11,000,000",
+      "control_no": "26000861",
+      "description": "Assay and test to IT software (IT subscription)\nSubscription of analysis, visualization, AI tools",
+      "doc_id": "290581",
+      "doc_no": "ARL-260316-05",
+      "writer": "Hyungjun Kim",
+      "date": "2026-03-13",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Hyungjun Kim (00282)",
+      "draft_date": "2026-03-13",
+      "subject": "Shaking incubator (large)",
+      "transfer_type": "Transfer",
+      "account_no": "NN2604-0001",
+      "project_title": "2026 Korea-French Collaboration Research Program_2nd_Soojin Jang",
+      "project_period": "2026-01-01 ~ 2026-12-31",
+      "project_start": "2026-01-01",
+      "project_end": "2026-12-31",
+      "transfer_items": [
+        {
+          "source": "[ 410703] Reagent & Supplies",
+          "target": "[ 120312] Tools",
+          "amount": "10,443,700"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410703] Reagent & Supplies",
+      "target_account": "[ 120312] Tools",
+      "amount": "10,443,700",
+      "total_amount": "10,443,700",
+      "equipment_name": "Shaking incubator and unverisal attachment",
+      "manufacturer": "JEIOTECH",
+      "features": "500 rpm, 23 mm amplitude, 230VAC, 50/60Hz",
+      "price_krw": "11011000",
+      "purchase_purpose": "Large shaking incubator to accommodate two glass container for bacterial culture.",
+      "has_equipment_description": true,
+      "control_no": "26000853",
+      "description": "Large culture of target bacteria for compound screening.",
+      "doc_id": "290548",
+      "doc_no": "ARL-260313-06",
+      "writer": "Hyungjun Kim",
+      "date": "2026-03-13",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Sol Lee (00576)",
+      "draft_date": "2026-03-12",
+      "subject": "Budget transfer_NN2608-0002_ARL",
+      "transfer_type": "Transfer",
+      "account_no": "NN2608-0002",
+      "project_title": "2026 Bio-medical program (POSTEC 대형장비과제)_3rd_Inhee Choi(ARL)_단계종료",
+      "project_period": "2026-01-01 ~ 2026-12-31",
+      "project_start": "2026-01-01",
+      "project_end": "2026-12-31",
+      "transfer_items": [
+        {
+          "source": "[ 410703] Reagent & Supplies",
+          "target": "[ 410901] Office supplies",
+          "amount": "179,455"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410703] Reagent & Supplies",
+      "target_account": "[ 410901] Office supplies",
+      "amount": "179,455",
+      "total_amount": "179,455",
+      "control_no": "26000828",
+      "description": "To purchase office supplies from office way.",
+      "doc_id": "290494",
+      "doc_no": "ARL-260313-02",
+      "writer": "Sol Lee",
+      "date": "2026-03-12",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Hyun-Jung Lee (00383)",
+      "draft_date": "2026-03-12",
+      "subject": "Budget transfer request",
+      "transfer_type": "Transfer",
+      "account_no": "NN2518-0001",
+      "project_title": "2025 Human Frontier Science Program (HFSP)_Hyungjung Lee_단년도",
+      "project_period": "2025-09-01 ~ 2026-08-31",
+      "project_start": "2025-09-01",
+      "project_end": "2026-08-31",
+      "transfer_items": [
+        {
+          "source": "[ 410310] Conferences:Meeting with External Specialists",
+          "target": "[ 410920] Office devices (General-purpose)",
+          "amount": "260,900"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410310] Conferences:Meeting with External Specialists",
+      "target_account": "[ 410920] Office devices (General-purpose)",
+      "amount": "260,900",
+      "total_amount": "260,900",
+      "control_no": "26000804",
+      "description": "Budget to be used for office devices (general-purpose)",
+      "doc_id": "290441",
+      "doc_no": "ARL-260313-01",
+      "writer": "Hyun-Jung Lee",
+      "date": "2026-03-12",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Sol Lee (00576)",
+      "draft_date": "2026-03-10",
+      "subject": "Budget ransfer_NN2608-0002",
+      "transfer_type": "Transfer",
+      "account_no": "NN2608-0002",
+      "project_title": "2026 Bio-medical program (POSTEC 대형장비과제)_3rd_Inhee Choi(ARL)_단계종료",
+      "project_period": "2026-01-01 ~ 2026-12-31",
+      "project_start": "2026-01-01",
+      "project_end": "2026-12-31",
+      "transfer_items": [
+        {
+          "source": "[ 410310] Conferences:Meeting with External Specialists",
+          "target": "[ 410312] Inviting or consulting specialists",
+          "amount": "600,000"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410310] Conferences:Meeting with External Specialists",
+      "target_account": "[ 410312] Inviting or consulting specialists",
+      "amount": "600,000",
+      "total_amount": "600,000",
+      "control_no": "26000771",
+      "description": "This is a budget transfer request for inviting two external specialists. The seminar will bw held on 18th, March and all of the ARL members will attend.",
+      "doc_id": "290317",
+      "doc_no": "ARL-260310-08",
+      "writer": "Sol Lee",
+      "date": "2026-03-10",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Hyungjun Kim (00282)",
+      "draft_date": "2026-03-06",
+      "subject": "Reagent and supplies to IT software subscription",
+      "transfer_type": "Transfer",
+      "account_no": "FS2226-0001",
+      "project_title": "2022 Peptoide FFS_Soojin Jang (Direct)",
+      "project_period": "2022-12-01 ~ 2027-08-31",
+      "project_start": "2022-12-01",
+      "project_end": "2027-08-31",
+      "transfer_items": [
+        {
+          "source": "[ 410703] Reagent & Supplies",
+          "target": "[ 410318] IT Software (IT Subscription)",
+          "amount": "1,121,642"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410703] Reagent & Supplies",
+      "target_account": "[ 410318] IT Software (IT Subscription)",
+      "amount": "1,121,642",
+      "total_amount": "1,121,642",
+      "control_no": "26000729",
+      "description": "Purchase of subscription of analysis and data visualization software",
+      "doc_id": "290203",
+      "doc_no": "ARL-260309-03",
+      "writer": "Hyungjun Kim",
+      "date": "2026-03-06",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Hyun-Jung Lee (00383)",
+      "draft_date": "2026-03-06",
+      "subject": "Budget transfer request",
+      "transfer_type": "Transfer",
+      "account_no": "NN2518-0001",
+      "project_title": "2025 Human Frontier Science Program (HFSP)_Hyungjung Lee_단년도",
+      "project_period": "2025-09-01 ~ 2026-08-31",
+      "project_start": "2025-09-01",
+      "project_end": "2026-08-31",
+      "transfer_items": [
+        {
+          "source": "[ 410310] Conferences:Meeting with External Specialists",
+          "target": "[ 412103] Overtime Meals",
+          "amount": "150,000"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410310] Conferences:Meeting with External Specialists",
+      "target_account": "[ 412103] Overtime Meals",
+      "amount": "150,000",
+      "total_amount": "150,000",
+      "control_no": "26000721",
+      "description": "Budget to be used for overtime meals",
+      "doc_id": "290180",
+      "doc_no": "ARL-260309-02",
+      "writer": "Hyun-Jung Lee",
+      "date": "2026-03-06",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Sol Lee (00493)",
+      "draft_date": "2026-02-23",
+      "subject": "Budget transfer_Peptoide project",
+      "transfer_type": "Transfer",
+      "account_no": "FS2226-0001",
+      "project_title": "2022 Peptoide FFS_Soojin Jang (Direct)",
+      "project_period": "2022-12-01 ~ 2027-08-31",
+      "project_start": "2022-12-01",
+      "project_end": "2027-08-31",
+      "transfer_items": [
+        {
+          "source": "[ 410703] Reagent & Supplies",
+          "target": "[ 412103] Overtime Meals",
+          "amount": "1,000,000"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410703] Reagent & Supplies",
+      "target_account": "[ 412103] Overtime Meals",
+      "amount": "1,000,000",
+      "total_amount": "1,000,000",
+      "control_no": "26000593",
+      "description": "Budget transfer of peptoide project from 410703 to 412103",
+      "doc_id": "289681",
+      "doc_no": "ARL-260224-02",
+      "writer": "Sol Lee",
+      "date": "2026-02-23",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Hyun-Jung Lee (00383)",
+      "draft_date": "2026-02-19",
+      "subject": "Budget transfer request",
+      "transfer_type": "Transfer",
+      "account_no": "NN2604-0002",
+      "project_title": "2026 Korea-French Collaboration Research Program_2nd_Soojin Jang_이월금",
+      "project_period": "2026-01-01 ~ 2026-12-31",
+      "project_start": "2026-01-01",
+      "project_end": "2026-12-31",
+      "transfer_items": [
+        {
+          "source": "[ 412103] Overtime Meals",
+          "target": "[ 410911] Commission",
+          "amount": "20,000"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 412103] Overtime Meals",
+      "target_account": "[ 410911] Commission",
+      "amount": "20,000",
+      "total_amount": "20,000",
+      "control_no": "26000565",
+      "description": "Budget to be used for commission (strain import: H. pylori) (Revenue stamp of government of the Republic of Korea)",
+      "doc_id": "289587",
+      "doc_no": "ARL-260220-03",
+      "writer": "Hyun-Jung Lee",
+      "date": "2026-02-19",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Hyungjun Kim (00282)",
+      "draft_date": "2026-02-09",
+      "subject": "Assay and test to IT software (subscription)",
+      "transfer_type": "Transfer",
+      "account_no": "FS2214-0001",
+      "project_title": "2022 GARDP FFS_Soojin Jang (ARL)",
+      "project_period": "2022-01-01 ~ 2028-08-18",
+      "project_start": "2022-01-01",
+      "project_end": "2028-08-18",
+      "transfer_items": [
+        {
+          "source": "[ 410705] Assay & Test",
+          "target": "[ 410318] IT Software (IT Subscription)",
+          "amount": "217,008"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410705] Assay & Test",
+      "target_account": "[ 410318] IT Software (IT Subscription)",
+      "amount": "217,008",
+      "total_amount": "217,008",
+      "control_no": "26000456",
+      "description": "Web meeting software subscription fee",
+      "doc_id": "289240",
+      "doc_no": "ARL-260210-04",
+      "writer": "Hyungjun Kim",
+      "date": "2026-02-09",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Guinam Wee (00528)",
+      "draft_date": "2026-02-02",
+      "subject": "Budget transfer request_Mid-career research program",
+      "transfer_type": "Transfer",
+      "account_no": "NN2512-0001",
+      "project_title": "2025 Mid-career Research Program_1st_Soojin Jang",
+      "project_period": "2025-03-01 ~ 2026-02-28",
+      "project_start": "2025-03-01",
+      "project_end": "2026-02-28",
+      "transfer_items": [
+        {
+          "source": "[ 410306] Participating in Conferences",
+          "target": "[ 410705] Assay & Test",
+          "amount": "1,000,000"
+        },
+        {
+          "source": "[ 410312] Inviting or consulting specialists",
+          "target": "[ 410705] Assay & Test",
+          "amount": "832,960"
+        },
+        {
+          "source": "[ 410318] IT Software (IT Subscription)",
+          "target": "[ 410705] Assay & Test",
+          "amount": "1,000,000"
+        },
+        {
+          "source": "[ 410920] Office devices (General-purpose)",
+          "target": "[ 410705] Assay & Test",
+          "amount": "307,000"
+        },
+        {
+          "source": "[ 120335] Research environment asset",
+          "target": "[ 410705] Assay & Test",
+          "amount": "1,301,575"
+        }
+      ],
+      "transfer_item_count": 5,
+      "total_amount": "4,441,535",
+      "control_no": "26000339",
+      "description": "Budget transfer for sequencing fee payment",
+      "doc_id": "288817",
+      "doc_no": "ARL-260203-04",
+      "writer": "Guinam Wee",
+      "date": "2026-02-02",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Sunju Kim (00564)",
+      "draft_date": "2026-01-27",
+      "subject": "Budget transfer for visiting an overseas conference",
+      "transfer_type": "Transfer",
+      "account_no": "NN2512-0001",
+      "project_title": "2025 Mid-career Research Program_1st_Soojin Jang",
+      "project_period": "2025-03-01 ~ 2026-02-28",
+      "project_start": "2025-03-01",
+      "project_end": "2026-02-28",
+      "transfer_items": [
+        {
+          "source": "[ 410201] Domestic Business Travel",
+          "target": "[ 410202] Overseas Business Travel",
+          "amount": "1,500,000"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410201] Domestic Business Travel",
+      "target_account": "[ 410202] Overseas Business Travel",
+      "amount": "1,500,000",
+      "total_amount": "1,500,000",
+      "control_no": "26000264",
+      "description": "Budget transfer for visiting an overseas conference",
+      "doc_id": "288527",
+      "doc_no": "ARL-260127-04",
+      "writer": "Sunju Kim",
+      "date": "2026-01-27",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Hyungjun Kim (00282)",
+      "draft_date": "2026-01-26",
+      "subject": "From reagent and supplies to Tools",
+      "transfer_type": "Transfer",
+      "account_no": "NN2604-0001",
+      "project_title": "2026 Korea-French Collaboration Research Program_2nd_Soojin Jang",
+      "project_period": "2026-01-01 ~ 2026-12-31",
+      "project_start": "2026-01-01",
+      "project_end": "2026-12-31",
+      "transfer_items": [
+        {
+          "source": "[ 410703] Reagent & Supplies",
+          "target": "[ 120312] Tools",
+          "amount": "30,000,000"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410703] Reagent & Supplies",
+      "target_account": "[ 120312] Tools",
+      "amount": "30,000,000",
+      "total_amount": "30,000,000",
+      "equipment_name": "Anoxomat",
+      "manufacturer": "NOVA BIOMEDICAL",
+      "features": "Automatic creation of anaerobic, microaerophilic,",
+      "price_krw": "29,432,700",
+      "purchase_purpose": "The ANOXOMAT is purchased primarily to create precise, repeatable anaerobic, microaerophilic, and capnophilic environments for culturing fastidious bacteria.",
+      "has_equipment_description": true,
+      "control_no": "26000253",
+      "description": "From reagent and supplies to Tools\nThis transfer is for the purchase of ANOXOMAT which is a bacteria culture system creating anaerobic environment.",
+      "doc_id": "288500",
+      "doc_no": "ARL-260127-01",
+      "writer": "Hyungjun Kim",
+      "date": "2026-01-26",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Minjeong Woo (00316)",
+      "draft_date": "2026-01-22",
+      "subject": "Budget transfer request",
+      "transfer_type": "Transfer",
+      "account_no": "FS2504-0001",
+      "project_title": "2025 LigaChem Biosciences FFS_Soojin Jang - ARL (Direct)",
+      "project_period": "2025-03-01 ~ 2026-12-31",
+      "project_start": "2025-03-01",
+      "project_end": "2026-12-31",
+      "transfer_items": [
+        {
+          "source": "[ 410202] Overseas Business Travel",
+          "target": "[ 120312] Tools",
+          "amount": "660,000"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410202] Overseas Business Travel",
+      "target_account": "[ 120312] Tools",
+      "amount": "660,000",
+      "total_amount": "660,000",
+      "equipment_name": "CO2 Table with MCO-230",
+      "manufacturer": "et cetera",
+      "features": "780 x 650 x 150",
+      "price_krw": "600000",
+      "purchase_purpose": "the CO₂ incubator table is necessary to safely relocate the CO₂ incubator from the screening room (R5.24) to the tuberculosis research laboratory (R5.22).",
+      "has_equipment_description": true,
+      "control_no": "26000193",
+      "description": "This is a request for budget reallocation to purchase a CO₂ incubator table required for the safe relocation of a CO₂ incubator within the BSL-3 facility.",
+      "doc_id": "288342",
+      "doc_no": "ARL-260123-07",
+      "writer": "Minjeong Woo",
+      "date": "2026-01-22",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Hyungjun Kim (00282)",
+      "draft_date": "2026-01-19",
+      "subject": "Research environment asset to Parts and equipment maintenance",
+      "transfer_type": "Transfer",
+      "account_no": "NN2512-0001",
+      "project_title": "2025 Mid-career Research Program_1st_Soojin Jang",
+      "project_period": "2025-03-01 ~ 2026-02-28",
+      "project_start": "2025-03-01",
+      "project_end": "2026-02-28",
+      "transfer_items": [
+        {
+          "source": "[ 120335] Research environment asset",
+          "target": "[ 410604] Parts & Equipment Maintenance",
+          "amount": "330,000"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 120335] Research environment asset",
+      "target_account": "[ 410604] Parts & Equipment Maintenance",
+      "amount": "330,000",
+      "total_amount": "330,000",
+      "equipment_name": "Pipettes calibration and maintenance",
+      "manufacturer": "INTEGRA",
+      "features": "Liquid handling with various volumes",
+      "price_krw": "330000",
+      "purchase_purpose": "Electronic pipettes calibration and maintenance",
+      "has_equipment_description": true,
+      "control_no": "26000158",
+      "description": "Electronic pipettes calibration and maintenance",
+      "doc_id": "288163",
+      "doc_no": "ARL-260120-01",
+      "writer": "Hyungjun Kim",
+      "date": "2026-01-19",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - YunMi LEE (00227)",
+      "draft_date": "2026-01-09",
+      "subject": "Budget transfer",
+      "transfer_type": "Transfer",
+      "account_no": "FS2226-0001",
+      "project_title": "2022 Peptoide FFS_Soojin Jang (Direct)",
+      "project_period": "2022-12-01 ~ 2027-08-31",
+      "project_start": "2022-12-01",
+      "project_end": "2027-08-31",
+      "transfer_items": [
+        {
+          "source": "[ 410703] Reagent & Supplies",
+          "target": "[ 410312] Inviting or consulting specialists",
+          "amount": "800,000"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410703] Reagent & Supplies",
+      "target_account": "[ 410312] Inviting or consulting specialists",
+      "amount": "800,000",
+      "total_amount": "800,000",
+      "control_no": "26000068",
+      "description": "Inviting external specialists",
+      "doc_id": "287796",
+      "doc_no": "ARL-260109-05",
+      "writer": "YunMi LEE",
+      "date": "2026-01-09",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Hyungjun Kim (00282)",
+      "draft_date": "2026-01-08",
+      "subject": "From Reagent and supplies to Participating in conferences",
+      "transfer_type": "Transfer",
+      "account_no": "FS2226-0001",
+      "project_title": "2022 Peptoide FFS_Soojin Jang (Direct)",
+      "project_period": "2022-12-01 ~ 2027-08-31",
+      "project_start": "2022-12-01",
+      "project_end": "2027-08-31",
+      "transfer_items": [
+        {
+          "source": "[ 410703] Reagent & Supplies",
+          "target": "[ 410306] Participating in Conferences",
+          "amount": "396,000"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410703] Reagent & Supplies",
+      "target_account": "[ 410306] Participating in Conferences",
+      "amount": "396,000",
+      "total_amount": "396,000",
+      "control_no": "26000062",
+      "description": "Participation of online seminar",
+      "doc_id": "287763",
+      "doc_no": "ARL-260109-04",
+      "writer": "Hyungjun Kim",
+      "date": "2026-01-08",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Hyun-Jung Lee (00383)",
+      "draft_date": "2026-01-06",
+      "subject": "Budget transfer request",
+      "transfer_type": "Transfer",
+      "account_no": "NN2517-0001",
+      "project_title": "2025 Brain Pool Program_1st_Soojin Jang",
+      "project_period": "2025-10-01 ~ 2025-12-31",
+      "project_start": "2025-10-01",
+      "project_end": "2025-12-31",
+      "transfer_items": [
+        {
+          "source": "[ 410911] Commission",
+          "target": "[ 410320] Foreign Researcher Invitation Support",
+          "amount": "11,500,000"
+        },
+        {
+          "source": "[ 410306] Participating in Conferences",
+          "target": "[ 410320] Foreign Researcher Invitation Support",
+          "amount": "500,000"
+        }
+      ],
+      "transfer_item_count": 2,
+      "total_amount": "12,000,000",
+      "control_no": "26000031",
+      "description": "Budget to be used for Foreign Researcher Invitation Support",
+      "doc_id": "287614",
+      "doc_no": "ARL-260106-10",
+      "writer": "Hyun-Jung Lee",
+      "date": "2026-01-06",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Hyungjun Kim (00282)",
+      "draft_date": "2026-01-06",
+      "subject": "Office furniture for data analysis and management",
+      "transfer_type": "Transfer",
+      "account_no": "FS2226-0001",
+      "project_title": "2022 Peptoide FFS_Soojin Jang (Direct)",
+      "project_period": "2022-12-01 ~ 2027-08-31",
+      "project_start": "2022-12-01",
+      "project_end": "2027-08-31",
+      "transfer_items": [
+        {
+          "source": "[ 410703] Reagent & Supplies",
+          "target": "[ 120335] Research environment asset",
+          "amount": "1,631,575"
+        },
+        {
+          "source": "[ 410703] Reagent & Supplies",
+          "target": "[ 410913] Research environment supplies and maintenance fee",
+          "amount": "86,625"
+        }
+      ],
+      "transfer_item_count": 2,
+      "total_amount": "1,718,200",
+      "control_no": "26000030",
+      "description": "Office furniture for new recruitment",
+      "doc_id": "287612",
+      "doc_no": "ARL-260106-09",
+      "writer": "Hyungjun Kim",
+      "date": "2026-01-06",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - YunMi LEE (00227)",
+      "draft_date": "2026-01-05",
+      "subject": "Budget transfer",
+      "transfer_type": "Transfer",
+      "account_no": "FS2226-0001",
+      "project_title": "2022 Peptoide FFS_Soojin Jang (Direct)",
+      "project_period": "2022-12-01 ~ 2027-08-31",
+      "project_start": "2022-12-01",
+      "project_end": "2027-08-31",
+      "transfer_items": [
+        {
+          "source": "[ 410703] Reagent & Supplies",
+          "target": "[ 410306] Participating in Conferences",
+          "amount": "500,000"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410703] Reagent & Supplies",
+      "target_account": "[ 410306] Participating in Conferences",
+      "amount": "500,000",
+      "total_amount": "500,000",
+      "control_no": "26000008",
+      "description": "To participate in Conference",
+      "doc_id": "287545",
+      "doc_no": "ARL-260105-07",
+      "writer": "YunMi LEE",
+      "date": "2026-01-05",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Guinam Wee (00528)",
+      "draft_date": "2026-01-02",
+      "subject": "Budget transfer request_Mid-career research program",
+      "transfer_type": "Transfer",
+      "account_no": "NN2512-0001",
+      "project_title": "2025 Mid-career Research Program_1st_Soojin Jang",
+      "project_period": "2025-03-01 ~ 2026-02-28",
+      "project_start": "2025-03-01",
+      "project_end": "2026-02-28",
+      "transfer_items": [
+        {
+          "source": "[ 410705] Assay & Test",
+          "target": "[ 410703] Reagent & Supplies",
+          "amount": "300,000"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410705] Assay & Test",
+      "target_account": "[ 410703] Reagent & Supplies",
+      "amount": "300,000",
+      "total_amount": "300,000",
+      "control_no": "26000003",
+      "description": "Request for budget transfer to purchase of laboratory supplies",
+      "doc_id": "287498",
+      "doc_no": "ARL-260105-01",
+      "writer": "Guinam Wee",
+      "date": "2026-01-02",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Connor Joseph Wood (00454)",
+      "draft_date": "2025-12-18",
+      "subject": "Budget Transfer",
+      "transfer_type": "Transfer",
+      "account_no": "FS2214-0001",
+      "project_title": "2022 GARDP FFS_Soojin Jang (ARL)",
+      "project_period": "2022-01-01 ~ 2028-08-18",
+      "project_start": "2022-01-01",
+      "project_end": "2028-08-18",
+      "transfer_items": [
+        {
+          "source": "[ 415101] Internal labor",
+          "target": "[ 410912] Publication of Articles",
+          "amount": "6,000,000"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 415101] Internal labor",
+      "target_account": "[ 410912] Publication of Articles",
+      "amount": "6,000,000",
+      "total_amount": "6,000,000",
+      "control_no": "25005168",
+      "description": "To pay for Article Publishing Fee for publication of article in open access Journal - Frontiers in Immunology (See attached invoice and exchange rate)",
+      "doc_id": "286720",
+      "doc_no": "ARL-251229-04",
+      "writer": "Connor Joseph Wood",
+      "date": "2025-12-18",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Sol Lee (00493)",
+      "draft_date": "2025-12-18",
+      "subject": "Budget transfer_Peptoide project",
+      "transfer_type": "Transfer",
+      "account_no": "FS2226-0001",
+      "project_title": "2022 Peptoide FFS_Soojin Jang (Direct)",
+      "project_period": "2022-12-01 ~ 2027-08-31",
+      "project_start": "2022-12-01",
+      "project_end": "2027-08-31",
+      "transfer_items": [
+        {
+          "source": "[ 410703] Reagent & Supplies",
+          "target": "[ 410310] Conferences:Meeting with External Specialists",
+          "amount": "122,055"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410703] Reagent & Supplies",
+      "target_account": "[ 410310] Conferences:Meeting with External Specialists",
+      "amount": "122,055",
+      "total_amount": "122,055",
+      "control_no": "25005150",
+      "description": "Having lunch with CEO and researchers from Omphalos after the seminar",
+      "doc_id": "286668",
+      "doc_no": "ARL-251218-10",
+      "writer": "Sol Lee",
+      "date": "2025-12-18",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Minjeong Woo (00316)",
+      "draft_date": "2025-12-18",
+      "subject": "Budget transfer request",
+      "transfer_type": "Transfer",
+      "account_no": "KD2503-0001",
+      "project_title": "2025 Healthcare Technology Research Program_1st_Connor Wood",
+      "project_period": "2025-04-01 ~ 2025-12-31",
+      "project_start": "2025-04-01",
+      "project_end": "2025-12-31",
+      "transfer_items": [
+        {
+          "source": "[ 412103] Overtime Meals",
+          "target": "[ 410920] Office devices (General-purpose)",
+          "amount": "87,800"
+        },
+        {
+          "source": "[ 410901] Office supplies",
+          "target": "[ 410920] Office devices (General-purpose)",
+          "amount": "224,000"
+        },
+        {
+          "source": "[ 410201] Domestic Business Travel",
+          "target": "[ 410920] Office devices (General-purpose)",
+          "amount": "28,549"
+        }
+      ],
+      "transfer_item_count": 3,
+      "total_amount": "340,349",
+      "control_no": "25005159",
+      "description": "A budget transfer is requested to support the purchase of office devices required for research and office operations.",
+      "doc_id": "286686",
+      "doc_no": "ARL-251218-09",
+      "writer": "Minjeong Woo",
+      "date": "2025-12-18",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Hyun-Jung Lee (00383)",
+      "draft_date": "2025-12-12",
+      "subject": "Budget transfer request",
+      "transfer_type": "Transfer",
+      "account_no": "NN2503-0002",
+      "project_title": "2025 Bio-medical program (POSTEC 대형장비과제)_2nd_Inhee Choi (ARL)",
+      "project_period": "2025-01-01 ~ 2025-12-31",
+      "project_start": "2025-01-01",
+      "project_end": "2025-12-31",
+      "transfer_items": [
+        {
+          "source": "[ 410201] Domestic Business Travel",
+          "target": "[ 410703] Reagent & Supplies",
+          "amount": "18,386"
+        },
+        {
+          "source": "[ 410705] Assay & Test",
+          "target": "[ 410703] Reagent & Supplies",
+          "amount": "42,250"
+        }
+      ],
+      "transfer_item_count": 2,
+      "total_amount": "60,636",
+      "control_no": "25005034",
+      "description": "Budget to be used for reagent",
+      "doc_id": "286221",
+      "doc_no": "ARL-251217-04",
+      "writer": "Hyun-Jung Lee",
+      "date": "2025-12-12",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Minjeong Woo (00316)",
+      "draft_date": "2025-12-11",
+      "subject": "Budget transfer request",
+      "transfer_type": "Transfer",
+      "account_no": "KD2503-0001",
+      "project_title": "2025 Healthcare Technology Research Program_1st_Connor Wood",
+      "project_period": "2025-04-01 ~ 2025-12-31",
+      "project_start": "2025-04-01",
+      "project_end": "2025-12-31",
+      "transfer_items": [
+        {
+          "source": "[ 410201] Domestic Business Travel",
+          "target": "[ 410920] Office devices (General-purpose)",
+          "amount": "60,000"
+        },
+        {
+          "source": "[ 120336] Office devices asset (General-purpose)",
+          "target": "[ 410920] Office devices (General-purpose)",
+          "amount": "201,999"
+        },
+        {
+          "source": "[ 412103] Overtime Meals",
+          "target": "[ 410920] Office devices (General-purpose)",
+          "amount": "600,000"
+        }
+      ],
+      "transfer_item_count": 3,
+      "total_amount": "861,999",
+      "control_no": "25005020",
+      "description": "For the establishment of a research environment suitable for high-resolution image and data analysis, a budget reallocation is requested to purchase the necessary auxiliary equipment.",
+      "doc_id": "286177",
+      "doc_no": "ARL-251212-05",
+      "writer": "Minjeong Woo",
+      "date": "2025-12-11",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Guinam Wee (00528)",
+      "draft_date": "2025-12-10",
+      "subject": "Budget transfer request_Mid-career research program",
+      "transfer_type": "Transfer",
+      "account_no": "NN2512-0001",
+      "project_title": "2025 Mid-career Research Program_1st_Soojin Jang",
+      "project_period": "2025-03-01 ~ 2026-02-28",
+      "project_start": "2025-03-01",
+      "project_end": "2026-02-28",
+      "transfer_items": [
+        {
+          "source": "[ 410705] Assay & Test",
+          "target": "[ 410306] Participating in Conferences",
+          "amount": "450,000"
+        },
+        {
+          "source": "[ 410705] Assay & Test",
+          "target": "[ 410202] Overseas Business Travel",
+          "amount": "900,000"
+        }
+      ],
+      "transfer_item_count": 2,
+      "total_amount": "1,350,000",
+      "control_no": "25004995",
+      "description": "Request for budget transfer to attend the international conference.",
+      "doc_id": "286085",
+      "doc_no": "ARL-251211-05",
+      "writer": "Guinam Wee",
+      "date": "2025-12-10",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Minjeong Woo (00316)",
+      "draft_date": "2025-12-10",
+      "subject": "Budget transfer request",
+      "transfer_type": "Transfer",
+      "account_no": "KD2503-0001",
+      "project_title": "2025 Healthcare Technology Research Program_1st_Connor Wood",
+      "project_period": "2025-04-01 ~ 2025-12-31",
+      "project_start": "2025-04-01",
+      "project_end": "2025-12-31",
+      "transfer_items": [
+        {
+          "source": "[ 120336] Office devices asset (General-purpose)",
+          "target": "[ 410920] Office devices (General-purpose)",
+          "amount": "2,000,000"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 120336] Office devices asset (General-purpose)",
+      "target_account": "[ 410920] Office devices (General-purpose)",
+      "amount": "2,000,000",
+      "total_amount": "2,000,000",
+      "control_no": "25004990",
+      "description": "To request a budget transfer for the purchase of a monitor suitable for high-resolution image analysis.",
+      "doc_id": "286069",
+      "doc_no": "ARL-251211-04",
+      "writer": "Minjeong Woo",
+      "date": "2025-12-10",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Minjeong Woo (00316)",
+      "draft_date": "2025-12-02",
+      "subject": "Budget transfer request",
+      "transfer_type": "Transfer",
+      "account_no": "KD2503-0001",
+      "project_title": "2025 Healthcare Technology Research Program_1st_Connor Wood",
+      "project_period": "2025-04-01 ~ 2025-12-31",
+      "project_start": "2025-04-01",
+      "project_end": "2025-12-31",
+      "transfer_items": [
+        {
+          "source": "[ 410201] Domestic Business Travel",
+          "target": "[ 120336] Office devices asset (General-purpose)",
+          "amount": "1,720,000"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410201] Domestic Business Travel",
+      "target_account": "[ 120336] Office devices asset (General-purpose)",
+      "amount": "1,720,000",
+      "total_amount": "1,720,000",
+      "control_no": "25004865",
+      "description": "To request a budget transfer for the purchase of a monitor suitable for high-resolution image analysis.",
+      "doc_id": "285595",
+      "doc_no": "ARL-251204-02",
+      "writer": "Minjeong Woo",
+      "date": "2025-12-02",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Sol Lee (00493)",
+      "draft_date": "2025-12-01",
+      "subject": "Budget transfer_Peptoide project",
+      "transfer_type": "Transfer",
+      "account_no": "FS2226-0001",
+      "project_title": "2022 Peptoide FFS_Soojin Jang (Direct)",
+      "project_period": "2022-12-01 ~ 2027-08-31",
+      "project_start": "2022-12-01",
+      "project_end": "2027-08-31",
+      "transfer_items": [
+        {
+          "source": "[ 410703] Reagent & Supplies",
+          "target": "[ 410312] Inviting or consulting specialists",
+          "amount": "300,000"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410703] Reagent & Supplies",
+      "target_account": "[ 410312] Inviting or consulting specialists",
+      "amount": "300,000",
+      "total_amount": "300,000",
+      "control_no": "25004826",
+      "description": "This is the budget request from Reagent & Supplies to Inviting or consulting specialists for the upcoming seminar which iwould be presented by CEO of Omphalos.",
+      "doc_id": "285474",
+      "doc_no": "ARL-251201-26",
+      "writer": "Sol Lee",
+      "date": "2025-12-01",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Hyun-Jung Lee (00383)",
+      "draft_date": "2025-11-28",
+      "subject": "Budget transfer request",
+      "transfer_type": "Transfer",
+      "account_no": "FS2214-0001",
+      "project_title": "2022 GARDP FFS_Soojin Jang (ARL)",
+      "project_period": "2022-01-01 ~ 2028-08-18",
+      "project_start": "2022-01-01",
+      "project_end": "2028-08-18",
+      "transfer_items": [
+        {
+          "source": "[ 410705] Assay & Test",
+          "target": "[ 410201] Domestic Business Travel",
+          "amount": "500,000"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410705] Assay & Test",
+      "target_account": "[ 410201] Domestic Business Travel",
+      "amount": "500,000",
+      "total_amount": "500,000",
+      "control_no": "25004798",
+      "description": "Budget to be used for domestic business travel",
+      "doc_id": "285347",
+      "doc_no": "ARL-251201-17",
+      "writer": "Hyun-Jung Lee",
+      "date": "2025-11-28",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Hyun-Jung Lee (00383)",
+      "draft_date": "2025-11-27",
+      "subject": "Budget transfer request",
+      "transfer_type": "Transfer",
+      "account_no": "NN2518-0001",
+      "project_title": "2025 Human Frontier Science Program (HFSP)_Hyungjung Lee_단년도",
+      "project_period": "2025-09-01 ~ 2026-08-31",
+      "project_start": "2025-09-01",
+      "project_end": "2026-08-31",
+      "transfer_items": [
+        {
+          "source": "[ 410201] Domestic Business Travel",
+          "target": "[ 410306] Participating in Conferences",
+          "amount": "1,000,000"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410201] Domestic Business Travel",
+      "target_account": "[ 410306] Participating in Conferences",
+      "amount": "1,000,000",
+      "total_amount": "1,000,000",
+      "control_no": "25004783",
+      "description": "Budget to be used for participating in conference (Biophysical Society Annual Meetings 2026)",
+      "doc_id": "285264",
+      "doc_no": "ARL-251201-16",
+      "writer": "Hyun-Jung Lee",
+      "date": "2025-11-27",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Guinam Wee (00528)",
+      "draft_date": "2025-11-24",
+      "subject": "Budget transfer request_GloPID-R",
+      "transfer_type": "Transfer",
+      "account_no": "NN2509-0001",
+      "project_title": "2025 GloPID-R Program(생명연 위탁)_1st_Soojin Jang",
+      "project_period": "2025-01-01 ~ 2025-12-31",
+      "project_start": "2025-01-01",
+      "project_end": "2025-12-31",
+      "transfer_items": [
+        {
+          "source": "[ 410604] Parts & Equipment Maintenance",
+          "target": "[ 120336] Office devices asset (General-purpose)",
+          "amount": "17,985,000"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410604] Parts & Equipment Maintenance",
+      "target_account": "[ 120336] Office devices asset (General-purpose)",
+      "amount": "17,985,000",
+      "total_amount": "17,985,000",
+      "control_no": "25004717",
+      "description": "Change budget to purchase parts to add capacity and resources to an existing server",
+      "doc_id": "285039",
+      "doc_no": "ARL-251125-01",
+      "writer": "Guinam Wee",
+      "date": "2025-11-24",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Guinam Wee (00528)",
+      "draft_date": "2025-11-24",
+      "subject": "Budget transfer request_GloPID-R",
+      "transfer_type": "Transfer",
+      "account_no": "NN2509-0001",
+      "project_title": "2025 GloPID-R Program(생명연 위탁)_1st_Soojin Jang",
+      "project_period": "2025-01-01 ~ 2025-12-31",
+      "project_start": "2025-01-01",
+      "project_end": "2025-12-31",
+      "transfer_items": [
+        {
+          "source": "[ 412101] Incentives",
+          "target": "[ 410705] Assay & Test",
+          "amount": "250,000"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 412101] Incentives",
+      "target_account": "[ 410705] Assay & Test",
+      "amount": "250,000",
+      "total_amount": "250,000",
+      "control_no": "25004711",
+      "description": "budget transfer for sequencing costs (exchange rate fluctuation)",
+      "doc_id": "285018",
+      "doc_no": "ARL-251124-18",
+      "writer": "Guinam Wee",
+      "date": "2025-11-24",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Guinam Wee (00528)",
+      "draft_date": "2025-11-17",
+      "subject": "Budget transfer request_GloPID-R",
+      "transfer_type": "Transfer",
+      "account_no": "NN2509-0001",
+      "project_title": "2025 GloPID-R Program(생명연 위탁)_1st_Soojin Jang",
+      "project_period": "2025-01-01 ~ 2025-12-31",
+      "project_start": "2025-01-01",
+      "project_end": "2025-12-31",
+      "transfer_items": [
+        {
+          "source": "[ 410902] Printing & Copy",
+          "target": "[ 410201] Domestic Business Travel",
+          "amount": "95,000"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410902] Printing & Copy",
+      "target_account": "[ 410201] Domestic Business Travel",
+      "amount": "95,000",
+      "total_amount": "95,000",
+      "control_no": "25004619",
+      "description": "Budget transfer request for domestic business travel",
+      "doc_id": "284614",
+      "doc_no": "ARL-251117-04",
+      "writer": "Guinam Wee",
+      "date": "2025-11-17",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Hyungjun Kim (00282)",
+      "draft_date": "2025-11-11",
+      "subject": "Reagent and supplies to IT software subscription",
+      "transfer_type": "Transfer",
+      "account_no": "NN2516-0001",
+      "project_title": "2025 Korea-French Collaboration Research Program (PI: Soojin Jang)",
+      "project_period": "2025-07-01 ~ 2025-12-31",
+      "project_start": "2025-07-01",
+      "project_end": "2025-12-31",
+      "transfer_items": [
+        {
+          "source": "[ 410703] Reagent & Supplies",
+          "target": "[ 410318] IT Software (IT Subscription)",
+          "amount": "23,100,000"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410703] Reagent & Supplies",
+      "target_account": "[ 410318] IT Software (IT Subscription)",
+      "amount": "23,100,000",
+      "total_amount": "23,100,000",
+      "control_no": "25004519",
+      "description": "Purchase of analysis computer software (subscription)\nChemical analysis computer software for target discovery.",
+      "doc_id": "284231",
+      "doc_no": "ARL-251112-01",
+      "writer": "Hyungjun Kim",
+      "date": "2025-11-11",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Guinam Wee (00528)",
+      "draft_date": "2025-11-07",
+      "subject": "Budget transfer request",
+      "transfer_type": "Transfer",
+      "account_no": "NN2509-0001",
+      "project_title": "2025 GloPID-R Program(생명연 위탁)_1st_Soojin Jang",
+      "project_period": "2025-01-01 ~ 2025-12-31",
+      "project_start": "2025-01-01",
+      "project_end": "2025-12-31",
+      "transfer_items": [
+        {
+          "source": "[ 410604] Parts & Equipment Maintenance",
+          "target": "[ 410705] Assay & Test",
+          "amount": "4,746,709"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410604] Parts & Equipment Maintenance",
+      "target_account": "[ 410705] Assay & Test",
+      "amount": "4,746,709",
+      "total_amount": "4,746,709",
+      "control_no": "25004468",
+      "description": "budget transter request for sequencing fee",
+      "doc_id": "284062",
+      "doc_no": "ARL-251110-01",
+      "writer": "Guinam Wee",
+      "date": "2025-11-07",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - YunMi LEE (00227)",
+      "draft_date": "2025-10-31",
+      "subject": "Budget transfer",
+      "transfer_type": "Transfer",
+      "account_no": "NN2503-0002",
+      "project_title": "2025 Bio-medical program (POSTEC 대형장비과제)_2nd_Inhee Choi (ARL)",
+      "project_period": "2025-01-01 ~ 2025-12-31",
+      "project_start": "2025-01-01",
+      "project_end": "2025-12-31",
+      "transfer_items": [
+        {
+          "source": "[ 410705] Assay & Test",
+          "target": "[ 410201] Domestic Business Travel",
+          "amount": "40,000"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410705] Assay & Test",
+      "target_account": "[ 410201] Domestic Business Travel",
+      "amount": "40,000",
+      "total_amount": "40,000",
+      "control_no": "25004325",
+      "description": "Business travel to Ajou Univesity",
+      "doc_id": "283589",
+      "doc_no": "ARL-251103-08",
+      "writer": "YunMi LEE",
+      "date": "2025-10-31",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Hyungjun Kim (00282)",
+      "draft_date": "2025-11-03",
+      "subject": "Commission to Part and equipment maintenance",
+      "transfer_type": "Transfer",
+      "account_no": "NN2512-0001",
+      "project_title": "2025 Mid-career Research Program_1st_Soojin Jang",
+      "project_period": "2025-03-01 ~ 2026-02-28",
+      "project_start": "2025-03-01",
+      "project_end": "2026-02-28",
+      "transfer_items": [
+        {
+          "source": "[ 410911] Commission",
+          "target": "[ 410604] Parts & Equipment Maintenance",
+          "amount": "154,220"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410911] Commission",
+      "target_account": "[ 410604] Parts & Equipment Maintenance",
+      "amount": "154,220",
+      "total_amount": "154,220",
+      "equipment_name": "EVOLVE single pipette",
+      "manufacturer": "INTEGRA",
+      "features": "300ul, 20ul",
+      "price_krw": "Various",
+      "purchase_purpose": "Malfunction and broken part replacement of pipette. Plus calibration",
+      "has_equipment_description": true,
+      "control_no": "25004352",
+      "description": "Maintenance and service of broken and malfunctioning pipettes",
+      "doc_id": "283652",
+      "doc_no": "ARL-251103-07",
+      "writer": "Hyungjun Kim",
+      "date": "2025-11-03",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Hyun-Jung Lee (00383)",
+      "draft_date": "2025-10-31",
+      "subject": "Budget transfer request",
+      "transfer_type": "Transfer",
+      "account_no": "FS2214-0001",
+      "project_title": "2022 GARDP FFS_Soojin Jang (ARL)",
+      "project_period": "2022-01-01 ~ 2028-08-18",
+      "project_start": "2022-01-01",
+      "project_end": "2028-08-18",
+      "transfer_items": [
+        {
+          "source": "[ 410703] Reagent & Supplies",
+          "target": "[ 410201] Domestic Business Travel",
+          "amount": "400,000"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410703] Reagent & Supplies",
+      "target_account": "[ 410201] Domestic Business Travel",
+      "amount": "400,000",
+      "total_amount": "400,000",
+      "control_no": "25004319",
+      "description": "Budget to be used for domestic business travel",
+      "doc_id": "283563",
+      "doc_no": "ARL-251031-03",
+      "writer": "Hyun-Jung Lee",
+      "date": "2025-10-31",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Hyungjun Kim (00282)",
+      "draft_date": "2025-10-27",
+      "subject": "Reagent and supplies to internal labor",
+      "transfer_type": "Transfer",
+      "account_no": "NN2516-0001",
+      "project_title": "2025 Korea-French Collaboration Research Program (PI: Soojin Jang)",
+      "project_period": "2025-07-01 ~ 2025-12-31",
+      "project_start": "2025-07-01",
+      "project_end": "2025-12-31",
+      "transfer_items": [
+        {
+          "source": "[ 410703] Reagent & Supplies",
+          "target": "[ 415101] Internal labor",
+          "amount": "600"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410703] Reagent & Supplies",
+      "target_account": "[ 415101] Internal labor",
+      "amount": "600",
+      "total_amount": "600",
+      "control_no": "25004210",
+      "description": "Research project management and planning.",
+      "doc_id": "283281",
+      "doc_no": "ARL-251030-04",
+      "writer": "Hyungjun Kim",
+      "date": "2025-10-27",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Guinam Wee (00528)",
+      "draft_date": "2025-10-29",
+      "subject": "Budget transfer request",
+      "transfer_type": "Transfer",
+      "account_no": "NN2509-0001",
+      "project_title": "2025 GloPID-R Program(생명연 위탁)_1st_Soojin Jang",
+      "project_period": "2025-01-01 ~ 2025-12-31",
+      "project_start": "2025-01-01",
+      "project_end": "2025-12-31",
+      "transfer_items": [
+        {
+          "source": "[ 410604] Parts & Equipment Maintenance",
+          "target": "[ 410201] Domestic Business Travel",
+          "amount": "60,000"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410604] Parts & Equipment Maintenance",
+      "target_account": "[ 410201] Domestic Business Travel",
+      "amount": "60,000",
+      "total_amount": "60,000",
+      "control_no": "25004280",
+      "description": "Budget transfer request for domestic travel (Q4 Sampling)",
+      "doc_id": "283481",
+      "doc_no": "ARL-251030-02",
+      "writer": "Guinam Wee",
+      "date": "2025-10-29",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Guinam Wee (00528)",
+      "draft_date": "2025-10-29",
+      "subject": "Budget transfer request",
+      "transfer_type": "Transfer",
+      "account_no": "NN2509-0001",
+      "project_title": "2025 GloPID-R Program(생명연 위탁)_1st_Soojin Jang",
+      "project_period": "2025-01-01 ~ 2025-12-31",
+      "project_start": "2025-01-01",
+      "project_end": "2025-12-31",
+      "transfer_items": [
+        {
+          "source": "[ 410604] Parts & Equipment Maintenance",
+          "target": "[ 410201] Domestic Business Travel",
+          "amount": "18,000"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410604] Parts & Equipment Maintenance",
+      "target_account": "[ 410201] Domestic Business Travel",
+      "amount": "18,000",
+      "total_amount": "18,000",
+      "control_no": "25004272",
+      "description": "Budget transfer request for domestic travel",
+      "doc_id": "283460",
+      "doc_no": "ARL-251030-01",
+      "writer": "Guinam Wee",
+      "date": "2025-10-29",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Guinam Wee (00528)",
+      "draft_date": "2025-10-24",
+      "subject": "Budget transfer request",
+      "transfer_type": "Transfer",
+      "account_no": "NN2509-0001",
+      "project_title": "2025 GloPID-R Program(생명연 위탁)_1st_Soojin Jang",
+      "project_period": "2025-01-01 ~ 2025-12-31",
+      "project_start": "2025-01-01",
+      "project_end": "2025-12-31",
+      "transfer_items": [
+        {
+          "source": "[ 410201] Domestic Business Travel",
+          "target": "[ 410604] Parts & Equipment Maintenance",
+          "amount": "758,907"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410201] Domestic Business Travel",
+      "target_account": "[ 410604] Parts & Equipment Maintenance",
+      "amount": "758,907",
+      "total_amount": "22,809,709",
+      "equipment_name": "ASUS ROG STRIX GFORCE RTX 4090",
+      "manufacturer": "ASUS",
+      "features": "RTX 4090 24GB",
+      "price_krw": "3909155",
+      "purchase_purpose": "Requires additional GPU resources for data analysis.",
+      "has_equipment_description": true,
+      "control_no": "25004172",
+      "description": "Change budget to purchase parts to add capacity and resources to an existing server",
+      "doc_id": "283142",
+      "doc_no": "ARL-251028-01",
+      "writer": "Guinam Wee",
+      "date": "2025-10-24",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Hyungjun Kim (00282)",
+      "draft_date": "2025-10-24",
+      "subject": "Office supplies to domestic business travel",
+      "transfer_type": "Transfer",
+      "account_no": "NN2508-0001",
+      "project_title": "2025 Bio-medical research program (조선대 위탁과제)_3rd_Soojin Jang",
+      "project_period": "2025-01-01 ~ 2025-12-31",
+      "project_start": "2025-01-01",
+      "project_end": "2025-12-31",
+      "transfer_items": [
+        {
+          "source": "[ 410901] Office supplies",
+          "target": "[ 410201] Domestic Business Travel",
+          "amount": "37,590"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410901] Office supplies",
+      "target_account": "[ 410201] Domestic Business Travel",
+      "amount": "37,590",
+      "total_amount": "37,590",
+      "control_no": "25004168",
+      "description": "Project management and research progress meeting",
+      "doc_id": "283131",
+      "doc_no": "ARL-251024-07",
+      "writer": "Hyungjun Kim",
+      "date": "2025-10-24",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Hyun-Jung Lee (00383)",
+      "draft_date": "2025-10-21",
+      "subject": "Budget transfer request",
+      "transfer_type": "Transfer",
+      "account_no": "NN2518-0001",
+      "project_title": "2025 Human Frontier Science Program (HFSP)_Hyungjung Lee_단년도",
+      "project_period": "2025-09-01 ~ 2026-08-31",
+      "project_start": "2025-09-01",
+      "project_end": "2026-08-31",
+      "transfer_items": [
+        {
+          "source": "[ 410312] Inviting or consulting specialists",
+          "target": "[ 410201] Domestic Business Travel",
+          "amount": "1,000,000"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410312] Inviting or consulting specialists",
+      "target_account": "[ 410201] Domestic Business Travel",
+      "amount": "1,000,000",
+      "total_amount": "1,000,000",
+      "control_no": "25004107",
+      "description": "Budget to be used for domestic business travel",
+      "doc_id": "282904",
+      "doc_no": "ARL-251022-02",
+      "writer": "Hyun-Jung Lee",
+      "date": "2025-10-21",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - YunMi LEE (00227)",
+      "draft_date": "2025-10-20",
+      "subject": "Budget transfer",
+      "transfer_type": "Transfer",
+      "account_no": "FS2226-0001",
+      "project_title": "2022 Peptoide FFS_Soojin Jang (Direct)",
+      "project_period": "2022-12-01 ~ 2027-08-31",
+      "project_start": "2022-12-01",
+      "project_end": "2027-08-31",
+      "transfer_items": [
+        {
+          "source": "[ 410703] Reagent & Supplies",
+          "target": "[ 410705] Assay & Test",
+          "amount": "2,000,000"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410703] Reagent & Supplies",
+      "target_account": "[ 410705] Assay & Test",
+      "amount": "2,000,000",
+      "total_amount": "2,000,000",
+      "control_no": "25004067",
+      "description": "To request the hybridoma cell line producing monoclonal antibody which is used for compounds effeciency test against S. aureus",
+      "doc_id": "282795",
+      "doc_no": "ARL-251020-26",
+      "writer": "YunMi LEE",
+      "date": "2025-10-20",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Minjeong Woo (00316)",
+      "draft_date": "2025-10-14",
+      "subject": "Budget transfer request",
+      "transfer_type": "Transfer",
+      "account_no": "KD2503-0001",
+      "project_title": "2025 Healthcare Technology Research Program_1st_Connor Wood",
+      "project_period": "2025-04-01 ~ 2025-12-31",
+      "project_start": "2025-04-01",
+      "project_end": "2025-12-31",
+      "transfer_items": [
+        {
+          "source": "[ 412103] Overtime Meals",
+          "target": "[ 120542] IT Software",
+          "amount": "2,049,300"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 412103] Overtime Meals",
+      "target_account": "[ 120542] IT Software",
+      "amount": "2,049,300",
+      "total_amount": "2,049,300",
+      "equipment_name": "SW FlowJo Com Portal Lic (1-4 seats)",
+      "manufacturer": "et cetra",
+      "features": "FlowJo Commerical Portal License for Individuals",
+      "price_krw": "1,863,000(without VAT)",
+      "purchase_purpose": "FlowJo software is required for the analysis of flow cytometry data.",
+      "has_equipment_description": true,
+      "control_no": "25003944",
+      "description": "Request for budget transfer to purchase FlowJo software for the analysis of data obtained from flow cytometry experiments.",
+      "doc_id": "282492",
+      "doc_no": "ARL-251016-05",
+      "writer": "Minjeong Woo",
+      "date": "2025-10-14",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Minjeong Woo (00316)",
+      "draft_date": "2025-10-14",
+      "subject": "Budget transfer request",
+      "transfer_type": "Transfer",
+      "account_no": "KD2503-0001",
+      "project_title": "2025 Healthcare Technology Research Program_1st_Connor Wood",
+      "project_period": "2025-04-01 ~ 2025-12-31",
+      "project_start": "2025-04-01",
+      "project_end": "2025-12-31",
+      "transfer_items": [
+        {
+          "source": "[ 410201] Domestic Business Travel",
+          "target": "[ 120336] Office devices asset (General-purpose)",
+          "amount": "3,000,000"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410201] Domestic Business Travel",
+      "target_account": "[ 120336] Office devices asset (General-purpose)",
+      "amount": "3,000,000",
+      "total_amount": "3,000,000",
+      "control_no": "25003942",
+      "description": "Requesting a budget transfer for the purchase of a new computer.\nThe current device is outdated, limiting data analysis and work efficiency; therefore, an upgrade to a high-performance system is required.",
+      "doc_id": "282487",
+      "doc_no": "ARL-251016-04",
+      "writer": "Minjeong Woo",
+      "date": "2025-10-14",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Minjeong Woo (00316)",
+      "draft_date": "2025-10-14",
+      "subject": "Budget transfer request",
+      "transfer_type": "Transfer",
+      "account_no": "KD2503-0001",
+      "project_title": "2025 Healthcare Technology Research Program_1st_Connor Wood",
+      "project_period": "2025-04-01 ~ 2025-12-31",
+      "project_start": "2025-04-01",
+      "project_end": "2025-12-31",
+      "transfer_items": [
+        {
+          "source": "[ 410901] Office supplies",
+          "target": "[ 120336] Office devices asset (General-purpose)",
+          "amount": "3,000,000"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410901] Office supplies",
+      "target_account": "[ 120336] Office devices asset (General-purpose)",
+      "amount": "3,000,000",
+      "total_amount": "3,000,000",
+      "control_no": "25003941",
+      "description": "Requesting a budget transfer for the purchase of a new computer.\nThe current device is outdated, limiting data analysis and work efficiency; therefore, an upgrade to a high-performance system is required.",
+      "doc_id": "282486",
+      "doc_no": "ARL-251016-03",
+      "writer": "Minjeong Woo",
+      "date": "2025-10-14",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Minjeong Woo (00316)",
+      "draft_date": "2025-10-14",
+      "subject": "Budget transfer request",
+      "transfer_type": "Transfer",
+      "account_no": "KD2503-0001",
+      "project_title": "2025 Healthcare Technology Research Program_1st_Connor Wood",
+      "project_period": "2025-04-01 ~ 2025-12-31",
+      "project_start": "2025-04-01",
+      "project_end": "2025-12-31",
+      "transfer_items": [
+        {
+          "source": "[ 410310] Conferences:Meeting with External Specialists",
+          "target": "[ 120336] Office devices asset (General-purpose)",
+          "amount": "220,000"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410310] Conferences:Meeting with External Specialists",
+      "target_account": "[ 120336] Office devices asset (General-purpose)",
+      "amount": "220,000",
+      "total_amount": "220,000",
+      "control_no": "25003939",
+      "description": "Requesting a budget transfer for the purchase of a new computer.\nThe current device is outdated, limiting data analysis and work efficiency; therefore, an upgrade to a high-performance system is required.",
+      "doc_id": "282484",
+      "doc_no": "ARL-251016-02",
+      "writer": "Minjeong Woo",
+      "date": "2025-10-14",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Minjeong Woo (00316)",
+      "draft_date": "2025-10-14",
+      "subject": "Budget transfer request",
+      "transfer_type": "Transfer",
+      "account_no": "KD2503-0001",
+      "project_title": "2025 Healthcare Technology Research Program_1st_Connor Wood",
+      "project_period": "2025-04-01 ~ 2025-12-31",
+      "project_start": "2025-04-01",
+      "project_end": "2025-12-31",
+      "transfer_items": [
+        {
+          "source": "[ 410911] Commission",
+          "target": "[ 120336] Office devices asset (General-purpose)",
+          "amount": "2,260,000"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410911] Commission",
+      "target_account": "[ 120336] Office devices asset (General-purpose)",
+      "amount": "2,260,000",
+      "total_amount": "2,260,000",
+      "control_no": "25003937",
+      "description": "Requesting a budget transfer for the purchase of a new computer.\nThe current device is outdated, limiting data analysis and work efficiency; therefore, an upgrade to a high-performance system is required.",
+      "doc_id": "282482",
+      "doc_no": "ARL-251016-01",
+      "writer": "Minjeong Woo",
+      "date": "2025-10-14",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Minjeong Woo (00316)",
+      "draft_date": "2025-10-14",
+      "subject": "Budget transfer request",
+      "transfer_type": "Transfer",
+      "account_no": "FS2504-0001",
+      "project_title": "2025 LigaChem Biosciences FFS_Soojin Jang - ARL (Direct)",
+      "project_period": "2025-03-01 ~ 2026-12-31",
+      "project_start": "2025-03-01",
+      "project_end": "2026-12-31",
+      "transfer_items": [
+        {
+          "source": "[ 410703] Reagent & Supplies",
+          "target": "[ 120312] Tools",
+          "amount": "29,500,000"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410703] Reagent & Supplies",
+      "target_account": "[ 120312] Tools",
+      "amount": "29,500,000",
+      "total_amount": "29,500,000",
+      "equipment_name": "Cytoflex Plate Loader DW",
+      "manufacturer": "Beckman Coulter",
+      "features": "NA",
+      "price_krw": "26,818,182",
+      "purchase_purpose": "To enhance the efficiency and reproducibility of flow cytometry experiments by introducing an automated plate loader module that enables precise sample loading and washing, thereby improving overall w",
+      "has_equipment_description": true,
+      "control_no": "25003911",
+      "description": "The installation of this module will significantly increase throughput and reduce manual handling errors in high-content flow cytometry analyses. It will support large-scale experimental screening and enable more consistent and reliable acquisition of quantitative cellular data, contributing to improved research productivity and data quality.",
+      "doc_id": "282426",
+      "doc_no": "ARL-251015-03",
+      "writer": "Minjeong Woo",
+      "date": "2025-10-14",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Guinam Wee (00528)",
+      "draft_date": "2025-10-13",
+      "subject": "Budget transfer request",
+      "transfer_type": "Transfer",
+      "account_no": "NN2509-0001",
+      "project_title": "2025 GloPID-R Program(생명연 위탁)_1st_Soojin Jang",
+      "project_period": "2025-01-01 ~ 2025-12-31",
+      "project_start": "2025-01-01",
+      "project_end": "2025-12-31",
+      "transfer_items": [
+        {
+          "source": "[ 410911] Commission",
+          "target": "[ 410902] Printing & Copy",
+          "amount": "1,045,000"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410911] Commission",
+      "target_account": "[ 410902] Printing & Copy",
+      "amount": "1,045,000",
+      "total_amount": "1,045,000",
+      "control_no": "25003867",
+      "description": "Budget transfer is required to cover the costs of producing the abstract book and three banners (standing, horizontal, and backdrop) for the 4th RAPID International Symposium 2025 in Nha Trang, Vietnam.",
+      "doc_id": "282338",
+      "doc_no": "ARL-251015-02",
+      "writer": "Guinam Wee",
+      "date": "2025-10-13",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Kyungbae Min (00467)",
+      "draft_date": "2025-10-01",
+      "subject": "budget transfer for payment of 2025 MSK pre-registration",
+      "transfer_type": "Transfer",
+      "account_no": "NN2503-0002",
+      "project_title": "2025 Bio-medical program (POSTEC 대형장비과제)_2nd_Inhee Choi (ARL)",
+      "project_period": "2025-01-01 ~ 2025-12-31",
+      "project_start": "2025-01-01",
+      "project_end": "2025-12-31",
+      "transfer_items": [
+        {
+          "source": "[ 410705] Assay & Test",
+          "target": "[ 410306] Participating in Conferences",
+          "amount": "320,400"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410705] Assay & Test",
+      "target_account": "[ 410306] Participating in Conferences",
+      "amount": "320,400",
+      "total_amount": "320,400",
+      "control_no": "25003798",
+      "description": "budget transfer for payment to 2025 MSK pre-registration",
+      "doc_id": "282092",
+      "doc_no": "ARL-251013-10",
+      "writer": "Kyungbae Min",
+      "date": "2025-10-01",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Hyungjun Kim (00282)",
+      "draft_date": "2025-10-02",
+      "subject": "Domestic business travel to Office supplies",
+      "transfer_type": "Transfer",
+      "account_no": "NN2508-0001",
+      "project_title": "2025 Bio-medical research program (조선대 위탁과제)_3rd_Soojin Jang",
+      "project_period": "2025-01-01 ~ 2025-12-31",
+      "project_start": "2025-01-01",
+      "project_end": "2025-12-31",
+      "transfer_items": [
+        {
+          "source": "[ 410201] Domestic Business Travel",
+          "target": "[ 410901] Office supplies",
+          "amount": "347,900"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410201] Domestic Business Travel",
+      "target_account": "[ 410901] Office supplies",
+      "amount": "347,900",
+      "total_amount": "347,900",
+      "control_no": "25003819",
+      "description": "Office supplies for research management and progress report.",
+      "doc_id": "282197",
+      "doc_no": "ARL-251002-03",
+      "writer": "Hyungjun Kim",
+      "date": "2025-10-02",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Hyungjun Kim (00282)",
+      "draft_date": "2025-09-29",
+      "subject": "Reagent and supplies to research tools (non-asset)",
+      "transfer_type": "Transfer",
+      "account_no": "NN2508-0001",
+      "project_title": "2025 Bio-medical research program (조선대 위탁과제)_3rd_Soojin Jang",
+      "project_period": "2025-01-01 ~ 2025-12-31",
+      "project_start": "2025-01-01",
+      "project_end": "2025-12-31",
+      "transfer_items": [
+        {
+          "source": "[ 410703] Reagent & Supplies",
+          "target": "[ 120319] Research Tools (non-asset)",
+          "amount": "179,080"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410703] Reagent & Supplies",
+      "target_account": "[ 120319] Research Tools (non-asset)",
+      "amount": "179,080",
+      "total_amount": "179,080",
+      "control_no": "25003741",
+      "description": "Purchase of electronic pipettes for liquid handling and bacterial culture.",
+      "doc_id": "281887",
+      "doc_no": "ARL-250930-07",
+      "writer": "Hyungjun Kim",
+      "date": "2025-09-29",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Hyungjun Kim (00282)",
+      "draft_date": "2025-09-19",
+      "subject": "IT software to office supplies",
+      "transfer_type": "Transfer",
+      "account_no": "NN2508-0002",
+      "project_title": "2025 Bio-medical research program (조선대 위탁과제)_3rd_Soojin Jang_이월금_비목간예산변경불가_단계종료",
+      "project_period": "2025-01-01 ~ 2025-12-31",
+      "project_start": "2025-01-01",
+      "project_end": "2025-12-31",
+      "transfer_items": [
+        {
+          "source": "[ 410318] IT Software (IT Subscription)",
+          "target": "[ 410901] Office supplies",
+          "amount": "13,095"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410318] IT Software (IT Subscription)",
+      "target_account": "[ 410901] Office supplies",
+      "amount": "13,095",
+      "total_amount": "13,095",
+      "control_no": "25003581",
+      "description": "Purchase of research project related office supplies",
+      "doc_id": "281323",
+      "doc_no": "ARL-250925-12",
+      "writer": "Hyungjun Kim",
+      "date": "2025-09-19",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Hyungjun Kim (00282)",
+      "draft_date": "2025-09-19",
+      "subject": "Reagent and supplies to research tools",
+      "transfer_type": "Transfer",
+      "account_no": "NN2508-0001",
+      "project_title": "2025 Bio-medical research program (조선대 위탁과제)_3rd_Soojin Jang",
+      "project_period": "2025-01-01 ~ 2025-12-31",
+      "project_start": "2025-01-01",
+      "project_end": "2025-12-31",
+      "transfer_items": [
+        {
+          "source": "[ 410703] Reagent & Supplies",
+          "target": "[ 120319] Research Tools (non-asset)",
+          "amount": "993,080"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410703] Reagent & Supplies",
+      "target_account": "[ 120319] Research Tools (non-asset)",
+      "amount": "993,080",
+      "total_amount": "993,080",
+      "control_no": "25003580",
+      "description": "Budget allocation to purchase pipet aids for liquid handling",
+      "doc_id": "281322",
+      "doc_no": "ARL-250925-11",
+      "writer": "Hyungjun Kim",
+      "date": "2025-09-19",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Juchan Hwang (00456)",
+      "draft_date": "2025-09-23",
+      "subject": "budget transfer for design fee for GLoPID-R RAPID",
+      "transfer_type": "Transfer",
+      "account_no": "NN2509-0001",
+      "project_title": "2025 GloPID-R Program(생명연 위탁)_1st_Soojin Jang",
+      "project_period": "2025-01-01 ~ 2025-12-31",
+      "project_start": "2025-01-01",
+      "project_end": "2025-12-31",
+      "transfer_items": [
+        {
+          "source": "[ 410202] Overseas Business Travel",
+          "target": "[ 410911] Commission",
+          "amount": "1,045,000"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410202] Overseas Business Travel",
+      "target_account": "[ 410911] Commission",
+      "amount": "1,045,000",
+      "total_amount": "1,045,000",
+      "control_no": "25003653",
+      "description": "during the 4th RAPID international symposium 2025. IPK request banner design and the abstract book for the symposium. 3 banners are standing banner, horizantal banner, backdrop banner that we will use it for Nha Trang RAPID symposium in Vietnam",
+      "doc_id": "281521",
+      "doc_no": "ARL-250925-10",
+      "writer": "Juchan Hwang",
+      "date": "2025-09-23",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Hyungjun Kim (00282)",
+      "draft_date": "2025-09-24",
+      "subject": "Reagent and supplies to internal labor",
+      "transfer_type": "Transfer",
+      "account_no": "NN2508-0001",
+      "project_title": "2025 Bio-medical research program (조선대 위탁과제)_3rd_Soojin Jang",
+      "project_period": "2025-01-01 ~ 2025-12-31",
+      "project_start": "2025-01-01",
+      "project_end": "2025-12-31",
+      "transfer_items": [
+        {
+          "source": "[ 410703] Reagent & Supplies",
+          "target": "[ 415101] Internal labor",
+          "amount": "9,336,000"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410703] Reagent & Supplies",
+      "target_account": "[ 415101] Internal labor",
+      "amount": "9,336,000",
+      "total_amount": "9,336,000",
+      "control_no": "25003678",
+      "description": "Internal labor budget for research progress and management",
+      "doc_id": "281591",
+      "doc_no": "ARL-250925-09",
+      "writer": "Hyungjun Kim",
+      "date": "2025-09-24",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Minjeong Woo (00316)",
+      "draft_date": "2025-09-16",
+      "subject": "Budget transfer request",
+      "transfer_type": "Transfer",
+      "account_no": "KD2503-0001",
+      "project_title": "2025 Healthcare Technology Research Program_1st_Connor Wood",
+      "project_period": "2025-04-01 ~ 2025-12-31",
+      "project_start": "2025-04-01",
+      "project_end": "2025-12-31",
+      "transfer_items": [
+        {
+          "source": "[ 410911] Commission",
+          "target": "[ 410310] Conferences:Meeting with External Specialists",
+          "amount": "500,000"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410911] Commission",
+      "target_account": "[ 410310] Conferences:Meeting with External Specialists",
+      "amount": "500,000",
+      "total_amount": "500,000",
+      "control_no": "25003531",
+      "description": "Budget Transfer Request for Meeting Expenses",
+      "doc_id": "281124",
+      "doc_no": "ARL-250918-02",
+      "writer": "Minjeong Woo",
+      "date": "2025-09-16",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Hyungjun Kim (00282)",
+      "draft_date": "2025-09-15",
+      "subject": "Holding seminars, Conferences, Inviting specialist to Internal labor",
+      "transfer_type": "Transfer",
+      "account_no": "NN2512-0001",
+      "project_title": "2025 Mid-career Research Program_1st_Soojin Jang",
+      "project_period": "2025-03-01 ~ 2026-02-28",
+      "project_start": "2025-03-01",
+      "project_end": "2026-02-28",
+      "transfer_items": [
+        {
+          "source": "[ 410307] Holding seminars",
+          "target": "[ 415101] Internal labor",
+          "amount": "10,000,000"
+        },
+        {
+          "source": "[ 410310] Conferences:Meeting with External Specialists",
+          "target": "[ 415101] Internal labor",
+          "amount": "2,000,000"
+        },
+        {
+          "source": "[ 410312] Inviting or consulting specialists",
+          "target": "[ 415101] Internal labor",
+          "amount": "167,040"
+        }
+      ],
+      "transfer_item_count": 3,
+      "total_amount": "12,167,040",
+      "control_no": "25003476",
+      "description": "Budget allocation for research project execution and progress",
+      "doc_id": "280967",
+      "doc_no": "ARL-250916-03",
+      "writer": "Hyungjun Kim",
+      "date": "2025-09-15",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Minjeong Woo (00316)",
+      "draft_date": "2025-09-08",
+      "subject": "Budget transfer request",
+      "transfer_type": "Transfer",
+      "account_no": "KD2503-0001",
+      "project_title": "2025 Healthcare Technology Research Program_1st_Connor Wood",
+      "project_period": "2025-04-01 ~ 2025-12-31",
+      "project_start": "2025-04-01",
+      "project_end": "2025-12-31",
+      "transfer_items": [
+        {
+          "source": "[ 410911] Commission",
+          "target": "[ 410306] Participating in Conferences",
+          "amount": "240,000"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410911] Commission",
+      "target_account": "[ 410306] Participating in Conferences",
+      "amount": "240,000",
+      "total_amount": "240,000",
+      "control_no": "25003375",
+      "description": "Budget transfer request for conference registration fee.",
+      "doc_id": "280666",
+      "doc_no": "ARL-250909-04",
+      "writer": "Minjeong Woo",
+      "date": "2025-09-08",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Hyungjun Kim (00282)",
+      "draft_date": "2025-09-04",
+      "subject": "From Commission and overtime meals to office devices (general-purpose)",
+      "transfer_type": "Transfer",
+      "account_no": "NN2516-0001",
+      "project_title": "2025 Korea-French Collaboration Research Program (PI: Soojin Jang)",
+      "project_period": "2025-07-01 ~ 2025-12-31",
+      "project_start": "2025-07-01",
+      "project_end": "2025-12-31",
+      "transfer_items": [
+        {
+          "source": "[ 410911] Commission",
+          "target": "[ 410920] Office devices (General-purpose)",
+          "amount": "2,000,000"
+        },
+        {
+          "source": "[ 412103] Overtime Meals",
+          "target": "[ 410920] Office devices (General-purpose)",
+          "amount": "500,000"
+        }
+      ],
+      "transfer_item_count": 2,
+      "total_amount": "2,500,000",
+      "control_no": "25003315",
+      "description": "Allocation of budget to purchase office devices (computer and accessory)",
+      "doc_id": "280468",
+      "doc_no": "ARL-250905-07",
+      "writer": "Hyungjun Kim",
+      "date": "2025-09-04",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - YunMi LEE (00227)",
+      "draft_date": "2025-08-27",
+      "subject": "Budget transfer",
+      "transfer_type": "Transfer",
+      "account_no": "NN2503-0002",
+      "project_title": "2025 Bio-medical program (POSTEC 대형장비과제)_2nd_Inhee Choi (ARL)",
+      "project_period": "2025-01-01 ~ 2025-12-31",
+      "project_start": "2025-01-01",
+      "project_end": "2025-12-31",
+      "transfer_items": [
+        {
+          "source": "[ 410201] Domestic Business Travel",
+          "target": "[ 410306] Participating in Conferences",
+          "amount": "150,000"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410201] Domestic Business Travel",
+      "target_account": "[ 410306] Participating in Conferences",
+      "amount": "150,000",
+      "total_amount": "150,000",
+      "control_no": "25003177",
+      "description": "To attend MSK conference holing on Oct. 26th, I will pay for registeration fee.",
+      "doc_id": "279986",
+      "doc_no": "ARL-250828-01",
+      "writer": "YunMi LEE",
+      "date": "2025-08-27",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - YunMi LEE (00227)",
+      "draft_date": "2025-08-25",
+      "subject": "Budget transfer",
+      "transfer_type": "Transfer",
+      "account_no": "FS2214-0001",
+      "project_title": "2022 GARDP FFS_Soojin Jang (ARL)",
+      "project_period": "2022-01-01 ~ 2028-08-18",
+      "project_start": "2022-01-01",
+      "project_end": "2028-08-18",
+      "transfer_items": [
+        {
+          "source": "[ 410703] Reagent & Supplies",
+          "target": "[ 410202] Overseas Business Travel",
+          "amount": "3,800,000"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410703] Reagent & Supplies",
+      "target_account": "[ 410202] Overseas Business Travel",
+      "amount": "3,800,000",
+      "total_amount": "3,800,000",
+      "control_no": "25003117",
+      "description": "We are planning an overseas trip to attend a conference holding in Vietnam. Please allocate a budget for this trip.",
+      "doc_id": "279806",
+      "doc_no": "ARL-250826-03",
+      "writer": "YunMi LEE",
+      "date": "2025-08-25",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Juchan Hwang (00456)",
+      "draft_date": "2025-08-25",
+      "subject": "MetaSUB metagenome sequencing data and analysis fee",
+      "transfer_type": "Transfer",
+      "account_no": "NN2413-0001",
+      "project_title": "2024 Korea-EU Collaboration Promotion Program_1st_Soojin Jang",
+      "project_period": "2024-10-01 ~ 2025-09-30",
+      "project_start": "2024-10-01",
+      "project_end": "2025-09-30",
+      "transfer_items": [
+        {
+          "source": "[ 410307] Holding seminars",
+          "target": "[ 410705] Assay & Test",
+          "amount": "7,200,000"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410307] Holding seminars",
+      "target_account": "[ 410705] Assay & Test",
+      "amount": "7,200,000",
+      "total_amount": "7,200,000",
+      "control_no": "25003099",
+      "description": "sequencing support budget for the creation of genomic sequencing data and downstream analysis such as taxonomic analysis and AMR identification, pathogen in the public transportation for MetaSUB and related samples from swab samples in bus and subway and toilets from the laboratory of ARL team.\nto data analysis deeper and search for pathogen bacteria and Antibiotic resistance gene in the species from transportations",
+      "doc_id": "279749",
+      "doc_no": "ARL-250826-02",
+      "writer": "Juchan Hwang",
+      "date": "2025-08-25",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - YunMi LEE (00227)",
+      "draft_date": "2025-08-25",
+      "subject": "Budget transfer",
+      "transfer_type": "Transfer",
+      "account_no": "NN2413-0001",
+      "project_title": "2024 Korea-EU Collaboration Promotion Program_1st_Soojin Jang",
+      "project_period": "2024-10-01 ~ 2025-09-30",
+      "project_start": "2024-10-01",
+      "project_end": "2025-09-30",
+      "transfer_items": [
+        {
+          "source": "[ 410201] Domestic Business Travel",
+          "target": "[ 410312] Inviting or consulting specialists",
+          "amount": "104,031"
+        },
+        {
+          "source": "[ 410202] Overseas Business Travel",
+          "target": "[ 410312] Inviting or consulting specialists",
+          "amount": "2,472,618"
+        },
+        {
+          "source": "[ 410307] Holding seminars",
+          "target": "[ 410312] Inviting or consulting specialists",
+          "amount": "600,000"
+        },
+        {
+          "source": "[ 410310] Conferences:Meeting with External Specialists",
+          "target": "[ 410312] Inviting or consulting specialists",
+          "amount": "400,000"
+        }
+      ],
+      "transfer_item_count": 4,
+      "total_amount": "3,576,649",
+      "control_no": "25003116",
+      "description": "We would like to invite a specialist. So we ask to allocate budget to ''Inviting or consulting specialists''.",
+      "doc_id": "279802",
+      "doc_no": "ARL-250825-10",
+      "writer": "YunMi LEE",
+      "date": "2025-08-25",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Sol Lee (00493)",
+      "draft_date": "2025-08-13",
+      "subject": "Budget transfer_GARDP project",
+      "transfer_type": "Transfer",
+      "account_no": "FS2214-0001",
+      "project_title": "2022 GARDP FFS_Soojin Jang (ARL)",
+      "project_period": "2022-01-01 ~ 2028-08-18",
+      "project_start": "2022-01-01",
+      "project_end": "2028-08-18",
+      "transfer_items": [
+        {
+          "source": "[ 410703] Reagent & Supplies",
+          "target": "[ 410306] Participating in Conferences",
+          "amount": "320,000"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410703] Reagent & Supplies",
+      "target_account": "[ 410306] Participating in Conferences",
+      "amount": "320,000",
+      "total_amount": "320,000",
+      "control_no": "25002952",
+      "description": "MSK membership and Conference registration fee",
+      "doc_id": "279274",
+      "doc_no": "ARL-250814-01",
+      "writer": "Sol Lee",
+      "date": "2025-08-13",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Hyungjun Kim (00282)",
+      "draft_date": "2025-08-11",
+      "subject": "office devices asset, software asset, assay and test to office devices (general-purpose)",
+      "transfer_type": "Transfer",
+      "account_no": "NN2512-0001",
+      "project_title": "2025 Mid-career Research Program_1st_Soojin Jang",
+      "project_period": "2025-03-01 ~ 2026-02-28",
+      "project_start": "2025-03-01",
+      "project_end": "2026-02-28",
+      "transfer_items": [
+        {
+          "source": "[ 120336] Office devices asset (General-purpose)",
+          "target": "[ 410920] Office devices (General-purpose)",
+          "amount": "1,480,000"
+        },
+        {
+          "source": "[ 120543] Software (General-purpose)_asset",
+          "target": "[ 410920] Office devices (General-purpose)",
+          "amount": "941,259"
+        },
+        {
+          "source": "[ 410705] Assay & Test",
+          "target": "[ 410920] Office devices (General-purpose)",
+          "amount": "578,741"
+        }
+      ],
+      "transfer_item_count": 3,
+      "total_amount": "3,000,000",
+      "control_no": "25002914",
+      "description": "office devices asset, software asset, assay and test to office devices (general-purpose)\nComputer monitors and desktop computer purchase for data analysis and document work.",
+      "doc_id": "279121",
+      "doc_no": "ARL-250812-04",
+      "writer": "Hyungjun Kim",
+      "date": "2025-08-11",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Hyungjun Kim (00282)",
+      "draft_date": "2025-08-06",
+      "subject": "assay and test to participating conferences and domestic business travel",
+      "transfer_type": "Transfer",
+      "account_no": "NN2512-0001",
+      "project_title": "2025 Mid-career Research Program_1st_Soojin Jang",
+      "project_period": "2025-03-01 ~ 2026-02-28",
+      "project_start": "2025-03-01",
+      "project_end": "2026-02-28",
+      "transfer_items": [
+        {
+          "source": "[ 410705] Assay & Test",
+          "target": "[ 410306] Participating in Conferences",
+          "amount": "1,600,000"
+        },
+        {
+          "source": "[ 410705] Assay & Test",
+          "target": "[ 410201] Domestic Business Travel",
+          "amount": "400,000"
+        }
+      ],
+      "transfer_item_count": 2,
+      "total_amount": "2,000,000",
+      "control_no": "25002845",
+      "description": "Budget adjustment - participation of conferences for research idea and knowledge sharing",
+      "doc_id": "278875",
+      "doc_no": "ARL-250808-02",
+      "writer": "Hyungjun Kim",
+      "date": "2025-08-06",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Sol Lee (00493)",
+      "draft_date": "2025-08-07",
+      "subject": "Budget transfer_GARDP project",
+      "transfer_type": "Transfer",
+      "account_no": "FS2214-0001",
+      "project_title": "2022 GARDP FFS_Soojin Jang (ARL)",
+      "project_period": "2022-01-01 ~ 2028-08-18",
+      "project_start": "2022-01-01",
+      "project_end": "2028-08-18",
+      "transfer_items": [
+        {
+          "source": "[ 410703] Reagent & Supplies",
+          "target": "[ 410901] Office supplies",
+          "amount": "383,320"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410703] Reagent & Supplies",
+      "target_account": "[ 410901] Office supplies",
+      "amount": "383,320",
+      "total_amount": "383,320",
+      "control_no": "25002864",
+      "description": "Budget transfer request from 410703 to 410901 to buy office supplies",
+      "doc_id": "278943",
+      "doc_no": "ARL-250808-01",
+      "writer": "Sol Lee",
+      "date": "2025-08-07",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Hyungjun Kim (00282)",
+      "draft_date": "2025-08-04",
+      "subject": "Reagent and supplies to Research environment asset and supplies",
+      "transfer_type": "Transfer",
+      "account_no": "NN2512-0001",
+      "project_title": "2025 Mid-career Research Program_1st_Soojin Jang",
+      "project_period": "2025-03-01 ~ 2026-02-28",
+      "project_start": "2025-03-01",
+      "project_end": "2026-02-28",
+      "transfer_items": [
+        {
+          "source": "[ 410705] Assay & Test",
+          "target": "[ 120335] Research environment asset",
+          "amount": "1,631,575"
+        },
+        {
+          "source": "[ 410705] Assay & Test",
+          "target": "[ 410913] Research environment supplies and maintenance fee",
+          "amount": "86,625"
+        }
+      ],
+      "transfer_item_count": 2,
+      "total_amount": "1,718,200",
+      "control_no": "25002807",
+      "description": "Chairs and drawers for new recruitment and participating researchers",
+      "doc_id": "278763",
+      "doc_no": "ARL-250805-02",
+      "writer": "Hyungjun Kim",
+      "date": "2025-08-04",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Sol Lee (00493)",
+      "draft_date": "2025-07-25",
+      "subject": "Budget transfer_GARDP project",
+      "transfer_type": "Transfer",
+      "account_no": "FS2214-0001",
+      "project_title": "2022 GARDP FFS_Soojin Jang (ARL)",
+      "project_period": "2022-01-01 ~ 2028-08-18",
+      "project_start": "2022-01-01",
+      "project_end": "2028-08-18",
+      "transfer_items": [
+        {
+          "source": "[ 410703] Reagent & Supplies",
+          "target": "[ 410911] Commission",
+          "amount": "800,000"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410703] Reagent & Supplies",
+      "target_account": "[ 410911] Commission",
+      "amount": "800,000",
+      "total_amount": "800,000",
+      "control_no": "25002673",
+      "description": "Budget to be used for commission",
+      "doc_id": "278296",
+      "doc_no": "ARL-250728-09",
+      "writer": "Sol Lee",
+      "date": "2025-07-25",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Hyungjun Kim (00282)",
+      "draft_date": "2025-07-25",
+      "subject": "Reagent and supplies to part and equipment maintenance for pipette calibration and maintenance",
+      "transfer_type": "Transfer",
+      "account_no": "FS2226-0001",
+      "project_title": "2022 Peptoide FFS_Soojin Jang (Direct)",
+      "project_period": "2022-12-01 ~ 2027-08-31",
+      "project_start": "2022-12-01",
+      "project_end": "2027-08-31",
+      "transfer_items": [
+        {
+          "source": "[ 410703] Reagent & Supplies",
+          "target": "[ 410604] Parts & Equipment Maintenance",
+          "amount": "281,100"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410703] Reagent & Supplies",
+      "target_account": "[ 410604] Parts & Equipment Maintenance",
+      "amount": "281,100",
+      "total_amount": "281,100",
+      "equipment_name": "Pipettes calibration and maintenance",
+      "manufacturer": "Various brands",
+      "features": "Liquid handling with various volumes",
+      "price_krw": "281100",
+      "purchase_purpose": "Additional fee for pipettes calibration and maintenance",
+      "has_equipment_description": true,
+      "control_no": "25002660",
+      "description": "Reagent and supplies to parts and equipment maintenance",
+      "doc_id": "278256",
+      "doc_no": "ARL-250725-03",
+      "writer": "Hyungjun Kim",
+      "date": "2025-07-25",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Hyun-Jung Lee (00383)",
+      "draft_date": "2025-07-24",
+      "subject": "Budget transfer request",
+      "transfer_type": "Transfer",
+      "account_no": "FS2214-0001",
+      "project_title": "2022 GARDP FFS_Soojin Jang (ARL)",
+      "project_period": "2022-01-01 ~ 2028-08-18",
+      "project_start": "2022-01-01",
+      "project_end": "2028-08-18",
+      "transfer_items": [
+        {
+          "source": "[ 410703] Reagent & Supplies",
+          "target": "[ 410911] Commission",
+          "amount": "1,200,000"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410703] Reagent & Supplies",
+      "target_account": "[ 410911] Commission",
+      "amount": "1,200,000",
+      "total_amount": "1,200,000",
+      "control_no": "25002648",
+      "description": "Budget to be used for commission",
+      "doc_id": "278200",
+      "doc_no": "ARL-250724-09",
+      "writer": "Hyun-Jung Lee",
+      "date": "2025-07-24",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Hyungjun Kim (00282)",
+      "draft_date": "2025-07-21",
+      "subject": "assay and test to software (asset)",
+      "transfer_type": "Transfer",
+      "account_no": "NN2512-0001",
+      "project_title": "2025 Mid-career Research Program_1st_Soojin Jang",
+      "project_period": "2025-03-01 ~ 2026-02-28",
+      "project_start": "2025-03-01",
+      "project_end": "2026-02-28",
+      "transfer_items": [
+        {
+          "source": "[ 410705] Assay & Test",
+          "target": "[ 120543] Software (General-purpose)_asset",
+          "amount": "941,259"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410705] Assay & Test",
+      "target_account": "[ 120543] Software (General-purpose)_asset",
+      "amount": "941,259",
+      "total_amount": "941,259",
+      "control_no": "25002592",
+      "description": "Purchase of Hangul software for HWP reading, writing, organization.",
+      "doc_id": "278020",
+      "doc_no": "ARL-250722-01",
+      "writer": "Hyungjun Kim",
+      "date": "2025-07-21",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Juchan Hwang (00456)",
+      "draft_date": "2025-06-30",
+      "subject": "Reallocation of Unused IT Supplies Budget to Overseas Business Travel",
+      "transfer_type": "Transfer",
+      "account_no": "NN2512-0001",
+      "project_title": "2025 Mid-career Research Program_1st_Soojin Jang",
+      "project_period": "2025-03-01 ~ 2026-02-28",
+      "project_start": "2025-03-01",
+      "project_end": "2026-02-28",
+      "transfer_items": [
+        {
+          "source": "[ 420332] IT supplies",
+          "target": "[ 410202] Overseas Business Travel",
+          "amount": "350,000"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 420332] IT supplies",
+      "target_account": "[ 410202] Overseas Business Travel",
+      "amount": "350,000",
+      "total_amount": "350,000",
+      "control_no": "25002205",
+      "description": "The expenses were initially recorded under account code 420332 - IT supplies; however, this account is designated for indirect costs and is therefore not appropriate for the intended use. Since these expenses are related to an upcoming overseas business trip, they should be reclassified to a more suitable account that aligns with travel-related expenditures. This adjustment will ensure accurate cost allocation and compliance with accounting policies.",
+      "doc_id": "276921",
+      "doc_no": "ARL-250703-08",
+      "writer": "Juchan Hwang",
+      "date": "2025-06-30",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Hyun-Jung Lee (00383)",
+      "draft_date": "2025-06-30",
+      "subject": "Budget transfer request",
+      "transfer_type": "Transfer",
+      "account_no": "NN2503-0002",
+      "project_title": "2025 Bio-medical program (POSTEC 대형장비과제)_2nd_Inhee Choi (ARL)",
+      "project_period": "2025-01-01 ~ 2025-12-31",
+      "project_start": "2025-01-01",
+      "project_end": "2025-12-31",
+      "transfer_items": [
+        {
+          "source": "[ 410306] Participating in Conferences",
+          "target": "[ 410902] Printing & Copy",
+          "amount": "20,400"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410306] Participating in Conferences",
+      "target_account": "[ 410902] Printing & Copy",
+      "amount": "20,400",
+      "total_amount": "20,400",
+      "control_no": "25002201",
+      "description": "2025 KMB 학회 발표용 포스터제작 비용",
+      "doc_id": "276902",
+      "doc_no": "ARL-250703-07",
+      "writer": "Hyun-Jung Lee",
+      "date": "2025-06-30",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Hyungjun Kim (00282)",
+      "draft_date": "2025-06-20",
+      "subject": "From Reagent and supplies to Parts and equipment",
+      "transfer_type": "Transfer",
+      "account_no": "FS2226-0001",
+      "project_title": "2022 Peptoide FFS_Soojin Jang (Direct)",
+      "project_period": "2022-12-01 ~ 2027-08-31",
+      "project_start": "2022-12-01",
+      "project_end": "2027-08-31",
+      "transfer_items": [
+        {
+          "source": "[ 410703] Reagent & Supplies",
+          "target": "[ 410604] Parts & Equipment Maintenance",
+          "amount": "1,955,800"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410703] Reagent & Supplies",
+      "target_account": "[ 410604] Parts & Equipment Maintenance",
+      "amount": "1,955,800",
+      "total_amount": "1,955,800",
+      "equipment_name": "Pipettes",
+      "manufacturer": "Gilson, Discovery, Eppendorf etc..",
+      "features": "Liquid handling with various volumes",
+      "price_krw": "Various",
+      "purchase_purpose": "Calibration and maintenance of pipettes",
+      "has_equipment_description": true,
+      "control_no": "25002100",
+      "description": "Calibration and maintenance of pipettes for accuracy of research",
+      "doc_id": "276471",
+      "doc_no": "ARL-250620-10",
+      "writer": "Hyungjun Kim",
+      "date": "2025-06-20",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - YunMi LEE (00227)",
+      "draft_date": "2025-06-16",
+      "subject": "Budget transfer",
+      "transfer_type": "Transfer",
+      "account_no": "FS2214-0001",
+      "project_title": "2022 GARDP FFS_Soojin Jang (ARL)",
+      "project_period": "2022-01-01 ~ 2028-08-18",
+      "project_start": "2022-01-01",
+      "project_end": "2028-08-18",
+      "transfer_items": [
+        {
+          "source": "[ 410703] Reagent & Supplies",
+          "target": "[ 410201] Domestic Business Travel",
+          "amount": "500,000"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410703] Reagent & Supplies",
+      "target_account": "[ 410201] Domestic Business Travel",
+      "amount": "500,000",
+      "total_amount": "500,000",
+      "control_no": "25002012",
+      "description": "Business travel to seoul to take samples from subways or bus stops.",
+      "doc_id": "276174",
+      "doc_no": "ARL-250617-04",
+      "writer": "YunMi LEE",
+      "date": "2025-06-16",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - YunMi LEE (00227)",
+      "draft_date": "2025-06-09",
+      "subject": "Budget transfer",
+      "transfer_type": "Transfer",
+      "account_no": "NN2503-0002",
+      "project_title": "2025 Bio-medical program (POSTEC 대형장비과제)_2nd_Inhee Choi (ARL)",
+      "project_period": "2025-01-01 ~ 2025-12-31",
+      "project_start": "2025-01-01",
+      "project_end": "2025-12-31",
+      "transfer_items": [
+        {
+          "source": "[ 410201] Domestic Business Travel",
+          "target": "[ 410705] Assay & Test",
+          "amount": "500,000"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410201] Domestic Business Travel",
+      "target_account": "[ 410705] Assay & Test",
+      "amount": "500,000",
+      "total_amount": "500,000",
+      "control_no": "25001873",
+      "description": "Sequencing analysis to confirm the constructed vector sequence before transformation to bacteria",
+      "doc_id": "275816",
+      "doc_no": "ARL-250612-04",
+      "writer": "YunMi LEE",
+      "date": "2025-06-09",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Juchan Hwang (00456)",
+      "draft_date": "2025-06-05",
+      "subject": "pay tax for 환경부 위탁과제",
+      "transfer_type": "Transfer",
+      "account_no": "RC2501-0001",
+      "project_title": "2025 Environmental Technology Development Program (환경부 위탁)_5th_Soojin Jang",
+      "project_period": "2025-01-01 ~ 2026-06-30",
+      "project_start": "2025-01-01",
+      "project_end": "2026-06-30",
+      "transfer_items": [
+        {
+          "source": "[ 410707] Chemical Library",
+          "target": "[ 410907] Taxes",
+          "amount": "4,545,000"
+        },
+        {
+          "source": "[ 412101] Incentives",
+          "target": "[ 410907] Taxes",
+          "amount": "455"
+        }
+      ],
+      "transfer_item_count": 2,
+      "total_amount": "4,545,455",
+      "control_no": "25001827",
+      "description": "for RC2501 Government-funded project commissioned by the Ministry of Environment tax pay",
+      "doc_id": "275654",
+      "doc_no": "ARL-250609-05",
+      "writer": "Juchan Hwang",
+      "date": "2025-06-05",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Juchan Hwang (00456)",
+      "draft_date": "2025-05-19",
+      "subject": "budget transfer for server storage and computer for new employee and shipping fee",
+      "transfer_type": "Transfer",
+      "account_no": "NN2512-0001",
+      "project_title": "2025 Mid-career Research Program_1st_Soojin Jang",
+      "project_period": "2025-03-01 ~ 2026-02-28",
+      "project_start": "2025-03-01",
+      "project_end": "2026-02-28",
+      "transfer_items": [
+        {
+          "source": "[ 410703] Reagent & Supplies",
+          "target": "[ 120336] Office devices asset (General-purpose)",
+          "amount": "5,000,000"
+        },
+        {
+          "source": "[ 410703] Reagent & Supplies",
+          "target": "[ 420332] IT supplies",
+          "amount": "2,000,000"
+        },
+        {
+          "source": "[ 410703] Reagent & Supplies",
+          "target": "[ 410911] Commission",
+          "amount": "1,500,000"
+        }
+      ],
+      "transfer_item_count": 3,
+      "total_amount": "8,500,000",
+      "control_no": "25001599",
+      "description": "to storage data in server 480GB 6ea adding storage.\nnew computer for bioinformatics new employee to analysis data and programing pipeline\nshipping fee from FedEx to send the swab tube and kits and also get some samples from other collaborators",
+      "doc_id": "274852",
+      "doc_no": "ARL-250520-04",
+      "writer": "Juchan Hwang",
+      "date": "2025-05-19",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Hyungjun Kim (00282)",
+      "draft_date": "2025-05-19",
+      "subject": "Reagent and supplies to Assay and test",
+      "transfer_type": "Transfer",
+      "account_no": "NN2503-0002",
+      "project_title": "2025 Bio-medical program (POSTEC 대형장비과제)_2nd_Inhee Choi (ARL)",
+      "project_period": "2025-01-01 ~ 2025-12-31",
+      "project_start": "2025-01-01",
+      "project_end": "2025-12-31",
+      "transfer_items": [
+        {
+          "source": "[ 410703] Reagent & Supplies",
+          "target": "[ 410705] Assay & Test",
+          "amount": "11,000,000"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410703] Reagent & Supplies",
+      "target_account": "[ 410705] Assay & Test",
+      "amount": "11,000,000",
+      "total_amount": "11,000,000",
+      "control_no": "25001596",
+      "description": "Assay and test for chemical experiment budget",
+      "doc_id": "274849",
+      "doc_no": "ARL-250520-03",
+      "writer": "Hyungjun Kim",
+      "date": "2025-05-19",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - YunMi LEE (00227)",
+      "draft_date": "2025-05-19",
+      "subject": "Budget transfer",
+      "transfer_type": "Transfer",
+      "account_no": "FS2214-0001",
+      "project_title": "2022 GARDP FFS_Soojin Jang (ARL)",
+      "project_period": "2022-01-01 ~ 2028-08-18",
+      "project_start": "2022-01-01",
+      "project_end": "2028-08-18",
+      "transfer_items": [
+        {
+          "source": "[ 410703] Reagent & Supplies",
+          "target": "[ 410705] Assay & Test",
+          "amount": "6,000,000"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410703] Reagent & Supplies",
+      "target_account": "[ 410705] Assay & Test",
+      "amount": "6,000,000",
+      "total_amount": "6,000,000",
+      "control_no": "25001590",
+      "description": "To pay for the assay and test fee",
+      "doc_id": "274837",
+      "doc_no": "ARL-250520-02",
+      "writer": "YunMi LEE",
+      "date": "2025-05-19",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Hyungjun Kim (00282)",
+      "draft_date": "2025-05-15",
+      "subject": "From reagent and supplies to Participating in conference, domestic business travel",
+      "transfer_type": "Transfer",
+      "account_no": "NN2503-0002",
+      "project_title": "2025 Bio-medical program (POSTEC 대형장비과제)_2nd_Inhee Choi (ARL)",
+      "project_period": "2025-01-01 ~ 2025-12-31",
+      "project_start": "2025-01-01",
+      "project_end": "2025-12-31",
+      "transfer_items": [
+        {
+          "source": "[ 410703] Reagent & Supplies",
+          "target": "[ 410306] Participating in Conferences",
+          "amount": "1,000,000"
+        },
+        {
+          "source": "[ 410703] Reagent & Supplies",
+          "target": "[ 410201] Domestic Business Travel",
+          "amount": "2,000,000"
+        }
+      ],
+      "transfer_item_count": 2,
+      "total_amount": "3,000,000",
+      "control_no": "25001517",
+      "description": "Budget allocation for upcoming conference participations and dometic business travels of participating researchers.",
+      "doc_id": "274650",
+      "doc_no": "ARL-250516-01",
+      "writer": "Hyungjun Kim",
+      "date": "2025-05-15",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Hyungjun Kim (00282)",
+      "draft_date": "2025-05-14",
+      "subject": "From tools, reagent and supplies to IT software (IT subscription)",
+      "transfer_type": "Transfer",
+      "account_no": "MSIT25-0032",
+      "project_title": "2025 MSIT - ARL",
+      "project_period": "2025-01-01 ~ 2025-12-31",
+      "project_start": "2025-01-01",
+      "project_end": "2025-12-31",
+      "transfer_items": [
+        {
+          "source": "[ 120312] Tools",
+          "target": "[ 410318] IT Software (IT Subscription)",
+          "amount": "400,000"
+        },
+        {
+          "source": "[ 410703] Reagent & Supplies",
+          "target": "[ 410318] IT Software (IT Subscription)",
+          "amount": "1,100,000"
+        }
+      ],
+      "transfer_item_count": 2,
+      "total_amount": "1,500,000",
+      "control_no": "25001491",
+      "description": "Budget allocation for Online software subscription for data presentation, report and management, document editing,",
+      "doc_id": "274579",
+      "doc_no": "ARL-250515-04",
+      "writer": "Hyungjun Kim",
+      "date": "2025-05-14",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Hyungjun Kim (00282)",
+      "draft_date": "2025-05-12",
+      "subject": "Assay and Test to Office supplies",
+      "transfer_type": "Transfer",
+      "account_no": "NN2512-0001",
+      "project_title": "2025 Mid-career Research Program_1st_Soojin Jang",
+      "project_period": "2025-03-01 ~ 2026-02-28",
+      "project_start": "2025-03-01",
+      "project_end": "2026-02-28",
+      "transfer_items": [
+        {
+          "source": "[ 410705] Assay & Test",
+          "target": "[ 410901] Office supplies",
+          "amount": "800,000"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410705] Assay & Test",
+      "target_account": "[ 410901] Office supplies",
+      "amount": "800,000",
+      "total_amount": "800,000",
+      "control_no": "25001444",
+      "description": "Allocation of budget for Stationary, Computer accessories, Replacement of broken or old officewares.",
+      "doc_id": "274432",
+      "doc_no": "ARL-250513-07",
+      "writer": "Hyungjun Kim",
+      "date": "2025-05-12",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Minjeong Woo (00316)",
+      "draft_date": "2025-05-08",
+      "subject": "Budget transfer request for travel expenses",
+      "transfer_type": "Transfer",
+      "account_no": "FS2504-0001",
+      "project_title": "2025 LigaChem Biosciences FFS_Soojin Jang - ARL (Direct)",
+      "project_period": "2025-03-01 ~ 2026-12-31",
+      "project_start": "2025-03-01",
+      "project_end": "2026-12-31",
+      "transfer_items": [
+        {
+          "source": "[ 410703] Reagent & Supplies",
+          "target": "[ 410202] Overseas Business Travel",
+          "amount": "13,000,000"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410703] Reagent & Supplies",
+      "target_account": "[ 410202] Overseas Business Travel",
+      "amount": "13,000,000",
+      "total_amount": "13,000,000",
+      "control_no": "25001413",
+      "description": "To cover travel expenses for attending the TB course at Institut Pasteur in Paris.",
+      "doc_id": "274299",
+      "doc_no": "ARL-250509-13",
+      "writer": "Minjeong Woo",
+      "date": "2025-05-08",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Hyungjun Kim (00282)",
+      "draft_date": "2025-05-08",
+      "subject": "From Meeting with external specialist to participating in conferences and domestic business travel",
+      "transfer_type": "Transfer",
+      "account_no": "NN2503-0002",
+      "project_title": "2025 Bio-medical program (POSTEC 대형장비과제)_2nd_Inhee Choi (ARL)",
+      "project_period": "2025-01-01 ~ 2025-12-31",
+      "project_start": "2025-01-01",
+      "project_end": "2025-12-31",
+      "transfer_items": [
+        {
+          "source": "[ 410310] Conferences:Meeting with External Specialists",
+          "target": "[ 410306] Participating in Conferences",
+          "amount": "500,000"
+        },
+        {
+          "source": "[ 410310] Conferences:Meeting with External Specialists",
+          "target": "[ 410201] Domestic Business Travel",
+          "amount": "500,000"
+        }
+      ],
+      "transfer_item_count": 2,
+      "total_amount": "1,000,000",
+      "control_no": "25001410",
+      "description": "Budget allocation for conference registration and participation (domestic travel)",
+      "doc_id": "274288",
+      "doc_no": "ARL-250509-12",
+      "writer": "Hyungjun Kim",
+      "date": "2025-05-08",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Guinam Wee (00528)",
+      "draft_date": "2025-05-08",
+      "subject": "Budget transfer request_Mid-career research program",
+      "transfer_type": "Transfer",
+      "account_no": "NN2512-0001",
+      "project_title": "2025 Mid-career Research Program_1st_Soojin Jang",
+      "project_period": "2025-03-01 ~ 2026-02-28",
+      "project_start": "2025-03-01",
+      "project_end": "2026-02-28",
+      "transfer_items": [
+        {
+          "source": "[ 410201] Domestic Business Travel",
+          "target": "[ 410306] Participating in Conferences",
+          "amount": "560,000"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410201] Domestic Business Travel",
+      "target_account": "[ 410306] Participating in Conferences",
+      "amount": "560,000",
+      "total_amount": "560,000",
+      "control_no": "25001408",
+      "description": "Budget transfers to pay for conference registration fees to attend the 2025 KMB annual meeting & International symposium",
+      "doc_id": "274284",
+      "doc_no": "ARL-250509-11",
+      "writer": "Guinam Wee",
+      "date": "2025-05-08",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Sol Lee (00493)",
+      "draft_date": "2025-04-24",
+      "subject": "Budget transfer_Peptoide project",
+      "transfer_type": "Transfer",
+      "account_no": "FS2226-0001",
+      "project_title": "2022 Peptoide FFS_Soojin Jang (Direct)",
+      "project_period": "2022-12-01 ~ 2027-08-31",
+      "project_start": "2022-12-01",
+      "project_end": "2027-08-31",
+      "transfer_items": [
+        {
+          "source": "[ 410310] Conferences:Meeting with External Specialists",
+          "target": "[ 410312] Inviting or consulting specialists",
+          "amount": "500,000"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410310] Conferences:Meeting with External Specialists",
+      "target_account": "[ 410312] Inviting or consulting specialists",
+      "amount": "500,000",
+      "total_amount": "500,000",
+      "control_no": "25001266",
+      "description": "Budget transfer from [410310] to [410312] of Peptoide project",
+      "doc_id": "273805",
+      "doc_no": "ARL-250425-03",
+      "writer": "Sol Lee",
+      "date": "2025-04-24",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Hyungjun Kim (00282)",
+      "draft_date": "2025-04-17",
+      "subject": "Reagent and supplies to Research tools",
+      "transfer_type": "Transfer",
+      "account_no": "FS2226-0001",
+      "project_title": "2022 Peptoide FFS_Soojin Jang (Direct)",
+      "project_period": "2022-12-01 ~ 2027-08-31",
+      "project_start": "2022-12-01",
+      "project_end": "2027-08-31",
+      "transfer_items": [
+        {
+          "source": "[ 410703] Reagent & Supplies",
+          "target": "[ 120319] Research Tools (non-asset)",
+          "amount": "993,080"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410703] Reagent & Supplies",
+      "target_account": "[ 120319] Research Tools (non-asset)",
+      "amount": "993,080",
+      "total_amount": "993,080",
+      "control_no": "25001165",
+      "description": "Purchase of pipet pumps x 2 for liquid handling.",
+      "doc_id": "273473",
+      "doc_no": "ARL-250418-05",
+      "writer": "Hyungjun Kim",
+      "date": "2025-04-17",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Juchan Hwang (00456)",
+      "draft_date": "2025-04-15",
+      "subject": "for bioinfomatics data analysis of AMR and pathogen diversity using PowerEdge R760 Server",
+      "transfer_type": "Transfer",
+      "account_no": "NN2512-0001",
+      "project_title": "2025 Mid-career Research Program_1st_Soojin Jang",
+      "project_period": "2025-03-01 ~ 2026-02-28",
+      "project_start": "2025-03-01",
+      "project_end": "2026-02-28",
+      "transfer_items": [
+        {
+          "source": "[ 410705] Assay & Test",
+          "target": "[ 120312] Tools",
+          "amount": "19,250,000"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410705] Assay & Test",
+      "target_account": "[ 120312] Tools",
+      "amount": "19,250,000",
+      "total_amount": "19,250,000",
+      "equipment_name": "Dell PowerEdge R760 Server",
+      "manufacturer": "Dell",
+      "features": "2U 2.5\" 8 bay",
+      "price_krw": "19250000",
+      "purchase_purpose": "This server system is specifically configured to support advanced bioinformatics analyses involving large-scale metagenomic sequencing data, particularly for projects such as MetaSUB and environmental",
+      "has_equipment_description": true,
+      "control_no": "25001137",
+      "description": "File Attachment List",
+      "doc_id": "273356",
+      "doc_no": "ARL-250416-03",
+      "writer": "Juchan Hwang",
+      "date": "2025-04-15",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Hyun-Jung Lee (00383)",
+      "draft_date": "2025-04-04",
+      "subject": "Budget transfer request",
+      "transfer_type": "Transfer",
+      "account_no": "FS2504-0001",
+      "project_title": "2025 LigaChem Biosciences FFS_Soojin Jang - ARL (Direct)",
+      "project_period": "2025-03-01 ~ 2026-12-31",
+      "project_start": "2025-03-01",
+      "project_end": "2026-12-31",
+      "transfer_items": [
+        {
+          "source": "[ 410703] Reagent & Supplies",
+          "target": "[ 410201] Domestic Business Travel",
+          "amount": "200,000"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410703] Reagent & Supplies",
+      "target_account": "[ 410201] Domestic Business Travel",
+      "amount": "200,000",
+      "total_amount": "200,000",
+      "control_no": "25001055",
+      "description": "Budget to be used for domestic business travel",
+      "doc_id": "272978",
+      "doc_no": "ARL-250407-03",
+      "writer": "Hyun-Jung Lee",
+      "date": "2025-04-04",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Sol Lee (00493)",
+      "draft_date": "2025-04-02",
+      "subject": "Budget transfer_Domestic travel request _2025FABMB conference",
+      "transfer_type": "Transfer",
+      "account_no": "FS2214-0001",
+      "project_title": "2022 GARDP FFS_Soojin Jang (ARL)",
+      "project_period": "2022-01-01 ~ 2028-08-18",
+      "project_start": "2022-01-01",
+      "project_end": "2028-08-18",
+      "transfer_items": [
+        {
+          "source": "[ 410703] Reagent & Supplies",
+          "target": "[ 410201] Domestic Business Travel",
+          "amount": "400,000"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410703] Reagent & Supplies",
+      "target_account": "[ 410201] Domestic Business Travel",
+      "amount": "400,000",
+      "total_amount": "400,000",
+      "control_no": "25001012",
+      "description": "Budget transfer for Domestic travel request to 2025FABMB conference",
+      "doc_id": "272821",
+      "doc_no": "ARL-250402-05",
+      "writer": "Sol Lee",
+      "date": "2025-04-02",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Sol Lee (00493)",
+      "draft_date": "2025-03-24",
+      "subject": "Budget transfer_Peptoide project",
+      "transfer_type": "Transfer",
+      "account_no": "FS2226-0001",
+      "project_title": "2022 Peptoide FFS_Soojin Jang (Direct)",
+      "project_period": "2022-12-01 ~ 2027-08-31",
+      "project_start": "2022-12-01",
+      "project_end": "2027-08-31",
+      "transfer_items": [
+        {
+          "source": "[ 410703] Reagent & Supplies",
+          "target": "[ 412103] Overtime Meals",
+          "amount": "300,000"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410703] Reagent & Supplies",
+      "target_account": "[ 412103] Overtime Meals",
+      "amount": "300,000",
+      "total_amount": "300,000",
+      "control_no": "25000885",
+      "description": "Budget transfer request from 410703 to 412103 account to do overtime work for Peptoide project.",
+      "doc_id": "272361",
+      "doc_no": "ARL-250325-01",
+      "writer": "Sol Lee",
+      "date": "2025-03-24",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Hyun-Jung Lee (00383)",
+      "draft_date": "2025-03-07",
+      "subject": "Budget transfer request",
+      "transfer_type": "Transfer",
+      "account_no": "NN2508-0002",
+      "project_title": "2025 Bio-medical research program (조선대 위탁과제)_3rd_Soojin Jang_이월금_비목간예산변경불가_단계종료",
+      "project_period": "2025-01-01 ~ 2025-12-31",
+      "project_start": "2025-01-01",
+      "project_end": "2025-12-31",
+      "transfer_items": [
+        {
+          "source": "[ 410318] IT Software (IT Subscription)",
+          "target": "[ 410705] Assay & Test",
+          "amount": "26,400"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410318] IT Software (IT Subscription)",
+      "target_account": "[ 410705] Assay & Test",
+      "amount": "26,400",
+      "total_amount": "26,400",
+      "control_no": "25000668",
+      "description": "Budget to be used for Assay and Test",
+      "doc_id": "271683",
+      "doc_no": "ARL-250307-12",
+      "writer": "Hyun-Jung Lee",
+      "date": "2025-03-07",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Hyungjun Kim (00282)",
+      "draft_date": "2025-03-05",
+      "subject": "Participating in conferences, Domestic business travel to IT software (IT subscription)",
+      "transfer_type": "Transfer",
+      "account_no": "MSIT25-0032",
+      "project_title": "2025 MSIT - ARL",
+      "project_period": "2025-01-01 ~ 2025-12-31",
+      "project_start": "2025-01-01",
+      "project_end": "2025-12-31",
+      "transfer_items": [
+        {
+          "source": "[ 410306] Participating in Conferences",
+          "target": "[ 410318] IT Software (IT Subscription)",
+          "amount": "500,000"
+        },
+        {
+          "source": "[ 410201] Domestic Business Travel",
+          "target": "[ 410318] IT Software (IT Subscription)",
+          "amount": "100,000"
+        }
+      ],
+      "transfer_item_count": 2,
+      "total_amount": "600,000",
+      "control_no": "25000620",
+      "description": "Participating in conferences, Domestic business travel to IT software (IT subscription)\nIT software subscription for data analysis, management, visualization.",
+      "doc_id": "271546",
+      "doc_no": "ARL-250305-05",
+      "writer": "Hyungjun Kim",
+      "date": "2025-03-05",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Hyungjun Kim (00282)",
+      "draft_date": "2025-03-05",
+      "subject": "Reagent and supplies to IT software",
+      "transfer_type": "Transfer",
+      "account_no": "FS2214-0001",
+      "project_title": "2022 GARDP FFS_Soojin Jang (ARL)",
+      "project_period": "2022-01-01 ~ 2028-08-18",
+      "project_start": "2022-01-01",
+      "project_end": "2028-08-18",
+      "transfer_items": [
+        {
+          "source": "[ 410703] Reagent & Supplies",
+          "target": "[ 410318] IT Software (IT Subscription)",
+          "amount": "1,000,000"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410703] Reagent & Supplies",
+      "target_account": "[ 410318] IT Software (IT Subscription)",
+      "amount": "1,000,000",
+      "total_amount": "1,000,000",
+      "control_no": "25000623",
+      "description": "Reagent and supplies to IT software (IT subscription)\n\nIT software subscrption for data visualization, data analysis",
+      "doc_id": "271548",
+      "doc_no": "ARL-250305-04",
+      "writer": "Hyungjun Kim",
+      "date": "2025-03-05",
+      "source": "groupapproved"
+    },
+    {
+      "drafter_info": "Antibacterial Resistance Lab - Team Member - Sol Lee (00493)",
+      "draft_date": "2025-03-04",
+      "subject": "Budget transfer_GARDP project",
+      "transfer_type": "Transfer",
+      "account_no": "FS2214-0001",
+      "project_title": "2022 GARDP FFS_Soojin Jang (ARL)",
+      "project_period": "2022-01-01 ~ 2028-08-18",
+      "project_start": "2022-01-01",
+      "project_end": "2028-08-18",
+      "transfer_items": [
+        {
+          "source": "[ 410703] Reagent & Supplies",
+          "target": "[ 410306] Participating in Conferences",
+          "amount": "330,000"
+        }
+      ],
+      "transfer_item_count": 1,
+      "source_account": "[ 410703] Reagent & Supplies",
+      "target_account": "[ 410306] Participating in Conferences",
+      "amount": "330,000",
+      "total_amount": "330,000",
+      "control_no": "25000592",
+      "description": "Budget transfer from 410703 to 410306 to participate 2025 FAOBMB international conference on May in Busan.",
+      "doc_id": "271464",
+      "doc_no": "ARL-250305-01",
+      "writer": "Sol Lee",
+      "date": "2025-03-04",
+      "source": "groupapproved"
+    }
+  ]
+}

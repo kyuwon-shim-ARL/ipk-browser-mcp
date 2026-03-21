@@ -1,0 +1,2885 @@
+{
+  "total_documents": 108,
+  "doc_ids": [
+    "288555",
+    "285755",
+    "285752",
+    "283452",
+    "282852",
+    "280911",
+    "277276",
+    "276213",
+    "290549",
+    "290742",
+    "290444",
+    "290240",
+    "290229",
+    "290304",
+    "289216",
+    "287815",
+    "287804",
+    "287596",
+    "286647",
+    "286086",
+    "285624",
+    "285788",
+    "285480",
+    "285248",
+    "285190",
+    "284942",
+    "284943",
+    "284944",
+    "284616",
+    "284711",
+    "284517",
+    "283777",
+    "284297",
+    "283763",
+    "283585",
+    "283140",
+    "283491",
+    "283461",
+    "283459",
+    "283242",
+    "282973",
+    "282972",
+    "282956",
+    "282946",
+    "282898",
+    "282854",
+    "282792",
+    "282805",
+    "282676",
+    "282603",
+    "282506",
+    "281587",
+    "280971",
+    "280691",
+    "280679",
+    "280355",
+    "280629",
+    "279792",
+    "279746",
+    "279745",
+    "279876",
+    "279541",
+    "279500",
+    "279520",
+    "278867",
+    "278742",
+    "277405",
+    "277259",
+    "277253",
+    "276939",
+    "276888",
+    "276580",
+    "276278",
+    "276264",
+    "276179",
+    "276186",
+    "276184",
+    "276191",
+    "276199",
+    "276201",
+    "276175",
+    "276172",
+    "276084",
+    "275841",
+    "276050",
+    "275969",
+    "275793",
+    "275932",
+    "275914",
+    "275583",
+    "275575",
+    "275248",
+    "275247",
+    "275098",
+    "274920",
+    "274690",
+    "274693",
+    "274695",
+    "274571",
+    "274297",
+    "274244",
+    "273559",
+    "273008",
+    "272820",
+    "272772",
+    "272746",
+    "272648",
+    "271562"
+  ],
+  "fields": {
+    "apporve_cc": {
+      "presence_rate": 1.0,
+      "unique_count": 1,
+      "all_values": [
+        ""
+      ],
+      "pattern": "FIXED",
+      "fixed_value": ""
+    },
+    "close_date": {
+      "presence_rate": 1.0,
+      "unique_count": 72,
+      "all_values": [
+        "2025-07-14",
+        "2025-10-27",
+        "2025-05-27",
+        "2025-08-26",
+        "2025-09-15",
+        "2025-10-24",
+        "2026-03-25",
+        "2025-11-28",
+        "2025-12-11",
+        "2025-12-12",
+        "2025-09-24",
+        "2025-06-11",
+        "2025-10-28",
+        "2025-06-03",
+        "2025-09-09",
+        "2026-01-13",
+        "2025-08-13",
+        "2025-12-03",
+        "2025-05-22",
+        "2025-03-12",
+        "2025-12-08",
+        "2026-03-19",
+        "2026-03-20",
+        "2025-11-03",
+        "2026-01-16",
+        "2025-11-07",
+        "2025-12-10",
+        "2025-10-31",
+        "2025-04-09",
+        "2025-04-08",
+        "2025-05-30",
+        "2025-10-29",
+        "2025-09-01",
+        "2025-06-30",
+        "2025-12-04",
+        "2025-09-19",
+        "2025-06-23",
+        "2025-04-14",
+        "2025-10-23",
+        "2025-12-24",
+        "2026-02-16",
+        "2025-12-17",
+        "2025-11-19",
+        "2025-06-20",
+        "2025-10-21",
+        "2025-09-02",
+        "2025-05-21",
+        "2025-09-16",
+        "2025-05-14",
+        "2025-07-07",
+        "2025-07-16",
+        "2026-02-03",
+        "2025-06-18",
+        "2026-03-17",
+        "2025-11-26",
+        "2025-06-16",
+        "2025-10-01",
+        "2025-05-15",
+        "2025-11-06",
+        "2026-03-16",
+        "2025-11-21",
+        "2025-11-10",
+        "2025-06-19",
+        "2025-06-17",
+        "2025-04-04",
+        "2025-11-24",
+        "2025-11-11",
+        "2025-08-11",
+        "2025-11-05",
+        "2025-04-25",
+        "2025-08-27",
+        "2025-06-24"
+      ],
+      "pattern": "VARIABLE"
+    },
+    "hidden:approve_type": {
+      "presence_rate": 1.0,
+      "unique_count": 1,
+      "all_values": [
+        "AppFrm-023"
+      ],
+      "pattern": "FIXED",
+      "fixed_value": "AppFrm-023"
+    },
+    "hidden:attachment": {
+      "presence_rate": 1.0,
+      "unique_count": 1,
+      "all_values": [
+        ""
+      ],
+      "pattern": "FIXED",
+      "fixed_value": ""
+    },
+    "hidden:contents": {
+      "presence_rate": 1.0,
+      "unique_count": 1,
+      "all_values": [
+        ""
+      ],
+      "pattern": "FIXED",
+      "fixed_value": ""
+    },
+    "hidden:d_doc_number": {
+      "presence_rate": 1.0,
+      "unique_count": 108,
+      "all_values": [
+        "ARL-260313-04",
+        "ARL-251022-03",
+        "ARL-250618-09",
+        "ARL-251023-03",
+        "ARL-251218-03",
+        "ARL-251030-10",
+        "ARL-250618-05",
+        "ARL-260310-04",
+        "ARL-250825-13",
+        "ARL-251021-02",
+        "ARL-251124-15",
+        "ARL-251208-03",
+        "ARL-250612-02",
+        "ARL-251103-02",
+        "ARL-250911-01",
+        "ARL-250708-09",
+        "ARL-250821-07",
+        "ARL-251124-19",
+        "ARL-251113-09",
+        "ARL-250811-14",
+        "ARL-251031-05",
+        "ARL-250820-05",
+        "ARL-250703-04",
+        "ARL-251022-13",
+        "ARL-250918-07",
+        "ARL-250918-12",
+        "ARL-251201-23",
+        "ARL-251215-09",
+        "ARL-250618-17",
+        "ARL-250616-09",
+        "ARL-250516-05",
+        "ARL-260319-06",
+        "ARL-250609-07",
+        "ARL-251022-04",
+        "ARL-251103-04",
+        "ARL-260310-02",
+        "ARL-251030-06",
+        "ARL-250613-03",
+        "ARL-250421-10",
+        "ARL-250925-07",
+        "ARL-251119-05",
+        "ARL-250805-06",
+        "ARL-250529-02",
+        "ARL-250529-03",
+        "ARL-250618-14",
+        "ARL-251106-19",
+        "ARL-251022-10",
+        "ARL-251113-05",
+        "ARL-251016-10",
+        "ARL-250618-06",
+        "ARL-250403-01",
+        "ARL-250509-09",
+        "ARL-250910-02",
+        "ARL-251017-03",
+        "ARL-250616-11",
+        "ARL-250827-09",
+        "ARL-250708-07",
+        "ARL-251119-03",
+        "ARL-250701-01",
+        "ARL-250402-02",
+        "ARL-260319-03",
+        "ARL-251022-12",
+        "ARL-251118-03",
+        "ARL-250529-04",
+        "ARL-260106-05",
+        "ARL-251029-04",
+        "ARL-250307-06",
+        "ARL-260310-01",
+        "ARL-250402-01",
+        "ARL-251031-04",
+        "ARL-250618-08",
+        "ARL-251023-01",
+        "ARL-250918-09",
+        "ARL-250708-10",
+        "ARL-250519-12",
+        "ARL-251215-03",
+        "ARL-251126-01",
+        "ARL-250616-13",
+        "ARL-250618-04",
+        "ARL-250827-11",
+        "ARL-251205-07",
+        "ARL-250618-11",
+        "ARL-250618-07",
+        "ARL-260114-06",
+        "ARL-251017-02",
+        "ARL-250612-03",
+        "ARL-251021-08",
+        "ARL-250624-02",
+        "ARL-251205-09",
+        "ARL-260127-07",
+        "ARL-250521-04",
+        "ARL-250331-12",
+        "ARL-260114-05",
+        "ARL-251203-14",
+        "ARL-250618-15",
+        "ARL-250827-10",
+        "ARL-250911-05",
+        "ARL-250509-05",
+        "ARL-250612-10",
+        "ARL-250519-11",
+        "ARL-260219-09",
+        "ARL-250711-04",
+        "ARL-250519-10",
+        "ARL-250414-05",
+        "ARL-250604-07",
+        "ARL-250618-10",
+        "ARL-251128-03",
+        "ARL-250827-08"
+      ],
+      "pattern": "UNIQUE_PER_DOC"
+    },
+    "hidden:del_no": {
+      "presence_rate": 1.0,
+      "unique_count": 1,
+      "all_values": [
+        ""
+      ],
+      "pattern": "FIXED",
+      "fixed_value": ""
+    },
+    "hidden:doc_form": {
+      "presence_rate": 1.0,
+      "unique_count": 1,
+      "all_values": [
+        ""
+      ],
+      "pattern": "FIXED",
+      "fixed_value": ""
+    },
+    "hidden:doc_id": {
+      "presence_rate": 1.0,
+      "unique_count": 108,
+      "all_values": [
+        "285755",
+        "275969",
+        "280911",
+        "275575",
+        "276580",
+        "278867",
+        "274244",
+        "276175",
+        "282854",
+        "283459",
+        "284944",
+        "282805",
+        "276264",
+        "282946",
+        "286647",
+        "277405",
+        "278742",
+        "285480",
+        "282956",
+        "280971",
+        "283491",
+        "276199",
+        "279876",
+        "284297",
+        "276888",
+        "276050",
+        "290742",
+        "285624",
+        "279541",
+        "275914",
+        "279792",
+        "280629",
+        "279500",
+        "274920",
+        "276184",
+        "282792",
+        "283242",
+        "283140",
+        "284517",
+        "280355",
+        "279520",
+        "282852",
+        "283452",
+        "285788",
+        "272648",
+        "276186",
+        "271562",
+        "273008",
+        "276213",
+        "277276",
+        "283763",
+        "277259",
+        "290304",
+        "274693",
+        "272772",
+        "290549",
+        "275247",
+        "283461",
+        "275932",
+        "282676",
+        "276201",
+        "276191",
+        "280691",
+        "275583",
+        "275248",
+        "275098",
+        "282973",
+        "276172",
+        "284616",
+        "272746",
+        "282898",
+        "274571",
+        "280679",
+        "290444",
+        "287596",
+        "276179",
+        "277253",
+        "287815",
+        "285752",
+        "283777",
+        "285248",
+        "276939",
+        "281587",
+        "284942",
+        "274297",
+        "272820",
+        "282506",
+        "283585",
+        "290240",
+        "279745",
+        "286086",
+        "274695",
+        "282603",
+        "288555",
+        "285190",
+        "275793",
+        "282972",
+        "289216",
+        "287804",
+        "284711",
+        "279746",
+        "276278",
+        "284943",
+        "274690",
+        "275841",
+        "290229",
+        "273559",
+        "276084"
+      ],
+      "pattern": "UNIQUE_PER_DOC"
+    },
+    "hidden:e_date": {
+      "presence_rate": 1.0,
+      "unique_count": 1,
+      "all_values": [
+        ""
+      ],
+      "pattern": "FIXED",
+      "fixed_value": ""
+    },
+    "hidden:keyword": {
+      "presence_rate": 1.0,
+      "unique_count": 1,
+      "all_values": [
+        ""
+      ],
+      "pattern": "FIXED",
+      "fixed_value": ""
+    },
+    "hidden:mode": {
+      "presence_rate": 1.0,
+      "unique_count": 1,
+      "all_values": [
+        ""
+      ],
+      "pattern": "FIXED",
+      "fixed_value": ""
+    },
+    "hidden:order": {
+      "presence_rate": 1.0,
+      "unique_count": 1,
+      "all_values": [
+        ""
+      ],
+      "pattern": "FIXED",
+      "fixed_value": ""
+    },
+    "hidden:org_form": {
+      "presence_rate": 1.0,
+      "unique_count": 1,
+      "all_values": [
+        ""
+      ],
+      "pattern": "FIXED",
+      "fixed_value": ""
+    },
+    "hidden:review_menu": {
+      "presence_rate": 1.0,
+      "unique_count": 1,
+      "all_values": [
+        ""
+      ],
+      "pattern": "FIXED",
+      "fixed_value": ""
+    },
+    "hidden:s_date": {
+      "presence_rate": 1.0,
+      "unique_count": 1,
+      "all_values": [
+        ""
+      ],
+      "pattern": "FIXED",
+      "fixed_value": ""
+    },
+    "hidden:search_key": {
+      "presence_rate": 1.0,
+      "unique_count": 1,
+      "all_values": [
+        ""
+      ],
+      "pattern": "FIXED",
+      "fixed_value": ""
+    },
+    "hidden:start_page": {
+      "presence_rate": 1.0,
+      "unique_count": 1,
+      "all_values": [
+        ""
+      ],
+      "pattern": "FIXED",
+      "fixed_value": ""
+    },
+    "hidden:title": {
+      "presence_rate": 1.0,
+      "unique_count": 1,
+      "all_values": [
+        ""
+      ],
+      "pattern": "FIXED",
+      "fixed_value": ""
+    },
+    "hidden:type": {
+      "presence_rate": 1.0,
+      "unique_count": 1,
+      "all_values": [
+        ""
+      ],
+      "pattern": "FIXED",
+      "fixed_value": ""
+    },
+    "hidden:writer": {
+      "presence_rate": 1.0,
+      "unique_count": 1,
+      "all_values": [
+        ""
+      ],
+      "pattern": "FIXED",
+      "fixed_value": ""
+    },
+    "select:retention": {
+      "presence_rate": 1.0,
+      "unique_count": 1,
+      "all_values": [
+        "{\"value\": \"5\", \"text\": \"5 years\"}"
+      ],
+      "pattern": "FIXED",
+      "fixed_value": "{\"value\": \"5\", \"text\": \"5 years\"}"
+    }
+  },
+  "labeled_fields": {
+    "Welcome, Kyuwon Shim": {
+      "unique_count": 1,
+      "sample_values": [
+        "Approved Cc(New) 0 | Approval 0 | Approval(Proxy) 0 | Finished 125 | Progress 1"
+      ],
+      "pattern": "FIXED"
+    },
+    "( 1 )": {
+      "unique_count": 2,
+      "sample_values": [
+        "( 2 )",
+        "( 3 )"
+      ],
+      "pattern": "LOW_CARDINALITY"
+    },
+    "A Person in Charge": {
+      "unique_count": 2,
+      "sample_values": [
+        "CEO",
+        "Team Head (R)"
+      ],
+      "pattern": "LOW_CARDINALITY"
+    },
+    "Kyuwon Shim": {
+      "unique_count": 2,
+      "sample_values": [
+        "Hyun-Jung Lee",
+        "Soojin Jang"
+      ],
+      "pattern": "LOW_CARDINALITY"
+    },
+    "2026-01-27": {
+      "unique_count": 1,
+      "sample_values": [
+        "2026-01-27"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 3 )\nBudget Holder\n\n[By Proxy]\n\nSoojin Jang\n2026-01-27": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 3 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "( 5 )": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 6 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "Budget Planning & Finance": {
+      "unique_count": 1,
+      "sample_values": [
+        "Budget Planning & Finance"
+      ],
+      "pattern": "FIXED"
+    },
+    "Jiyoung Kim": {
+      "unique_count": 1,
+      "sample_values": [
+        "Sang-Sun Shin"
+      ],
+      "pattern": "FIXED"
+    },
+    "Antibacterial Resistance Lab - Team Member - Kyuwon Shim (00565)": {
+      "unique_count": 7,
+      "sample_values": [
+        "2025-06-16",
+        "2025-10-21",
+        "2025-10-29",
+        "2026-01-27",
+        "2025-12-04"
+      ],
+      "pattern": "VARIABLE"
+    },
+    "-Own Car": {
+      "unique_count": 38,
+      "sample_values": [
+        "1663",
+        "1686",
+        "1662",
+        "1661",
+        "1656"
+      ],
+      "pattern": "VARIABLE"
+    },
+    "Daily Expense": {
+      "unique_count": 3,
+      "sample_values": [
+        "30000",
+        "15000",
+        "20000"
+      ],
+      "pattern": "LOW_CARDINALITY"
+    },
+    "Accommodation": {
+      "unique_count": 3,
+      "sample_values": [
+        "0",
+        "150000",
+        "100000"
+      ],
+      "pattern": "LOW_CARDINALITY"
+    },
+    "Food Expense": {
+      "unique_count": 2,
+      "sample_values": [
+        "0",
+        "27000"
+      ],
+      "pattern": "LOW_CARDINALITY"
+    },
+    "Miscellaneous(e.g visa fees)": {
+      "unique_count": 1,
+      "sample_values": [
+        "0"
+      ],
+      "pattern": "FIXED"
+    },
+    "Additional Daily": {
+      "unique_count": 1,
+      "sample_values": [
+        "0"
+      ],
+      "pattern": "FIXED"
+    },
+    "Total": {
+      "unique_count": 15,
+      "sample_values": [
+        "0",
+        "213,726",
+        "134,400",
+        "142,400",
+        "64,200"
+      ],
+      "pattern": "VARIABLE"
+    },
+    "Payment Daily Expense  [acceptance Yes]": {
+      "unique_count": 1,
+      "sample_values": [
+        "0"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-12-05": {
+      "unique_count": 2,
+      "sample_values": [
+        "2025-12-05",
+        "2025-12-08"
+      ],
+      "pattern": "LOW_CARDINALITY"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 3 )\nBudget Holder\n\nSoojin Jang\n2025-12-05": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 3 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "Suhyun Park": {
+      "unique_count": 1,
+      "sample_values": [
+        "Sang-Sun Shin"
+      ],
+      "pattern": "FIXED"
+    },
+    "1st Payment(Daily, Food)": {
+      "unique_count": 18,
+      "sample_values": [
+        "0",
+        "219,000",
+        "9,000",
+        "144,000",
+        "162,000"
+      ],
+      "pattern": "VARIABLE"
+    },
+    "2025-12-04": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-12-05"
+      ],
+      "pattern": "FIXED"
+    },
+    "Seoul station, Gangnam station, Department store, University etc.": {
+      "unique_count": 1,
+      "sample_values": [
+        "Other Public Transportation"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-10-31": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-10-31"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 3 )\nBudget Holder\n\nSoojin Jang\n2025-10-31": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 3 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-11-03": {
+      "unique_count": 2,
+      "sample_values": [
+        "2025-11-06",
+        "2025-11-03"
+      ],
+      "pattern": "LOW_CARDINALITY"
+    },
+    "IBS in Daejeon (HFSPO/HFSP Master Class)": {
+      "unique_count": 1,
+      "sample_values": [
+        "Other Public Transportation"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-10-22": {
+      "unique_count": 2,
+      "sample_values": [
+        "2025-10-22",
+        "2025-10-23"
+      ],
+      "pattern": "LOW_CARDINALITY"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 3 )\nBudget Holder\n\nSoojin Jang\n2025-10-22": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 3 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "Suwon Convention Center (International meeting of the Microbiolotical Society of Korea)": {
+      "unique_count": 1,
+      "sample_values": [
+        "Other Public Transportation"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-09-12": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-09-15"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 3 )\nBudget Holder\n\nSoojin Jang\n2025-09-15": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 3 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-09-15": {
+      "unique_count": 2,
+      "sample_values": [
+        "2025-09-16",
+        "2025-09-18"
+      ],
+      "pattern": "LOW_CARDINALITY"
+    },
+    "2025-07-07": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-07-08"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 3 )\nBudget Holder\n\nSoojin Jang\n2025-07-08": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 3 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-07-08": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-07-08"
+      ],
+      "pattern": "FIXED"
+    },
+    "Four Points by Sheraton Seoul, Guro / 2025 Oxford Nanopore User Group Meeting": {
+      "unique_count": 1,
+      "sample_values": [
+        "Other Public Transportation"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-06-16": {
+      "unique_count": 2,
+      "sample_values": [
+        "2025-06-16",
+        "2025-06-17"
+      ],
+      "pattern": "LOW_CARDINALITY"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 3 )\nBudget Holder\n\nSoojin Jang\n2025-06-17": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 3 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-06-17": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-06-18"
+      ],
+      "pattern": "FIXED"
+    },
+    "Soojin Jang": {
+      "unique_count": 2,
+      "sample_values": [
+        "Jaeyong Hur",
+        "Sung Key Jang"
+      ],
+      "pattern": "LOW_CARDINALITY"
+    },
+    "2026-03-13": {
+      "unique_count": 1,
+      "sample_values": [
+        "2026-03-19"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 2 )\nBudget Holder\n\nSoojin Jang\n2026-03-13": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 2 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "( 4 )": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 5 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "Antibacterial Resistance Lab - Team Head (R) - Soojin Jang (00307)": {
+      "unique_count": 32,
+      "sample_values": [
+        "2025-08-19",
+        "2025-05-27",
+        "2025-06-04",
+        "2025-10-24",
+        "2025-11-17"
+      ],
+      "pattern": "VARIABLE"
+    },
+    "Animal and Plant Quarantine Agency": {
+      "unique_count": 1,
+      "sample_values": [
+        "Other Public Transportation"
+      ],
+      "pattern": "FIXED"
+    },
+    "Guinam Wee": {
+      "unique_count": 1,
+      "sample_values": [
+        "Soojin Jang"
+      ],
+      "pattern": "FIXED"
+    },
+    "2026-03-18": {
+      "unique_count": 1,
+      "sample_values": [
+        "2026-03-19"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 3 )\nBudget Holder\n\nSoojin Jang\n2026-03-19": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 3 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "2026-03-19": {
+      "unique_count": 1,
+      "sample_values": [
+        "2026-03-19"
+      ],
+      "pattern": "FIXED"
+    },
+    "Antibacterial Resistance Lab - Team Member - Guinam Wee (00528)": {
+      "unique_count": 11,
+      "sample_values": [
+        "2026-03-18",
+        "2025-06-16",
+        "2025-05-08",
+        "2025-04-01",
+        "2025-10-29"
+      ],
+      "pattern": "VARIABLE"
+    },
+    "Hyun-Jung Lee": {
+      "unique_count": 1,
+      "sample_values": [
+        "Soojin Jang"
+      ],
+      "pattern": "FIXED"
+    },
+    "2026-03-12": {
+      "unique_count": 1,
+      "sample_values": [
+        "2026-03-13"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 3 )\nBudget Holder\n\nSoojin Jang\n2026-03-12": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 3 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "Antibacterial Resistance Lab - Team Member - Hyun-Jung Lee (00383)": {
+      "unique_count": 7,
+      "sample_values": [
+        "2025-06-16",
+        "2025-08-26",
+        "2025-10-21",
+        "2025-06-09",
+        "2025-06-11"
+      ],
+      "pattern": "VARIABLE"
+    },
+    "Transport Fee\t50000\nMiscellaneous(e.g honorarium)\t600000": {
+      "unique_count": 1,
+      "sample_values": [
+        "50000"
+      ],
+      "pattern": "FIXED"
+    },
+    "연구개발특구진흥재단/대전컨벤션센터(DCC)": {
+      "unique_count": 1,
+      "sample_values": [
+        "Own Vehicle"
+      ],
+      "pattern": "FIXED"
+    },
+    "Connor Joseph Wood": {
+      "unique_count": 1,
+      "sample_values": [
+        "Soojin Jang"
+      ],
+      "pattern": "FIXED"
+    },
+    "2026-03-09": {
+      "unique_count": 1,
+      "sample_values": [
+        "2026-03-09"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 2 )\nBudget Holder\n\nConnor Joseph Wood\n2026-03-09": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 2 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "2026-03-10": {
+      "unique_count": 1,
+      "sample_values": [
+        "2026-03-10"
+      ],
+      "pattern": "FIXED"
+    },
+    "Antibacterial Resistance Lab - Team Member - Connor Joseph Wood (00454)": {
+      "unique_count": 5,
+      "sample_values": [
+        "2025-11-26",
+        "2026-03-09",
+        "2025-06-16",
+        "2025-10-27",
+        "2025-03-28"
+      ],
+      "pattern": "VARIABLE"
+    },
+    "Suwon (Ajou Univ)": {
+      "unique_count": 1,
+      "sample_values": [
+        "Own Vehicle"
+      ],
+      "pattern": "FIXED"
+    },
+    "Minjeong Woo": {
+      "unique_count": 1,
+      "sample_values": [
+        "Soojin Jang"
+      ],
+      "pattern": "FIXED"
+    },
+    "Antibacterial Resistance Lab - Team Member - Minjeong Woo (00316)": {
+      "unique_count": 5,
+      "sample_values": [
+        "2026-03-09",
+        "2025-11-03",
+        "2025-11-27",
+        "2025-10-21",
+        "2025-06-17"
+      ],
+      "pattern": "VARIABLE"
+    },
+    "Ajou University": {
+      "unique_count": 1,
+      "sample_values": [
+        "Own Vehicle"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 2 )\nBudget Holder\n\nSoojin Jang\n2026-03-10": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 2 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "Ajou Univ.": {
+      "unique_count": 1,
+      "sample_values": [
+        "Own Vehicle"
+      ],
+      "pattern": "FIXED"
+    },
+    "2026-02-09": {
+      "unique_count": 1,
+      "sample_values": [
+        "2026-02-10"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 2 )\nBudget Holder\n\nSoojin Jang\n2026-02-09": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 2 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "2026-02-10": {
+      "unique_count": 1,
+      "sample_values": [
+        "2026-02-19"
+      ],
+      "pattern": "FIXED"
+    },
+    "Seoul": {
+      "unique_count": 2,
+      "sample_values": [
+        "Own Vehicle",
+        "Other Public Transportation"
+      ],
+      "pattern": "LOW_CARDINALITY"
+    },
+    "Hyungjun Kim": {
+      "unique_count": 1,
+      "sample_values": [
+        "Soojin Jang"
+      ],
+      "pattern": "FIXED"
+    },
+    "2026-01-09": {
+      "unique_count": 1,
+      "sample_values": [
+        "2026-01-14"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 3 )\nBudget Holder\n\nSoojin Jang\n2026-01-09": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 3 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "Antibacterial Resistance Lab - Team Member - Hyungjun Kim (00282)": {
+      "unique_count": 4,
+      "sample_values": [
+        "2025-06-16",
+        "2025-12-05",
+        "2025-10-22",
+        "2026-01-09"
+      ],
+      "pattern": "VARIABLE"
+    },
+    "Yongpyong resort, 2026 KMB Winter Symposium": {
+      "unique_count": 1,
+      "sample_values": [
+        "Own Vehicle"
+      ],
+      "pattern": "FIXED"
+    },
+    "YunMi LEE": {
+      "unique_count": 1,
+      "sample_values": [
+        "Soojin Jang"
+      ],
+      "pattern": "FIXED"
+    },
+    "Antibacterial Resistance Lab - Team Member - YunMi LEE (00227)": {
+      "unique_count": 5,
+      "sample_values": [
+        "2025-11-04",
+        "2026-01-09",
+        "2025-10-14",
+        "2025-06-17",
+        "2025-06-09"
+      ],
+      "pattern": "VARIABLE"
+    },
+    "2026년 한국미생명공학회": {
+      "unique_count": 1,
+      "sample_values": [
+        "Own Vehicle"
+      ],
+      "pattern": "FIXED"
+    },
+    "2026-01-06": {
+      "unique_count": 1,
+      "sample_values": [
+        "2026-01-06"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 2 )\nBudget Holder\n\nSoojin Jang\n2026-01-06": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 2 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "Yongpyung(KMB)": {
+      "unique_count": 1,
+      "sample_values": [
+        "Own Vehicle"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-12-17": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-12-17"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 2 )\nBudget Holder\n\nSoojin Jang\n2025-12-17": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 2 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-12-18": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-12-18"
+      ],
+      "pattern": "FIXED"
+    },
+    "Daejeon(KRICT)": {
+      "unique_count": 1,
+      "sample_values": [
+        "Own Vehicle"
+      ],
+      "pattern": "FIXED"
+    },
+    "Sunju Kim": {
+      "unique_count": 1,
+      "sample_values": [
+        "Soojin Jang"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-12-10": {
+      "unique_count": 2,
+      "sample_values": [
+        "2025-12-11",
+        "2025-12-15"
+      ],
+      "pattern": "LOW_CARDINALITY"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 3 )\nBudget Holder\n\nSoojin Jang\n2025-12-11": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 3 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-12-11": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-12-15"
+      ],
+      "pattern": "FIXED"
+    },
+    "Antibacterial Resistance Lab - Team Member - Sunju Kim (00564)": {
+      "unique_count": 3,
+      "sample_values": [
+        "2025-12-10",
+        "2025-09-15",
+        "2025-10-29"
+      ],
+      "pattern": "LOW_CARDINALITY"
+    },
+    "2025-12-09": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-12-10"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 3 )\nBudget Holder\n\nSoojin Jang\n2025-12-10": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 3 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "Seoul National Univ. (INFOBOSS/Science tech network)": {
+      "unique_count": 1,
+      "sample_values": [
+        "Other Public Transportation"
+      ],
+      "pattern": "FIXED"
+    },
+    "Vijayan Ramachandran": {
+      "unique_count": 1,
+      "sample_values": [
+        "Soojin Jang"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-12-01": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-12-01"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 3 )\nBudget Holder\n\nSoojin Jang\n2025-12-01": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 3 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-12-02": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-12-03"
+      ],
+      "pattern": "FIXED"
+    },
+    "Antibacterial Resistance Lab - Team Member - Vijayan Ramachandran (00568)": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-12-01"
+      ],
+      "pattern": "FIXED"
+    },
+    "Global Research Network Seoul(GRNS)": {
+      "unique_count": 1,
+      "sample_values": [
+        "Own Vehicle"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-11-27": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-12-01"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 2 )\nBudget Holder\n\nConnor Joseph Wood\n2025-11-28": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 2 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-11-26": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-11-27"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 2 )\nBudget Holder\n\nConnor Joseph Wood\n2025-11-26": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 2 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-11-28": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-11-28"
+      ],
+      "pattern": "FIXED"
+    },
+    "Suwon(Ajou Univ)": {
+      "unique_count": 1,
+      "sample_values": [
+        "Own Vehicle"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-11-21": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-11-23"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 2 )\nBudget Holder\n\nSoojin Jang\n2025-11-21": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 2 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "Hyeonju Moon": {
+      "unique_count": 1,
+      "sample_values": [
+        "Sang-Sun Shin"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-11-25": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-11-26"
+      ],
+      "pattern": "FIXED"
+    },
+    "Seoul(MasterMediTech)": {
+      "unique_count": 1,
+      "sample_values": [
+        "Own Vehicle"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-11-24": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-11-24"
+      ],
+      "pattern": "FIXED"
+    },
+    "Daejeon(KAIST)": {
+      "unique_count": 1,
+      "sample_values": [
+        "Own Vehicle"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-11-17": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-11-18"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 2 )\nBudget Holder\n\nSoojin Jang\n2025-11-17": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 2 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-11-18": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-11-19"
+      ],
+      "pattern": "FIXED"
+    },
+    "Daejeon(KRIBB)": {
+      "unique_count": 1,
+      "sample_values": [
+        "Own Vehicle"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-11-19": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-11-19"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 2 )\nBudget Holder\n\nSoojin Jang\n2025-11-19": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 2 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "Seoul(GRNS)": {
+      "unique_count": 1,
+      "sample_values": [
+        "Own Vehicle"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-11-14": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-11-17"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 2 )\nBudget Holder\n\nSoojin Jang\n2025-11-14": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 2 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "Seoul (KNIH)": {
+      "unique_count": 1,
+      "sample_values": [
+        "Own Vehicle"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-11-06": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-11-06"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 2 )\nBudget Holder\n\nInhee Choi\n2025-11-06": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 2 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-11-11": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-11-13"
+      ],
+      "pattern": "FIXED"
+    },
+    "Ajou university": {
+      "unique_count": 1,
+      "sample_values": [
+        "Own Vehicle"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-11-12": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-11-12"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 2 )\nBudget Holder\n\nSoojin Jang\n2025-11-12": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 2 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-11-13": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-11-13"
+      ],
+      "pattern": "FIXED"
+    },
+    "Seoul(KHIDI)": {
+      "unique_count": 1,
+      "sample_values": [
+        "Own Vehicle"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 2 )\nBudget Holder\n\nConnor Joseph Wood\n2025-11-03": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 2 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 2 )\nBudget Holder\n\nSoojin Jang\n2025-10-31": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 2 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "Daejeon": {
+      "unique_count": 1,
+      "sample_values": [
+        "Own Vehicle"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-10-24": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-10-27"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 2 )\nBudget Holder\n\nSoojin Jang\n2025-10-24": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 2 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "Daejeon(NRF)": {
+      "unique_count": 1,
+      "sample_values": [
+        "Own Vehicle"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-10-30": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-10-30"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 3 )\nBudget Holder\n\nSoojin Jang\n2025-10-30": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 3 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "Accommodation\tsupported by KIOST\nMiscellaneous(e.g honorarium)\tconsultation fee (300,000 won)": {
+      "unique_count": 1,
+      "sample_values": [
+        "supported by KIOST"
+      ],
+      "pattern": "FIXED"
+    },
+    "KIOST(한국해양과학기술원)/세미나": {
+      "unique_count": 1,
+      "sample_values": [
+        "Other Public Transportation"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-10-29": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-10-29"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 3 )\nBudget Holder\n\nSoojin Jang\n2025-10-29": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 3 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "Sungkyunkwan University(IAMRT-SKKU)": {
+      "unique_count": 1,
+      "sample_values": [
+        "Other Public Transportation"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-10-27": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-10-27"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 2 )\nBudget Holder\n\nConnor Joseph Wood\n2025-10-27": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 2 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-10-28": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-10-29"
+      ],
+      "pattern": "FIXED"
+    },
+    "KATRD International Conference 2025": {
+      "unique_count": 1,
+      "sample_values": [
+        "Own Vehicle"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 2 )\nBudget Holder\n\nSoojin Jang\n2025-10-22": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 2 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-10-23": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-10-23"
+      ],
+      "pattern": "FIXED"
+    },
+    "Suwon(대한산업안전협회)": {
+      "unique_count": 1,
+      "sample_values": [
+        "Own Vehicle"
+      ],
+      "pattern": "FIXED"
+    },
+    "Seoul (KATRD)": {
+      "unique_count": 1,
+      "sample_values": [
+        "Own Vehicle"
+      ],
+      "pattern": "FIXED"
+    },
+    "Chuncheon(SKAI)": {
+      "unique_count": 1,
+      "sample_values": [
+        "Own Vehicle"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025 MSK international symposium": {
+      "unique_count": 1,
+      "sample_values": [
+        "Own Vehicle"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-10-21": {
+      "unique_count": 2,
+      "sample_values": [
+        "2025-10-21",
+        "2025-10-22"
+      ],
+      "pattern": "LOW_CARDINALITY"
+    },
+    "IAMRT, Sungkyunkwan University": {
+      "unique_count": 1,
+      "sample_values": [
+        "Own Vehicle"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 2 )\nBudget Holder\n\nConnor Joseph Wood\n2025-10-21": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 2 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "KATRDIC 2025": {
+      "unique_count": 1,
+      "sample_values": [
+        "Other Public Transportation"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-10-20": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-10-20"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 2 )\nBudget Holder\n\nSoojin Jang\n2025-10-20": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 2 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "Suwon (MSK)": {
+      "unique_count": 1,
+      "sample_values": [
+        "Own Vehicle"
+      ],
+      "pattern": "FIXED"
+    },
+    "Kyungbae Min": {
+      "unique_count": 1,
+      "sample_values": [
+        "Soojin Jang"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 2 )\nBudget Holder\n\nInhee Choi\n2025-10-20": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 2 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "Antibacterial Resistance Lab - Team Member - Kyungbae Min (00467)": {
+      "unique_count": 5,
+      "sample_values": [
+        "2025-06-16",
+        "2025-05-07",
+        "2025-09-02",
+        "2025-10-20",
+        "2025-09-09"
+      ],
+      "pattern": "VARIABLE"
+    },
+    "Suwon convention center, Suwon": {
+      "unique_count": 1,
+      "sample_values": [
+        "Other Public Transportation"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-10-17": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-10-17"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 2 )\nBudget Holder\n\nSoojin Jang\n2025-10-17": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 2 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "Daejeon(KPEC)": {
+      "unique_count": 1,
+      "sample_values": [
+        "Own Vehicle"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-10-16": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-10-16"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 3 )\nBudget Holder\n\nSoojin Jang\n2025-10-16": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 3 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-10-14": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-10-15"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 2 )\nBudget Holder\n\nInhee Choi\n2025-10-15": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 2 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "MSK 2025 한국미생물학회 국제학술대회": {
+      "unique_count": 1,
+      "sample_values": [
+        "Own Vehicle"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-09-24": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-09-24"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 2 )\nBudget Holder\n\nSoojin Jang\n2025-09-24": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 2 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-09-25": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-09-25"
+      ],
+      "pattern": "FIXED"
+    },
+    "Seoul (KRICT)": {
+      "unique_count": 1,
+      "sample_values": [
+        "Own Vehicle"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 3 )\nBudget Holder\n\nSoojin Jang\n2025-09-16": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 3 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-09-16": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-09-18"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-09-09": {
+      "unique_count": 3,
+      "sample_values": [
+        "2025-09-15",
+        "2025-09-09",
+        "2025-09-10"
+      ],
+      "pattern": "LOW_CARDINALITY"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 2 )\nBudget Holder\n\nInhee Choi\n2025-09-10": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 2 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "Pangyo Startup campus": {
+      "unique_count": 1,
+      "sample_values": [
+        "Other Public Transportation"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 3 )\nBudget Holder\n\nSoojin Jang\n2025-09-09": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 3 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-09-10": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-09-11"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-09-04": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-09-05"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 2 )\nBudget Holder\n\nInhee Choi\n2025-09-04": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 2 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-09-05": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-09-11"
+      ],
+      "pattern": "FIXED"
+    },
+    "changeup ground, POSTECH, Pohang": {
+      "unique_count": 1,
+      "sample_values": [
+        "Other Public Transportation"
+      ],
+      "pattern": "FIXED"
+    },
+    "Juchan Hwang": {
+      "unique_count": 1,
+      "sample_values": [
+        "Soojin Jang"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-09-08": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-09-09"
+      ],
+      "pattern": "FIXED"
+    },
+    "Antibacterial Resistance Lab - Team Member - Juchan Hwang (00456)": {
+      "unique_count": 7,
+      "sample_values": [
+        "2025-06-16",
+        "2025-04-01",
+        "2025-06-04",
+        "2025-06-30",
+        "2025-09-08"
+      ],
+      "pattern": "VARIABLE"
+    },
+    "Seoul station , hospital and kyung hee university": {
+      "unique_count": 1,
+      "sample_values": [
+        "Other Public Transportation"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-08-25": {
+      "unique_count": 2,
+      "sample_values": [
+        "2025-08-27",
+        "2025-08-26"
+      ],
+      "pattern": "LOW_CARDINALITY"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 2 )\nBudget Holder\n\nSoojin Jang\n2025-08-25": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 2 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "Korean Academy of Science and Technology": {
+      "unique_count": 1,
+      "sample_values": [
+        "Own Vehicle"
+      ],
+      "pattern": "FIXED"
+    },
+    "Seoul(FAO)": {
+      "unique_count": 1,
+      "sample_values": [
+        "Own Vehicle"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 2 )\nBudget Holder\n\nInhee Choi\n2025-08-25": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 2 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-08-26": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-08-27"
+      ],
+      "pattern": "FIXED"
+    },
+    "Pohang(POSTECH)": {
+      "unique_count": 1,
+      "sample_values": [
+        "Other Public Transportation"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 2 )\nBudget Holder\n\nInhee Choi\n2025-08-26": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 2 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-08-27": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-08-27"
+      ],
+      "pattern": "FIXED"
+    },
+    "MSK2025 한국미생물학회 국제학술대회": {
+      "unique_count": 1,
+      "sample_values": [
+        "Other Public Transportation"
+      ],
+      "pattern": "FIXED"
+    },
+    "Sol Lee": {
+      "unique_count": 1,
+      "sample_values": [
+        "Soojin Jang"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-08-20": {
+      "unique_count": 2,
+      "sample_values": [
+        "2025-08-20",
+        "2025-08-21"
+      ],
+      "pattern": "LOW_CARDINALITY"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 3 )\nBudget Holder\n\nSoojin Jang\n2025-08-21": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 3 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-08-21": {
+      "unique_count": 2,
+      "sample_values": [
+        "2025-08-21",
+        "2025-08-25"
+      ],
+      "pattern": "LOW_CARDINALITY"
+    },
+    "Antibacterial Resistance Lab - Team Member - Sol Lee (00493)": {
+      "unique_count": 3,
+      "sample_values": [
+        "2025-08-20",
+        "2025-06-16",
+        "2025-04-02"
+      ],
+      "pattern": "LOW_CARDINALITY"
+    },
+    "수원컨벤션센터": {
+      "unique_count": 1,
+      "sample_values": [
+        "Other Public Transportation"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-08-19": {
+      "unique_count": 2,
+      "sample_values": [
+        "2025-08-20",
+        "2025-08-19"
+      ],
+      "pattern": "LOW_CARDINALITY"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 2 )\nBudget Holder\n\nSoojin Jang\n2025-08-19": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 2 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "Jeju(APIS)": {
+      "unique_count": 1,
+      "sample_values": [
+        "Other Public Transportation"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-08-06": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-08-07"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 3 )\nBudget Holder\n\nSoojin Jang\n2025-08-07": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 3 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-08-07": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-08-11"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-08-04": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-08-05"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 2 )\nBudget Holder\n\nSoojin Jang\n2025-08-04": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 2 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-08-05": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-08-05"
+      ],
+      "pattern": "FIXED"
+    },
+    "Seoul(Sundo Soft inc.)": {
+      "unique_count": 1,
+      "sample_values": [
+        "Own Vehicle"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-07-09": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-07-09"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 2 )\nBudget Holder\n\nSoojin Jang\n2025-07-09": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 2 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-07-10": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-07-11"
+      ],
+      "pattern": "FIXED"
+    },
+    "포포인츠 바이 쉐라톤 서울 구로": {
+      "unique_count": 1,
+      "sample_values": [
+        "Other Public Transportation"
+      ],
+      "pattern": "FIXED"
+    },
+    "포포인츠 바이 쉐라톤(필코리아/2025 Oxford Nanopore User Group Meeting)": {
+      "unique_count": 1,
+      "sample_values": [
+        "Other Public Transportation"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-06-30": {
+      "unique_count": 2,
+      "sample_values": [
+        "2025-07-01",
+        "2025-06-30"
+      ],
+      "pattern": "LOW_CARDINALITY"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 3 )\nBudget Holder\n\nSoojin Jang\n2025-07-01": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 3 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-07-03": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-07-03"
+      ],
+      "pattern": "FIXED"
+    },
+    "Gangnam station": {
+      "unique_count": 1,
+      "sample_values": [
+        "Other Public Transportation"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 2 )\nBudget Holder\n\nSoojin Jang\n2025-06-30": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 2 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-07-01": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-07-01"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-06-23": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-06-24"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 2 )\nBudget Holder\n\nSoojin Jang\n2025-06-23": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 2 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-06-24": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-06-24"
+      ],
+      "pattern": "FIXED"
+    },
+    "Busan(KMB)": {
+      "unique_count": 1,
+      "sample_values": [
+        "Own Vehicle"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 3 )\nBudget Holder\n\nSoojin Jang\n2025-06-18": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 3 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-06-18": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-06-18"
+      ],
+      "pattern": "FIXED"
+    },
+    "seoul": {
+      "unique_count": 1,
+      "sample_values": [
+        "Other Public Transportation"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 2 )\nBudget Holder\n\nInhee Choi\n2025-06-16": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 2 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025 KMB 52nd annual meeting and international symposium (KMB, 한국미생물생명공학회)": {
+      "unique_count": 1,
+      "sample_values": [
+        "Other Public Transportation"
+      ],
+      "pattern": "FIXED"
+    },
+    "Seoul bus stop & subway": {
+      "unique_count": 1,
+      "sample_values": [
+        "Other Public Transportation"
+      ],
+      "pattern": "FIXED"
+    },
+    "Seoul (MetaSUB)": {
+      "unique_count": 1,
+      "sample_values": [
+        "Other Public Transportation"
+      ],
+      "pattern": "FIXED"
+    },
+    "Seoul public transport system": {
+      "unique_count": 1,
+      "sample_values": [
+        "Other Public Transportation"
+      ],
+      "pattern": "FIXED"
+    },
+    "MetaSub Seoul": {
+      "unique_count": 1,
+      "sample_values": [
+        "Other Public Transportation"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-06-13": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-06-13"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 2 )\nBudget Holder\n\nSoojin Jang\n2025-06-13": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 2 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "Busan (감염병연구전략센터 KRICT)": {
+      "unique_count": 1,
+      "sample_values": [
+        "Other Public Transportation"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-06-11": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-06-12"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 2 )\nBudget Holder\n\nInhee Choi\n2025-06-11": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 2 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "Busan": {
+      "unique_count": 1,
+      "sample_values": [
+        "Own Vehicle"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 2 )\nBudget Holder\n\nJeong Keun Park\n2025-06-13": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 2 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "Daejeon(UST입학설명회)": {
+      "unique_count": 1,
+      "sample_values": [
+        "Own Vehicle"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-06-12": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-06-12"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 3 )\nBudget Holder\n\nSoojin Jang\n2025-06-12": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 3 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-06-09": {
+      "unique_count": 2,
+      "sample_values": [
+        "2025-06-09",
+        "2025-06-11"
+      ],
+      "pattern": "LOW_CARDINALITY"
+    },
+    "The Korean Society for Microbiology and Biotechnolongy/KMB 2025": {
+      "unique_count": 1,
+      "sample_values": [
+        "Own Vehicle"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 3 )\nBudget Holder\n\nSoojin Jang\n2025-06-11": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 3 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-06-04": {
+      "unique_count": 2,
+      "sample_values": [
+        "2025-06-04",
+        "2025-06-09"
+      ],
+      "pattern": "LOW_CARDINALITY"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 2 )\nBudget Holder\n\nInhee Choi\n2025-06-08": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 2 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 3 )\nBudget Holder\n\nSoojin Jang\n2025-06-04": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 3 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "Busan bexco": {
+      "unique_count": 1,
+      "sample_values": [
+        "Other Public Transportation"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-05-27": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-05-28"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 2 )\nBudget Holder\n\nSoojin Jang\n2025-05-27": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 2 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-05-29": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-05-29"
+      ],
+      "pattern": "FIXED"
+    },
+    "Seoul(Ehwa Womans Univ.)": {
+      "unique_count": 1,
+      "sample_values": [
+        "Own Vehicle"
+      ],
+      "pattern": "FIXED"
+    },
+    "Suwon(Aju University)": {
+      "unique_count": 1,
+      "sample_values": [
+        "Own Vehicle"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-05-23": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-05-24"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 2 )\nBudget Holder\n\nSoojin Jang\n2025-05-23": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 2 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-05-28": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-05-29"
+      ],
+      "pattern": "FIXED"
+    },
+    "Suwon (Aju Univ)": {
+      "unique_count": 1,
+      "sample_values": [
+        "Own Vehicle"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-05-20": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-05-21"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 2 )\nBudget Holder\n\nSoojin Jang\n2025-05-20": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 2 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-05-21": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-05-21"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-05-15": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-05-16"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 2 )\nBudget Holder\n\nSoojin Jang\n2025-05-15": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 2 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-05-19": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-05-19"
+      ],
+      "pattern": "FIXED"
+    },
+    "SNUBH": {
+      "unique_count": 1,
+      "sample_values": [
+        "Own Vehicle"
+      ],
+      "pattern": "FIXED"
+    },
+    "Seoul(KMB)": {
+      "unique_count": 1,
+      "sample_values": [
+        "Own Vehicle"
+      ],
+      "pattern": "FIXED"
+    },
+    "French Embassy": {
+      "unique_count": 1,
+      "sample_values": [
+        "Own Vehicle"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-05-14": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-05-14"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 2 )\nBudget Holder\n\nSoojin Jang\n2025-05-14": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 2 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "Seoul(ARPA-H project)": {
+      "unique_count": 1,
+      "sample_values": [
+        "Own Vehicle"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-05-08": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-05-09"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 3 )\nBudget Holder\n\nSoojin Jang\n2025-05-09": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 3 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-05-09": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-05-09"
+      ],
+      "pattern": "FIXED"
+    },
+    "한국미생물생명공학회( 2025 KMB Annual meeting & International symposium)": {
+      "unique_count": 1,
+      "sample_values": [
+        "Own Vehicle"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 2 )\nBudget Holder\n\nInhee Choi\n2025-05-08": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 2 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "31st FAOBMB Conference & 2025 KSBMB International Conference": {
+      "unique_count": 1,
+      "sample_values": [
+        "Other Public Transportation"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-04-18": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-04-21"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 2 )\nBudget Holder\n\nSoojin Jang\n2025-04-18": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 2 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-04-21": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-04-21"
+      ],
+      "pattern": "FIXED"
+    },
+    "Seoul(국립중앙의료원)": {
+      "unique_count": 1,
+      "sample_values": [
+        "Own Vehicle"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-04-07": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-04-07"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 2 )\nBudget Holder\n\nSoojin Jang\n2025-04-07": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 2 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-04-08": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-04-14"
+      ],
+      "pattern": "FIXED"
+    },
+    "Daejeon (LigaChem)": {
+      "unique_count": 1,
+      "sample_values": [
+        "Own Vehicle"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-04-02": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-04-02"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 3 )\nBudget Holder\n\nSoojin Jang\n2025-04-02": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 3 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-04-03": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-04-03"
+      ],
+      "pattern": "FIXED"
+    },
+    "Bexco (KSBMB & FAOBMB)": {
+      "unique_count": 1,
+      "sample_values": [
+        "Own Vehicle"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-04-01": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-04-02"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 3 )\nBudget Holder\n\nSoojin Jang\n2025-04-01": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 3 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-03-28": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-03-28"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 3 )\nBudget Holder\n\nSoojin Jang\n2025-03-28": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 3 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-03-31": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-03-31"
+      ],
+      "pattern": "FIXED"
+    },
+    "충무로 남산스퀘어빌딩 8층 한국보건산업진흥원 평가장": {
+      "unique_count": 1,
+      "sample_values": [
+        "Other Public Transportation"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-03-05": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-03-05"
+      ],
+      "pattern": "FIXED"
+    },
+    "C\no\ns\ni\ng\nn\ne\nr\t( 2 )\nBudget Holder\n\nSoojin Jang\n2025-03-05": {
+      "unique_count": 1,
+      "sample_values": [
+        "( 2 )"
+      ],
+      "pattern": "FIXED"
+    },
+    "2025-03-06": {
+      "unique_count": 1,
+      "sample_values": [
+        "2025-03-07"
+      ],
+      "pattern": "FIXED"
+    },
+    "Seoul(MSIT)": {
+      "unique_count": 1,
+      "sample_values": [
+        "Own Vehicle"
+      ],
+      "pattern": "FIXED"
+    }
+  },
+  "summary": {
+    "fixed_fields": 19,
+    "unique_per_doc_fields": 2,
+    "low_cardinality_fields": 0,
+    "variable_fields": 1,
+    "field_names_by_pattern": {
+      "FIXED": [
+        "apporve_cc",
+        "hidden:approve_type",
+        "hidden:attachment",
+        "hidden:contents",
+        "hidden:del_no",
+        "hidden:doc_form",
+        "hidden:e_date",
+        "hidden:keyword",
+        "hidden:mode",
+        "hidden:order",
+        "hidden:org_form",
+        "hidden:review_menu",
+        "hidden:s_date",
+        "hidden:search_key",
+        "hidden:start_page",
+        "hidden:title",
+        "hidden:type",
+        "hidden:writer",
+        "select:retention"
+      ],
+      "UNIQUE_PER_DOC": [
+        "hidden:d_doc_number",
+        "hidden:doc_id"
+      ],
+      "LOW_CARDINALITY": [],
+      "VARIABLE": [
+        "close_date"
+      ]
+    }
+  }
+}

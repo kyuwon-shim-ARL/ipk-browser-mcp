@@ -1,0 +1,351 @@
+{
+  "Kyuwon Shim": {
+    "total_docs": 4,
+    "low_confidence": false,
+    "common_account_nos": {
+      "NN2512-0001": 3,
+      "RS_JSJ": 1
+    },
+    "common_project_titles": {
+      "2025 Mid-career Research Program_1st_Soojin Jang": 3,
+      "연구지원계정_Soojin Jang": 1
+    },
+    "common_source_accounts": {
+      "[ 410705] Assay & Test": 3,
+      "[ 412107] Team Activities (RS only)": 1,
+      "[ 410202] Overseas Business Travel": 1
+    },
+    "common_target_accounts": {
+      "[ 410318] IT Software (IT Subscription)": 2,
+      "[ 410911] Commission": 1,
+      "[ 410306] Participating in Conferences": 1,
+      "[ 410201] Domestic Business Travel": 1
+    },
+    "amount_stats": {
+      "min": 200000,
+      "max": 5000000,
+      "avg": 2300000,
+      "total": 9200000
+    },
+    "has_equipment_purchases": 0
+  },
+  "Hyungjun Kim": {
+    "total_docs": 33,
+    "low_confidence": false,
+    "common_account_nos": {
+      "NN2512-0001": 8,
+      "FS2226-0001": 6,
+      "NN2508-0001": 5,
+      "NN2516-0001": 3,
+      "NN2503-0002": 3
+    },
+    "common_project_titles": {
+      "2025 Mid-career Research Program_1st_Soojin Jang": 8,
+      "2022 Peptoide FFS_Soojin Jang (Direct)": 6,
+      "2025 Bio-medical research program (조선대 위탁과제)_3rd_Soojin Jang": 5,
+      "2025 Korea-French Collaboration Research Program (PI: Soojin Jang)": 3,
+      "2025 Bio-medical program (POSTEC 대형장비과제)_2nd_Inhee Choi (ARL)": 3
+    },
+    "common_source_accounts": {
+      "[ 410703] Reagent & Supplies": 19,
+      "[ 410705] Assay & Test": 9,
+      "[ 410310] Conferences:Meeting with External Specialists": 3,
+      "[ 410911] Commission": 2,
+      "[ 410201] Domestic Business Travel": 2
+    },
+    "common_target_accounts": {
+      "[ 410318] IT Software (IT Subscription)": 9,
+      "[ 415101] Internal labor": 5,
+      "[ 410920] Office devices (General-purpose)": 5,
+      "[ 410604] Parts & Equipment Maintenance": 4,
+      "[ 410306] Participating in Conferences": 4
+    },
+    "amount_stats": {
+      "min": 600,
+      "max": 30000000,
+      "avg": 4055896,
+      "total": 133844594
+    },
+    "has_equipment_purchases": 6
+  },
+  "Sol Lee": {
+    "total_docs": 12,
+    "low_confidence": false,
+    "common_account_nos": {
+      "FS2226-0001": 5,
+      "FS2214-0001": 5,
+      "NN2608-0002": 2
+    },
+    "common_project_titles": {
+      "2022 Peptoide FFS_Soojin Jang (Direct)": 5,
+      "2022 GARDP FFS_Soojin Jang (ARL)": 5,
+      "2026 Bio-medical program (POSTEC 대형장비과제)_3rd_Inhee Choi(ARL)_단계종료": 2
+    },
+    "common_source_accounts": {
+      "[ 410703] Reagent & Supplies": 10,
+      "[ 410310] Conferences:Meeting with External Specialists": 2
+    },
+    "common_target_accounts": {
+      "[ 410312] Inviting or consulting specialists": 3,
+      "[ 410901] Office supplies": 2,
+      "[ 412103] Overtime Meals": 2,
+      "[ 410306] Participating in Conferences": 2,
+      "[ 410310] Conferences:Meeting with External Specialists": 1
+    },
+    "amount_stats": {
+      "min": 122055,
+      "max": 1000000,
+      "avg": 436235,
+      "total": 5234830
+    },
+    "has_equipment_purchases": 0
+  },
+  "Hyun-Jung Lee": {
+    "total_docs": 13,
+    "low_confidence": false,
+    "common_account_nos": {
+      "NN2518-0001": 4,
+      "FS2214-0001": 3,
+      "NN2503-0002": 2,
+      "NN2604-0002": 1,
+      "NN2517-0001": 1
+    },
+    "common_project_titles": {
+      "2025 Human Frontier Science Program (HFSP)_Hyungjung Lee_단년도": 4,
+      "2022 GARDP FFS_Soojin Jang (ARL)": 3,
+      "2025 Bio-medical program (POSTEC 대형장비과제)_2nd_Inhee Choi (ARL)": 2,
+      "2026 Korea-French Collaboration Research Program_2nd_Soojin Jang_이월금": 1,
+      "2025 Brain Pool Program_1st_Soojin Jang": 1
+    },
+    "common_source_accounts": {
+      "[ 410703] Reagent & Supplies": 3,
+      "[ 410310] Conferences:Meeting with External Specialists": 2,
+      "[ 410306] Participating in Conferences": 2,
+      "[ 410201] Domestic Business Travel": 2,
+      "[ 410705] Assay & Test": 2
+    },
+    "common_target_accounts": {
+      "[ 410201] Domestic Business Travel": 4,
+      "[ 410911] Commission": 2,
+      "[ 410320] Foreign Researcher Invitation Support": 2,
+      "[ 410703] Reagent & Supplies": 2,
+      "[ 410920] Office devices (General-purpose)": 1
+    },
+    "amount_stats": {
+      "min": 20000,
+      "max": 12000000,
+      "avg": 1295256,
+      "total": 16838336
+    },
+    "has_equipment_purchases": 0
+  },
+  "Guinam Wee": {
+    "total_docs": 12,
+    "low_confidence": false,
+    "common_account_nos": {
+      "NN2509-0001": 8,
+      "NN2512-0001": 4
+    },
+    "common_project_titles": {
+      "2025 GloPID-R Program(생명연 위탁)_1st_Soojin Jang": 8,
+      "2025 Mid-career Research Program_1st_Soojin Jang": 4
+    },
+    "common_source_accounts": {
+      "[ 410604] Parts & Equipment Maintenance": 4,
+      "[ 410705] Assay & Test": 3,
+      "[ 410201] Domestic Business Travel": 2,
+      "[ 410306] Participating in Conferences": 1,
+      "[ 410312] Inviting or consulting specialists": 1
+    },
+    "common_target_accounts": {
+      "[ 410705] Assay & Test": 7,
+      "[ 410201] Domestic Business Travel": 3,
+      "[ 410306] Participating in Conferences": 2,
+      "[ 410703] Reagent & Supplies": 1,
+      "[ 410202] Overseas Business Travel": 1
+    },
+    "amount_stats": {
+      "min": 18000,
+      "max": 22809709,
+      "avg": 4471746,
+      "total": 53660953
+    },
+    "has_equipment_purchases": 1
+  },
+  "Sunju Kim": {
+    "total_docs": 1,
+    "low_confidence": true,
+    "common_account_nos": {
+      "NN2512-0001": 1
+    },
+    "common_project_titles": {
+      "2025 Mid-career Research Program_1st_Soojin Jang": 1
+    },
+    "common_source_accounts": {
+      "[ 410201] Domestic Business Travel": 1
+    },
+    "common_target_accounts": {
+      "[ 410202] Overseas Business Travel": 1
+    },
+    "amount_stats": {
+      "min": 1500000,
+      "max": 1500000,
+      "avg": 1500000,
+      "total": 1500000
+    },
+    "has_equipment_purchases": 0
+  },
+  "Minjeong Woo": {
+    "total_docs": 14,
+    "low_confidence": false,
+    "common_account_nos": {
+      "KD2503-0001": 11,
+      "FS2504-0001": 3
+    },
+    "common_project_titles": {
+      "2025 Healthcare Technology Research Program_1st_Connor Wood": 11,
+      "2025 LigaChem Biosciences FFS_Soojin Jang - ARL (Direct)": 3
+    },
+    "common_source_accounts": {
+      "[ 410201] Domestic Business Travel": 4,
+      "[ 412103] Overtime Meals": 3,
+      "[ 410911] Commission": 3,
+      "[ 410901] Office supplies": 2,
+      "[ 120336] Office devices asset (General-purpose)": 2
+    },
+    "common_target_accounts": {
+      "[ 410920] Office devices (General-purpose)": 7,
+      "[ 120336] Office devices asset (General-purpose)": 5,
+      "[ 120312] Tools": 2,
+      "[ 120542] IT Software": 1,
+      "[ 410310] Conferences:Meeting with External Specialists": 1
+    },
+    "amount_stats": {
+      "min": 220000,
+      "max": 29500000,
+      "avg": 4239403,
+      "total": 59351648
+    },
+    "has_equipment_purchases": 3
+  },
+  "YunMi LEE": {
+    "total_docs": 10,
+    "low_confidence": false,
+    "common_account_nos": {
+      "FS2226-0001": 3,
+      "NN2503-0002": 3,
+      "FS2214-0001": 3,
+      "NN2413-0001": 1
+    },
+    "common_project_titles": {
+      "2022 Peptoide FFS_Soojin Jang (Direct)": 3,
+      "2025 Bio-medical program (POSTEC 대형장비과제)_2nd_Inhee Choi (ARL)": 3,
+      "2022 GARDP FFS_Soojin Jang (ARL)": 3,
+      "2024 Korea-EU Collaboration Promotion Program_1st_Soojin Jang": 1
+    },
+    "common_source_accounts": {
+      "[ 410703] Reagent & Supplies": 6,
+      "[ 410201] Domestic Business Travel": 3,
+      "[ 410705] Assay & Test": 1,
+      "[ 410202] Overseas Business Travel": 1,
+      "[ 410307] Holding seminars": 1
+    },
+    "common_target_accounts": {
+      "[ 410312] Inviting or consulting specialists": 5,
+      "[ 410705] Assay & Test": 3,
+      "[ 410306] Participating in Conferences": 2,
+      "[ 410201] Domestic Business Travel": 2,
+      "[ 410202] Overseas Business Travel": 1
+    },
+    "amount_stats": {
+      "min": 40000,
+      "max": 6000000,
+      "avg": 1786664,
+      "total": 17866649
+    },
+    "has_equipment_purchases": 0
+  },
+  "Connor Joseph Wood": {
+    "total_docs": 1,
+    "low_confidence": true,
+    "common_account_nos": {
+      "FS2214-0001": 1
+    },
+    "common_project_titles": {
+      "2022 GARDP FFS_Soojin Jang (ARL)": 1
+    },
+    "common_source_accounts": {
+      "[ 415101] Internal labor": 1
+    },
+    "common_target_accounts": {
+      "[ 410912] Publication of Articles": 1
+    },
+    "amount_stats": {
+      "min": 6000000,
+      "max": 6000000,
+      "avg": 6000000,
+      "total": 6000000
+    },
+    "has_equipment_purchases": 0
+  },
+  "Kyungbae Min": {
+    "total_docs": 1,
+    "low_confidence": true,
+    "common_account_nos": {
+      "NN2503-0002": 1
+    },
+    "common_project_titles": {
+      "2025 Bio-medical program (POSTEC 대형장비과제)_2nd_Inhee Choi (ARL)": 1
+    },
+    "common_source_accounts": {
+      "[ 410705] Assay & Test": 1
+    },
+    "common_target_accounts": {
+      "[ 410306] Participating in Conferences": 1
+    },
+    "amount_stats": {
+      "min": 320400,
+      "max": 320400,
+      "avg": 320400,
+      "total": 320400
+    },
+    "has_equipment_purchases": 0
+  },
+  "Juchan Hwang": {
+    "total_docs": 6,
+    "low_confidence": false,
+    "common_account_nos": {
+      "NN2512-0001": 3,
+      "NN2509-0001": 1,
+      "NN2413-0001": 1,
+      "RC2501-0001": 1
+    },
+    "common_project_titles": {
+      "2025 Mid-career Research Program_1st_Soojin Jang": 3,
+      "2025 GloPID-R Program(생명연 위탁)_1st_Soojin Jang": 1,
+      "2024 Korea-EU Collaboration Promotion Program_1st_Soojin Jang": 1,
+      "2025 Environmental Technology Development Program (환경부 위탁)_5th_Soojin Jang": 1
+    },
+    "common_source_accounts": {
+      "[ 410703] Reagent & Supplies": 3,
+      "[ 410202] Overseas Business Travel": 1,
+      "[ 410307] Holding seminars": 1,
+      "[ 420332] IT supplies": 1,
+      "[ 410707] Chemical Library": 1
+    },
+    "common_target_accounts": {
+      "[ 410911] Commission": 2,
+      "[ 410907] Taxes": 2,
+      "[ 410705] Assay & Test": 1,
+      "[ 410202] Overseas Business Travel": 1,
+      "[ 120336] Office devices asset (General-purpose)": 1
+    },
+    "amount_stats": {
+      "min": 350000,
+      "max": 19250000,
+      "avg": 6815075,
+      "total": 40890455
+    },
+    "has_equipment_purchases": 1
+  }
+}
