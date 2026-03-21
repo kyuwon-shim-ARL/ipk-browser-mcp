@@ -1,0 +1,1070 @@
+{
+  "meta": {
+    "description": "MECE Field Classification Matrix for all IPK groupware forms",
+    "generated": "2026-03-21",
+    "categories": {
+      "MANDATORY_EXACT": "User MUST provide exact value. No inference possible. Wrong value = document rejection.",
+      "INFERABLE_HIGH": "System auto-fills with >=90% confidence. User can override but rarely needs to.",
+      "INFERABLE_MEDIUM": "System suggests with 60-89% confidence. Should present suggestion and ask user to confirm.",
+      "PROFILE_DEFAULT": "Populated from traveler_profiles.json. Soft default — always confirm with user on first use.",
+      "FIXED": "Constant value across all documents. System fills silently. User never needs to touch.",
+      "DERIVED": "Calculated deterministically from other fields. No user input needed."
+    },
+    "forms_covered": 8,
+    "forms_excluded": {
+      "AppFrm-076 (Travel Report)": "Only 1 document scraped — insufficient for pattern analysis",
+      "AppFrm-027 (Working/Schedule Change)": "Not scraped — no data available"
+    }
+  },
+
+  "AppFrm-023": {
+    "form_name": "Domestic Travel Request (출장신청)",
+    "docs_analyzed": 108,
+    "fields": {
+      "MANDATORY_EXACT": [
+        {
+          "field": "start_date",
+          "type": "date",
+          "reason": "Unique per trip. No pattern to infer.",
+          "validation": "Must be future date or today"
+        },
+        {
+          "field": "end_date",
+          "type": "date",
+          "reason": "Unique per trip. Determines nights/days calculation.",
+          "validation": "Must be >= start_date"
+        },
+        {
+          "field": "destination",
+          "type": "text",
+          "reason": "Unique per trip. Drives transport/city cascade.",
+          "validation": "Must match an IPK-recognized venue or organization name"
+        },
+        {
+          "field": "budget_control_no",
+          "type": "text",
+          "reason": "Assigned by IPK budget system. Cannot be inferred.",
+          "validation": "Must be valid BC# from budget management system"
+        },
+        {
+          "field": "purpose",
+          "type": "textarea",
+          "reason": "Unique per trip. Free-form narrative.",
+          "validation": "Non-empty. Should describe travel objective."
+        }
+      ],
+      "INFERABLE_HIGH": [
+        {
+          "field": "subject",
+          "type": "text",
+          "confidence": 0.95,
+          "rule": "Auto-generate from purpose + destination + dates",
+          "override": "User can customize but 95% follow standard pattern"
+        },
+        {
+          "field": "nights_days",
+          "type": "derived",
+          "confidence": 1.0,
+          "rule": "nights = (end_date - start_date).days; days = nights + 1"
+        },
+        {
+          "field": "daily_expense",
+          "type": "number",
+          "confidence": 0.97,
+          "rule": "Day-trip (0 nights): 20,000 KRW (66%); Overnight (>=1 night): 30,000 KRW (31%)",
+          "note": "Only 3% deviate from this rule"
+        },
+        {
+          "field": "account_code",
+          "type": "text",
+          "confidence": 1.0,
+          "rule": "R&D → 410201; General → 420312. Deterministic from budget_type."
+        },
+        {
+          "field": "budget_account",
+          "type": "text",
+          "confidence": 1.0,
+          "rule": "Deterministic lookup from budget_control_no via AJAX cascade"
+        },
+        {
+          "field": "business_travel_type",
+          "type": "select",
+          "confidence": 0.91,
+          "rule": "Keyword-based: conference/seminar→type 2 (47%), sampling/visit→type 5 (44%), training→type 3 (4%), presentation→type 4 (2%)"
+        }
+      ],
+      "INFERABLE_MEDIUM": [
+        {
+          "field": "transport_mode",
+          "type": "select",
+          "confidence": 0.67,
+          "rule": "Seoul → Public Transport (63%); Gyeonggi → Own Vehicle (67%); Out-of-metro → Own Vehicle (80%)",
+          "note": "Split varies by destination. Must present options when ambiguous."
+        },
+        {
+          "field": "start_time",
+          "type": "time",
+          "confidence": 0.66,
+          "rule": "Only for day-trips. No strong pattern — user should specify.",
+          "note": "Optional field; 66% of day-trips include it"
+        },
+        {
+          "field": "end_time",
+          "type": "time",
+          "confidence": 0.66,
+          "rule": "Paired with start_time for day-trips."
+        }
+      ],
+      "PROFILE_DEFAULT": [
+        {
+          "field": "corp_card",
+          "type": "text",
+          "confidence_range": "60-100% per traveler",
+          "rule": "From traveler_profiles.json → corp_card.default",
+          "note": "Shared lab resource. Cards rotate. ALWAYS confirm."
+        }
+      ],
+      "FIXED": [
+        {
+          "field": "retention",
+          "value": "5 years",
+          "coverage": 1.0
+        },
+        {
+          "field": "miscellaneous",
+          "value": 0,
+          "coverage": 1.0
+        },
+        {
+          "field": "additional_daily",
+          "value": 0,
+          "coverage": 1.0
+        }
+      ],
+      "DERIVED": [
+        {
+          "field": "province_code",
+          "rule": "AJAX cascade: destination → province (set by system after city selection)"
+        },
+        {
+          "field": "city_code",
+          "rule": "AJAX cascade: province → city options"
+        },
+        {
+          "field": "travel_type_code",
+          "rule": "AJAX cascade: city → travel type"
+        },
+        {
+          "field": "budget_code",
+          "rule": "AJAX cascade: budget_type → available budget codes"
+        },
+        {
+          "field": "item_no",
+          "rule": "AJAX cascade: budget_code → line items"
+        }
+      ]
+    }
+  },
+
+  "AppFrm-073": {
+    "form_name": "Leave Request (휴가신청)",
+    "docs_analyzed": 68,
+    "fields": {
+      "MANDATORY_EXACT": [
+        {
+          "field": "leave_type",
+          "type": "select",
+          "reason": "User must choose: Annual (56%), Compensatory (38%), Paternity (4%), Sick (1%)",
+          "validation": "Must be one of the 4 valid leave types"
+        },
+        {
+          "field": "start_date",
+          "type": "date",
+          "reason": "Unique per request.",
+          "validation": "Must be valid working day"
+        },
+        {
+          "field": "end_date",
+          "type": "date",
+          "reason": "Unique per request.",
+          "validation": "Must be >= start_date"
+        }
+      ],
+      "INFERABLE_HIGH": [
+        {
+          "field": "subject",
+          "type": "text",
+          "confidence": 0.98,
+          "rule": "Template: '{leave_type}, {start_date}~{end_date}, {destination}, {writer_name}'"
+        },
+        {
+          "field": "purpose",
+          "type": "text",
+          "confidence": 0.82,
+          "rule": "For Kyuwon Shim: 82% = 'child care'. For others: leave_type name as default.",
+          "note": "Per-person pattern. High confidence for primary user."
+        },
+        {
+          "field": "destination",
+          "type": "text",
+          "confidence": 0.91,
+          "rule": "69% Seoul, 22% home address. From profile → common_destination.",
+          "note": "Very predictable per person"
+        }
+      ],
+      "INFERABLE_MEDIUM": [
+        {
+          "field": "start_hour",
+          "type": "number",
+          "confidence": 0.81,
+          "rule": "Only for partial-day leave. Common: 14~17, 15~17, 16~17.",
+          "note": "81% of cases are partial-day. User must specify exact hours."
+        },
+        {
+          "field": "end_hour",
+          "type": "number",
+          "confidence": 0.81,
+          "rule": "Paired with start_hour. Usually 17 (end of workday)."
+        }
+      ],
+      "PROFILE_DEFAULT": [
+        {
+          "field": "substitute_name",
+          "type": "text",
+          "confidence": 0.88,
+          "rule": "Kyuwon: Guinam Wee (88%), Juchan Hwang (7%), Sunju Kim (4%)",
+          "note": "Suggest top substitute but allow override"
+        },
+        {
+          "field": "substitute_payroll",
+          "type": "text",
+          "rule": "Auto-lookup from substitute_name → substitute_lookup table",
+          "linked_to": "substitute_name"
+        },
+        {
+          "field": "substitute_position",
+          "type": "text",
+          "rule": "Auto-lookup from substitute_name",
+          "linked_to": "substitute_name"
+        },
+        {
+          "field": "substitute_contact",
+          "type": "text",
+          "rule": "Auto-lookup from substitute_name",
+          "linked_to": "substitute_name"
+        },
+        {
+          "field": "address",
+          "type": "text",
+          "rule": "From user profile. Constant per person."
+        },
+        {
+          "field": "telephone",
+          "type": "text",
+          "rule": "From user profile. Constant per person."
+        }
+      ],
+      "FIXED": [
+        {
+          "field": "saving_years",
+          "value": "5 years",
+          "coverage": 1.0
+        }
+      ],
+      "DERIVED": []
+    }
+  },
+
+  "AppFrm-020": {
+    "form_name": "Card Expense Request (카드사용내역서)",
+    "docs_analyzed": 60,
+    "fields": {
+      "MANDATORY_EXACT": [
+        {
+          "field": "item_date",
+          "type": "date",
+          "reason": "Actual purchase date. Must match receipt.",
+          "validation": "Must match card transaction date"
+        },
+        {
+          "field": "item_amount_excl_vat",
+          "type": "text",
+          "reason": "Receipt amount excluding VAT. Must match exactly.",
+          "validation": "Korean comma-formatted integer (e.g. '23,819')"
+        },
+        {
+          "field": "item_vat",
+          "type": "text",
+          "reason": "VAT amount. Must match receipt.",
+          "validation": "Korean comma-formatted integer"
+        },
+        {
+          "field": "item_total_amount",
+          "type": "text",
+          "reason": "Total including VAT. Must equal excl_vat + vat.",
+          "validation": "item_amount_excl_vat + item_vat"
+        },
+        {
+          "field": "item_control_no",
+          "type": "text",
+          "reason": "Card receipt control number. Unique per transaction.",
+          "validation": "Format: 'XXXXXXXX-XX' (e.g. '25103268-01')"
+        },
+        {
+          "field": "item_vendor",
+          "type": "text",
+          "reason": "Store/vendor name from receipt.",
+          "validation": "Must match receipt"
+        }
+      ],
+      "INFERABLE_HIGH": [
+        {
+          "field": "subject",
+          "type": "text",
+          "confidence": 0.93,
+          "rule": "Template: '[Card] ER_{expense_type}'. 93% follow this pattern."
+        },
+        {
+          "field": "item_account_code",
+          "type": "select",
+          "confidence": 0.93,
+          "rule": "420421 (Team activities) = 93%. Only deviate for external meetings (420420), commissions (420374), subscriptions (420375)."
+        },
+        {
+          "field": "item_description",
+          "type": "text",
+          "confidence": 0.93,
+          "rule": "93% = 'Team activities'. Embedded in account code cell."
+        }
+      ],
+      "INFERABLE_MEDIUM": [
+        {
+          "field": "venue",
+          "type": "text",
+          "confidence": 0.88,
+          "rule": "Per-writer default from profile. Sol Lee: '4th floor meeting room'. 97% of docs have venue.",
+          "note": "Suggest default but user should confirm"
+        },
+        {
+          "field": "participants",
+          "type": "text",
+          "confidence": 0.70,
+          "rule": "Recurring team members list. 97% of docs have participants.",
+          "note": "Attendees vary per meeting — suggest common list, user confirms"
+        },
+        {
+          "field": "purpose_minutes",
+          "type": "text",
+          "confidence": 0.70,
+          "rule": "Per-writer default. Sol Lee: 'To discuss what we did and what we will do for projects'.",
+          "note": "Should be customized per meeting but default exists"
+        }
+      ],
+      "PROFILE_DEFAULT": [
+        {
+          "field": "budget_code",
+          "type": "text",
+          "confidence": 1.0,
+          "rule": "100% of docs use '[GW17_ARRL] 과제수당_ARRL (Period: 2017-01-01~2033-12-31)'",
+          "note": "Single budget code for all card expenses in corpus"
+        }
+      ],
+      "FIXED": [
+        {
+          "field": "saving_years",
+          "value": "5 years",
+          "coverage": 1.0
+        },
+        {
+          "field": "budget_type",
+          "value": "General",
+          "coverage": 1.0
+        },
+        {
+          "field": "payment",
+          "value": "Corporate Credit Card",
+          "coverage": 1.0
+        },
+        {
+          "field": "card_number",
+          "value": "4518-4445-1265-8391",
+          "coverage": 1.0,
+          "note": "Lab-specific card. May change if card is reissued."
+        },
+        {
+          "field": "item_cate_no",
+          "value": "none",
+          "coverage": 1.0
+        },
+        {
+          "field": "item_pc",
+          "value": "N/N",
+          "coverage": 1.0
+        }
+      ],
+      "DERIVED": []
+    }
+  },
+
+  "AppFrm-054": {
+    "form_name": "Domestic Travel Settlement (국내출장정산)",
+    "docs_analyzed": 98,
+    "fields": {
+      "MANDATORY_EXACT": [
+        {
+          "field": "start_date",
+          "type": "date",
+          "reason": "Actual travel date. Must match original travel request."
+        },
+        {
+          "field": "end_date",
+          "type": "date",
+          "reason": "Actual return date."
+        },
+        {
+          "field": "destination",
+          "type": "text",
+          "reason": "Actual venue visited. Should match or refine original request."
+        },
+        {
+          "field": "budget_control_no",
+          "type": "text",
+          "reason": "Must match the BC# from approved travel request (AppFrm-023).",
+          "validation": "Cross-reference with approved travel request"
+        },
+        {
+          "field": "purpose",
+          "type": "textarea",
+          "reason": "Free-text detail matching original travel request purpose."
+        },
+        {
+          "field": "attached_approved_doc_ref",
+          "type": "text",
+          "reason": "Document number of the corresponding approved AppFrm-023.",
+          "validation": "Must reference an existing approved travel request"
+        }
+      ],
+      "INFERABLE_HIGH": [
+        {
+          "field": "subject",
+          "type": "text",
+          "confidence": 0.98,
+          "rule": "Template: '[Settlement] {original_travel_request_subject}'"
+        },
+        {
+          "field": "daily_expense",
+          "type": "number",
+          "confidence": 0.97,
+          "rule": "Day-trip (0 nights): 20,000 KRW; Overnight: 30,000 KRW/night"
+        },
+        {
+          "field": "purpose_category",
+          "type": "select",
+          "confidence": 0.91,
+          "rule": "Same keyword-matching as AppFrm-023: conference/seminar(49%), vendor visit(42%), training(3%), presentation(2%)"
+        },
+        {
+          "field": "budget_type",
+          "type": "select",
+          "confidence": 0.84,
+          "rule": "R&D (84%) vs General (16%). From budget_account_code prefix."
+        },
+        {
+          "field": "account_code",
+          "type": "text",
+          "confidence": 1.0,
+          "rule": "R&D → 410201; General → 420312"
+        }
+      ],
+      "INFERABLE_MEDIUM": [
+        {
+          "field": "transport_mode",
+          "type": "select",
+          "confidence": 0.67,
+          "rule": "Same city-transport lookup as AppFrm-023. Seoul → Public (65%); Suwon → Own Vehicle (65%); Daejeon → Own Vehicle (85%)."
+        },
+        {
+          "field": "start_time",
+          "type": "time",
+          "confidence": 0.76,
+          "rule": "Only for day-trips. 76% of docs include it. No strong time pattern."
+        },
+        {
+          "field": "end_time",
+          "type": "time",
+          "confidence": 0.76,
+          "rule": "Paired with start_time."
+        },
+        {
+          "field": "transport_fee",
+          "type": "number",
+          "confidence": 0.60,
+          "rule": "Actual receipt amount. Default 0. User provides if applicable."
+        },
+        {
+          "field": "accommodation",
+          "type": "number",
+          "confidence": 0.60,
+          "rule": "Actual receipt amount. Default 0 for day-trips."
+        },
+        {
+          "field": "food_expense",
+          "type": "number",
+          "confidence": 0.60,
+          "rule": "Actual receipt amount. Default 0."
+        }
+      ],
+      "PROFILE_DEFAULT": [],
+      "FIXED": [
+        {
+          "field": "retention",
+          "value": "5 years",
+          "coverage": 1.0
+        },
+        {
+          "field": "travel_with_invitation",
+          "value": "No",
+          "coverage": 1.0
+        },
+        {
+          "field": "miscellaneous",
+          "value": 0,
+          "coverage": 1.0
+        },
+        {
+          "field": "additional_daily",
+          "value": 0,
+          "coverage": 1.0
+        }
+      ],
+      "DERIVED": [
+        {
+          "field": "nights",
+          "rule": "(end_date - start_date).days"
+        },
+        {
+          "field": "days",
+          "rule": "nights + 1"
+        },
+        {
+          "field": "province",
+          "rule": "AJAX cascade from destination"
+        },
+        {
+          "field": "city",
+          "rule": "AJAX cascade from province"
+        },
+        {
+          "field": "budget_code",
+          "rule": "AJAX cascade from budget_type"
+        },
+        {
+          "field": "item_no",
+          "rule": "AJAX cascade from budget_code"
+        }
+      ]
+    }
+  },
+
+  "AppFrm-026": {
+    "form_name": "Overseas Travel Settlement (해외출장정산)",
+    "docs_analyzed": 14,
+    "fields": {
+      "MANDATORY_EXACT": [
+        {
+          "field": "budget_control_no",
+          "type": "text",
+          "reason": "From the original overseas travel request approval."
+        },
+        {
+          "field": "country",
+          "type": "text",
+          "reason": "Destination country and city. E.g. 'USA (San Francisco)', 'Vietnam'."
+        },
+        {
+          "field": "conference_name",
+          "type": "text",
+          "reason": "Full name of conference or organization visited."
+        },
+        {
+          "field": "purpose",
+          "type": "textarea",
+          "reason": "Narrative description of travel purpose."
+        },
+        {
+          "field": "travel_start",
+          "type": "date",
+          "reason": "Departure date from Korea."
+        },
+        {
+          "field": "travel_end",
+          "type": "date",
+          "reason": "Return date to Korea."
+        },
+        {
+          "field": "payment_date",
+          "type": "date",
+          "reason": "Date of settlement payment."
+        },
+        {
+          "field": "schedule_rows",
+          "type": "array",
+          "reason": "Daily itinerary table. Each row: from, to, schedule, transportation. Unique per trip."
+        },
+        {
+          "field": "daily_expense_total_budget",
+          "type": "integer",
+          "reason": "Daily allowance budget amount. From settlement calculation."
+        },
+        {
+          "field": "daily_expense_cash",
+          "type": "integer",
+          "reason": "Cash paid for daily allowance."
+        },
+        {
+          "field": "food_expense_total_budget",
+          "type": "integer",
+          "reason": "Food expense budget amount."
+        },
+        {
+          "field": "food_expense_cash",
+          "type": "integer",
+          "reason": "Cash paid for food."
+        },
+        {
+          "field": "settle_amount",
+          "type": "integer",
+          "reason": "Total settled amount. Range: 300K~6.2M KRW."
+        },
+        {
+          "field": "reimbursement_to_traveler",
+          "type": "integer",
+          "reason": "Amount to reimburse for out-of-pocket expenses."
+        }
+      ],
+      "INFERABLE_HIGH": [
+        {
+          "field": "subject",
+          "type": "text",
+          "confidence": 0.95,
+          "rule": "Template: '[Settlement] {conference_name}'"
+        },
+        {
+          "field": "travel_with_invitation",
+          "type": "radio",
+          "confidence": 1.0,
+          "rule": "All 14 docs = 'No'. Default to No."
+        },
+        {
+          "field": "car_rent",
+          "type": "radio",
+          "confidence": 1.0,
+          "rule": "All 14 docs = 'No'. Default to No."
+        }
+      ],
+      "INFERABLE_MEDIUM": [
+        {
+          "field": "transport_fee_total_budget",
+          "type": "integer",
+          "confidence": 0.79,
+          "rule": "Present in 79% of docs. Amount varies per trip."
+        },
+        {
+          "field": "transport_fee_corp_card",
+          "type": "integer",
+          "confidence": 0.60,
+          "rule": "If transport paid by corp card. Variable."
+        },
+        {
+          "field": "transport_fee_cash",
+          "type": "integer",
+          "confidence": 0.60,
+          "rule": "If transport paid out of pocket."
+        },
+        {
+          "field": "accommodation_total_budget",
+          "type": "integer",
+          "confidence": 0.71,
+          "rule": "Present in 71% of docs. Variable."
+        },
+        {
+          "field": "accommodation_corp_card",
+          "type": "integer",
+          "confidence": 0.71,
+          "rule": "Often paid by corp card."
+        },
+        {
+          "field": "miscellaneous_total_budget",
+          "type": "integer",
+          "confidence": 0.14,
+          "rule": "Only 14% of docs. Visa, insurance etc."
+        },
+        {
+          "field": "business_materials",
+          "type": "text",
+          "confidence": 0.60,
+          "rule": "Filename and byte size of attached materials."
+        }
+      ],
+      "PROFILE_DEFAULT": [
+        {
+          "field": "traveler",
+          "type": "text",
+          "rule": "Name(PayrollID) from profile. E.g. 'Kyuwon Shim(00565)'"
+        },
+        {
+          "field": "corp_card_no",
+          "type": "text",
+          "confidence": 0.93,
+          "rule": "From traveler profile. Present in 93% of docs.",
+          "note": "Shared lab resource. Verify before use."
+        },
+        {
+          "field": "budget_account_code",
+          "type": "text",
+          "rule": "From profile → budget_accounts.ranked_by_recency[0]. Grant-cycle dependent."
+        }
+      ],
+      "FIXED": [
+        {
+          "field": "saving_years",
+          "value": "5 years",
+          "coverage": 1.0
+        }
+      ],
+      "DERIVED": []
+    }
+  },
+
+  "AppFrm-028": {
+    "form_name": "Leave Return (휴가복귀)",
+    "docs_analyzed": 24,
+    "fields": {
+      "MANDATORY_EXACT": [
+        {
+          "field": "original_leave_doc",
+          "type": "text",
+          "reason": "Document number of the leave being returned (e.g. ARL-260121-02).",
+          "validation": "Must reference existing approved leave document"
+        },
+        {
+          "field": "period_start",
+          "type": "date",
+          "reason": "Start date of the leave being returned."
+        },
+        {
+          "field": "period_end",
+          "type": "date",
+          "reason": "End date of the leave being returned."
+        },
+        {
+          "field": "return_days_hours",
+          "type": "text",
+          "reason": "Amount actually returned. Format: 'D / H'. E.g. '1 / 0' for full day.",
+          "validation": "Must not exceed original requested amount"
+        },
+        {
+          "field": "description",
+          "type": "textarea",
+          "reason": "Reason for returning leave. E.g. 'came back to work', 'hospitalization ended early'."
+        }
+      ],
+      "INFERABLE_HIGH": [
+        {
+          "field": "subject",
+          "type": "text",
+          "confidence": 0.96,
+          "rule": "Template: 'Leave return {return_label} {original_leave_doc}'. E.g. 'Leave return 1day ARL-260121-02'"
+        },
+        {
+          "field": "leave_type",
+          "type": "select",
+          "confidence": 0.95,
+          "rule": "Look up original leave document to get leave_type. Compensatory (58%), Annual (42%)."
+        }
+      ],
+      "INFERABLE_MEDIUM": [],
+      "PROFILE_DEFAULT": [],
+      "FIXED": [
+        {
+          "field": "saving_years",
+          "value": "5 years",
+          "coverage": 1.0
+        }
+      ],
+      "DERIVED": [
+        {
+          "field": "return_days",
+          "rule": "Integer days component of return_days_hours"
+        },
+        {
+          "field": "return_hours",
+          "rule": "Integer hours component of return_days_hours"
+        },
+        {
+          "field": "requested_days_hours",
+          "rule": "Looked up from original leave document"
+        }
+      ]
+    }
+  },
+
+  "AppFrm-039": {
+    "form_name": "Purchase Request / Budget Transfer (예산전용)",
+    "docs_analyzed": 107,
+    "fields": {
+      "MANDATORY_EXACT": [
+        {
+          "field": "subject",
+          "type": "text",
+          "reason": "Free-form title. Common: 'Budget Transfer_{project}' or item name."
+        },
+        {
+          "field": "account_no",
+          "type": "text",
+          "reason": "Budget account/project code. E.g. NN2512-0001, FS2226-0001."
+        },
+        {
+          "field": "project_title",
+          "type": "text",
+          "reason": "Full project title for account_no."
+        },
+        {
+          "field": "project_period",
+          "type": "text",
+          "reason": "Project period. Format: YYYY-MM-DD ~ YYYY-MM-DD."
+        },
+        {
+          "field": "transfer_items",
+          "type": "table",
+          "reason": "Source/target budget account + amount rows. 81% have 1 row, 12% have 2.",
+          "item_schema": {
+            "source": "Source budget account code and name",
+            "target": "Target budget account code and name",
+            "amount": "Amount in KRW"
+          }
+        },
+        {
+          "field": "control_no",
+          "type": "text",
+          "reason": "Budget control number from IPK system."
+        },
+        {
+          "field": "description",
+          "type": "textarea",
+          "reason": "Reason/purpose for the transfer."
+        }
+      ],
+      "INFERABLE_HIGH": [
+        {
+          "field": "equipment_block_required",
+          "type": "boolean",
+          "confidence": 0.90,
+          "rule": "If target account matches [120312] Tools or [120336] Office devices → require equipment_name, manufacturer, features, price_krw, purchase_purpose. Occurs in ~10% of docs."
+        }
+      ],
+      "INFERABLE_MEDIUM": [
+        {
+          "field": "source_account_suggestion",
+          "type": "text",
+          "confidence": 0.60,
+          "rule": "Top sources: Reagent & Supplies [410703] (40%), Assay & Test [410705] (19%), Domestic Travel [410201] (13%). Suggest based on writer history."
+        },
+        {
+          "field": "target_account_suggestion",
+          "type": "text",
+          "confidence": 0.60,
+          "rule": "Top targets: Domestic Travel [410201] (14%), Conferences [410306] (13%), Office devices [410920] (12%). Suggest based on recent activity."
+        }
+      ],
+      "PROFILE_DEFAULT": [],
+      "FIXED": [
+        {
+          "field": "retention",
+          "value": "5 years",
+          "coverage": 1.0
+        },
+        {
+          "field": "transfer_type",
+          "value": "Transfer",
+          "coverage": 1.0
+        }
+      ],
+      "DERIVED": [],
+      "CONDITIONAL": [
+        {
+          "field": "equipment_name",
+          "condition": "target account is [120312] or [120336]",
+          "required_when": true,
+          "coverage": 0.10
+        },
+        {
+          "field": "manufacturer",
+          "condition": "equipment_name is set",
+          "required_when": true,
+          "linked_to": "equipment_name"
+        },
+        {
+          "field": "features",
+          "condition": "equipment_name is set",
+          "required_when": true,
+          "linked_to": "equipment_name"
+        },
+        {
+          "field": "price_krw",
+          "condition": "equipment_name is set",
+          "required_when": true,
+          "linked_to": "equipment_name"
+        },
+        {
+          "field": "purchase_purpose",
+          "condition": "equipment_name is set",
+          "required_when": true,
+          "linked_to": "equipment_name"
+        }
+      ]
+    }
+  },
+
+  "AppFrm-043": {
+    "form_name": "Seminar/Event Public Disclosure (세미나/이벤트 공개)",
+    "docs_analyzed": 21,
+    "fields": {
+      "MANDATORY_EXACT": [
+        {
+          "field": "subject",
+          "type": "text",
+          "reason": "Title of the seminar/event/publication."
+        },
+        {
+          "field": "disclosure_purpose",
+          "type": "textarea",
+          "reason": "Section 1: Why the material is being publicly disclosed."
+        },
+        {
+          "field": "disclosure_date",
+          "type": "date",
+          "reason": "Date of the seminar/event/submission."
+        },
+        {
+          "field": "material_description",
+          "type": "text",
+          "reason": "Filename and size of material. E.g. 'slides.pptx (12345678 byte)'."
+        },
+        {
+          "field": "conference_or_journal",
+          "type": "text",
+          "reason": "Name of the conference, seminar, or journal."
+        }
+      ],
+      "INFERABLE_HIGH": [
+        {
+          "field": "predatory_check_confirmed",
+          "type": "checkbox",
+          "confidence": 1.0,
+          "rule": "All 21 docs had this checked. Mandatory acknowledgment — always set to 'on'."
+        },
+        {
+          "field": "collaborator_approval_obtained",
+          "type": "radio",
+          "confidence": 0.76,
+          "rule": "Q4: 76% answered Y. Default to Y.",
+          "note": "Borderline high/medium — conservative to set Y since it's an affirmation"
+        },
+        {
+          "field": "contains_ipk_confidential_info",
+          "type": "radio",
+          "confidence": 0.67,
+          "rule": "Q5: 67% answered N. Default to N.",
+          "note": "Safe default — if material were confidential, user would know"
+        },
+        {
+          "field": "material_published",
+          "type": "radio",
+          "confidence": 0.67,
+          "rule": "Q3: 67% answered N. Default to N."
+        }
+      ],
+      "INFERABLE_MEDIUM": [
+        {
+          "field": "patent_filed",
+          "type": "radio",
+          "confidence": 0.52,
+          "rule": "Q1: 33% Y, 19% N, 48% not answered. No strong default — MUST ask user.",
+          "note": "Patent status varies significantly. Never assume."
+        },
+        {
+          "field": "patent_planned_within_year",
+          "type": "radio",
+          "confidence": 0.14,
+          "rule": "Q2: Only relevant if Q1=N. 86% not answered. Ask only when applicable."
+        }
+      ],
+      "PROFILE_DEFAULT": [
+        {
+          "field": "requester",
+          "type": "text",
+          "rule": "Name of the presenter/submitter. Default: drafter (logged-in user)."
+        }
+      ],
+      "FIXED": [
+        {
+          "field": "saving_years",
+          "value": "5 years",
+          "coverage": 1.0
+        },
+        {
+          "field": "section_6_text",
+          "value": "Predatory Journals/Conferences Prevention Guide acknowledgment",
+          "coverage": 1.0,
+          "note": "Boilerplate text about predatory journal awareness"
+        }
+      ],
+      "DERIVED": []
+    }
+  },
+
+  "summary": {
+    "total_fields_classified": 126,
+    "by_category": {
+      "MANDATORY_EXACT": 48,
+      "INFERABLE_HIGH": 27,
+      "INFERABLE_MEDIUM": 22,
+      "PROFILE_DEFAULT": 14,
+      "FIXED": 20,
+      "DERIVED": 11,
+      "CONDITIONAL": 5
+    },
+    "automation_potential": {
+      "description": "Percentage of fields that do NOT require user input",
+      "AppFrm-023": "11/19 fields auto-fillable (58%)",
+      "AppFrm-073": "9/13 fields auto-fillable (69%)",
+      "AppFrm-020": "10/16 fields auto-fillable (63%)",
+      "AppFrm-054": "10/18 fields auto-fillable (56%)",
+      "AppFrm-026": "6/20 fields auto-fillable (30%)",
+      "AppFrm-028": "5/10 fields auto-fillable (50%)",
+      "AppFrm-039": "3/14 fields auto-fillable (21%)",
+      "AppFrm-043": "7/12 fields auto-fillable (58%)"
+    },
+    "user_input_minimization": {
+      "AppFrm-023": "6 mandatory inputs → full form (19 fields)",
+      "AppFrm-073": "3 mandatory inputs → full form (13 fields)",
+      "AppFrm-020": "6 mandatory inputs → full form (16 fields)",
+      "AppFrm-054": "7 mandatory inputs → full form (18 fields)",
+      "AppFrm-026": "14 mandatory inputs → full form (20 fields)",
+      "AppFrm-028": "5 mandatory inputs → full form (10 fields)",
+      "AppFrm-039": "7 mandatory inputs → full form (14 fields)",
+      "AppFrm-043": "5 mandatory inputs → full form (12 fields)"
+    },
+    "easiest_to_automate": [
+      "AppFrm-073 (Leave): Only 3 mandatory inputs. 69% auto-fill rate.",
+      "AppFrm-020 (Card Expense): 6 mandatory but mostly receipt data. 63% auto-fill.",
+      "AppFrm-023 (Travel Request): 6 mandatory inputs. Rich inference rules. 58% auto-fill.",
+      "AppFrm-043 (Seminar Disclosure): 5 mandatory inputs. 58% auto-fill."
+    ],
+    "hardest_to_automate": [
+      "AppFrm-026 (Overseas Settlement): 14 mandatory inputs, complex expense breakdown. Only 30% auto-fill.",
+      "AppFrm-039 (Budget Transfer): 7 mandatory + conditional equipment block. Only 21% auto-fill."
+    ]
+  }
+}
