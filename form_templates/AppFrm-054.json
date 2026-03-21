@@ -338,6 +338,33 @@
     "General": "420312",
     "note": "Appended to budget account code string as - Domestic Business Travel[<code>]"
   },
+  "own_vehicle_rules": {
+    "description": "Settlement own_car field — must match or be <= the approved travel request amount",
+    "cost_formula": "oil_price_per_liter × distance_km / fuel_efficiency(10km/L) (same as AppFrm-023)",
+    "cross_reference": "oil_price and distance_km should match the original travel request (AppFrm-023)",
+    "budget_field_structure": {
+      "transport_fee": "Total transport cost (sum of all sub-categories below)",
+      "airfare": "Flight cost (0 for domestic car travel)",
+      "train_express_bus": "Train/bus tickets (0 if only own car, or partial if mixed transport)",
+      "own_car": "Fuel cost = oil_price × distance_km",
+      "taxi": "Taxi fare",
+      "other_public": "Other public transport (subway, local bus)",
+      "toll": "Hi-Pass toll fee"
+    },
+    "required_attachments": {
+      "transport": {
+        "filename_pattern": "거리.pdf",
+        "description": "Naver Maps driving distance screenshot",
+        "source": "map.naver.com → 길찾기 → 자동차"
+      },
+      "toll": {
+        "filename_pattern": "영수증___하이패스_홈페이지.pdf",
+        "description": "Hi-Pass toll receipt",
+        "condition": "Only if toll > 0"
+      }
+    },
+    "validation": "settlement own_car amount <= approved travel request own_car amount"
+  },
   "minimum_required_inputs": [
     "subject",
     "start_date",
@@ -346,6 +373,11 @@
     "budget_control_no",
     "purpose",
     "attached_approved_doc_ref"
+  ],
+  "conditional_inputs_own_vehicle": [
+    "oil_price_per_liter",
+    "distance_km",
+    "toll_fee"
   ],
   "optional_inputs": [
     "start_time",

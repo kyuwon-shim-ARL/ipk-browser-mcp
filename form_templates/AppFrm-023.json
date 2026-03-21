@@ -276,6 +276,49 @@
       }
     ]
   },
+  "own_vehicle_rules": {
+    "description": "When transport_mode is 'Own Vehicle - Gasoline' or 'Own Vehicle - Diesel'",
+    "cost_formula": "oil_price_per_liter × distance_km / fuel_efficiency(10km/L)",
+    "observed_oil_prices": [1584, 1668, 1906],
+    "oil_price_unit": "KRW/L",
+    "distance_source": "Naver Maps (map.naver.com) driving route from IPK (판교) to destination",
+    "required_attachments": {
+      "transport": {
+        "filename_pattern": "거리.pdf",
+        "description": "Naver Maps driving distance screenshot (자가용 route)",
+        "source": "map.naver.com → 길찾기 → 자동차 → 스크린샷 → PDF"
+      },
+      "toll": {
+        "filename_pattern": "영수증___하이패스_홈페이지.pdf",
+        "description": "Hi-Pass toll receipt from hipass.co.kr",
+        "condition": "Only if toll roads used"
+      }
+    },
+    "budget_fields": {
+      "own_car": "oil_price × distance_km (round-trip if applicable)",
+      "toll": "Hi-Pass amount from receipt",
+      "note": "own_car field in form = total fuel cost in KRW. Separately from toll."
+    },
+    "examples": [
+      {
+        "destination": "Busan",
+        "oil_price": 1668,
+        "distance_km": 381,
+        "direction": "one-way (Seoul→Busan by KTX, Busan→Seoul by car)",
+        "own_car_cost": 63551,
+        "note": "Mixed transport: one-way train + one-way own car"
+      },
+      {
+        "destination": "Yongpyong (강원 용평)",
+        "oil_price": 1584,
+        "distance_km": null,
+        "own_car_cost": null,
+        "toll_attached": true,
+        "accommodation_attached": true,
+        "note": "Overnight trip with toll + accommodation receipts"
+      }
+    ]
+  },
   "minimum_required_inputs": [
     "subject",
     "start_date",
@@ -283,6 +326,11 @@
     "destination",
     "budget_control_no",
     "purpose"
+  ],
+  "conditional_inputs_own_vehicle": [
+    "oil_price_per_liter",
+    "distance_km",
+    "toll_fee"
   ],
   "optional_inputs": [
     "start_time",

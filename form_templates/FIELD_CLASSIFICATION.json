@@ -161,6 +161,41 @@
         {
           "field": "item_no",
           "rule": "AJAX cascade: budget_code → line items"
+        },
+        {
+          "field": "own_car_cost",
+          "rule": "oil_price_per_liter × distance_km / fuel_efficiency(10km/L). Only when transport_mode = 'Own Vehicle - Gasoline/Diesel'.",
+          "examples": ["1668/L × 381km / 10 = 63,551원", "1584/L × (distance) / 10", "1906/L × 274km / 10"]
+        }
+      ],
+      "CONDITIONAL_OWN_VEHICLE": [
+        {
+          "field": "oil_price_per_liter",
+          "type": "number",
+          "category": "MANDATORY_EXACT",
+          "condition": "transport_mode = 'Own Vehicle - Gasoline' or 'Own Vehicle - Diesel'",
+          "reason": "Current fuel price on travel date. Observed values: 1584, 1668, 1906 KRW/L.",
+          "validation": "Must be current market price. Verifiable against public fuel price data.",
+          "note": "User looks up current oil price; could be auto-fetched from Opinet API"
+        },
+        {
+          "field": "distance_km",
+          "type": "number",
+          "category": "INFERABLE_HIGH",
+          "condition": "transport_mode = 'Own Vehicle - Gasoline' or 'Own Vehicle - Diesel'",
+          "confidence": 0.95,
+          "rule": "Naver Maps driving distance from IPK (판교) to destination. Auto-queryable.",
+          "note": "Must attach '거리.pdf' (Naver Maps screenshot) as proof",
+          "attachment_required": "거리.pdf"
+        },
+        {
+          "field": "toll_fee",
+          "type": "number",
+          "category": "MANDATORY_EXACT",
+          "condition": "transport_mode = 'Own Vehicle - Gasoline' or 'Own Vehicle - Diesel' AND toll road used",
+          "reason": "Hi-Pass toll amount. Must match receipt.",
+          "validation": "Must attach '하이패스_홈페이지.pdf' as proof",
+          "attachment_required": "영수증___하이패스_홈페이지.pdf"
         }
       ]
     }
@@ -561,6 +596,37 @@
         {
           "field": "item_no",
           "rule": "AJAX cascade from budget_code"
+        },
+        {
+          "field": "own_car_cost",
+          "rule": "oil_price_per_liter × distance_km / fuel_efficiency(10km/L). Only when transport_mode = 'Own Vehicle'.",
+          "note": "Same formula as AppFrm-023. Settlement must match or be <= request amount."
+        }
+      ],
+      "CONDITIONAL_OWN_VEHICLE": [
+        {
+          "field": "oil_price_per_liter",
+          "type": "number",
+          "category": "MANDATORY_EXACT",
+          "condition": "transport_mode = 'Own Vehicle - Gasoline' or 'Own Vehicle - Diesel'",
+          "reason": "Must match the oil price declared in the original travel request (AppFrm-023)."
+        },
+        {
+          "field": "distance_km",
+          "type": "number",
+          "category": "INFERABLE_HIGH",
+          "condition": "transport_mode = 'Own Vehicle'",
+          "confidence": 0.95,
+          "rule": "Same as travel request. Naver Maps driving distance.",
+          "attachment_required": "거리.pdf (Naver Maps screenshot)"
+        },
+        {
+          "field": "toll_fee",
+          "type": "number",
+          "category": "MANDATORY_EXACT",
+          "condition": "transport_mode = 'Own Vehicle' AND toll road used",
+          "reason": "Hi-Pass receipt amount.",
+          "attachment_required": "영수증___하이패스_홈페이지.pdf"
         }
       ]
     }
@@ -1025,16 +1091,18 @@
   },
 
   "summary": {
-    "total_fields_classified": 126,
+    "total_fields_classified": 134,
     "by_category": {
       "MANDATORY_EXACT": 48,
       "INFERABLE_HIGH": 27,
       "INFERABLE_MEDIUM": 22,
       "PROFILE_DEFAULT": 14,
       "FIXED": 20,
-      "DERIVED": 11,
-      "CONDITIONAL": 5
+      "DERIVED": 13,
+      "CONDITIONAL": 5,
+      "CONDITIONAL_OWN_VEHICLE": 6
     },
+    "note": "CONDITIONAL_OWN_VEHICLE fields (6) only apply when transport_mode = Own Vehicle. Formula: own_car_cost = oil_price × distance_km / fuel_efficiency(10km/L). Required attachments: 거리.pdf (Naver Maps), 하이패스 영수증.",
     "automation_potential": {
       "description": "Percentage of fields that do NOT require user input",
       "AppFrm-023": "11/19 fields auto-fillable (58%)",
