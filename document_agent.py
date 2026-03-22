@@ -703,6 +703,25 @@ class SmartFormAgent:
                 fields[fname] = value
                 auto_filled.append(fname)
 
+        # 4b. budget_account is auto-filled but always needs confirmation
+        if "budget_account" in fields and "budget_account" in auto_filled:
+            auto_filled.remove("budget_account")
+            all_expired = fields.pop("_budget_all_expired", False)
+            active_n = fields.pop("_budget_active_count", 0)
+            total_n = fields.pop("_budget_total_count", 0)
+            if all_expired:
+                reason = "WARNING: all accounts expired — verify with finance"
+                conf = 0.3
+            else:
+                reason = f"date-filtered: {active_n}/{total_n} accounts active"
+                conf = 0.85
+            needs_confirmation.append({
+                "field": "budget_account",
+                "value": fields["budget_account"],
+                "confidence": conf,
+                "reason": reason,
+            })
+
         # 5. PROFILE_DEFAULT — fill from profile, mark needs_confirmation
         profiles = self._load_profiles()
         default_profile = self._get_default_profile(profiles)
@@ -710,7 +729,7 @@ class SmartFormAgent:
             fname = item.get("field")
             if not fname or fname in fields:
                 continue
-            value, confidence = self._infer_profile(fname, default_profile, item)
+            value, confidence = self._infer_profile(fname, default_profile, item, fields)
             if value is not None:
                 fields[fname] = value
                 needs_confirmation.append({
@@ -986,6 +1005,25 @@ class SmartFormAgent:
         if fname in ("nights_days", "nights", "days"):
             return None  # already handled in _apply_derived
 
+        # budget_account — date-aware profile lookup
+        # Returns value but caller should also add to needs_confirmation
+        if fname == "budget_account":
+            profiles = self._load_profiles()
+            profile = self._get_default_profile(profiles)
+            if profile:
+                accounts = profile.get("budget_accounts", {}).get("ranked_by_recency", [])
+                ref_date = fields.get("start_date")
+                active = self._filter_active_accounts(accounts, ref_date)
+                if active:
+                    # Store metadata for confirmation display
+                    fields["_budget_active_count"] = len(active)
+                    fields["_budget_total_count"] = len(accounts)
+                    return active[0]
+                elif accounts:
+                    fields["_budget_all_expired"] = True
+                    return accounts[0]
+            return None
+
         # account_code from budget_type
         if fname == "account_code":
             btype = fields.get("budget_type", "R&D")
@@ -1044,8 +1082,43 @@ class SmartFormAgent:
 
         return None
 
+    def _filter_active_accounts(self, accounts: List[str],
+                                ref_date: str = None) -> List[str]:
+        """Filter budget accounts by validity period.
+
+        Args:
+            accounts: List of budget account strings containing Period info
+            ref_date: Reference date (YYYY-MM-DD) to check against. Defaults to today.
+
+        Returns:
+            List of accounts whose Period covers the reference date, preserving order.
+        """
+        import re
+        if ref_date:
+            try:
+                ref = datetime.strptime(ref_date, "%Y-%m-%d")
+            except ValueError:
+                ref = datetime.now()
+        else:
+            ref = datetime.now()
+
+        active = []
+        for acct in accounts:
+            period_match = re.search(r'Period\s*:\s*(\d{4}-\d{2}-\d{2})~(\d{4}-\d{2}-\d{2})', acct)
+            if not period_match:
+                active.append(acct)  # No period info → assume active
+                continue
+            try:
+                start = datetime.strptime(period_match.group(1), "%Y-%m-%d")
+                end = datetime.strptime(period_match.group(2), "%Y-%m-%d")
+                if start <= ref <= end:
+                    active.append(acct)
+            except ValueError:
+                active.append(acct)  # Parse error → assume active
+        return active
+
     def _infer_profile(self, fname: str, profile: Optional[dict],
-                       item: dict) -> Tuple[Optional[Any], float]:
+                       item: dict, fields: dict = None) -> Tuple[Optional[Any], float]:
         """Infer PROFILE_DEFAULT fields from traveler profile."""
         if not profile:
             return None, 0.0
@@ -1064,9 +1137,15 @@ class SmartFormAgent:
 
         if fname == "budget_account_code":
             accounts = profile.get("budget_accounts", {}).get("ranked_by_recency", [])
-            if accounts:
-                return accounts[0], 0.8
-            return None, 0.0
+            if not accounts:
+                return None, 0.0
+            # Use travel start_date if available, else today
+            ref_date = (fields or {}).get("start_date")
+            active = self._filter_active_accounts(accounts, ref_date)
+            if active:
+                return active[0], 0.85
+            # All expired — return most recent with low confidence
+            return accounts[0], 0.3
 
         if fname in ("substitute_name",):
             # Hardcoded from classification: Kyuwon's default is Guinam Wee (88%)
