@@ -27,7 +27,8 @@ export async function navigateToForm(
 
   await frame.goto(url, { timeout: config.navTimeoutMs });
   await frame.waitForLoadState("networkidle");
-  await page.waitForTimeout(1500);
+  // Wait for form elements to be interactive (replaces blanket 1500ms timeout)
+  await frame.waitForSelector("form input, form textarea, form select", { timeout: 5000 }).catch(() => null);
 
   return frame;
 }

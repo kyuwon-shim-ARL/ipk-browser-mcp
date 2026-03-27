@@ -9,6 +9,8 @@
     "dev": "node --watch dist/ipk-browser-mcp.mjs",
     "start": "node dist/ipk-browser-mcp.mjs",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "lint:security": "grep -rn 'evaluate(`' src/ && echo 'FAIL: template literal in evaluate' && exit 1 || echo 'PASS: no template literals in evaluate'"
   },
   "dependencies": {
@@ -19,7 +21,8 @@
   "devDependencies": {
     "@types/node": "^22.0.0",
     "esbuild": "^0.27.4",
-    "typescript": "^5.7.0"
+    "typescript": "^5.7.0",
+    "vitest": "^2.1.9"
   },
   "engines": {
     "node": ">=20"

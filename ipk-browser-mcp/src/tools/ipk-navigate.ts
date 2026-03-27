@@ -32,6 +32,9 @@ export async function handleIpkNavigate(
   const page = sessionManager.getPage()!;
 
   try {
+    // Domain restriction is enforced inside navigateInFrame (iframe-helper.ts):
+    // full URLs are checked against config.baseUrl hostname; relative paths are
+    // prefixed with config.baseUrl, so cross-origin navigation is not possible.
     const frame = await navigateInFrame(page, params.url, config);
 
     if (!frame) {
