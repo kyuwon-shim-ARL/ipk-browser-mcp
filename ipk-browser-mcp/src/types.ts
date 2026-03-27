@@ -6,8 +6,8 @@ export type FormType =
   | "travel"          // 출장보고 (AppFrm-076)
   | "travel_request"  // 출장신청 (AppFrm-023)
   | "budget_transfer" // 예산전용 (AppFrm-039/053)
-  // --- Stub types (T6: TODO replace with Python bridge call) ---
-  | "travel_settlement" // 출장정산 (AppFrm-076)
+  // --- Wave 2 form types ---
+  | "travel_settlement" // 출장정산 (AppFrm-054)
   | "leave_return"      // 대체휴일반납 (AppFrm-028)
   | "card_expense"      // 카드경비 (AppFrm-020)
   | "seminar"           // 세미나공시 (AppFrm-043)
@@ -52,8 +52,8 @@ export const FORM_CODES: Record<FormType, string> = {
   travel: "AppFrm-076",
   travel_request: "AppFrm-023",
   budget_transfer: "AppFrm-039",
-  // Stub types — will be routed to Python bridge in T6
-  travel_settlement: "AppFrm-076",
+  // Wave 2 form types
+  travel_settlement: "AppFrm-054",
   leave_return: "AppFrm-028",
   card_expense: "AppFrm-020",
   seminar: "AppFrm-043",

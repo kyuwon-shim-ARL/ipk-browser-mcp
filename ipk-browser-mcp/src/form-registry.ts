@@ -13,12 +13,12 @@ export const FORM_REGISTRY = {
   travel:           { appFrmCode: "AppFrm-076", templateFile: "AppFrm-076.json", status: "implemented", description: "출장보고" },
   travel_request:   { appFrmCode: "AppFrm-023", templateFile: "AppFrm-023.json", status: "implemented", description: "출장신청" },
   budget_transfer:  { appFrmCode: "AppFrm-039", templateFile: "AppFrm-039.json", status: "implemented", description: "예산전용(R&D)" },
-  // Stub types — pending Python bridge (T6)
-  travel_settlement: { appFrmCode: "AppFrm-076", templateFile: "AppFrm-076.json", status: "stub", description: "출장정산" },
-  leave_return:      { appFrmCode: "AppFrm-028", templateFile: "AppFrm-028.json", status: "stub", description: "대체휴일반납" },
-  card_expense:      { appFrmCode: "AppFrm-020", templateFile: "AppFrm-020.json", status: "stub", description: "카드경비" },
-  seminar:           { appFrmCode: "AppFrm-043", templateFile: "AppFrm-043.json", status: "stub", description: "세미나공시" },
-  overseas_travel:   { appFrmCode: "AppFrm-026", templateFile: "AppFrm-026.json", status: "stub", description: "해외출장" },
+  // Wave 2 form types (implemented)
+  travel_settlement: { appFrmCode: "AppFrm-054", templateFile: "AppFrm-054.json", status: "implemented", description: "출장정산" },
+  leave_return:      { appFrmCode: "AppFrm-028", templateFile: "AppFrm-028.json", status: "implemented", description: "대체휴일반납" },
+  card_expense:      { appFrmCode: "AppFrm-020", templateFile: "AppFrm-020.json", status: "implemented", description: "카드경비" },
+  seminar:           { appFrmCode: "AppFrm-043", templateFile: "AppFrm-043.json", status: "implemented", description: "세미나공시" },
+  overseas_travel:   { appFrmCode: "AppFrm-026", templateFile: "AppFrm-026.json", status: "implemented", description: "해외출장" },
 } as const;
 
 export type FormRegistryKey = keyof typeof FORM_REGISTRY;
