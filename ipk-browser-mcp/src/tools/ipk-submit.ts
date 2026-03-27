@@ -18,7 +18,11 @@ import {
 } from "../types.js";
 
 export const ipkSubmitFormSchema = {
-  form_type: z.enum(["leave", "expense", "working", "travel", "travel_request", "budget_transfer"]).describe("Form type to submit"),
+  form_type: z.enum([
+    "leave", "expense", "working", "travel", "travel_request", "budget_transfer",
+    // Stub types — pending Python bridge (T6)
+    "travel_settlement", "leave_return", "card_expense", "seminar", "overseas_travel",
+  ]).describe("Form type to submit"),
   draft_only: z.boolean().default(true).describe("Save as draft (true) or submit for approval (false). Defaults to true for safety."),
   confirm_submit: z.boolean().default(false).describe("Must be true to actually submit for approval. Ignored when draft_only=true."),
 
@@ -60,7 +64,8 @@ export const ipkSubmitFormSchema = {
 };
 
 export const ipkSubmitFormDescription =
-  "Submit a form in IPK groupware. Supports: leave (휴가), expense (경비), working (휴일근무), travel (출장보고), travel_request (출장신청), budget_transfer (버젯트랜스퍼). " +
+  "Submit a form in IPK groupware. Implemented: leave (휴가/AppFrm-073), expense (경비/AppFrm-020), working (휴일근무/AppFrm-027), travel (출장보고/AppFrm-076), travel_request (출장신청/AppFrm-023), budget_transfer (예산전용/AppFrm-039). " +
+  "Stub (pending Python bridge): travel_settlement (출장정산), leave_return (대체휴일반납), card_expense (카드경비), seminar (세미나공시), overseas_travel (해외출장). " +
   "By default saves as draft (draft_only=true). To actually submit for approval, set draft_only=false AND confirm_submit=true. " +
   "For budget_transfer, use transfer_type='rnd' (AppFrm-039, default) or transfer_type='general' (AppFrm-053).";
 
@@ -118,6 +123,17 @@ export async function handleIpkSubmitForm(
         return await submitTravel(page, frame, sessionManager, config, params, mode);
       case "travel_request":
         return await submitTravelRequest(page, frame, sessionManager, config, params, mode);
+      // TODO(T6): replace with Python bridge call once pipeline.py + bridge.py are implemented
+      case "travel_settlement":
+        return textResult({ error: true, code: "NOT_IMPLEMENTED", message: "출장정산(AppFrm-076) 기능은 현재 구현 중입니다. Python bridge 연동 후 사용 가능합니다." });
+      case "leave_return":
+        return textResult({ error: true, code: "NOT_IMPLEMENTED", message: "대체휴일반납(AppFrm-028) 기능은 현재 구현 중입니다. Python bridge 연동 후 사용 가능합니다." });
+      case "card_expense":
+        return textResult({ error: true, code: "NOT_IMPLEMENTED", message: "카드경비(AppFrm-020) 기능은 현재 구현 중입니다. Python bridge 연동 후 사용 가능합니다." });
+      case "seminar":
+        return textResult({ error: true, code: "NOT_IMPLEMENTED", message: "세미나공시(AppFrm-043) 기능은 현재 구현 중입니다. Python bridge 연동 후 사용 가능합니다." });
+      case "overseas_travel":
+        return textResult({ error: true, code: "NOT_IMPLEMENTED", message: "해외출장(AppFrm-026) 기능은 현재 구현 중입니다. Python bridge 연동 후 사용 가능합니다." });
       default:
         return textResult({ error: true, code: "UNKNOWN_FORM", message: `Unknown form type: ${formType}` });
     }

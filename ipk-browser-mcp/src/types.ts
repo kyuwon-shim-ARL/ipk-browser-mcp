@@ -1,5 +1,17 @@
 /** Supported form types in IPK groupware */
-export type FormType = "leave" | "expense" | "working" | "travel" | "travel_request" | "budget_transfer";
+export type FormType =
+  | "leave"           // 휴가 (AppFrm-073)
+  | "expense"         // 경비 (AppFrm-020, legacy mapping was 021 — see form-registry.ts)
+  | "working"         // 휴일근무 (AppFrm-027)
+  | "travel"          // 출장보고 (AppFrm-076)
+  | "travel_request"  // 출장신청 (AppFrm-023)
+  | "budget_transfer" // 예산전용 (AppFrm-039/053)
+  // --- Stub types (T6: TODO replace with Python bridge call) ---
+  | "travel_settlement" // 출장정산 (AppFrm-076)
+  | "leave_return"      // 대체휴일반납 (AppFrm-028)
+  | "card_expense"      // 카드경비 (AppFrm-020)
+  | "seminar"           // 세미나공시 (AppFrm-043)
+  | "overseas_travel";  // 해외출장 (AppFrm-026)
 
 /** Leave type codes */
 export const LEAVE_TYPES: Record<string, string> = {
@@ -29,14 +41,23 @@ export const ATTACHMENT_REQUIRED_LEAVES: Record<string, string> = {
   "15": "출생증명서",
 };
 
-/** Form approval codes */
+/** Form approval codes — single source of truth for TS layer.
+ *  See also: form-registry.ts (full registry with status) and form-registry.json (Python bridge).
+ *  NOTE: expense was previously mapped to AppFrm-021 (incorrect). Corrected to AppFrm-020.
+ */
 export const FORM_CODES: Record<FormType, string> = {
   leave: "AppFrm-073",
-  expense: "AppFrm-021",
+  expense: "AppFrm-020",       // Fixed: was AppFrm-021 (incorrect form code)
   working: "AppFrm-027",
   travel: "AppFrm-076",
   travel_request: "AppFrm-023",
   budget_transfer: "AppFrm-039",
+  // Stub types — will be routed to Python bridge in T6
+  travel_settlement: "AppFrm-076",
+  leave_return: "AppFrm-028",
+  card_expense: "AppFrm-020",
+  seminar: "AppFrm-043",
+  overseas_travel: "AppFrm-026",
 };
 
 /** Budget transfer form codes: rnd = R&D (AppFrm-039), general = General (AppFrm-053) */

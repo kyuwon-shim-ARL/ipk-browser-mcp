@@ -1,0 +1,25 @@
+/**
+ * Form Registry — single source of truth for FormType ↔ AppFrm mapping.
+ * Exported as form-registry.json for Python layer consumption.
+ *
+ * status:
+ *   "implemented" — full TS Playwright automation exists
+ *   "stub"        — returns NOT_IMPLEMENTED; pending Python bridge (T6)
+ */
+export const FORM_REGISTRY = {
+  leave:            { appFrmCode: "AppFrm-073", templateFile: "AppFrm-073.json", status: "implemented", description: "휴가신청" },
+  expense:          { appFrmCode: "AppFrm-020", templateFile: "AppFrm-020.json", status: "implemented", description: "경비지출" },
+  working:          { appFrmCode: "AppFrm-027", templateFile: "AppFrm-027.json", status: "implemented", description: "휴일근무" },
+  travel:           { appFrmCode: "AppFrm-076", templateFile: "AppFrm-076.json", status: "implemented", description: "출장보고" },
+  travel_request:   { appFrmCode: "AppFrm-023", templateFile: "AppFrm-023.json", status: "implemented", description: "출장신청" },
+  budget_transfer:  { appFrmCode: "AppFrm-039", templateFile: "AppFrm-039.json", status: "implemented", description: "예산전용(R&D)" },
+  // Stub types — pending Python bridge (T6)
+  travel_settlement: { appFrmCode: "AppFrm-076", templateFile: "AppFrm-076.json", status: "stub", description: "출장정산" },
+  leave_return:      { appFrmCode: "AppFrm-028", templateFile: "AppFrm-028.json", status: "stub", description: "대체휴일반납" },
+  card_expense:      { appFrmCode: "AppFrm-020", templateFile: "AppFrm-020.json", status: "stub", description: "카드경비" },
+  seminar:           { appFrmCode: "AppFrm-043", templateFile: "AppFrm-043.json", status: "stub", description: "세미나공시" },
+  overseas_travel:   { appFrmCode: "AppFrm-026", templateFile: "AppFrm-026.json", status: "stub", description: "해외출장" },
+} as const;
+
+export type FormRegistryKey = keyof typeof FORM_REGISTRY;
+export type FormRegistryEntry = typeof FORM_REGISTRY[FormRegistryKey];
