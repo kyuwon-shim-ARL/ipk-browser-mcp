@@ -18,7 +18,6 @@ import {
   ATTACHMENT_REQUIRED_LEAVES,
   BUDGET_TRANSFER_CODES,
 } from "../types.js";
-import { callPythonBridge } from "../python-bridge.js";
 import * as path from "path";
 
 /** Allowed directories for attachment file uploads. Prevents arbitrary file reads. */
@@ -55,7 +54,7 @@ function validateAttachmentPath(filePath: string): string | null {
 export const ipkSubmitFormSchema = {
   form_type: z.enum([
     "leave", "expense", "working", "travel", "travel_request", "budget_transfer",
-    // Stub types — pending Python bridge (T6)
+    // Wave 2 form types
     "travel_settlement", "leave_return", "card_expense", "seminar", "overseas_travel",
   ]).describe("Form type to submit"),
   draft_only: z.boolean().default(true).describe("Save as draft (true) or submit for approval (false). Defaults to true for safety."),
@@ -96,11 +95,73 @@ export const ipkSubmitFormSchema = {
   to_budget_code: z.string().optional().describe("Destination budget code to transfer TO"),
   transfer_amount: z.number().optional().describe("Amount to transfer in KRW"),
   transfer_type: z.enum(["rnd", "general"]).default("rnd").describe("Budget transfer type: rnd (R&D, AppFrm-039) or general (AppFrm-053)"),
+
+  // Card expense fields (AppFrm-020)
+  item_date: z.string().optional().describe("Date of purchase (YYYY-MM-DD)"),
+  item_account_code: z.string().optional().describe("Account code: 420421=Team activities, 420420=External meeting, 420374=Commission, 420375=Registration"),
+  item_description: z.string().optional().describe("Expense description (e.g. 'Team activities')"),
+  item_vendor: z.string().optional().describe("Vendor/store name"),
+  item_control_no: z.string().optional().describe("Card receipt control number"),
+  purpose_minutes: z.string().optional().describe("Meeting purpose and minutes"),
+
+  // Travel settlement fields (AppFrm-054)
+  province: z.string().optional().describe("Province select value for AJAX cascade"),
+  city: z.string().optional().describe("City select value for AJAX cascade"),
+  transport_mode: z.string().optional().describe("Transport mode: 'Other Public Transporation', 'Own Vehicle - Gasoline', 'Own Vehicle - Diesel'"),
+  budget_control_no: z.string().optional().describe("Budget control number (BC-XXXX-XXXX)"),
+  purpose_category: z.string().optional().describe("Purpose category for travel settlement"),
+  daily_expense: z.number().optional().describe("Daily expense amount in KRW"),
+  transport_fee: z.number().optional().describe("Transport fee in KRW"),
+  accommodation: z.number().optional().describe("Accommodation fee in KRW"),
+  food_expense: z.number().optional().describe("Food expense in KRW"),
+  approved_doc_ref: z.string().optional().describe("Document number of the approved travel request"),
+  oil_price: z.number().optional().describe("Oil price per liter (own vehicle)"),
+  distance_km: z.number().optional().describe("Distance in km (own vehicle)"),
+  toll_fee: z.number().optional().describe("Toll fee in KRW (own vehicle)"),
+
+  // Leave return fields (AppFrm-028)
+  original_leave_doc: z.string().optional().describe("Document number of original leave (e.g. ARL-260121-02)"),
+  return_days: z.number().optional().describe("Number of days to return"),
+  return_hours: z.number().optional().describe("Number of hours to return"),
+  description: z.string().optional().describe("Reason for leave return"),
+
+  // Seminar fields (AppFrm-043)
+  disclosure_purpose: z.string().optional().describe("Why the material is being disclosed"),
+  disclosure_date: z.string().optional().describe("Date of seminar/event (YYYY-MM-DD)"),
+  material_description: z.string().optional().describe("Material filename and size"),
+  conference_or_journal: z.string().optional().describe("Name of conference or journal"),
+  patent_filed: z.enum(["Y", "N", ""]).optional().describe("Q1: Patent filed?"),
+  patent_planned: z.enum(["Y", "N", ""]).optional().describe("Q2: Patent planned within a year?"),
+  material_published: z.enum(["Y", "N", ""]).optional().describe("Q3: Material published?"),
+  collaborator_approval: z.enum(["Y", ""]).optional().describe("Q4: Collaborator approval obtained?"),
+  contains_confidential: z.enum(["N", ""]).optional().describe("Q5: Contains IPK confidential info?"),
+
+  // Overseas travel fields (AppFrm-026)
+  country: z.string().optional().describe("Destination country and city"),
+  conference_name: z.string().optional().describe("Conference or organization name"),
+  travel_start: z.string().optional().describe("Departure date (YYYY-MM-DD)"),
+  travel_end: z.string().optional().describe("Return date (YYYY-MM-DD)"),
+  payment_date: z.string().optional().describe("Settlement payment date (YYYY-MM-DD)"),
+  schedule_rows: z.array(z.object({
+    from: z.string(), to: z.string(), schedule: z.string(), transportation: z.string(),
+  })).optional().describe("Daily itinerary rows"),
+  daily_expense_budget: z.number().optional().describe("Daily allowance budget (KRW)"),
+  daily_expense_cash: z.number().optional().describe("Daily allowance cash amount (KRW)"),
+  food_expense_budget: z.number().optional().describe("Food expense budget (KRW)"),
+  food_expense_cash: z.number().optional().describe("Food expense cash amount (KRW)"),
+  transport_fee_budget: z.number().optional().describe("Transport fee budget (KRW)"),
+  transport_fee_corp_card: z.number().optional().describe("Transport fee paid by corp card (KRW)"),
+  accommodation_budget: z.number().optional().describe("Accommodation budget (KRW)"),
+  accommodation_corp_card: z.number().optional().describe("Accommodation paid by corp card (KRW)"),
+  settle_amount: z.number().optional().describe("Total settlement amount (KRW)"),
+  reimbursement: z.number().optional().describe("Amount to reimburse traveler (KRW)"),
+  corp_card_no: z.string().optional().describe("Corporate card number (XXXX-XXXX-XXXX-XXXX)"),
 };
 
 export const ipkSubmitFormDescription =
-  "Submit a form in IPK groupware. Implemented: leave (휴가/AppFrm-073), expense (경비/AppFrm-020), working (휴일근무/AppFrm-027), travel (출장보고/AppFrm-076), travel_request (출장신청/AppFrm-023), budget_transfer (예산전용/AppFrm-039). " +
-  "Stub (pending Python bridge): travel_settlement (출장정산), leave_return (대체휴일반납), card_expense (카드경비), seminar (세미나공시), overseas_travel (해외출장). " +
+  "Submit a form in IPK groupware. All 11 form types are fully implemented: " +
+  "leave (휴가/AppFrm-073), expense (경비/AppFrm-020), working (휴일근무/AppFrm-027), travel (출장보고/AppFrm-076), travel_request (출장신청/AppFrm-023), budget_transfer (예산전용/AppFrm-039), " +
+  "card_expense (카드경비/AppFrm-020), travel_settlement (출장정산/AppFrm-054), leave_return (대체휴일반납/AppFrm-028), seminar (세미나공시/AppFrm-043), overseas_travel (해외출장/AppFrm-026). " +
   "By default saves as draft (draft_only=true). To actually submit for approval, set draft_only=false AND confirm_submit=true. " +
   "For budget_transfer, use transfer_type='rnd' (AppFrm-039, default) or transfer_type='general' (AppFrm-053).";
 
@@ -166,13 +227,16 @@ export async function handleIpkSubmitForm(
         return await submitTravel(page, frame, sessionManager, config, params, mode);
       case "travel_request":
         return await submitTravelRequest(page, frame, sessionManager, config, params, mode);
-      // Python bridge types: infer fields via bridge.py, fallback to NOT_IMPLEMENTED on error
-      case "travel_settlement":
-      case "leave_return":
       case "card_expense":
+        return await submitCardExpense(page, frame, sessionManager, config, params, mode);
+      case "travel_settlement":
+        return await submitTravelSettlement(page, frame, sessionManager, config, params, mode);
+      case "leave_return":
+        return await submitLeaveReturn(page, frame, sessionManager, config, params, mode);
       case "seminar":
+        return await submitSeminar(page, frame, sessionManager, config, params, mode);
       case "overseas_travel":
-        return await handleBridgeFormType(formType, params);
+        return await submitOverseasTravel(page, frame, sessionManager, config, params, mode);
       default:
         return textResult({ error: true, code: "UNKNOWN_FORM", message: `Unknown form type: ${formType}` });
     }
@@ -742,48 +806,583 @@ async function submitBudgetTransfer(
   });
 }
 
-/** Handle form types that use the Python bridge for field inference. */
-async function handleBridgeFormType(
-  formType: FormType,
-  params: Record<string, any>
+/** Card Expense (AppFrm-020) — same form as expense but with card-specific fields */
+async function submitCardExpense(
+  page: any,
+  frame: any,
+  sessionManager: SessionManager,
+  config: Config,
+  params: Record<string, any>,
+  mode: "draft" | "request"
 ) {
-  const FALLBACK_MESSAGES: Record<string, string> = {
-    travel_settlement: "출장정산(AppFrm-076) 기능은 현재 구현 중입니다. Python bridge 연동 후 사용 가능합니다.",
-    leave_return: "대체휴일반납(AppFrm-028) 기능은 현재 구현 중입니다. Python bridge 연동 후 사용 가능합니다.",
-    card_expense: "카드경비(AppFrm-020) 기능은 현재 구현 중입니다. Python bridge 연동 후 사용 가능합니다.",
-    seminar: "세미나공시(AppFrm-043) 기능은 현재 구현 중입니다. Python bridge 연동 후 사용 가능합니다.",
-    overseas_travel: "해외출장(AppFrm-026) 기능은 현재 구현 중입니다. Python bridge 연동 후 사용 가능합니다.",
+  if (params.amount !== undefined && (typeof params.amount !== 'number' || params.amount <= 0 || !Number.isFinite(params.amount))) {
+    return textResult({ error: true, code: "INVALID_AMOUNT", message: "Amount must be a positive number" });
+  }
+
+  const date = params.item_date || params.start_date || todayStr();
+  const amount = params.amount || 0;
+  const amountNoVat = Math.floor(amount / 1.1);
+  const vat = amount - amountNoVat;
+  const itemDesc = params.item_description || "Team activities";
+  const accountCode = params.item_account_code || "420421";
+  const vendor = params.item_vendor || "";
+  const controlNo = params.item_control_no || "";
+  const subject = params.title || `[Card] ${itemDesc}`;
+  const budgetCode = params.budget_code;
+  if (!budgetCode) {
+    return textResult({ error: true, code: "MISSING_BUDGET_CODE", message: "budget_code is required. Provide the active fiscal year budget code (e.g. NN2612-0001)." });
+  }
+  const participants = params.participants || "";
+  const venue = params.venue || "";
+  const purposeMinutes = params.purpose_minutes || params.purpose || "";
+  const pReason = params.reason || `${itemDesc} - receipt attached`;
+
+  // Step 1: Set subject and budget_type
+  await setRequiredField(frame, 'input[name="subject"]', subject, "subject");
+  await setRequiredSelect(frame, 'select[name="budget_type"]', "02", "budget_type");
+  await page.waitForTimeout(1000);
+
+  // Step 2: Set budget code and payment method
+  await setRequiredSelect(frame, 'select[name="budget_code"]', budgetCode, "budget_code");
+  await setRequiredSelect(frame, 'select[name="pay_kind"]', "04", "pay_kind"); // 04 = Corp Card
+
+  // Card number (try to set if available)
+  const cardNo = params.corp_card_no || process.env.IPK_CORP_CARD_NO || "";
+  if (cardNo) {
+    await setFieldValue(frame, 'input[name="card_no"]', cardNo);
+  }
+
+  // Step 3: Expense line items
+  await setRequiredField(frame, 'textarea[name="p_reason"]', pReason, "p_reason");
+  await setRequiredField(frame, 'input[name="invoice[]"]', date, "invoice");
+  await setRequiredField(frame, 'input[name="item_desc[]"]', itemDesc, "item_desc");
+  await setFieldValue(frame, 'input[name="item_qty[]"]', "1");
+  await setFieldValue(frame, 'input[name="item_amount[]"]', String(amountNoVat));
+  await setFieldValue(frame, 'input[name="item_amount_vat[]"]', String(vat));
+
+  // Account code selection
+  await setSelectValue(frame, 'select[name="item_account_code[]"]', accountCode);
+
+  // Vendor and control number
+  if (vendor) await setFieldValue(frame, 'input[name="item_vendor[]"]', vendor);
+  if (controlNo) await setFieldValue(frame, 'input[name="item_control_no[]"]', controlNo);
+
+  // Meeting info fields
+  await setFieldValue(frame, 'input[name="ov_member"]', participants);
+  await setFieldValue(frame, 'input[name="ov_purpose"]', purposeMinutes);
+  if (venue) await setFieldValue(frame, 'input[name="ov_place"]', venue);
+
+  // Set totals
+  await frame.evaluate(
+    (args: { total: string; ral: string }) => {
+      const totalEl = document.getElementsByName("total_amt")[0] as HTMLInputElement;
+      if (totalEl) totalEl.value = args.total;
+      const ralEl = document.querySelector('input[name="item_amount_ral[]"]') as HTMLInputElement;
+      if (ralEl) ralEl.value = args.ral;
+    },
+    { total: String(amount), ral: String(amount) }
+  );
+
+  // Handle attachment
+  if (params.attachment_path) {
+    const fileInput = frame.locator('input[name="doc_attach_file[]"]').first();
+    await fileInput.setInputFiles(params.attachment_path);
+    await page.waitForTimeout(1000);
+  }
+
+  await page.waitForTimeout(1000);
+  await setFormMode(frame, mode);
+  const docId = await submitForm(page, frame, "check_form_request");
+
+  return textResult({
+    error: false,
+    data: {
+      success: true, docId, mode, formType: "card_expense", subject,
+      message: docId
+        ? `Card expense ${mode === "draft" ? "draft saved" : "submitted"} (doc_id: ${docId})`
+        : `Card expense ${mode} completed`,
+      warning: !params.attachment_path ? "No attachment provided. Card expense forms require a receipt." : undefined,
+    },
+  });
+}
+
+/** Travel Settlement (AppFrm-054) — domestic travel expense settlement */
+async function submitTravelSettlement(
+  page: any,
+  frame: any,
+  sessionManager: SessionManager,
+  config: Config,
+  params: Record<string, any>,
+  mode: "draft" | "request"
+) {
+  const userInfo = sessionManager.getUserInfo()!;
+  const startDate = params.start_date || todayStr();
+  const endDate = params.end_date || startDate;
+  const destination = params.destination || "";
+  const purpose = params.purpose || "Business travel";
+  const subject = params.title || `[Settlement] ${purpose}`;
+  const budgetControlNo = params.budget_control_no || "";
+  const approvedDocRef = params.approved_doc_ref || "";
+  const purposeCategory = params.purpose_category || "Participation in the conference/seminar";
+
+  // Calculate nights and daily expense
+  const startD = new Date(startDate);
+  const endD = new Date(endDate);
+  const nights = Math.max(0, Math.round((endD.getTime() - startD.getTime()) / 86400000));
+  const dailyExpense = params.daily_expense || (nights === 0 ? 20000 : 30000 * nights);
+  const transportFee = params.transport_fee || 0;
+  const accommodationFee = params.accommodation || 0;
+  const foodExpense = params.food_expense || 0;
+
+  // Budget type
+  const budgetType = params.budget_type || "02"; // R&D default
+
+  // Set subject
+  await setRequiredField(frame, 'input[name="subject"]', subject, "subject");
+
+  // Traveler info
+  await setFieldValue(frame, '.validate[name="report_name"]', userInfo.name);
+  await setFieldValue(frame, '.validate[name="report_date"]', todayStr());
+
+  // Dates
+  await setRequiredField(frame, 'input[name="start_day"]', startDate, "start_day");
+  await setRequiredField(frame, 'input[name="end_day"]', endDate, "end_day");
+  // Also try .validate selectors (form variants)
+  await setFieldValue(frame, '.validate[name="start_day"]', startDate);
+  await setFieldValue(frame, '.validate[name="end_day"]', endDate);
+
+  // Start/end times for day trips
+  if (params.start_time) await setFieldValue(frame, 'input[name="start_time"]', params.start_time);
+  if (params.end_time) await setFieldValue(frame, 'input[name="end_time"]', params.end_time);
+
+  // Purpose category
+  await setSelectValue(frame, 'select[name="purpose_category"]', purposeCategory);
+  await setFieldValue(frame, 'textarea[name="purpose"]', purpose);
+  await setFieldValue(frame, '.validate[name="purpose_field"]', purpose);
+
+  // Destination
+  await setFieldValue(frame, 'input[name="destination"]', destination);
+  await setFieldValue(frame, '.validate[name="report_dest"]', destination);
+
+  // AJAX cascade: province → city → transport_mode
+  if (params.province) {
+    await setSelectValue(frame, 'select[name="province"]', params.province);
+    await page.waitForTimeout(2000); // Wait for city AJAX
+  }
+  if (params.city) {
+    await setSelectValue(frame, 'select[name="city"]', params.city);
+    await page.waitForTimeout(2000); // Wait for transport AJAX
+  }
+  if (params.transport_mode) {
+    await setSelectValue(frame, 'select[name="transport_mode"]', params.transport_mode);
+    await page.waitForTimeout(1000);
+  }
+
+  // Budget type → code cascade
+  await setSelectValue(frame, 'select[name="budget_type"]', budgetType);
+  await page.waitForTimeout(2000);
+  if (params.budget_code) {
+    await setSelectValue(frame, 'select[name="budget_code"]', params.budget_code);
+    await page.waitForTimeout(1500);
+  }
+
+  // Budget control number
+  if (budgetControlNo) {
+    await setFieldValue(frame, 'input[name="budget_control_no"]', budgetControlNo);
+    await setFieldValue(frame, '.validate[name="budget_control_no"]', budgetControlNo);
+  }
+
+  // Expense amounts
+  await setFieldValue(frame, 'input[name="daily_expense"]', String(dailyExpense));
+  if (transportFee) await setFieldValue(frame, 'input[name="transport_fee"]', String(transportFee));
+  if (accommodationFee) await setFieldValue(frame, 'input[name="accommodation"]', String(accommodationFee));
+  if (foodExpense) await setFieldValue(frame, 'input[name="food_expense"]', String(foodExpense));
+
+  // Own vehicle fields
+  if (params.oil_price) await setFieldValue(frame, 'input[name="oil_price"]', String(params.oil_price));
+  if (params.distance_km) await setFieldValue(frame, 'input[name="distance_km"]', String(params.distance_km));
+  if (params.toll_fee) await setFieldValue(frame, 'input[name="toll"]', String(params.toll_fee));
+
+  // Own car cost = oil_price * distance_km / 10
+  if (params.oil_price && params.distance_km) {
+    const ownCarCost = Math.round(params.oil_price * params.distance_km / 10);
+    await setFieldValue(frame, 'input[name="own_car"]', String(ownCarCost));
+  }
+
+  // Approved doc reference
+  if (approvedDocRef) {
+    await setFieldValue(frame, 'input[name="approved_doc_ref"]', approvedDocRef);
+    await setFieldValue(frame, '.validate[name="approved_doc_ref"]', approvedDocRef);
+  }
+
+  // Invitation field (default: No)
+  await setSelectValue(frame, 'select[name="travel_with_invitation"]', "No");
+
+  // Handle attachment
+  if (params.attachment_path) {
+    const fileInput = frame.locator('input[name="doc_attach_file[]"]').first();
+    await fileInput.setInputFiles(params.attachment_path);
+    await page.waitForTimeout(1000);
+  }
+
+  await page.waitForTimeout(1000);
+  await setFormMode(frame, mode);
+  const docId = await submitForm(page, frame, "check_form_request");
+
+  const warnings: string[] = [];
+  if (params.transport_mode?.includes("Own Vehicle") && !params.attachment_path) {
+    warnings.push("Own vehicle travel requires 거리.pdf (Naver Maps screenshot) attachment.");
+  }
+  if (params.toll_fee && params.toll_fee > 0 && !params.attachment_path) {
+    warnings.push("Toll fee claimed requires 하이패스 영수증 attachment.");
+  }
+
+  return textResult({
+    error: false,
+    data: {
+      success: true, docId, mode, formType: "travel_settlement", subject,
+      message: docId
+        ? `Travel settlement ${mode === "draft" ? "draft saved" : "submitted"} (doc_id: ${docId})`
+        : `Travel settlement ${mode} completed`,
+      warning: warnings.length > 0 ? warnings.join(" | ") : undefined,
+    },
+  });
+}
+
+/** Leave Return (AppFrm-028) — return unused leave days/hours */
+async function submitLeaveReturn(
+  page: any,
+  frame: any,
+  sessionManager: SessionManager,
+  config: Config,
+  params: Record<string, any>,
+  mode: "draft" | "request"
+) {
+  const originalDoc = params.original_leave_doc || "";
+  if (!originalDoc) {
+    return textResult({ error: true, code: "MISSING_FIELD", message: "original_leave_doc is required (e.g. ARL-260121-02)" });
+  }
+
+  const periodStart = params.start_date || params.period_start || todayStr();
+  const periodEnd = params.end_date || params.period_end || periodStart;
+  const returnDays = params.return_days ?? 1;
+  const returnHours = params.return_hours ?? 0;
+  const description = params.description || params.reason || "Leave return";
+  const leaveType = params.leave_type || "annual";
+  const leaveCode = LEAVE_TYPES[leaveType] || "01";
+
+  // Build return label and subject
+  let returnLabel = "";
+  if (returnDays > 0 && returnHours > 0) {
+    returnLabel = `${returnDays}day(s)/${returnHours}hour(s)`;
+  } else if (returnDays > 0) {
+    returnLabel = `${returnDays}day(s)`;
+  } else {
+    returnLabel = `${returnHours}hour(s)`;
+  }
+  const subject = params.title || `Leave return ${returnLabel} ${originalDoc}`;
+
+  // Set form fields
+  await setRequiredField(frame, 'input[name="subject"]', subject, "subject");
+  await setFieldValue(frame, 'input[name="original_leave_doc"]', originalDoc);
+  await setFieldValue(frame, '.validate[name="original_leave_doc"]', originalDoc);
+
+  // Leave type selection
+  await setSelectValue(frame, 'select[name="leave_kind"]', leaveCode);
+  await setSelectValue(frame, 'select[name="leave_kind[]"]', leaveCode);
+
+  // Period
+  await setRequiredField(frame, 'input[name="begin_date"]', periodStart, "begin_date");
+  await setFieldValue(frame, 'input[name="begin_date[]"]', periodStart);
+  await setRequiredField(frame, 'input[name="end_date"]', periodEnd, "end_date");
+  await setFieldValue(frame, 'input[name="end_date[]"]', periodEnd);
+
+  // Return days/hours
+  await setFieldValue(frame, 'input[name="return_days"]', String(returnDays));
+  await setFieldValue(frame, 'input[name="return_hours"]', String(returnHours));
+
+  // Description
+  await setFieldValue(frame, 'textarea[name="description"]', description);
+  await setFieldValue(frame, 'textarea[name="contents1"]', description);
+
+  await page.waitForTimeout(1000);
+  await setFormMode(frame, mode);
+  const docId = await submitForm(page, frame, "check_form_request");
+
+  return textResult({
+    error: false,
+    data: {
+      success: true, docId, mode, formType: "leave_return", subject,
+      message: docId
+        ? `Leave return ${mode === "draft" ? "draft saved" : "submitted"} (doc_id: ${docId})`
+        : `Leave return ${mode} completed`,
+    },
+  });
+}
+
+/** Seminar/Event Public Disclosure (AppFrm-043) */
+async function submitSeminar(
+  page: any,
+  frame: any,
+  sessionManager: SessionManager,
+  config: Config,
+  params: Record<string, any>,
+  mode: "draft" | "request"
+) {
+  const userInfo = sessionManager.getUserInfo()!;
+  const subject = params.title || params.subject || "";
+  if (!subject) {
+    return textResult({ error: true, code: "MISSING_FIELD", message: "title is required (title of the seminar/event/publication)" });
+  }
+
+  const requester = params.attendees || userInfo.name;
+  const disclosurePurpose = params.disclosure_purpose || params.purpose || "";
+  const disclosureDate = params.disclosure_date || params.start_date || todayStr();
+  const materialDesc = params.material_description || "";
+  const conferenceOrJournal = params.conference_or_journal || params.organization || "";
+
+  // Set form fields
+  await setRequiredField(frame, 'input[name="subject"]', subject, "subject");
+  await setFieldValue(frame, 'input[name="requester"]', requester);
+  await setFieldValue(frame, '.validate[name="requester"]', requester);
+
+  // Section 1: Purpose
+  await setFieldValue(frame, 'textarea[name="disclosure_purpose"]', disclosurePurpose);
+  await setFieldValue(frame, '.validate[name="purpose_field"]', disclosurePurpose);
+
+  // Section 2: Date
+  await setFieldValue(frame, 'input[name="disclosure_date"]', disclosureDate);
+  await setFieldValue(frame, '.validate[name="disclosure_date"]', disclosureDate);
+
+  // Section 3: Material description
+  await setFieldValue(frame, 'input[name="material_description"]', materialDesc);
+  await setFieldValue(frame, '.validate[name="material_description"]', materialDesc);
+
+  // Section 4: Conference or journal
+  await setFieldValue(frame, 'input[name="conference_or_journal"]', conferenceOrJournal);
+  await setFieldValue(frame, '.validate[name="conference_or_journal"]', conferenceOrJournal);
+
+  // Radio Q&A fields (Q1-Q5) via parameterized evaluate
+  const radioValues: Record<string, string> = {
+    patent_filed: params.patent_filed || "",
+    patent_planned: params.patent_planned || "",
+    material_published: params.material_published || "N",
+    collaborator_approval: params.collaborator_approval || "Y",
+    contains_confidential: params.contains_confidential || "N",
   };
 
-  try {
-    const resp = await callPythonBridge("infer_fields", {
-      form_type: formType,
-      user_input: params,
-    });
-
-    if (resp.error) {
-      const err = typeof resp.error === "string"
-        ? { code: "BRIDGE_ERROR", message: resp.error }
-        : resp.error;
-      // Fallback to NOT_IMPLEMENTED for bridge-level errors
-      if (err.code === "BRIDGE_UNAVAILABLE" || err.code === "TIMEOUT") {
-        return textResult({ error: true, code: "NOT_IMPLEMENTED", message: FALLBACK_MESSAGES[formType] || err.message });
+  await frame.evaluate(
+    (rv: Record<string, string>) => {
+      // Map param names to radio group names/indices in the form
+      const radioMap: [string, string][] = [
+        ["patent_filed", "Q1"],
+        ["patent_planned", "Q2"],
+        ["material_published", "Q3"],
+        ["collaborator_approval", "Q4"],
+        ["contains_confidential", "Q5"],
+      ];
+      for (const [paramKey, qName] of radioMap) {
+        const val = rv[paramKey];
+        if (!val) continue;
+        // Try multiple selector patterns for radio buttons
+        const selectors = [
+          `input[name="${qName}"][value="${val}"]`,
+          `input[name="radio_${qName}"][value="${val}"]`,
+          `input[name="chk_${qName}"][value="${val}"]`,
+        ];
+        for (const sel of selectors) {
+          const el = document.querySelector(sel) as HTMLInputElement;
+          if (el) { el.checked = true; el.dispatchEvent(new Event("change", { bubbles: true })); break; }
+        }
       }
-      return textResult({ error: true, code: err.code, message: err.message });
-    }
+    },
+    radioValues
+  );
 
-    return textResult({
-      error: false,
-      data: {
-        formType,
-        inferred_fields: resp.result,
-        message: `${formType} 필드 추론 완료. 추론된 필드를 확인 후 제출하세요.`,
-        note: "Playwright 양식 자동입력은 아직 미구현입니다. 추론된 필드값을 참고하여 수동 입력하거나, 구현된 양식 타입을 사용하세요.",
-      },
-    });
-  } catch {
-    return textResult({ error: true, code: "NOT_IMPLEMENTED", message: FALLBACK_MESSAGES[formType] || `${formType} is not yet implemented.` });
+  // Predatory check checkbox (mandatory acknowledgment — always check)
+  await frame.evaluate(() => {
+    const chk = document.querySelector('input[name="chk410306"]') as HTMLInputElement
+      || document.querySelector('input[type="checkbox"][name*="chk"]') as HTMLInputElement;
+    if (chk && !chk.checked) {
+      chk.checked = true;
+      chk.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+  });
+
+  // Handle attachment
+  if (params.attachment_path) {
+    const fileInput = frame.locator('input[name="doc_attach_file[]"]').first();
+    await fileInput.setInputFiles(params.attachment_path);
+    await page.waitForTimeout(1000);
   }
+
+  await page.waitForTimeout(1000);
+  await setFormMode(frame, mode);
+  const docId = await submitForm(page, frame, "check_form_request");
+
+  return textResult({
+    error: false,
+    data: {
+      success: true, docId, mode, formType: "seminar", subject,
+      message: docId
+        ? `Seminar disclosure ${mode === "draft" ? "draft saved" : "submitted"} (doc_id: ${docId})`
+        : `Seminar disclosure ${mode} completed`,
+      warning: !params.attachment_path
+        ? "No attachment provided. Seminar disclosure forms typically require presentation materials."
+        : undefined,
+    },
+  });
+}
+
+/** Overseas Travel Settlement (AppFrm-026) */
+async function submitOverseasTravel(
+  page: any,
+  frame: any,
+  sessionManager: SessionManager,
+  config: Config,
+  params: Record<string, any>,
+  mode: "draft" | "request"
+) {
+  const userInfo = sessionManager.getUserInfo()!;
+  const conferenceName = params.conference_name || params.organization || "";
+  const subject = params.title || `[Settlement] ${conferenceName || "Overseas Business Travel"}`;
+  const country = params.country || "";
+  const purpose = params.purpose || `Attend ${conferenceName}`;
+  const travelStart = params.travel_start || params.start_date || todayStr();
+  const travelEnd = params.travel_end || params.end_date || travelStart;
+  const paymentDate = params.payment_date || todayStr();
+  const budgetControlNo = params.budget_control_no || "";
+  const corpCardNo = params.corp_card_no || process.env.IPK_CORP_CARD_NO || "";
+
+  // Set basic fields
+  await setRequiredField(frame, 'input[name="subject"]', subject, "subject");
+
+  // Traveler info
+  const payrollId = process.env.IPK_PAYROLL_ID || "";
+  const travelerStr = payrollId ? `${userInfo.name}(${payrollId})` : userInfo.name;
+  await setFieldValue(frame, 'input[name="traveler"]', travelerStr);
+  await setFieldValue(frame, '.validate[name="traveler"]', travelerStr);
+
+  // Budget control number
+  if (budgetControlNo) {
+    await setFieldValue(frame, 'input[name="budget_control_no"]', budgetControlNo);
+    await setFieldValue(frame, '.validate[name="budget_control_no"]', budgetControlNo);
+  }
+
+  // Country and conference
+  await setFieldValue(frame, 'input[name="country"]', country);
+  await setFieldValue(frame, '.validate[name="country"]', country);
+  await setFieldValue(frame, 'input[name="conference_name"]', conferenceName);
+  await setFieldValue(frame, '.validate[name="conference_name"]', conferenceName);
+
+  // Purpose
+  await setFieldValue(frame, 'textarea[name="purpose"]', purpose);
+  await setFieldValue(frame, '.validate[name="purpose_field"]', purpose);
+
+  // Travel with invitation (default: No), Car rent (default: No)
+  await frame.evaluate(() => {
+    const radioSelectors = [
+      ['input[name="travel_with_invitation"][value="No"]', 'input[name="invitation"][value="No"]'],
+      ['input[name="car_rent"][value="No"]', 'input[name="rent_car"][value="No"]'],
+    ];
+    for (const selectors of radioSelectors) {
+      for (const sel of selectors) {
+        const el = document.querySelector(sel) as HTMLInputElement;
+        if (el) { el.checked = true; el.dispatchEvent(new Event("change", { bubbles: true })); break; }
+      }
+    }
+  });
+
+  // Dates
+  await setFieldValue(frame, 'input[name="travel_start"]', travelStart);
+  await setFieldValue(frame, '.validate[name="travel_start"]', travelStart);
+  await setFieldValue(frame, 'input[name="travel_end"]', travelEnd);
+  await setFieldValue(frame, '.validate[name="travel_end"]', travelEnd);
+  await setFieldValue(frame, 'input[name="payment_date"]', paymentDate);
+  await setFieldValue(frame, '.validate[name="payment_date"]', paymentDate);
+
+  // Schedule rows (daily itinerary)
+  if (params.schedule_rows && Array.isArray(params.schedule_rows)) {
+    await frame.evaluate(
+      (rows: { from: string; to: string; schedule: string; transportation: string }[]) => {
+        for (let i = 0; i < rows.length; i++) {
+          const row = rows[i];
+          const fromEl = document.querySelector(`input[name="schedule_from[${i}]"]`) as HTMLInputElement;
+          const toEl = document.querySelector(`input[name="schedule_to[${i}]"]`) as HTMLInputElement;
+          const schedEl = document.querySelector(`input[name="schedule_desc[${i}]"]`) as HTMLInputElement
+            || document.querySelector(`textarea[name="schedule_desc[${i}]"]`) as HTMLTextAreaElement;
+          const transEl = document.querySelector(`input[name="schedule_transport[${i}]"]`) as HTMLInputElement;
+          if (fromEl) fromEl.value = row.from;
+          if (toEl) toEl.value = row.to;
+          if (schedEl) schedEl.value = row.schedule;
+          if (transEl) transEl.value = row.transportation;
+        }
+      },
+      params.schedule_rows
+    );
+  }
+
+  // Budget account code
+  if (params.budget_code) {
+    await setSelectValue(frame, 'select[name="budget_type"]', "02"); // R&D
+    await page.waitForTimeout(2000);
+    await setSelectValue(frame, 'select[name="budget_code"]', params.budget_code);
+    await page.waitForTimeout(1500);
+  }
+
+  // Corp card number
+  if (corpCardNo) {
+    await setFieldValue(frame, 'input[name="corp_card_no"]', corpCardNo);
+    await setFieldValue(frame, '.validate[name="corp_card_no"]', corpCardNo);
+  }
+
+  // Expense categories: transport, daily, accommodation, food, misc
+  const expenseFields: [string, number | undefined][] = [
+    ["transport_fee_total", params.transport_fee_budget],
+    ["transport_fee_card", params.transport_fee_corp_card],
+    ["daily_expense_total", params.daily_expense_budget],
+    ["daily_expense_cash", params.daily_expense_cash],
+    ["accommodation_total", params.accommodation_budget],
+    ["accommodation_card", params.accommodation_corp_card],
+    ["food_expense_total", params.food_expense_budget],
+    ["food_expense_cash", params.food_expense_cash],
+    ["settle_amount", params.settle_amount],
+    ["reimbursement", params.reimbursement],
+  ];
+
+  for (const [fieldName, value] of expenseFields) {
+    if (value !== undefined && value !== null) {
+      await setFieldValue(frame, `input[name="${fieldName}"]`, String(value));
+      await setFieldValue(frame, `.validate[name="${fieldName}"]`, String(value));
+    }
+  }
+
+  // Business materials description
+  if (params.material_description) {
+    await setFieldValue(frame, 'input[name="business_materials"]', params.material_description);
+    await setFieldValue(frame, '.validate[name="business_materials"]', params.material_description);
+  }
+
+  // Handle attachment
+  if (params.attachment_path) {
+    const fileInput = frame.locator('input[name="doc_attach_file[]"]').first();
+    await fileInput.setInputFiles(params.attachment_path);
+    await page.waitForTimeout(1000);
+  }
+
+  await page.waitForTimeout(1000);
+  await setFormMode(frame, mode);
+  const docId = await submitForm(page, frame, "check_form_request");
+
+  return textResult({
+    error: false,
+    data: {
+      success: true, docId, mode, formType: "overseas_travel", subject,
+      message: docId
+        ? `Overseas travel settlement ${mode === "draft" ? "draft saved" : "submitted"} (doc_id: ${docId})`
+        : `Overseas travel settlement ${mode} completed`,
+    },
+  });
 }
 
 /** Set substitute fields directly (fallback when popup fails) */

@@ -93,7 +93,7 @@ After user confirms the draft (or provides corrections):
 | AppFrm Code | MCP form_type |
 |-------------|---------------|
 | AppFrm-023 | travel_request |
-| AppFrm-076 | travel_settlement |
+| AppFrm-054 | travel_settlement |
 | AppFrm-073 | leave |
 | AppFrm-028 | leave_return |
 | AppFrm-020 | card_expense |
