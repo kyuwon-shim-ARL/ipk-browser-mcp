@@ -5,6 +5,8 @@ import {
   navigateToForm,
   setFieldValue,
   setSelectValue,
+  setRequiredField,
+  setRequiredSelect,
   setFormMode,
   submitForm,
 } from "../browser/iframe-helper.js";
@@ -16,6 +18,39 @@ import {
   ATTACHMENT_REQUIRED_LEAVES,
   BUDGET_TRANSFER_CODES,
 } from "../types.js";
+import { callPythonBridge } from "../python-bridge.js";
+import * as path from "path";
+
+/** Allowed directories for attachment file uploads. Prevents arbitrary file reads. */
+const ALLOWED_ATTACHMENT_DIRS = [
+  "/tmp",
+  `${process.env.HOME}/Downloads`,
+  `${process.env.HOME}/Documents`,
+  `${process.env.HOME}/Desktop`,
+];
+
+/** Validate that an attachment path is safe to upload. */
+function validateAttachmentPath(filePath: string): string | null {
+  const resolved = path.resolve(filePath);
+  // Block path traversal
+  if (resolved !== filePath && filePath.includes("..")) {
+    return "Attachment path contains path traversal (..)";
+  }
+  // Block dotfiles and sensitive directories
+  if (/\/\./.test(resolved)) {
+    return "Attachment path points to a hidden file/directory";
+  }
+  // Block system directories
+  if (resolved.startsWith("/etc") || resolved.startsWith("/proc") || resolved.startsWith("/sys")) {
+    return "Attachment path points to a system directory";
+  }
+  // Must be in an allowed directory
+  const inAllowed = ALLOWED_ATTACHMENT_DIRS.some((dir) => resolved.startsWith(dir));
+  if (!inAllowed) {
+    return `Attachment must be in one of: ${ALLOWED_ATTACHMENT_DIRS.join(", ")}`;
+  }
+  return null;
+}
 
 export const ipkSubmitFormSchema = {
   form_type: z.enum([
@@ -40,7 +75,7 @@ export const ipkSubmitFormSchema = {
   amount: z.number().optional().describe("Total amount in KRW"),
   participants: z.string().optional().describe("Participants for meal expense"),
   venue: z.string().optional().describe("Venue for expense"),
-  budget_code: z.string().optional().describe("Budget code (e.g. NN2512-0001)"),
+  budget_code: z.string().optional().describe("Budget code (required for expense/working/travel_request forms). Use the active fiscal year code, e.g. NN2612-0001."),
   attachment_path: z.string().optional().describe("Path to attachment file"),
 
   // Working fields
@@ -90,6 +125,14 @@ export async function handleIpkSubmitForm(
     });
   }
 
+  // Validate attachment path if provided
+  if (params.attachment_path) {
+    const attachErr = validateAttachmentPath(params.attachment_path);
+    if (attachErr) {
+      return textResult({ error: true, code: "INVALID_ATTACHMENT", message: attachErr });
+    }
+  }
+
   const mode = params.draft_only !== false ? "draft" : "request";
 
   try {
@@ -123,17 +166,13 @@ export async function handleIpkSubmitForm(
         return await submitTravel(page, frame, sessionManager, config, params, mode);
       case "travel_request":
         return await submitTravelRequest(page, frame, sessionManager, config, params, mode);
-      // TODO(T6): replace with Python bridge call once pipeline.py + bridge.py are implemented
+      // Python bridge types: infer fields via bridge.py, fallback to NOT_IMPLEMENTED on error
       case "travel_settlement":
-        return textResult({ error: true, code: "NOT_IMPLEMENTED", message: "출장정산(AppFrm-076) 기능은 현재 구현 중입니다. Python bridge 연동 후 사용 가능합니다." });
       case "leave_return":
-        return textResult({ error: true, code: "NOT_IMPLEMENTED", message: "대체휴일반납(AppFrm-028) 기능은 현재 구현 중입니다. Python bridge 연동 후 사용 가능합니다." });
       case "card_expense":
-        return textResult({ error: true, code: "NOT_IMPLEMENTED", message: "카드경비(AppFrm-020) 기능은 현재 구현 중입니다. Python bridge 연동 후 사용 가능합니다." });
       case "seminar":
-        return textResult({ error: true, code: "NOT_IMPLEMENTED", message: "세미나공시(AppFrm-043) 기능은 현재 구현 중입니다. Python bridge 연동 후 사용 가능합니다." });
       case "overseas_travel":
-        return textResult({ error: true, code: "NOT_IMPLEMENTED", message: "해외출장(AppFrm-026) 기능은 현재 구현 중입니다. Python bridge 연동 후 사용 가능합니다." });
+        return await handleBridgeFormType(formType, params);
       default:
         return textResult({ error: true, code: "UNKNOWN_FORM", message: `Unknown form type: ${formType}` });
     }
@@ -180,11 +219,11 @@ async function submitLeave(
     warnings.push("Substitute person not configured. Set IPK_SUBSTITUTE_NAME env var or pass substitute_name parameter.");
   }
 
-  // Set all form fields via parameterized evaluate
-  await setSelectValue(frame, 'select[name="leave_kind[]"]', leaveCode);
-  await setSelectValue(frame, 'select[name="using_type[]"]', usingType);
-  await setFieldValue(frame, 'input[name="begin_date[]"]', startDate);
-  await setFieldValue(frame, 'input[name="end_date[]"]', endDate);
+  // Set all form fields via parameterized evaluate (required fields throw on miss)
+  await setRequiredSelect(frame, 'select[name="leave_kind[]"]', leaveCode, "leave_kind");
+  await setRequiredSelect(frame, 'select[name="using_type[]"]', usingType, "using_type");
+  await setRequiredField(frame, 'input[name="begin_date[]"]', startDate, "begin_date");
+  await setRequiredField(frame, 'input[name="end_date[]"]', endDate, "end_date");
 
   if (isHourly) {
     // Set start_time dropdown
@@ -331,22 +370,25 @@ async function submitExpense(
   const itemName = params.reason || params.purpose || "overtime meal";
   const subject = params.title || `[Card] ${itemName}`;
   const budgetType = params.budget_type || "02";
-  const budgetCode = params.budget_code || "NN2512-0001";
+  const budgetCode = params.budget_code;
+  if (!budgetCode) {
+    return textResult({ error: true, code: "MISSING_BUDGET_CODE", message: "budget_code is required. Provide the active fiscal year budget code (e.g. NN2612-0001)." });
+  }
   const participants = params.participants || "";
   const purpose = params.purpose || "overtime work";
   const pReason = params.reason || `${itemName} - receipt attached`;
 
-  // Step 1: Set subject and budget_type
-  await setFieldValue(frame, 'input[name="subject"]', subject);
-  await setSelectValue(frame, 'select[name="budget_type"]', budgetType);
+  // Step 1: Set subject and budget_type (required)
+  await setRequiredField(frame, 'input[name="subject"]', subject, "subject");
+  await setRequiredSelect(frame, 'select[name="budget_type"]', budgetType, "budget_type");
   await page.waitForTimeout(1000);
 
-  // Step 2: Set remaining fields
-  await setSelectValue(frame, 'select[name="budget_code"]', budgetCode);
-  await setSelectValue(frame, 'select[name="pay_kind"]', "04");
-  await setFieldValue(frame, 'textarea[name="p_reason"]', pReason);
-  await setFieldValue(frame, 'input[name="invoice[]"]', date);
-  await setFieldValue(frame, 'input[name="item_desc[]"]', itemName);
+  // Step 2: Set remaining fields (required)
+  await setRequiredSelect(frame, 'select[name="budget_code"]', budgetCode, "budget_code");
+  await setRequiredSelect(frame, 'select[name="pay_kind"]', "04", "pay_kind");
+  await setRequiredField(frame, 'textarea[name="p_reason"]', pReason, "p_reason");
+  await setRequiredField(frame, 'input[name="invoice[]"]', date, "invoice");
+  await setRequiredField(frame, 'input[name="item_desc[]"]', itemName, "item_desc");
   await setFieldValue(frame, 'input[name="item_qty[]"]', "1");
   await setFieldValue(frame, 'input[name="item_amount[]"]', String(amountNoVat));
   await setFieldValue(frame, 'input[name="item_amount_vat[]"]', String(vat));
@@ -408,20 +450,23 @@ async function submitWorking(
   const workPlace = params.work_place || "IPK";
   const details = params.details || reason;
   const budgetType = params.budget_type || "02";
-  const budgetCode = params.budget_code || "NN2512-0001";
+  const budgetCode = params.budget_code;
+  if (!budgetCode) {
+    return textResult({ error: true, code: "MISSING_BUDGET_CODE", message: "budget_code is required. Provide the active fiscal year budget code (e.g. NN2612-0001)." });
+  }
 
   const subject = `Application for Working on ${workDate}, ${userInfo.name}`;
 
-  // Step 1: Set subject and budget_type
-  await setFieldValue(frame, 'input[name="subject"]', subject);
-  await setSelectValue(frame, 'select[name="budget_type"]', budgetType);
+  // Step 1: Set subject and budget_type (required)
+  await setRequiredField(frame, 'input[name="subject"]', subject, "subject");
+  await setRequiredSelect(frame, 'select[name="budget_type"]', budgetType, "budget_type");
   await page.waitForTimeout(1000);
 
-  // Step 2: Set remaining fields
-  await setSelectValue(frame, 'select[name="budget_code"]', budgetCode);
-  await setFieldValue(frame, 'input[name="desired_date"]', workDate);
-  await setFieldValue(frame, 'input[name="wroking_place"]', workPlace); // Note: typo is in the original groupware
-  await setFieldValue(frame, 'input[name="sub_subject"]', reason);
+  // Step 2: Set remaining fields (required)
+  await setRequiredSelect(frame, 'select[name="budget_code"]', budgetCode, "budget_code");
+  await setRequiredField(frame, 'input[name="desired_date"]', workDate, "desired_date");
+  await setRequiredField(frame, 'input[name="wroking_place"]', workPlace, "wroking_place"); // Note: typo is in the original groupware
+  await setRequiredField(frame, 'input[name="sub_subject"]', reason, "sub_subject");
   await setFieldValue(frame, 'textarea[name="contents1"]', details);
 
   await page.waitForTimeout(1000);
@@ -467,16 +512,16 @@ async function submitTravel(
   const reportLeader = process.env.IPK_GROUP_LEADER || "";
   const userDept = userInfo.dept || process.env.IPK_USER_DEPT || "";
 
-  await setFieldValue(frame, 'input[name="subject"]', title);
-  await setFieldValue(frame, '.validate[name="report_date"]', reportDate);
-  await setFieldValue(frame, '.validate[name="report_name"]', userInfo.name);
+  await setRequiredField(frame, 'input[name="subject"]', title, "subject");
+  await setRequiredField(frame, '.validate[name="report_date"]', reportDate, "report_date");
+  await setRequiredField(frame, '.validate[name="report_name"]', userInfo.name, "report_name");
   await setFieldValue(frame, '.validate[name="report_post"]', reportPost);
   await setFieldValue(frame, '.validate[name="report_group"]', userDept);
   await setFieldValue(frame, '.validate[name="report_leader"]', reportLeader);
-  await setFieldValue(frame, '.validate[name="start_day"]', startDate);
-  await setFieldValue(frame, '.validate[name="end_day"]', endDate);
-  await setFieldValue(frame, '.validate[name="report_dest"]', destination);
-  await setFieldValue(frame, '.validate[name="purpose_field"]', purpose);
+  await setRequiredField(frame, '.validate[name="start_day"]', startDate, "start_day");
+  await setRequiredField(frame, '.validate[name="end_day"]', endDate, "end_day");
+  await setRequiredField(frame, '.validate[name="report_dest"]', destination, "report_dest");
+  await setRequiredField(frame, '.validate[name="purpose_field"]', purpose, "purpose_field");
   await setFieldValue(frame, '.validate[name="date_field"]', schedule);
   await setFieldValue(frame, '.validate[name="org_field"]', organization);
   await setFieldValue(frame, '.validate[name="person_field"]', attendees);
@@ -529,12 +574,15 @@ async function submitTravelRequest(
   const endDate = params.end_date || startDate;
   const purpose = params.purpose || "Business travel";
   const budgetType = params.budget_type || "02";
-  const budgetCode = params.budget_code || "NN2512-0001";
+  const budgetCode = params.budget_code;
+  if (!budgetCode) {
+    return textResult({ error: true, code: "MISSING_BUDGET_CODE", message: "budget_code is required. Provide the active fiscal year budget code (e.g. NN2612-0001)." });
+  }
 
   const subject = `[Request] ${title}`;
 
-  // Set common fields
-  await setFieldValue(frame, 'input[name="subject"]', subject);
+  // Set common fields (required)
+  await setRequiredField(frame, 'input[name="subject"]', subject, "subject");
 
   // Try budget fields (may exist on travel request forms)
   await setSelectValue(frame, 'select[name="budget_type"]', budgetType);
@@ -623,8 +671,8 @@ async function submitBudgetTransfer(
 
   const subject = `[Budget Transfer] ${title}`;
 
-  // Set subject
-  await setFieldValue(frame, 'input[name="subject"]', subject);
+  // Set subject (required)
+  await setRequiredField(frame, 'input[name="subject"]', subject, "subject");
 
   // Try budget type selection
   if (transferType === "rnd") {
@@ -692,6 +740,50 @@ async function submitBudgetTransfer(
       note: "Field selectors are best-effort. After first use, verify the form was filled correctly via screenshot tool and report any missing fields.",
     },
   });
+}
+
+/** Handle form types that use the Python bridge for field inference. */
+async function handleBridgeFormType(
+  formType: FormType,
+  params: Record<string, any>
+) {
+  const FALLBACK_MESSAGES: Record<string, string> = {
+    travel_settlement: "출장정산(AppFrm-076) 기능은 현재 구현 중입니다. Python bridge 연동 후 사용 가능합니다.",
+    leave_return: "대체휴일반납(AppFrm-028) 기능은 현재 구현 중입니다. Python bridge 연동 후 사용 가능합니다.",
+    card_expense: "카드경비(AppFrm-020) 기능은 현재 구현 중입니다. Python bridge 연동 후 사용 가능합니다.",
+    seminar: "세미나공시(AppFrm-043) 기능은 현재 구현 중입니다. Python bridge 연동 후 사용 가능합니다.",
+    overseas_travel: "해외출장(AppFrm-026) 기능은 현재 구현 중입니다. Python bridge 연동 후 사용 가능합니다.",
+  };
+
+  try {
+    const resp = await callPythonBridge("infer_fields", {
+      form_type: formType,
+      user_input: params,
+    });
+
+    if (resp.error) {
+      const err = typeof resp.error === "string"
+        ? { code: "BRIDGE_ERROR", message: resp.error }
+        : resp.error;
+      // Fallback to NOT_IMPLEMENTED for bridge-level errors
+      if (err.code === "BRIDGE_UNAVAILABLE" || err.code === "TIMEOUT") {
+        return textResult({ error: true, code: "NOT_IMPLEMENTED", message: FALLBACK_MESSAGES[formType] || err.message });
+      }
+      return textResult({ error: true, code: err.code, message: err.message });
+    }
+
+    return textResult({
+      error: false,
+      data: {
+        formType,
+        inferred_fields: resp.result,
+        message: `${formType} 필드 추론 완료. 추론된 필드를 확인 후 제출하세요.`,
+        note: "Playwright 양식 자동입력은 아직 미구현입니다. 추론된 필드값을 참고하여 수동 입력하거나, 구현된 양식 타입을 사용하세요.",
+      },
+    });
+  } catch {
+    return textResult({ error: true, code: "NOT_IMPLEMENTED", message: FALLBACK_MESSAGES[formType] || `${formType} is not yet implemented.` });
+  }
 }
 
 /** Set substitute fields directly (fallback when popup fails) */

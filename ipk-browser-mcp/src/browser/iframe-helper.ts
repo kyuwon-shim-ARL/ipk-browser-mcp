@@ -109,6 +109,37 @@ export async function setSelectValue(
 }
 
 /**
+ * Set a required form field, throwing if the element is not found.
+ * Use this for fields that MUST be filled (e.g. subject, dates).
+ */
+export async function setRequiredField(
+  frame: Frame,
+  selector: string,
+  value: string,
+  fieldName: string
+): Promise<void> {
+  const ok = await setFieldValue(frame, selector, value);
+  if (!ok) {
+    throw new Error(`FIELD_NOT_FOUND: Required field '${fieldName}' not found (selector: ${selector})`);
+  }
+}
+
+/**
+ * Set a required select element, throwing if not found.
+ */
+export async function setRequiredSelect(
+  frame: Frame,
+  selector: string,
+  value: string,
+  fieldName: string
+): Promise<void> {
+  const ok = await setSelectValue(frame, selector, value);
+  if (!ok) {
+    throw new Error(`FIELD_NOT_FOUND: Required select '${fieldName}' not found (selector: ${selector})`);
+  }
+}
+
+/**
  * Set mode (draft/request) using document.all (legacy IE API used by groupware).
  * SECURITY: Parameterized - only allows 'draft' or 'request'.
  */

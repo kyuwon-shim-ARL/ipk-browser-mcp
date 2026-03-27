@@ -2986,7 +2986,7 @@ var require_compile = __commonJS({
       const schOrFunc = root.refs[ref];
       if (schOrFunc)
         return schOrFunc;
-      let _sch = resolve.call(this, root, ref);
+      let _sch = resolve3.call(this, root, ref);
       if (_sch === void 0) {
         const schema = (_a = root.localRefs) === null || _a === void 0 ? void 0 : _a[ref];
         const { schemaId } = this.opts;
@@ -3013,7 +3013,7 @@ var require_compile = __commonJS({
     function sameSchemaEnv(s1, s2) {
       return s1.schema === s2.schema && s1.root === s2.root && s1.baseId === s2.baseId;
     }
-    function resolve(root, ref) {
+    function resolve3(root, ref) {
       let sch;
       while (typeof (sch = this.refs[ref]) == "string")
         ref = sch;
@@ -3136,20 +3136,20 @@ var require_utils = __commonJS({
       return acc;
     }
     var nonSimpleDomain = RegExp.prototype.test.bind(/[^!"$&'()*+,\-.;=_`a-z{}~]/u);
-    function consumeIsZone(buffer) {
-      buffer.length = 0;
+    function consumeIsZone(buffer2) {
+      buffer2.length = 0;
       return true;
     }
-    function consumeHextets(buffer, address, output) {
-      if (buffer.length) {
-        const hex = stringArrayToHexStripped(buffer);
+    function consumeHextets(buffer2, address, output) {
+      if (buffer2.length) {
+        const hex = stringArrayToHexStripped(buffer2);
         if (hex !== "") {
           address.push(hex);
         } else {
           output.error = true;
           return false;
         }
-        buffer.length = 0;
+        buffer2.length = 0;
       }
       return true;
     }
@@ -3157,7 +3157,7 @@ var require_utils = __commonJS({
       let tokenCount = 0;
       const output = { error: false, address: "", zone: "" };
       const address = [];
-      const buffer = [];
+      const buffer2 = [];
       let endipv6Encountered = false;
       let endIpv6 = false;
       let consume = consumeHextets;
@@ -3170,7 +3170,7 @@ var require_utils = __commonJS({
           if (endipv6Encountered === true) {
             endIpv6 = true;
           }
-          if (!consume(buffer, address, output)) {
+          if (!consume(buffer2, address, output)) {
             break;
           }
           if (++tokenCount > 7) {
@@ -3183,22 +3183,22 @@ var require_utils = __commonJS({
           address.push(":");
           continue;
         } else if (cursor === "%") {
-          if (!consume(buffer, address, output)) {
+          if (!consume(buffer2, address, output)) {
             break;
           }
           consume = consumeIsZone;
         } else {
-          buffer.push(cursor);
+          buffer2.push(cursor);
           continue;
         }
       }
-      if (buffer.length) {
+      if (buffer2.length) {
         if (consume === consumeIsZone) {
-          output.zone = buffer.join("");
+          output.zone = buffer2.join("");
         } else if (endIpv6) {
-          address.push(buffer.join(""));
+          address.push(buffer2.join(""));
         } else {
-          address.push(stringArrayToHexStripped(buffer));
+          address.push(stringArrayToHexStripped(buffer2));
         }
       }
       output.address = address.join("");
@@ -3228,8 +3228,8 @@ var require_utils = __commonJS({
       }
       return ind;
     }
-    function removeDotSegments(path3) {
-      let input = path3;
+    function removeDotSegments(path4) {
+      let input = path4;
       const output = [];
       let nextSlash = -1;
       let len = 0;
@@ -3428,8 +3428,8 @@ var require_schemes = __commonJS({
         wsComponent.secure = void 0;
       }
       if (wsComponent.resourceName) {
-        const [path3, query] = wsComponent.resourceName.split("?");
-        wsComponent.path = path3 && path3 !== "/" ? path3 : void 0;
+        const [path4, query] = wsComponent.resourceName.split("?");
+        wsComponent.path = path4 && path4 !== "/" ? path4 : void 0;
         wsComponent.query = query;
         wsComponent.resourceName = void 0;
       }
@@ -3588,7 +3588,7 @@ var require_fast_uri = __commonJS({
       }
       return uri;
     }
-    function resolve(baseURI, relativeURI, options) {
+    function resolve3(baseURI, relativeURI, options) {
       const schemelessOptions = options ? Object.assign({ scheme: "null" }, options) : { scheme: "null" };
       const resolved = resolveComponent(parse3(baseURI, schemelessOptions), parse3(relativeURI, schemelessOptions), schemelessOptions, true);
       schemelessOptions.skipEscape = true;
@@ -3815,7 +3815,7 @@ var require_fast_uri = __commonJS({
     var fastUri = {
       SCHEMES,
       normalize,
-      resolve,
+      resolve: resolve3,
       resolveComponent,
       equal,
       serialize,
@@ -7282,8 +7282,8 @@ function getErrorMap() {
 
 // node_modules/zod/v3/helpers/parseUtil.js
 var makeIssue = (params) => {
-  const { data, path: path3, errorMaps, issueData } = params;
-  const fullPath = [...path3, ...issueData.path || []];
+  const { data, path: path4, errorMaps, issueData } = params;
+  const fullPath = [...path4, ...issueData.path || []];
   const fullIssue = {
     ...issueData,
     path: fullPath
@@ -7399,11 +7399,11 @@ var errorUtil;
 
 // node_modules/zod/v3/types.js
 var ParseInputLazyPath = class {
-  constructor(parent, value, path3, key) {
+  constructor(parent, value, path4, key) {
     this._cachedPath = [];
     this.parent = parent;
     this.data = value;
-    this._path = path3;
+    this._path = path4;
     this._key = key;
   }
   get path() {
@@ -11040,10 +11040,10 @@ function assignProp(target, prop, value) {
     configurable: true
   });
 }
-function getElementAtPath(obj, path3) {
-  if (!path3)
+function getElementAtPath(obj, path4) {
+  if (!path4)
     return obj;
-  return path3.reduce((acc, key) => acc?.[key], obj);
+  return path4.reduce((acc, key) => acc?.[key], obj);
 }
 function promiseAllObject(promisesObj) {
   const keys = Object.keys(promisesObj);
@@ -11363,11 +11363,11 @@ function aborted(x, startIndex = 0) {
   }
   return false;
 }
-function prefixIssues(path3, issues) {
+function prefixIssues(path4, issues) {
   return issues.map((iss) => {
     var _a;
     (_a = iss).path ?? (_a.path = []);
-    iss.path.unshift(path3);
+    iss.path.unshift(path4);
     return iss;
   });
 }
@@ -18876,7 +18876,7 @@ var Protocol = class {
           return;
         }
         const pollInterval = task2.pollInterval ?? this._options?.defaultTaskPollInterval ?? 1e3;
-        await new Promise((resolve) => setTimeout(resolve, pollInterval));
+        await new Promise((resolve3) => setTimeout(resolve3, pollInterval));
         options?.signal?.throwIfAborted();
       }
     } catch (error2) {
@@ -18893,7 +18893,7 @@ var Protocol = class {
    */
   request(request, resultSchema, options) {
     const { relatedRequestId, resumptionToken, onresumptiontoken, task, relatedTask } = options ?? {};
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve3, reject) => {
       const earlyReject = (error2) => {
         reject(error2);
       };
@@ -18971,7 +18971,7 @@ var Protocol = class {
           if (!parseResult.success) {
             reject(parseResult.error);
           } else {
-            resolve(parseResult.data);
+            resolve3(parseResult.data);
           }
         } catch (error2) {
           reject(error2);
@@ -19232,12 +19232,12 @@ var Protocol = class {
       }
     } catch {
     }
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve3, reject) => {
       if (signal.aborted) {
         reject(new McpError(ErrorCode.InvalidRequest, "Request cancelled"));
         return;
       }
-      const timeoutId = setTimeout(resolve, interval);
+      const timeoutId = setTimeout(resolve3, interval);
       signal.addEventListener("abort", () => {
         clearTimeout(timeoutId);
         reject(new McpError(ErrorCode.InvalidRequest, "Request cancelled"));
@@ -20337,7 +20337,7 @@ var McpServer = class {
     let task = createTaskResult.task;
     const pollInterval = task.pollInterval ?? 5e3;
     while (task.status !== "completed" && task.status !== "failed" && task.status !== "cancelled") {
-      await new Promise((resolve) => setTimeout(resolve, pollInterval));
+      await new Promise((resolve3) => setTimeout(resolve3, pollInterval));
       const updatedTask = await extra.taskStore.getTask(taskId);
       if (!updatedTask) {
         throw new McpError(ErrorCode.InternalError, `Task ${taskId} not found during polling`);
@@ -20980,12 +20980,12 @@ var StdioServerTransport = class {
     this.onclose?.();
   }
   send(message) {
-    return new Promise((resolve) => {
+    return new Promise((resolve3) => {
       const json = serializeMessage(message);
       if (this._stdout.write(json)) {
-        resolve();
+        resolve3();
       } else {
-        this._stdout.once("drain", resolve);
+        this._stdout.once("drain", resolve3);
       }
     });
   }
@@ -21018,11 +21018,18 @@ var ATTACHMENT_REQUIRED_LEAVES = {
 };
 var FORM_CODES = {
   leave: "AppFrm-073",
-  expense: "AppFrm-021",
+  expense: "AppFrm-020",
+  // Fixed: was AppFrm-021 (incorrect form code)
   working: "AppFrm-027",
   travel: "AppFrm-076",
   travel_request: "AppFrm-023",
-  budget_transfer: "AppFrm-039"
+  budget_transfer: "AppFrm-039",
+  // Stub types — will be routed to Python bridge in T6
+  travel_settlement: "AppFrm-076",
+  leave_return: "AppFrm-028",
+  card_expense: "AppFrm-020",
+  seminar: "AppFrm-043",
+  overseas_travel: "AppFrm-026"
 };
 var BUDGET_TRANSFER_CODES = {
   rnd: "AppFrm-039",
@@ -21297,7 +21304,7 @@ async function navigateToForm(page, formType, config3) {
   if (!frame) return null;
   await frame.goto(url, { timeout: config3.navTimeoutMs });
   await frame.waitForLoadState("networkidle");
-  await page.waitForTimeout(1500);
+  await frame.waitForSelector("form input, form textarea, form select", { timeout: 5e3 }).catch(() => null);
   return frame;
 }
 async function navigateInFrame(page, url, config3) {
@@ -21346,6 +21353,18 @@ async function setSelectValue(frame, selector, value) {
     },
     { sel: selector, val: value }
   );
+}
+async function setRequiredField(frame, selector, value, fieldName) {
+  const ok = await setFieldValue(frame, selector, value);
+  if (!ok) {
+    throw new Error(`FIELD_NOT_FOUND: Required field '${fieldName}' not found (selector: ${selector})`);
+  }
+}
+async function setRequiredSelect(frame, selector, value, fieldName) {
+  const ok = await setSelectValue(frame, selector, value);
+  if (!ok) {
+    throw new Error(`FIELD_NOT_FOUND: Required select '${fieldName}' not found (selector: ${selector})`);
+  }
 }
 async function setFormMode(frame, mode) {
   await frame.evaluate(
@@ -21399,9 +21418,171 @@ async function submitForm(page, frame, method = "check_form_request") {
   }
 }
 
+// src/python-bridge.ts
+import { spawn } from "child_process";
+import { resolve, dirname } from "path";
+import { fileURLToPath } from "url";
+var __dirname = dirname(fileURLToPath(import.meta.url));
+var PROJECT_ROOT = resolve(__dirname, "..", "..");
+var BRIDGE_SCRIPT = resolve(PROJECT_ROOT, "bridge.py");
+var MAX_QUEUE = 10;
+var RPC_TIMEOUT_MS = 3e4;
+var SHUTDOWN_GRACE_MS = 3e3;
+var child = null;
+var crashCount = 0;
+var nextId = 1;
+var currentResolve = null;
+var buffer = "";
+var queue = [];
+var processing = false;
+function ensureProcess() {
+  if (child && child.exitCode === null) return child;
+  if (crashCount >= 2) return null;
+  child = spawn("python3", [BRIDGE_SCRIPT], {
+    cwd: PROJECT_ROOT,
+    stdio: ["pipe", "pipe", "pipe"]
+  });
+  child.on("exit", () => {
+    crashCount++;
+    child = null;
+    buffer = "";
+    if (currentResolve) {
+      currentResolve({ id: -1, error: { code: "BRIDGE_UNAVAILABLE", message: "Python bridge process exited" } });
+      currentResolve = null;
+    }
+    if (crashCount >= 2) {
+      drainQueue("BRIDGE_UNAVAILABLE", "Python bridge crashed and restart limit reached");
+    }
+  });
+  child.stdout.on("data", (chunk) => {
+    buffer += chunk.toString();
+    let newlineIdx;
+    while ((newlineIdx = buffer.indexOf("\n")) !== -1) {
+      const line = buffer.slice(0, newlineIdx).trim();
+      buffer = buffer.slice(newlineIdx + 1);
+      if (!line) continue;
+      try {
+        const resp = JSON.parse(line);
+        if (currentResolve) {
+          currentResolve(resp);
+          currentResolve = null;
+        }
+      } catch {
+      }
+    }
+  });
+  crashCount = Math.max(0, crashCount - 1);
+  return child;
+}
+function drainQueue(code, message) {
+  while (queue.length > 0) {
+    const item = queue.shift();
+    item.resolve({ id: item.request.id, error: { code, message } });
+  }
+}
+async function processQueue() {
+  if (processing) return;
+  processing = true;
+  while (queue.length > 0) {
+    const item = queue.shift();
+    const proc = ensureProcess();
+    if (!proc) {
+      item.resolve({ id: item.request.id, error: { code: "BRIDGE_UNAVAILABLE", message: "Python bridge unavailable" } });
+      continue;
+    }
+    try {
+      const resp = await new Promise((resolve3, reject) => {
+        currentResolve = resolve3;
+        const timeout = setTimeout(() => {
+          currentResolve = null;
+          resolve3({ id: item.request.id, error: { code: "TIMEOUT", message: `RPC call timed out after ${RPC_TIMEOUT_MS}ms` } });
+        }, RPC_TIMEOUT_MS);
+        const origResolve = currentResolve;
+        currentResolve = (resp2) => {
+          clearTimeout(timeout);
+          resolve3(resp2);
+        };
+        const payload = JSON.stringify(item.request) + "\n";
+        proc.stdin.write(payload, (err) => {
+          if (err) {
+            clearTimeout(timeout);
+            currentResolve = null;
+            resolve3({ id: item.request.id, error: { code: "BRIDGE_UNAVAILABLE", message: `Failed to write to bridge: ${err.message}` } });
+          }
+        });
+      });
+      item.resolve(resp);
+    } catch (err) {
+      item.resolve({ id: item.request.id, error: { code: "INTERNAL_ERROR", message: String(err) } });
+    }
+  }
+  processing = false;
+}
+async function callPythonBridge(method, params = {}) {
+  if (queue.length >= MAX_QUEUE) {
+    return { id: -1, error: { code: "QUEUE_OVERFLOW", message: `Request queue full (max ${MAX_QUEUE})` } };
+  }
+  const request = { id: nextId++, method, params };
+  return new Promise((resolve3) => {
+    queue.push({ request, resolve: resolve3, reject: () => {
+    } });
+    processQueue();
+  });
+}
+function shutdownBridge() {
+  if (child && child.exitCode === null) {
+    child.kill("SIGTERM");
+    setTimeout(() => {
+      if (child && child.exitCode === null) {
+        child.kill("SIGKILL");
+      }
+    }, SHUTDOWN_GRACE_MS);
+  }
+}
+process.on("exit", shutdownBridge);
+process.on("SIGINT", shutdownBridge);
+process.on("SIGTERM", shutdownBridge);
+
 // src/tools/ipk-submit.ts
+import * as path2 from "path";
+var ALLOWED_ATTACHMENT_DIRS = [
+  "/tmp",
+  `${process.env.HOME}/Downloads`,
+  `${process.env.HOME}/Documents`,
+  `${process.env.HOME}/Desktop`
+];
+function validateAttachmentPath(filePath) {
+  const resolved = path2.resolve(filePath);
+  if (resolved !== filePath && filePath.includes("..")) {
+    return "Attachment path contains path traversal (..)";
+  }
+  if (/\/\./.test(resolved)) {
+    return "Attachment path points to a hidden file/directory";
+  }
+  if (resolved.startsWith("/etc") || resolved.startsWith("/proc") || resolved.startsWith("/sys")) {
+    return "Attachment path points to a system directory";
+  }
+  const inAllowed = ALLOWED_ATTACHMENT_DIRS.some((dir) => resolved.startsWith(dir));
+  if (!inAllowed) {
+    return `Attachment must be in one of: ${ALLOWED_ATTACHMENT_DIRS.join(", ")}`;
+  }
+  return null;
+}
 var ipkSubmitFormSchema = {
-  form_type: external_exports.enum(["leave", "expense", "working", "travel", "travel_request", "budget_transfer"]).describe("Form type to submit"),
+  form_type: external_exports.enum([
+    "leave",
+    "expense",
+    "working",
+    "travel",
+    "travel_request",
+    "budget_transfer",
+    // Stub types — pending Python bridge (T6)
+    "travel_settlement",
+    "leave_return",
+    "card_expense",
+    "seminar",
+    "overseas_travel"
+  ]).describe("Form type to submit"),
   draft_only: external_exports.boolean().default(true).describe("Save as draft (true) or submit for approval (false). Defaults to true for safety."),
   confirm_submit: external_exports.boolean().default(false).describe("Must be true to actually submit for approval. Ignored when draft_only=true."),
   // Leave fields
@@ -21417,7 +21598,7 @@ var ipkSubmitFormSchema = {
   amount: external_exports.number().optional().describe("Total amount in KRW"),
   participants: external_exports.string().optional().describe("Participants for meal expense"),
   venue: external_exports.string().optional().describe("Venue for expense"),
-  budget_code: external_exports.string().optional().describe("Budget code (e.g. NN2512-0001)"),
+  budget_code: external_exports.string().optional().describe("Budget code (required for expense/working/travel_request forms). Use the active fiscal year code, e.g. NN2612-0001."),
   attachment_path: external_exports.string().optional().describe("Path to attachment file"),
   // Working fields
   work_date: external_exports.string().optional().describe("Work date (YYYY-MM-DD)"),
@@ -21436,7 +21617,7 @@ var ipkSubmitFormSchema = {
   transfer_amount: external_exports.number().optional().describe("Amount to transfer in KRW"),
   transfer_type: external_exports.enum(["rnd", "general"]).default("rnd").describe("Budget transfer type: rnd (R&D, AppFrm-039) or general (AppFrm-053)")
 };
-var ipkSubmitFormDescription = "Submit a form in IPK groupware. Supports: leave (\uD734\uAC00), expense (\uACBD\uBE44), working (\uD734\uC77C\uADFC\uBB34), travel (\uCD9C\uC7A5\uBCF4\uACE0), travel_request (\uCD9C\uC7A5\uC2E0\uCCAD), budget_transfer (\uBC84\uC82F\uD2B8\uB79C\uC2A4\uD37C). By default saves as draft (draft_only=true). To actually submit for approval, set draft_only=false AND confirm_submit=true. For budget_transfer, use transfer_type='rnd' (AppFrm-039, default) or transfer_type='general' (AppFrm-053).";
+var ipkSubmitFormDescription = "Submit a form in IPK groupware. Implemented: leave (\uD734\uAC00/AppFrm-073), expense (\uACBD\uBE44/AppFrm-020), working (\uD734\uC77C\uADFC\uBB34/AppFrm-027), travel (\uCD9C\uC7A5\uBCF4\uACE0/AppFrm-076), travel_request (\uCD9C\uC7A5\uC2E0\uCCAD/AppFrm-023), budget_transfer (\uC608\uC0B0\uC804\uC6A9/AppFrm-039). Stub (pending Python bridge): travel_settlement (\uCD9C\uC7A5\uC815\uC0B0), leave_return (\uB300\uCCB4\uD734\uC77C\uBC18\uB0A9), card_expense (\uCE74\uB4DC\uACBD\uBE44), seminar (\uC138\uBBF8\uB098\uACF5\uC2DC), overseas_travel (\uD574\uC678\uCD9C\uC7A5). By default saves as draft (draft_only=true). To actually submit for approval, set draft_only=false AND confirm_submit=true. For budget_transfer, use transfer_type='rnd' (AppFrm-039, default) or transfer_type='general' (AppFrm-053).";
 async function handleIpkSubmitForm(sessionManager2, config3, params) {
   if (!sessionManager2.isLoggedIn()) {
     return textResult({ error: true, code: "NOT_LOGGED_IN", message: "Call ipk_login first" });
@@ -21449,6 +21630,12 @@ async function handleIpkSubmitForm(sessionManager2, config3, params) {
       code: "CONFIRMATION_REQUIRED",
       message: "To submit for approval, set both draft_only=false AND confirm_submit=true"
     });
+  }
+  if (params.attachment_path) {
+    const attachErr = validateAttachmentPath(params.attachment_path);
+    if (attachErr) {
+      return textResult({ error: true, code: "INVALID_ATTACHMENT", message: attachErr });
+    }
   }
   const mode = params.draft_only !== false ? "draft" : "request";
   try {
@@ -21479,6 +21666,13 @@ async function handleIpkSubmitForm(sessionManager2, config3, params) {
         return await submitTravel(page, frame, sessionManager2, config3, params, mode);
       case "travel_request":
         return await submitTravelRequest(page, frame, sessionManager2, config3, params, mode);
+      // Python bridge types: infer fields via bridge.py, fallback to NOT_IMPLEMENTED on error
+      case "travel_settlement":
+      case "leave_return":
+      case "card_expense":
+      case "seminar":
+      case "overseas_travel":
+        return await handleBridgeFormType(formType, params);
       default:
         return textResult({ error: true, code: "UNKNOWN_FORM", message: `Unknown form type: ${formType}` });
     }
@@ -21512,10 +21706,10 @@ async function submitLeave(page, frame, sessionManager2, config3, params, mode) 
   if (substituteName === "N/A") {
     warnings.push("Substitute person not configured. Set IPK_SUBSTITUTE_NAME env var or pass substitute_name parameter.");
   }
-  await setSelectValue(frame, 'select[name="leave_kind[]"]', leaveCode);
-  await setSelectValue(frame, 'select[name="using_type[]"]', usingType);
-  await setFieldValue(frame, 'input[name="begin_date[]"]', startDate);
-  await setFieldValue(frame, 'input[name="end_date[]"]', endDate);
+  await setRequiredSelect(frame, 'select[name="leave_kind[]"]', leaveCode, "leave_kind");
+  await setRequiredSelect(frame, 'select[name="using_type[]"]', usingType, "using_type");
+  await setRequiredField(frame, 'input[name="begin_date[]"]', startDate, "begin_date");
+  await setRequiredField(frame, 'input[name="end_date[]"]', endDate, "end_date");
   if (isHourly) {
     await frame.evaluate(
       (st) => {
@@ -21630,18 +21824,21 @@ async function submitExpense(page, frame, sessionManager2, config3, params, mode
   const itemName = params.reason || params.purpose || "overtime meal";
   const subject = params.title || `[Card] ${itemName}`;
   const budgetType = params.budget_type || "02";
-  const budgetCode = params.budget_code || "NN2512-0001";
+  const budgetCode = params.budget_code;
+  if (!budgetCode) {
+    return textResult({ error: true, code: "MISSING_BUDGET_CODE", message: "budget_code is required. Provide the active fiscal year budget code (e.g. NN2612-0001)." });
+  }
   const participants = params.participants || "";
   const purpose = params.purpose || "overtime work";
   const pReason = params.reason || `${itemName} - receipt attached`;
-  await setFieldValue(frame, 'input[name="subject"]', subject);
-  await setSelectValue(frame, 'select[name="budget_type"]', budgetType);
+  await setRequiredField(frame, 'input[name="subject"]', subject, "subject");
+  await setRequiredSelect(frame, 'select[name="budget_type"]', budgetType, "budget_type");
   await page.waitForTimeout(1e3);
-  await setSelectValue(frame, 'select[name="budget_code"]', budgetCode);
-  await setSelectValue(frame, 'select[name="pay_kind"]', "04");
-  await setFieldValue(frame, 'textarea[name="p_reason"]', pReason);
-  await setFieldValue(frame, 'input[name="invoice[]"]', date3);
-  await setFieldValue(frame, 'input[name="item_desc[]"]', itemName);
+  await setRequiredSelect(frame, 'select[name="budget_code"]', budgetCode, "budget_code");
+  await setRequiredSelect(frame, 'select[name="pay_kind"]', "04", "pay_kind");
+  await setRequiredField(frame, 'textarea[name="p_reason"]', pReason, "p_reason");
+  await setRequiredField(frame, 'input[name="invoice[]"]', date3, "invoice");
+  await setRequiredField(frame, 'input[name="item_desc[]"]', itemName, "item_desc");
   await setFieldValue(frame, 'input[name="item_qty[]"]', "1");
   await setFieldValue(frame, 'input[name="item_amount[]"]', String(amountNoVat));
   await setFieldValue(frame, 'input[name="item_amount_vat[]"]', String(vat));
@@ -21684,15 +21881,18 @@ async function submitWorking(page, frame, sessionManager2, config3, params, mode
   const workPlace = params.work_place || "IPK";
   const details = params.details || reason;
   const budgetType = params.budget_type || "02";
-  const budgetCode = params.budget_code || "NN2512-0001";
+  const budgetCode = params.budget_code;
+  if (!budgetCode) {
+    return textResult({ error: true, code: "MISSING_BUDGET_CODE", message: "budget_code is required. Provide the active fiscal year budget code (e.g. NN2612-0001)." });
+  }
   const subject = `Application for Working on ${workDate}, ${userInfo.name}`;
-  await setFieldValue(frame, 'input[name="subject"]', subject);
-  await setSelectValue(frame, 'select[name="budget_type"]', budgetType);
+  await setRequiredField(frame, 'input[name="subject"]', subject, "subject");
+  await setRequiredSelect(frame, 'select[name="budget_type"]', budgetType, "budget_type");
   await page.waitForTimeout(1e3);
-  await setSelectValue(frame, 'select[name="budget_code"]', budgetCode);
-  await setFieldValue(frame, 'input[name="desired_date"]', workDate);
-  await setFieldValue(frame, 'input[name="wroking_place"]', workPlace);
-  await setFieldValue(frame, 'input[name="sub_subject"]', reason);
+  await setRequiredSelect(frame, 'select[name="budget_code"]', budgetCode, "budget_code");
+  await setRequiredField(frame, 'input[name="desired_date"]', workDate, "desired_date");
+  await setRequiredField(frame, 'input[name="wroking_place"]', workPlace, "wroking_place");
+  await setRequiredField(frame, 'input[name="sub_subject"]', reason, "sub_subject");
   await setFieldValue(frame, 'textarea[name="contents1"]', details);
   await page.waitForTimeout(1e3);
   await setFormMode(frame, mode);
@@ -21723,16 +21923,16 @@ async function submitTravel(page, frame, sessionManager2, config3, params, mode)
   const reportPost = process.env.IPK_USER_POSITION || "Researcher";
   const reportLeader = process.env.IPK_GROUP_LEADER || "";
   const userDept = userInfo.dept || process.env.IPK_USER_DEPT || "";
-  await setFieldValue(frame, 'input[name="subject"]', title);
-  await setFieldValue(frame, '.validate[name="report_date"]', reportDate);
-  await setFieldValue(frame, '.validate[name="report_name"]', userInfo.name);
+  await setRequiredField(frame, 'input[name="subject"]', title, "subject");
+  await setRequiredField(frame, '.validate[name="report_date"]', reportDate, "report_date");
+  await setRequiredField(frame, '.validate[name="report_name"]', userInfo.name, "report_name");
   await setFieldValue(frame, '.validate[name="report_post"]', reportPost);
   await setFieldValue(frame, '.validate[name="report_group"]', userDept);
   await setFieldValue(frame, '.validate[name="report_leader"]', reportLeader);
-  await setFieldValue(frame, '.validate[name="start_day"]', startDate);
-  await setFieldValue(frame, '.validate[name="end_day"]', endDate);
-  await setFieldValue(frame, '.validate[name="report_dest"]', destination);
-  await setFieldValue(frame, '.validate[name="purpose_field"]', purpose);
+  await setRequiredField(frame, '.validate[name="start_day"]', startDate, "start_day");
+  await setRequiredField(frame, '.validate[name="end_day"]', endDate, "end_day");
+  await setRequiredField(frame, '.validate[name="report_dest"]', destination, "report_dest");
+  await setRequiredField(frame, '.validate[name="purpose_field"]', purpose, "purpose_field");
   await setFieldValue(frame, '.validate[name="date_field"]', schedule);
   await setFieldValue(frame, '.validate[name="org_field"]', organization);
   await setFieldValue(frame, '.validate[name="person_field"]', attendees);
@@ -21769,9 +21969,12 @@ async function submitTravelRequest(page, frame, sessionManager2, config3, params
   const endDate = params.end_date || startDate;
   const purpose = params.purpose || "Business travel";
   const budgetType = params.budget_type || "02";
-  const budgetCode = params.budget_code || "NN2512-0001";
+  const budgetCode = params.budget_code;
+  if (!budgetCode) {
+    return textResult({ error: true, code: "MISSING_BUDGET_CODE", message: "budget_code is required. Provide the active fiscal year budget code (e.g. NN2612-0001)." });
+  }
   const subject = `[Request] ${title}`;
-  await setFieldValue(frame, 'input[name="subject"]', subject);
+  await setRequiredField(frame, 'input[name="subject"]', subject, "subject");
   await setSelectValue(frame, 'select[name="budget_type"]', budgetType);
   await page.waitForTimeout(1e3);
   await setSelectValue(frame, 'select[name="budget_code"]', budgetCode);
@@ -21836,7 +22039,7 @@ async function submitBudgetTransfer(page, frame, sessionManager2, config3, param
     });
   }
   const subject = `[Budget Transfer] ${title}`;
-  await setFieldValue(frame, 'input[name="subject"]', subject);
+  await setRequiredField(frame, 'input[name="subject"]', subject, "subject");
   if (transferType === "rnd") {
     await setSelectValue(frame, 'select[name="budget_type"]', "02");
   } else {
@@ -21887,6 +22090,39 @@ async function submitBudgetTransfer(page, frame, sessionManager2, config3, param
       note: "Field selectors are best-effort. After first use, verify the form was filled correctly via screenshot tool and report any missing fields."
     }
   });
+}
+async function handleBridgeFormType(formType, params) {
+  const FALLBACK_MESSAGES = {
+    travel_settlement: "\uCD9C\uC7A5\uC815\uC0B0(AppFrm-076) \uAE30\uB2A5\uC740 \uD604\uC7AC \uAD6C\uD604 \uC911\uC785\uB2C8\uB2E4. Python bridge \uC5F0\uB3D9 \uD6C4 \uC0AC\uC6A9 \uAC00\uB2A5\uD569\uB2C8\uB2E4.",
+    leave_return: "\uB300\uCCB4\uD734\uC77C\uBC18\uB0A9(AppFrm-028) \uAE30\uB2A5\uC740 \uD604\uC7AC \uAD6C\uD604 \uC911\uC785\uB2C8\uB2E4. Python bridge \uC5F0\uB3D9 \uD6C4 \uC0AC\uC6A9 \uAC00\uB2A5\uD569\uB2C8\uB2E4.",
+    card_expense: "\uCE74\uB4DC\uACBD\uBE44(AppFrm-020) \uAE30\uB2A5\uC740 \uD604\uC7AC \uAD6C\uD604 \uC911\uC785\uB2C8\uB2E4. Python bridge \uC5F0\uB3D9 \uD6C4 \uC0AC\uC6A9 \uAC00\uB2A5\uD569\uB2C8\uB2E4.",
+    seminar: "\uC138\uBBF8\uB098\uACF5\uC2DC(AppFrm-043) \uAE30\uB2A5\uC740 \uD604\uC7AC \uAD6C\uD604 \uC911\uC785\uB2C8\uB2E4. Python bridge \uC5F0\uB3D9 \uD6C4 \uC0AC\uC6A9 \uAC00\uB2A5\uD569\uB2C8\uB2E4.",
+    overseas_travel: "\uD574\uC678\uCD9C\uC7A5(AppFrm-026) \uAE30\uB2A5\uC740 \uD604\uC7AC \uAD6C\uD604 \uC911\uC785\uB2C8\uB2E4. Python bridge \uC5F0\uB3D9 \uD6C4 \uC0AC\uC6A9 \uAC00\uB2A5\uD569\uB2C8\uB2E4."
+  };
+  try {
+    const resp = await callPythonBridge("infer_fields", {
+      form_type: formType,
+      user_input: params
+    });
+    if (resp.error) {
+      const err = typeof resp.error === "string" ? { code: "BRIDGE_ERROR", message: resp.error } : resp.error;
+      if (err.code === "BRIDGE_UNAVAILABLE" || err.code === "TIMEOUT") {
+        return textResult({ error: true, code: "NOT_IMPLEMENTED", message: FALLBACK_MESSAGES[formType] || err.message });
+      }
+      return textResult({ error: true, code: err.code, message: err.message });
+    }
+    return textResult({
+      error: false,
+      data: {
+        formType,
+        inferred_fields: resp.result,
+        message: `${formType} \uD544\uB4DC \uCD94\uB860 \uC644\uB8CC. \uCD94\uB860\uB41C \uD544\uB4DC\uB97C \uD655\uC778 \uD6C4 \uC81C\uCD9C\uD558\uC138\uC694.`,
+        note: "Playwright \uC591\uC2DD \uC790\uB3D9\uC785\uB825\uC740 \uC544\uC9C1 \uBBF8\uAD6C\uD604\uC785\uB2C8\uB2E4. \uCD94\uB860\uB41C \uD544\uB4DC\uAC12\uC744 \uCC38\uACE0\uD558\uC5EC \uC218\uB3D9 \uC785\uB825\uD558\uAC70\uB098, \uAD6C\uD604\uB41C \uC591\uC2DD \uD0C0\uC785\uC744 \uC0AC\uC6A9\uD558\uC138\uC694."
+      }
+    });
+  } catch {
+    return textResult({ error: true, code: "NOT_IMPLEMENTED", message: FALLBACK_MESSAGES[formType] || `${formType} is not yet implemented.` });
+  }
 }
 async function setFallbackSubstitute(frame, name) {
   await frame.evaluate(
@@ -22194,7 +22430,7 @@ async function handleIpkGetContent(sessionManager2, config3, params) {
 
 // src/tools/screenshot.ts
 import * as fs2 from "fs";
-import * as path2 from "path";
+import * as path3 from "path";
 var screenshotSchema = {
   filename: external_exports.string().optional().describe("Custom filename (without path). Default: auto-generated timestamp."),
   full_page: external_exports.boolean().default(false).describe("Capture full page (true) or viewport only (false)")
@@ -22209,7 +22445,7 @@ async function handleScreenshot(sessionManager2, config3, params) {
     fs2.mkdirSync(config3.screenshotDir, { recursive: true });
     const timestamp = (/* @__PURE__ */ new Date()).toISOString().replace(/[:.]/g, "-");
     const filename = params.filename || `ipk-${timestamp}.png`;
-    const filepath = path2.join(config3.screenshotDir, filename);
+    const filepath = path3.join(config3.screenshotDir, filename);
     await page.screenshot({
       path: filepath,
       fullPage: params.full_page || false
@@ -22245,7 +22481,7 @@ function cleanupExpiredScreenshots(config3) {
     const files = fs2.readdirSync(config3.screenshotDir);
     for (const file of files) {
       if (!file.endsWith(".png")) continue;
-      const filepath = path2.join(config3.screenshotDir, file);
+      const filepath = path3.join(config3.screenshotDir, file);
       const stat = fs2.statSync(filepath);
       if (now - stat.mtimeMs > ttlMs) {
         fs2.unlinkSync(filepath);
