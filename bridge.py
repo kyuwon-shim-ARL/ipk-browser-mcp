@@ -25,19 +25,27 @@ def handle_request(req: dict) -> dict:
 
     try:
         if method == "infer_fields":
-            form_type = params["form_type"]
+            form_type = params.get("form_type")
+            if not form_type:
+                return _error(req, "INVALID_PARAMS", "Missing required param: form_type")
             user_input = params.get("user_input", {})
             writer = params.get("writer", "")
             template = load_template(form_type)
+            if template is None:
+                return _error(req, "TEMPLATE_NOT_FOUND", f"No template for form_type: {form_type}")
             profile = load_traveler_profile(writer) if writer else {}
             result = infer_fields(template, profile, user_input)
             return {"id": req.get("id"), "result": result}
 
         elif method == "fill_form":
-            form_type = params["form_type"]
+            form_type = params.get("form_type")
+            if not form_type:
+                return _error(req, "INVALID_PARAMS", "Missing required param: form_type")
             user_input = params.get("user_input", {})
             writer = params.get("writer", "")
             template = load_template(form_type)
+            if template is None:
+                return _error(req, "TEMPLATE_NOT_FOUND", f"No template for form_type: {form_type}")
             profile = load_traveler_profile(writer) if writer else {}
             field_values = infer_fields(template, profile, user_input)
             result = fill_form(form_type, field_values)
@@ -47,10 +55,18 @@ def handle_request(req: dict) -> dict:
             return {"id": req.get("id"), "result": load_registry()}
 
         else:
-            return {"id": req.get("id"), "error": f"Unknown method: {method}"}
+            return _error(req, "UNKNOWN_METHOD", f"Unknown method: {method}")
 
+    except KeyError as e:
+        return _error(req, "INVALID_PARAMS", f"Missing param: {e}")
     except Exception as e:
-        return {"id": req.get("id"), "error": str(e)}
+        logging.exception("Bridge internal error")
+        return _error(req, "INTERNAL_ERROR", str(e))
+
+
+def _error(req: dict, code: str, message: str) -> dict:
+    """Return a structured error response. Errors go to stdout as JSON; tracebacks to stderr."""
+    return {"id": req.get("id"), "error": {"code": code, "message": message}}
 
 
 def run_bridge():
