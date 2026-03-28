@@ -196,6 +196,16 @@ export async function handleIpkSubmitForm(
 
   const mode = params.draft_only !== false ? "draft" : "request";
 
+  // Session expiry guard: warn if <5 min remaining before starting form fill
+  const remainingMs = sessionManager.getSessionRemainingMs();
+  if (remainingMs < 5 * 60 * 1000) {
+    return textResult({
+      error: true,
+      code: "SESSION_EXPIRING",
+      message: `Session expires in ${Math.floor(remainingMs / 1000)}s. Call ipk_login to refresh before submitting forms.`,
+    });
+  }
+
   try {
     // budget_transfer has two variants (rnd/general), so navigate directly instead of using navigateToForm
     if (formType === "budget_transfer") {
@@ -207,6 +217,7 @@ export async function handleIpkSubmitForm(
       }
       await mainFrame.goto(btUrl, { timeout: config.navTimeoutMs });
       await mainFrame.waitForLoadState("networkidle");
+      sessionManager.touchActivity();
       await page.waitForTimeout(1500);
       return await submitBudgetTransfer(page, mainFrame, sessionManager, config, params, mode);
     }
@@ -215,6 +226,7 @@ export async function handleIpkSubmitForm(
     if (!frame) {
       return textResult({ error: true, code: "NAVIGATION_FAILED", message: "Failed to navigate to form" });
     }
+    sessionManager.touchActivity();
 
     switch (formType) {
       case "leave":

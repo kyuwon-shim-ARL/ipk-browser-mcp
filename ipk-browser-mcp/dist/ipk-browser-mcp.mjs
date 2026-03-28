@@ -21238,6 +21238,18 @@ var SessionManager = class _SessionManager {
     }
     return true;
   }
+  /** Remaining session TTL in ms. Returns 0 if not logged in. */
+  getSessionRemainingMs() {
+    if (!this.session?.loggedIn) return 0;
+    const elapsed = Date.now() - this.session.lastActivity;
+    return Math.max(0, _SessionManager.SESSION_TTL_MS - elapsed);
+  }
+  /** Touch session activity timestamp (call after successful navigation/interaction). */
+  touchActivity() {
+    if (this.session) {
+      this.session.lastActivity = Date.now();
+    }
+  }
   getUserInfo() {
     return this.session?.userInfo || null;
   }
@@ -21572,6 +21584,14 @@ async function handleIpkSubmitForm(sessionManager2, config3, params) {
     }
   }
   const mode = params.draft_only !== false ? "draft" : "request";
+  const remainingMs = sessionManager2.getSessionRemainingMs();
+  if (remainingMs < 5 * 60 * 1e3) {
+    return textResult({
+      error: true,
+      code: "SESSION_EXPIRING",
+      message: `Session expires in ${Math.floor(remainingMs / 1e3)}s. Call ipk_login to refresh before submitting forms.`
+    });
+  }
   try {
     if (formType === "budget_transfer") {
       const btCode = BUDGET_TRANSFER_CODES[params.transfer_type || "rnd"] || BUDGET_TRANSFER_CODES.rnd;
@@ -21582,6 +21602,7 @@ async function handleIpkSubmitForm(sessionManager2, config3, params) {
       }
       await mainFrame.goto(btUrl, { timeout: config3.navTimeoutMs });
       await mainFrame.waitForLoadState("networkidle");
+      sessionManager2.touchActivity();
       await page.waitForTimeout(1500);
       return await submitBudgetTransfer(page, mainFrame, sessionManager2, config3, params, mode);
     }
@@ -21589,6 +21610,7 @@ async function handleIpkSubmitForm(sessionManager2, config3, params) {
     if (!frame) {
       return textResult({ error: true, code: "NAVIGATION_FAILED", message: "Failed to navigate to form" });
     }
+    sessionManager2.touchActivity();
     switch (formType) {
       case "leave":
         return await submitLeave(page, frame, sessionManager2, config3, params, mode);

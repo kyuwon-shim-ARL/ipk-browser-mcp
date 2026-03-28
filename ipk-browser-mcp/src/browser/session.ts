@@ -192,6 +192,20 @@ export class SessionManager {
     return true;
   }
 
+  /** Remaining session TTL in ms. Returns 0 if not logged in. */
+  getSessionRemainingMs(): number {
+    if (!this.session?.loggedIn) return 0;
+    const elapsed = Date.now() - this.session.lastActivity;
+    return Math.max(0, SessionManager.SESSION_TTL_MS - elapsed);
+  }
+
+  /** Touch session activity timestamp (call after successful navigation/interaction). */
+  touchActivity(): void {
+    if (this.session) {
+      this.session.lastActivity = Date.now();
+    }
+  }
+
   getUserInfo(): SessionState["userInfo"] | null {
     return this.session?.userInfo || null;
   }
