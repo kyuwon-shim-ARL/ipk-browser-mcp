@@ -1,0 +1,767 @@
+{
+  "url": "https://gw.ip-korea.org/Document/document_write.php?approve_type=AppFrm-073",
+  "element_count": 66,
+  "elements": [
+    {
+      "tag": "input",
+      "name": "del_no",
+      "type": "hidden",
+      "id": "del_no",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "approve_line_temp",
+      "type": "hidden",
+      "id": "approve_line_temp",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "start_page",
+      "type": "hidden",
+      "id": "start_page",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "select",
+      "name": "retention",
+      "type": "select-one",
+      "id": "retention",
+      "required": false,
+      "className": "",
+      "options": [
+        {
+          "value": "1",
+          "text": "1 year"
+        },
+        {
+          "value": "3",
+          "text": "3 years"
+        },
+        {
+          "value": "5",
+          "text": "5 years"
+        },
+        {
+          "value": "10",
+          "text": "10 years"
+        },
+        {
+          "value": "30",
+          "text": "30 years"
+        },
+        {
+          "value": "100",
+          "text": "Semi - Permanent"
+        },
+        {
+          "value": "999",
+          "text": "Permanent"
+        }
+      ]
+    },
+    {
+      "tag": "input",
+      "name": "close_date",
+      "type": "text",
+      "id": "close_date",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "urgent",
+      "type": "checkbox",
+      "id": "urgent",
+      "required": false,
+      "className": "check"
+    },
+    {
+      "tag": "input",
+      "name": "security",
+      "type": "checkbox",
+      "id": "security",
+      "required": false,
+      "className": "check"
+    },
+    {
+      "tag": "input",
+      "name": "apporve_cc",
+      "type": "text",
+      "id": "apporve_cc",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "subject",
+      "type": "text",
+      "id": "subject",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "day_stime",
+      "type": "hidden",
+      "id": "day_stime",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "day_etime",
+      "type": "hidden",
+      "id": "day_etime",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "mode",
+      "type": "hidden",
+      "id": "mode",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "mode1",
+      "type": "hidden",
+      "id": "mode1",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "approve_type",
+      "type": "hidden",
+      "id": "approve_type",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "doc_id",
+      "type": "hidden",
+      "id": "doc_id",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "document_select_no",
+      "type": "hidden",
+      "id": "document_select_no",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "type",
+      "type": "hidden",
+      "id": "type",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "ann_prev",
+      "type": "hidden",
+      "id": "ann_prev",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "comp_prev",
+      "type": "hidden",
+      "id": "comp_prev",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "save_prev",
+      "type": "hidden",
+      "id": "comp_prev",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "curr_ann_dt",
+      "type": "hidden",
+      "id": "curr_ann_dt",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "curr_comp_dt",
+      "type": "hidden",
+      "id": "curr_comp_dt",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "curr_save_dt",
+      "type": "hidden",
+      "id": "curr_save_dt",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "total_day",
+      "type": "hidden",
+      "id": "total_day",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "order_no[]",
+      "type": "hidden",
+      "id": "",
+      "required": false,
+      "className": "order_no"
+    },
+    {
+      "tag": "input",
+      "name": "paid_val[]",
+      "type": "hidden",
+      "id": "",
+      "required": false,
+      "className": "paid_val"
+    },
+    {
+      "tag": "input",
+      "name": "unpaid_val[]",
+      "type": "hidden",
+      "id": "",
+      "required": false,
+      "className": "unpaid_val"
+    },
+    {
+      "tag": "input",
+      "name": "comp_val[]",
+      "type": "hidden",
+      "id": "",
+      "required": false,
+      "className": "comp_val"
+    },
+    {
+      "tag": "input",
+      "name": "save_val[]",
+      "type": "hidden",
+      "id": "",
+      "required": false,
+      "className": "save_val"
+    },
+    {
+      "tag": "select",
+      "name": "leave_kind[]",
+      "type": "select-one",
+      "id": "",
+      "required": false,
+      "className": "leave_kind validate",
+      "options": [
+        {
+          "value": "",
+          "text": "== select Leave kind =="
+        },
+        {
+          "value": "01",
+          "text": "Annual leave"
+        },
+        {
+          "value": "11",
+          "text": "Compensatory leave"
+        },
+        {
+          "value": "14",
+          "text": "Saved Annual leave"
+        },
+        {
+          "value": "02",
+          "text": "Sick leave"
+        },
+        {
+          "value": "03",
+          "text": "Special leave"
+        },
+        {
+          "value": "15",
+          "text": "Paternity Leave"
+        },
+        {
+          "value": "04",
+          "text": "Menstruation leave(UnPaid)"
+        },
+        {
+          "value": "05",
+          "text": "Official leave"
+        },
+        {
+          "value": "07",
+          "text": "Child delivery and Nursing leave"
+        },
+        {
+          "value": "08",
+          "text": "Unpaid leave"
+        },
+        {
+          "value": "09",
+          "text": "Childcare leave"
+        },
+        {
+          "value": "10",
+          "text": "Temporary Rest"
+        },
+        {
+          "value": "13",
+          "text": "Fetus Checkup"
+        },
+        {
+          "value": "12",
+          "text": "Other"
+        }
+      ]
+    },
+    {
+      "tag": "input",
+      "name": "begin_date[]",
+      "type": "text",
+      "id": "dp1774923664557",
+      "required": false,
+      "className": "usrCalendar validate hasDatepicker"
+    },
+    {
+      "tag": "input",
+      "name": "end_date[]",
+      "type": "text",
+      "id": "dp1774923664558",
+      "required": false,
+      "className": "usrCalendar validate hasDatepicker"
+    },
+    {
+      "tag": "input",
+      "name": "real_days[]",
+      "type": "hidden",
+      "id": "",
+      "required": false,
+      "className": "real_days"
+    },
+    {
+      "tag": "select",
+      "name": "using_type[]",
+      "type": "select-one",
+      "id": "",
+      "required": false,
+      "className": "using_type",
+      "options": [
+        {
+          "value": "",
+          "text": "== select Using Type =="
+        },
+        {
+          "value": "01",
+          "text": "Full day"
+        },
+        {
+          "value": "04",
+          "text": "Hours"
+        }
+      ]
+    },
+    {
+      "tag": "select",
+      "name": "start_time[]",
+      "type": "select-one",
+      "id": "",
+      "required": false,
+      "className": "start_time",
+      "options": [
+        {
+          "value": "",
+          "text": "= From ="
+        },
+        {
+          "value": "10",
+          "text": "10"
+        },
+        {
+          "value": "11",
+          "text": "11"
+        },
+        {
+          "value": "12",
+          "text": "12"
+        },
+        {
+          "value": "13",
+          "text": "13"
+        },
+        {
+          "value": "14",
+          "text": "14"
+        },
+        {
+          "value": "15",
+          "text": "15"
+        },
+        {
+          "value": "16",
+          "text": "16"
+        },
+        {
+          "value": "17",
+          "text": "17"
+        }
+      ]
+    },
+    {
+      "tag": "select",
+      "name": "end_time[]",
+      "type": "select-one",
+      "id": "",
+      "required": false,
+      "className": "end_time",
+      "options": [
+        {
+          "value": "",
+          "text": "= To ="
+        }
+      ]
+    },
+    {
+      "tag": "input",
+      "name": "purpose",
+      "type": "text",
+      "id": "purpose",
+      "required": false,
+      "className": "validate"
+    },
+    {
+      "tag": "input",
+      "name": "destination",
+      "type": "text",
+      "id": "destination",
+      "required": false,
+      "className": "validate"
+    },
+    {
+      "tag": "input",
+      "name": "substitute_name",
+      "type": "text",
+      "id": "substitute_name",
+      "required": false,
+      "className": "validate"
+    },
+    {
+      "tag": "input",
+      "name": "substitute_payroll",
+      "type": "text",
+      "id": "substitute_payroll",
+      "required": false,
+      "className": "validate"
+    },
+    {
+      "tag": "input",
+      "name": "substitute_position",
+      "type": "text",
+      "id": "substitute_position",
+      "required": false,
+      "className": "validate"
+    },
+    {
+      "tag": "input",
+      "name": "substitute_contact",
+      "type": "text",
+      "id": "substitute_contact",
+      "required": false,
+      "className": "validate"
+    },
+    {
+      "tag": "input",
+      "name": "emergency_address",
+      "type": "text",
+      "id": "emergency_address",
+      "required": false,
+      "className": "validate"
+    },
+    {
+      "tag": "input",
+      "name": "emergency_telephone",
+      "type": "text",
+      "id": "emergency_telephone",
+      "required": false,
+      "className": "validate"
+    },
+    {
+      "tag": "select",
+      "name": "file_attach_cnt",
+      "type": "select-one",
+      "id": "file_attach_cnt",
+      "required": false,
+      "className": "",
+      "options": [
+        {
+          "value": "1",
+          "text": "1"
+        },
+        {
+          "value": "2",
+          "text": "2"
+        },
+        {
+          "value": "3",
+          "text": "3"
+        },
+        {
+          "value": "4",
+          "text": "4"
+        },
+        {
+          "value": "5",
+          "text": "5"
+        },
+        {
+          "value": "6",
+          "text": "6"
+        },
+        {
+          "value": "7",
+          "text": "7"
+        },
+        {
+          "value": "8",
+          "text": "8"
+        },
+        {
+          "value": "9",
+          "text": "9"
+        },
+        {
+          "value": "10",
+          "text": "10"
+        },
+        {
+          "value": "11",
+          "text": "11"
+        },
+        {
+          "value": "12",
+          "text": "12"
+        },
+        {
+          "value": "13",
+          "text": "13"
+        },
+        {
+          "value": "14",
+          "text": "14"
+        },
+        {
+          "value": "15",
+          "text": "15"
+        },
+        {
+          "value": "16",
+          "text": "16"
+        },
+        {
+          "value": "17",
+          "text": "17"
+        },
+        {
+          "value": "18",
+          "text": "18"
+        },
+        {
+          "value": "19",
+          "text": "19"
+        },
+        {
+          "value": "20",
+          "text": "20"
+        }
+      ]
+    },
+    {
+      "tag": "input",
+      "name": "doc_attach_file[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "doc_attach_file"
+    },
+    {
+      "tag": "input",
+      "name": "doc_attach_file[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "doc_attach_file"
+    },
+    {
+      "tag": "input",
+      "name": "doc_attach_file[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "doc_attach_file"
+    },
+    {
+      "tag": "input",
+      "name": "doc_attach_file[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "doc_attach_file"
+    },
+    {
+      "tag": "input",
+      "name": "doc_attach_file[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "doc_attach_file"
+    },
+    {
+      "tag": "input",
+      "name": "doc_attach_file[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "doc_attach_file"
+    },
+    {
+      "tag": "input",
+      "name": "doc_attach_file[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "doc_attach_file"
+    },
+    {
+      "tag": "input",
+      "name": "doc_attach_file[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "doc_attach_file"
+    },
+    {
+      "tag": "input",
+      "name": "doc_attach_file[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "doc_attach_file"
+    },
+    {
+      "tag": "input",
+      "name": "doc_attach_file[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "doc_attach_file"
+    },
+    {
+      "tag": "input",
+      "name": "doc_attach_file[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "doc_attach_file"
+    },
+    {
+      "tag": "input",
+      "name": "doc_attach_file[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "doc_attach_file"
+    },
+    {
+      "tag": "input",
+      "name": "doc_attach_file[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "doc_attach_file"
+    },
+    {
+      "tag": "input",
+      "name": "doc_attach_file[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "doc_attach_file"
+    },
+    {
+      "tag": "input",
+      "name": "doc_attach_file[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "doc_attach_file"
+    },
+    {
+      "tag": "input",
+      "name": "doc_attach_file[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "doc_attach_file"
+    },
+    {
+      "tag": "input",
+      "name": "doc_attach_file[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "doc_attach_file"
+    },
+    {
+      "tag": "input",
+      "name": "doc_attach_file[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "doc_attach_file"
+    },
+    {
+      "tag": "input",
+      "name": "doc_attach_file[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "doc_attach_file"
+    },
+    {
+      "tag": "input",
+      "name": "doc_attach_file[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "doc_attach_file"
+    },
+    {
+      "tag": "select",
+      "name": "document_list",
+      "type": "select-one",
+      "id": "document_list",
+      "required": false,
+      "className": "",
+      "options": []
+    }
+  ]
+}

@@ -1,0 +1,2957 @@
+{
+  "url": "https://gw.ip-korea.org/Document/document_write.php?approve_type=AppFrm-023",
+  "element_count": 255,
+  "elements": [
+    {
+      "tag": "input",
+      "name": "del_no",
+      "type": "hidden",
+      "id": "del_no",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "approve_line_temp",
+      "type": "hidden",
+      "id": "approve_line_temp",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "start_page",
+      "type": "hidden",
+      "id": "start_page",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "select",
+      "name": "retention",
+      "type": "select-one",
+      "id": "retention",
+      "required": false,
+      "className": "",
+      "options": [
+        {
+          "value": "1",
+          "text": "1 year"
+        },
+        {
+          "value": "3",
+          "text": "3 years"
+        },
+        {
+          "value": "5",
+          "text": "5 years"
+        },
+        {
+          "value": "10",
+          "text": "10 years"
+        },
+        {
+          "value": "30",
+          "text": "30 years"
+        },
+        {
+          "value": "100",
+          "text": "Semi - Permanent"
+        },
+        {
+          "value": "999",
+          "text": "Permanent"
+        }
+      ]
+    },
+    {
+      "tag": "input",
+      "name": "close_date",
+      "type": "text",
+      "id": "close_date",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "urgent",
+      "type": "checkbox",
+      "id": "urgent",
+      "required": false,
+      "className": "check"
+    },
+    {
+      "tag": "input",
+      "name": "security",
+      "type": "checkbox",
+      "id": "security",
+      "required": false,
+      "className": "check"
+    },
+    {
+      "tag": "input",
+      "name": "apporve_cc",
+      "type": "text",
+      "id": "apporve_cc",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "subject",
+      "type": "text",
+      "id": "subject",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "mode",
+      "type": "hidden",
+      "id": "mode",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "holder_check",
+      "type": "hidden",
+      "id": "holder_check",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "approve_type",
+      "type": "hidden",
+      "id": "approve_type",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "document_select_no",
+      "type": "hidden",
+      "id": "document_select_no",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "mode1",
+      "type": "hidden",
+      "id": "mode1",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "doc_id",
+      "type": "hidden",
+      "id": "doc_id",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "type",
+      "type": "hidden",
+      "id": "type",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "travele_type_gb",
+      "type": "hidden",
+      "id": "travele_type_gb",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "travele_type_code",
+      "type": "hidden",
+      "id": "travele_type_code",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "milestone_seq",
+      "type": "hidden",
+      "id": "milestone_seq",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "review_menu",
+      "type": "hidden",
+      "id": "review_menu",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "domestic_check",
+      "type": "hidden",
+      "id": "domestic_check",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "state_id",
+      "type": "hidden",
+      "id": "state_id",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "open_flag",
+      "type": "hidden",
+      "id": "open_flag",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "grade_posi",
+      "type": "hidden",
+      "id": "grade_posi",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "owner",
+      "type": "text",
+      "id": "owner",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "control_no",
+      "type": "text",
+      "id": "control_no",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "fin_support_type",
+      "type": "radio",
+      "id": "",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "fin_support_type",
+      "type": "radio",
+      "id": "",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "fin_support_chk[]",
+      "type": "checkbox",
+      "id": "",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "fin_support_desc[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "fin_support_chk[]",
+      "type": "checkbox",
+      "id": "",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "fin_support_desc[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "fin_support_chk[]",
+      "type": "checkbox",
+      "id": "",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "fin_support_desc[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "fin_support_chk[]",
+      "type": "checkbox",
+      "id": "",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "fin_support_desc[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "fin_support_chk[]",
+      "type": "checkbox",
+      "id": "",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "fin_support_desc[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "select",
+      "name": "bound_code",
+      "type": "select-one",
+      "id": "bound_code",
+      "required": false,
+      "className": "",
+      "options": [
+        {
+          "value": "",
+          "text": "= Metro ="
+        },
+        {
+          "value": "19",
+          "text": "Within Metropolitan (관내)"
+        },
+        {
+          "value": "20",
+          "text": "Out of Metropolitan (관외)"
+        }
+      ]
+    },
+    {
+      "tag": "select",
+      "name": "working_code",
+      "type": "select-one",
+      "id": "working_code",
+      "required": false,
+      "className": "",
+      "options": [
+        {
+          "value": "",
+          "text": "= Working Hour ="
+        },
+        {
+          "value": "197",
+          "text": "Within 4 hours"
+        },
+        {
+          "value": "198",
+          "text": "More than 4 hours"
+        }
+      ]
+    },
+    {
+      "tag": "select",
+      "name": "province_code",
+      "type": "select-one",
+      "id": "province_code",
+      "required": false,
+      "className": "",
+      "options": [
+        {
+          "value": "",
+          "text": "= Province ="
+        },
+        {
+          "value": "02",
+          "text": "Seoul (서울특별시)"
+        },
+        {
+          "value": "03",
+          "text": "Gyeonggi-do (경기도)"
+        },
+        {
+          "value": "04",
+          "text": "Gangwon-do (강원도)"
+        },
+        {
+          "value": "05",
+          "text": "Chungcheongbuk-do (충청북도)"
+        },
+        {
+          "value": "06",
+          "text": "Chungcheongnam-do (충청남도)"
+        },
+        {
+          "value": "07",
+          "text": "Jeollabuk-do (전라북도)"
+        },
+        {
+          "value": "08",
+          "text": "Jeollanam-do (전라남도)"
+        },
+        {
+          "value": "09",
+          "text": "Gyeongsangbuk-do (경상북도)"
+        },
+        {
+          "value": "10",
+          "text": "Gyeongsangnam-do (경상남도)"
+        },
+        {
+          "value": "11",
+          "text": "Jeju-do (제주도)"
+        },
+        {
+          "value": "12",
+          "text": "Busan (부산광역시)"
+        },
+        {
+          "value": "13",
+          "text": "Daegu (대구광역시)"
+        },
+        {
+          "value": "14",
+          "text": "Daejeon (대전광역시)"
+        },
+        {
+          "value": "15",
+          "text": "Gwangju (광주광역시)"
+        },
+        {
+          "value": "16",
+          "text": "Incheon (인천광역시)"
+        },
+        {
+          "value": "17",
+          "text": "Ulsan (울산광역시)"
+        },
+        {
+          "value": "18",
+          "text": "Sejong (세종특별자치시)"
+        }
+      ]
+    },
+    {
+      "tag": "select",
+      "name": "city_code",
+      "type": "select-one",
+      "id": "city_code",
+      "required": false,
+      "className": "city_code",
+      "options": [
+        {
+          "value": "",
+          "text": "= City ="
+        }
+      ]
+    },
+    {
+      "tag": "select",
+      "name": "travel_type_code",
+      "type": "select-one",
+      "id": "travel_type_code",
+      "required": false,
+      "className": "",
+      "options": [
+        {
+          "value": "",
+          "text": "= Transportation ="
+        }
+      ]
+    },
+    {
+      "tag": "select",
+      "name": "car_type",
+      "type": "select-one",
+      "id": "car_type",
+      "required": false,
+      "className": "",
+      "options": [
+        {
+          "value": "",
+          "text": "= kind of fuel ="
+        },
+        {
+          "value": "Gasoline",
+          "text": "Gasoline"
+        },
+        {
+          "value": "Diesel",
+          "text": "Diesel"
+        },
+        {
+          "value": "LPG",
+          "text": "LPG"
+        },
+        {
+          "value": "Electric",
+          "text": "Electric"
+        }
+      ]
+    },
+    {
+      "tag": "input",
+      "name": "purpose_type",
+      "type": "radio",
+      "id": "",
+      "required": false,
+      "className": "purpose_type"
+    },
+    {
+      "tag": "input",
+      "name": "purpose_type",
+      "type": "radio",
+      "id": "",
+      "required": false,
+      "className": "purpose_type"
+    },
+    {
+      "tag": "input",
+      "name": "purpose_type",
+      "type": "radio",
+      "id": "",
+      "required": false,
+      "className": "purpose_type"
+    },
+    {
+      "tag": "input",
+      "name": "purpose_type",
+      "type": "radio",
+      "id": "",
+      "required": false,
+      "className": "purpose_type"
+    },
+    {
+      "tag": "input",
+      "name": "purpose_type",
+      "type": "radio",
+      "id": "",
+      "required": false,
+      "className": "purpose_type"
+    },
+    {
+      "tag": "input",
+      "name": "credit_card_no",
+      "type": "hidden",
+      "id": "credit_card_no",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "copcard1",
+      "type": "text",
+      "id": "copcard1",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "copcard2",
+      "type": "text",
+      "id": "copcard2",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "copcard3",
+      "type": "text",
+      "id": "copcard3",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "copcard4",
+      "type": "text",
+      "id": "copcard4",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "textarea",
+      "name": "purpose",
+      "type": "textarea",
+      "id": "purpose",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "actual_price",
+      "type": "radio",
+      "id": "actual_price_a",
+      "required": false,
+      "className": "actual_price"
+    },
+    {
+      "tag": "input",
+      "name": "actual_price",
+      "type": "radio",
+      "id": "actual_price_f",
+      "required": false,
+      "className": "actual_price"
+    },
+    {
+      "tag": "select",
+      "name": "er_row_cnt",
+      "type": "select-one",
+      "id": "er_row_cnt",
+      "required": false,
+      "className": "",
+      "options": [
+        {
+          "value": "1",
+          "text": "1"
+        },
+        {
+          "value": "2",
+          "text": "2"
+        },
+        {
+          "value": "3",
+          "text": "3"
+        },
+        {
+          "value": "4",
+          "text": "4"
+        },
+        {
+          "value": "5",
+          "text": "5"
+        },
+        {
+          "value": "6",
+          "text": "6"
+        },
+        {
+          "value": "7",
+          "text": "7"
+        },
+        {
+          "value": "8",
+          "text": "8"
+        },
+        {
+          "value": "9",
+          "text": "9"
+        },
+        {
+          "value": "10",
+          "text": "10"
+        },
+        {
+          "value": "11",
+          "text": "11"
+        },
+        {
+          "value": "12",
+          "text": "12"
+        },
+        {
+          "value": "13",
+          "text": "13"
+        },
+        {
+          "value": "14",
+          "text": "14"
+        },
+        {
+          "value": "15",
+          "text": "15"
+        },
+        {
+          "value": "16",
+          "text": "16"
+        },
+        {
+          "value": "17",
+          "text": "17"
+        },
+        {
+          "value": "18",
+          "text": "18"
+        },
+        {
+          "value": "19",
+          "text": "19"
+        },
+        {
+          "value": "20",
+          "text": "20"
+        },
+        {
+          "value": "21",
+          "text": "21"
+        },
+        {
+          "value": "22",
+          "text": "22"
+        },
+        {
+          "value": "23",
+          "text": "23"
+        },
+        {
+          "value": "24",
+          "text": "24"
+        },
+        {
+          "value": "25",
+          "text": "25"
+        },
+        {
+          "value": "26",
+          "text": "26"
+        },
+        {
+          "value": "27",
+          "text": "27"
+        },
+        {
+          "value": "28",
+          "text": "28"
+        },
+        {
+          "value": "29",
+          "text": "29"
+        },
+        {
+          "value": "30",
+          "text": "30"
+        }
+      ]
+    },
+    {
+      "tag": "input",
+      "name": "start_date",
+      "type": "text",
+      "id": "start_date",
+      "required": false,
+      "className": "usrCalendar hasDatepicker"
+    },
+    {
+      "tag": "input",
+      "name": "end_date",
+      "type": "text",
+      "id": "end_date",
+      "required": false,
+      "className": "usrCalendar hasDatepicker"
+    },
+    {
+      "tag": "input",
+      "name": "unit_str[]",
+      "type": "hidden",
+      "id": "",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "unit[]",
+      "type": "hidden",
+      "id": "",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "unit_gb[]",
+      "type": "hidden",
+      "id": "",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "unit_type[]",
+      "type": "hidden",
+      "id": "",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "unit_rate[]",
+      "type": "hidden",
+      "id": "",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "night",
+      "type": "text",
+      "id": "night",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "days",
+      "type": "text",
+      "id": "days",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "unit[]",
+      "type": "hidden",
+      "id": "",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "unit_gb[]",
+      "type": "hidden",
+      "id": "",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "unit_type[]",
+      "type": "hidden",
+      "id": "",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "unit_rate[]",
+      "type": "hidden",
+      "id": "",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "select",
+      "name": "start_tm",
+      "type": "select-one",
+      "id": "start_tm",
+      "required": false,
+      "className": "",
+      "options": [
+        {
+          "value": "00:00",
+          "text": "00:00"
+        },
+        {
+          "value": "00:30",
+          "text": "00:30"
+        },
+        {
+          "value": "01:00",
+          "text": "01:00"
+        },
+        {
+          "value": "01:30",
+          "text": "01:30"
+        },
+        {
+          "value": "02:00",
+          "text": "02:00"
+        },
+        {
+          "value": "02:30",
+          "text": "02:30"
+        },
+        {
+          "value": "03:00",
+          "text": "03:00"
+        },
+        {
+          "value": "03:30",
+          "text": "03:30"
+        },
+        {
+          "value": "04:00",
+          "text": "04:00"
+        },
+        {
+          "value": "04:30",
+          "text": "04:30"
+        },
+        {
+          "value": "05:00",
+          "text": "05:00"
+        },
+        {
+          "value": "05:30",
+          "text": "05:30"
+        },
+        {
+          "value": "06:00",
+          "text": "06:00"
+        },
+        {
+          "value": "06:30",
+          "text": "06:30"
+        },
+        {
+          "value": "07:00",
+          "text": "07:00"
+        },
+        {
+          "value": "07:30",
+          "text": "07:30"
+        },
+        {
+          "value": "08:00",
+          "text": "08:00"
+        },
+        {
+          "value": "08:30",
+          "text": "08:30"
+        },
+        {
+          "value": "09:00",
+          "text": "09:00"
+        },
+        {
+          "value": "09:30",
+          "text": "09:30"
+        },
+        {
+          "value": "10:00",
+          "text": "10:00"
+        },
+        {
+          "value": "10:30",
+          "text": "10:30"
+        },
+        {
+          "value": "11:00",
+          "text": "11:00"
+        },
+        {
+          "value": "11:30",
+          "text": "11:30"
+        },
+        {
+          "value": "12:00",
+          "text": "12:00"
+        },
+        {
+          "value": "12:30",
+          "text": "12:30"
+        },
+        {
+          "value": "13:00",
+          "text": "13:00"
+        },
+        {
+          "value": "13:30",
+          "text": "13:30"
+        },
+        {
+          "value": "14:00",
+          "text": "14:00"
+        },
+        {
+          "value": "14:30",
+          "text": "14:30"
+        },
+        {
+          "value": "15:00",
+          "text": "15:00"
+        },
+        {
+          "value": "15:30",
+          "text": "15:30"
+        },
+        {
+          "value": "16:00",
+          "text": "16:00"
+        },
+        {
+          "value": "16:30",
+          "text": "16:30"
+        },
+        {
+          "value": "17:00",
+          "text": "17:00"
+        },
+        {
+          "value": "17:30",
+          "text": "17:30"
+        },
+        {
+          "value": "18:00",
+          "text": "18:00"
+        },
+        {
+          "value": "18:30",
+          "text": "18:30"
+        },
+        {
+          "value": "19:00",
+          "text": "19:00"
+        },
+        {
+          "value": "19:30",
+          "text": "19:30"
+        },
+        {
+          "value": "20:00",
+          "text": "20:00"
+        },
+        {
+          "value": "20:30",
+          "text": "20:30"
+        },
+        {
+          "value": "21:00",
+          "text": "21:00"
+        },
+        {
+          "value": "21:30",
+          "text": "21:30"
+        },
+        {
+          "value": "22:00",
+          "text": "22:00"
+        },
+        {
+          "value": "22:30",
+          "text": "22:30"
+        },
+        {
+          "value": "23:00",
+          "text": "23:00"
+        },
+        {
+          "value": "23:30",
+          "text": "23:30"
+        }
+      ]
+    },
+    {
+      "tag": "select",
+      "name": "end_tm",
+      "type": "select-one",
+      "id": "end_tm",
+      "required": false,
+      "className": "",
+      "options": [
+        {
+          "value": "00:00",
+          "text": "00:00"
+        },
+        {
+          "value": "00:30",
+          "text": "00:30"
+        },
+        {
+          "value": "01:00",
+          "text": "01:00"
+        },
+        {
+          "value": "01:30",
+          "text": "01:30"
+        },
+        {
+          "value": "02:00",
+          "text": "02:00"
+        },
+        {
+          "value": "02:30",
+          "text": "02:30"
+        },
+        {
+          "value": "03:00",
+          "text": "03:00"
+        },
+        {
+          "value": "03:30",
+          "text": "03:30"
+        },
+        {
+          "value": "04:00",
+          "text": "04:00"
+        },
+        {
+          "value": "04:30",
+          "text": "04:30"
+        },
+        {
+          "value": "05:00",
+          "text": "05:00"
+        },
+        {
+          "value": "05:30",
+          "text": "05:30"
+        },
+        {
+          "value": "06:00",
+          "text": "06:00"
+        },
+        {
+          "value": "06:30",
+          "text": "06:30"
+        },
+        {
+          "value": "07:00",
+          "text": "07:00"
+        },
+        {
+          "value": "07:30",
+          "text": "07:30"
+        },
+        {
+          "value": "08:00",
+          "text": "08:00"
+        },
+        {
+          "value": "08:30",
+          "text": "08:30"
+        },
+        {
+          "value": "09:00",
+          "text": "09:00"
+        },
+        {
+          "value": "09:30",
+          "text": "09:30"
+        },
+        {
+          "value": "10:00",
+          "text": "10:00"
+        },
+        {
+          "value": "10:30",
+          "text": "10:30"
+        },
+        {
+          "value": "11:00",
+          "text": "11:00"
+        },
+        {
+          "value": "11:30",
+          "text": "11:30"
+        },
+        {
+          "value": "12:00",
+          "text": "12:00"
+        },
+        {
+          "value": "12:30",
+          "text": "12:30"
+        },
+        {
+          "value": "13:00",
+          "text": "13:00"
+        },
+        {
+          "value": "13:30",
+          "text": "13:30"
+        },
+        {
+          "value": "14:00",
+          "text": "14:00"
+        },
+        {
+          "value": "14:30",
+          "text": "14:30"
+        },
+        {
+          "value": "15:00",
+          "text": "15:00"
+        },
+        {
+          "value": "15:30",
+          "text": "15:30"
+        },
+        {
+          "value": "16:00",
+          "text": "16:00"
+        },
+        {
+          "value": "16:30",
+          "text": "16:30"
+        },
+        {
+          "value": "17:00",
+          "text": "17:00"
+        },
+        {
+          "value": "17:30",
+          "text": "17:30"
+        },
+        {
+          "value": "18:00",
+          "text": "18:00"
+        },
+        {
+          "value": "18:30",
+          "text": "18:30"
+        },
+        {
+          "value": "19:00",
+          "text": "19:00"
+        },
+        {
+          "value": "19:30",
+          "text": "19:30"
+        },
+        {
+          "value": "20:00",
+          "text": "20:00"
+        },
+        {
+          "value": "20:30",
+          "text": "20:30"
+        },
+        {
+          "value": "21:00",
+          "text": "21:00"
+        },
+        {
+          "value": "21:30",
+          "text": "21:30"
+        },
+        {
+          "value": "22:00",
+          "text": "22:00"
+        },
+        {
+          "value": "22:30",
+          "text": "22:30"
+        },
+        {
+          "value": "23:00",
+          "text": "23:00"
+        },
+        {
+          "value": "23:30",
+          "text": "23:30"
+        }
+      ]
+    },
+    {
+      "tag": "input",
+      "name": "travel_dest[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": "travel_dest"
+    },
+    {
+      "tag": "input",
+      "name": "travel_trans[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": "travel_trans"
+    },
+    {
+      "tag": "input",
+      "name": "travel_dest[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": "travel_dest"
+    },
+    {
+      "tag": "input",
+      "name": "travel_trans[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": "travel_trans"
+    },
+    {
+      "tag": "input",
+      "name": "travel_dest[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": "travel_dest"
+    },
+    {
+      "tag": "input",
+      "name": "travel_trans[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": "travel_trans"
+    },
+    {
+      "tag": "input",
+      "name": "travel_dest[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": "travel_dest"
+    },
+    {
+      "tag": "input",
+      "name": "travel_trans[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": "travel_trans"
+    },
+    {
+      "tag": "input",
+      "name": "travel_dest[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": "travel_dest"
+    },
+    {
+      "tag": "input",
+      "name": "travel_trans[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": "travel_trans"
+    },
+    {
+      "tag": "input",
+      "name": "travel_dest[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": "travel_dest"
+    },
+    {
+      "tag": "input",
+      "name": "travel_trans[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": "travel_trans"
+    },
+    {
+      "tag": "input",
+      "name": "travel_dest[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": "travel_dest"
+    },
+    {
+      "tag": "input",
+      "name": "travel_trans[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": "travel_trans"
+    },
+    {
+      "tag": "input",
+      "name": "travel_dest[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": "travel_dest"
+    },
+    {
+      "tag": "input",
+      "name": "travel_trans[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": "travel_trans"
+    },
+    {
+      "tag": "input",
+      "name": "travel_dest[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": "travel_dest"
+    },
+    {
+      "tag": "input",
+      "name": "travel_trans[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": "travel_trans"
+    },
+    {
+      "tag": "input",
+      "name": "travel_dest[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": "travel_dest"
+    },
+    {
+      "tag": "input",
+      "name": "travel_trans[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": "travel_trans"
+    },
+    {
+      "tag": "input",
+      "name": "travel_dest[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": "travel_dest"
+    },
+    {
+      "tag": "input",
+      "name": "travel_trans[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": "travel_trans"
+    },
+    {
+      "tag": "input",
+      "name": "travel_dest[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": "travel_dest"
+    },
+    {
+      "tag": "input",
+      "name": "travel_trans[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": "travel_trans"
+    },
+    {
+      "tag": "input",
+      "name": "travel_dest[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": "travel_dest"
+    },
+    {
+      "tag": "input",
+      "name": "travel_trans[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": "travel_trans"
+    },
+    {
+      "tag": "input",
+      "name": "travel_dest[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": "travel_dest"
+    },
+    {
+      "tag": "input",
+      "name": "travel_trans[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": "travel_trans"
+    },
+    {
+      "tag": "input",
+      "name": "travel_dest[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": "travel_dest"
+    },
+    {
+      "tag": "input",
+      "name": "travel_trans[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": "travel_trans"
+    },
+    {
+      "tag": "input",
+      "name": "travel_dest[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": "travel_dest"
+    },
+    {
+      "tag": "input",
+      "name": "travel_trans[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": "travel_trans"
+    },
+    {
+      "tag": "input",
+      "name": "travel_dest[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": "travel_dest"
+    },
+    {
+      "tag": "input",
+      "name": "travel_trans[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": "travel_trans"
+    },
+    {
+      "tag": "input",
+      "name": "travel_dest[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": "travel_dest"
+    },
+    {
+      "tag": "input",
+      "name": "travel_trans[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": "travel_trans"
+    },
+    {
+      "tag": "input",
+      "name": "travel_dest[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": "travel_dest"
+    },
+    {
+      "tag": "input",
+      "name": "travel_trans[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": "travel_trans"
+    },
+    {
+      "tag": "input",
+      "name": "travel_dest[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": "travel_dest"
+    },
+    {
+      "tag": "input",
+      "name": "travel_trans[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": "travel_trans"
+    },
+    {
+      "tag": "input",
+      "name": "travel_dest[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": "travel_dest"
+    },
+    {
+      "tag": "input",
+      "name": "travel_trans[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": "travel_trans"
+    },
+    {
+      "tag": "input",
+      "name": "travel_dest[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": "travel_dest"
+    },
+    {
+      "tag": "input",
+      "name": "travel_trans[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": "travel_trans"
+    },
+    {
+      "tag": "input",
+      "name": "travel_dest[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": "travel_dest"
+    },
+    {
+      "tag": "input",
+      "name": "travel_trans[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": "travel_trans"
+    },
+    {
+      "tag": "input",
+      "name": "travel_dest[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": "travel_dest"
+    },
+    {
+      "tag": "input",
+      "name": "travel_trans[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": "travel_trans"
+    },
+    {
+      "tag": "input",
+      "name": "travel_dest[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": "travel_dest"
+    },
+    {
+      "tag": "input",
+      "name": "travel_trans[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": "travel_trans"
+    },
+    {
+      "tag": "input",
+      "name": "travel_dest[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": "travel_dest"
+    },
+    {
+      "tag": "input",
+      "name": "travel_trans[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": "travel_trans"
+    },
+    {
+      "tag": "input",
+      "name": "travel_dest[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": "travel_dest"
+    },
+    {
+      "tag": "input",
+      "name": "travel_trans[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": "travel_trans"
+    },
+    {
+      "tag": "input",
+      "name": "travel_dest[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": "travel_dest"
+    },
+    {
+      "tag": "input",
+      "name": "travel_trans[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": "travel_trans"
+    },
+    {
+      "tag": "input",
+      "name": "travel_dest[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": "travel_dest"
+    },
+    {
+      "tag": "input",
+      "name": "travel_trans[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": "travel_trans"
+    },
+    {
+      "tag": "input",
+      "name": "travel_dest[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": "travel_dest"
+    },
+    {
+      "tag": "input",
+      "name": "travel_trans[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": "travel_trans"
+    },
+    {
+      "tag": "input",
+      "name": "travel_dest[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": "travel_dest"
+    },
+    {
+      "tag": "input",
+      "name": "travel_trans[]",
+      "type": "text",
+      "id": "",
+      "required": false,
+      "className": "travel_trans"
+    },
+    {
+      "tag": "input",
+      "name": "trans_card",
+      "type": "checkbox",
+      "id": "trans_card",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "trans_stand",
+      "type": "hidden",
+      "id": "trans_stand",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "trans_day",
+      "type": "hidden",
+      "id": "trans_day",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "trans_card_pay",
+      "type": "text",
+      "id": "trans_card_pay",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "trans_pay",
+      "type": "text",
+      "id": "trans_pay",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "trans_sum",
+      "type": "text",
+      "id": "trans_sum",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "trans_total",
+      "type": "text",
+      "id": "trans_total",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "trans_description",
+      "type": "text",
+      "id": "trans_description",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "air_card_pay",
+      "type": "text",
+      "id": "air_card_pay",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "air_pay",
+      "type": "text",
+      "id": "air_pay",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "air_sum",
+      "type": "text",
+      "id": "air_sum",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "train_card_pay",
+      "type": "text",
+      "id": "train_card_pay",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "train_pay",
+      "type": "text",
+      "id": "train_pay",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "train_sum",
+      "type": "text",
+      "id": "train_sum",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "ocar_stand",
+      "type": "text",
+      "id": "ocar_stand",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "ocar_day",
+      "type": "text",
+      "id": "ocar_day",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "ocar_card_pay",
+      "type": "text",
+      "id": "ocar_card_pay",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "ocar_pay",
+      "type": "text",
+      "id": "ocar_pay",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "ocar_sum",
+      "type": "text",
+      "id": "ocar_sum",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "taxi_card_pay",
+      "type": "text",
+      "id": "taxi_card_pay",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "taxi_pay",
+      "type": "text",
+      "id": "taxi_pay",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "taxi_sum",
+      "type": "text",
+      "id": "taxi_sum",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "taxi_warning",
+      "type": "text",
+      "id": "taxi_warning",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "opub_card_pay",
+      "type": "text",
+      "id": "opub_card_pay",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "opub_pay",
+      "type": "text",
+      "id": "opub_pay",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "opub_sum",
+      "type": "text",
+      "id": "opub_sum",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "toll_card_pay",
+      "type": "text",
+      "id": "toll_card_pay",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "toll_pay",
+      "type": "text",
+      "id": "toll_pay",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "toll_sum",
+      "type": "text",
+      "id": "toll_sum",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "daily_card",
+      "type": "checkbox",
+      "id": "daily_card",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "daily_stand",
+      "type": "text",
+      "id": "daily_stand",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "daily_day",
+      "type": "text",
+      "id": "daily_day",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "daily_card_pay",
+      "type": "text",
+      "id": "daily_card_pay",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "daily_pay",
+      "type": "text",
+      "id": "daily_pay",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "daily_sum",
+      "type": "text",
+      "id": "daily_sum",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "daily_total",
+      "type": "text",
+      "id": "daily_total",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "daily_description",
+      "type": "text",
+      "id": "daily_description",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "accomm_card",
+      "type": "checkbox",
+      "id": "accomm_card",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "accomm_stand",
+      "type": "text",
+      "id": "accomm_stand",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "accomm_day",
+      "type": "text",
+      "id": "accomm_day",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "accomm_card_pay",
+      "type": "text",
+      "id": "accomm_card_pay",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "accomm_pay",
+      "type": "text",
+      "id": "accomm_pay",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "accomm_sum",
+      "type": "text",
+      "id": "accomm_sum",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "accomm_total",
+      "type": "text",
+      "id": "accomm_total",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "accomm_description",
+      "type": "text",
+      "id": "accomm_description",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "accomm_warning",
+      "type": "text",
+      "id": "accomm_warning",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "food_card",
+      "type": "checkbox",
+      "id": "food_card",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "food_stand",
+      "type": "text",
+      "id": "food_stand",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "food_day",
+      "type": "text",
+      "id": "food_day",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "food_card_pay",
+      "type": "text",
+      "id": "food_card_pay",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "food_pay",
+      "type": "text",
+      "id": "food_pay",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "food_sum",
+      "type": "text",
+      "id": "food_sum",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "food_total",
+      "type": "text",
+      "id": "food_total",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "food_description",
+      "type": "text",
+      "id": "food_description",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "food_yn",
+      "type": "radio",
+      "id": "food_y",
+      "required": false,
+      "className": "food_yn"
+    },
+    {
+      "tag": "input",
+      "name": "food_yn",
+      "type": "radio",
+      "id": "food_n",
+      "required": false,
+      "className": "food_yn"
+    },
+    {
+      "tag": "select",
+      "name": "food_ex_cnt",
+      "type": "select-one",
+      "id": "food_ex_cnt",
+      "required": false,
+      "className": "",
+      "options": [
+        {
+          "value": "0",
+          "text": "0"
+        },
+        {
+          "value": "1",
+          "text": "1"
+        },
+        {
+          "value": "2",
+          "text": "2"
+        },
+        {
+          "value": "3",
+          "text": "3"
+        },
+        {
+          "value": "4",
+          "text": "4"
+        },
+        {
+          "value": "5",
+          "text": "5"
+        },
+        {
+          "value": "6",
+          "text": "6"
+        },
+        {
+          "value": "7",
+          "text": "7"
+        },
+        {
+          "value": "8",
+          "text": "8"
+        },
+        {
+          "value": "9",
+          "text": "9"
+        },
+        {
+          "value": "10",
+          "text": "10"
+        },
+        {
+          "value": "11",
+          "text": "11"
+        },
+        {
+          "value": "12",
+          "text": "12"
+        },
+        {
+          "value": "13",
+          "text": "13"
+        },
+        {
+          "value": "14",
+          "text": "14"
+        },
+        {
+          "value": "15",
+          "text": "15"
+        },
+        {
+          "value": "16",
+          "text": "16"
+        },
+        {
+          "value": "17",
+          "text": "17"
+        },
+        {
+          "value": "18",
+          "text": "18"
+        },
+        {
+          "value": "19",
+          "text": "19"
+        },
+        {
+          "value": "20",
+          "text": "20"
+        },
+        {
+          "value": "21",
+          "text": "21"
+        },
+        {
+          "value": "22",
+          "text": "22"
+        },
+        {
+          "value": "23",
+          "text": "23"
+        },
+        {
+          "value": "24",
+          "text": "24"
+        },
+        {
+          "value": "25",
+          "text": "25"
+        },
+        {
+          "value": "26",
+          "text": "26"
+        },
+        {
+          "value": "27",
+          "text": "27"
+        },
+        {
+          "value": "28",
+          "text": "28"
+        },
+        {
+          "value": "29",
+          "text": "29"
+        },
+        {
+          "value": "30",
+          "text": "30"
+        }
+      ]
+    },
+    {
+      "tag": "input",
+      "name": "food_warning",
+      "type": "text",
+      "id": "food_warning",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "miscell_card",
+      "type": "checkbox",
+      "id": "miscell_card",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "miscell_stand",
+      "type": "text",
+      "id": "miscell_stand",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "miscell_day",
+      "type": "text",
+      "id": "miscell_day",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "miscell_card_pay",
+      "type": "text",
+      "id": "miscell_card_pay",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "miscell_pay",
+      "type": "text",
+      "id": "miscell_pay",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "miscell_sum",
+      "type": "text",
+      "id": "miscell_sum",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "miscell_total",
+      "type": "text",
+      "id": "miscell_total",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "miscell_description",
+      "type": "text",
+      "id": "miscell_description",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "additi_card",
+      "type": "checkbox",
+      "id": "additi_card",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "additi_stand",
+      "type": "text",
+      "id": "additi_stand",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "additi_day",
+      "type": "text",
+      "id": "additi_day",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "additi_card_pay",
+      "type": "text",
+      "id": "additi_card_pay",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "additi_pay",
+      "type": "text",
+      "id": "additi_pay",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "additi_sum",
+      "type": "text",
+      "id": "additi_sum",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "additi_total",
+      "type": "text",
+      "id": "additi_total",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "additi_description",
+      "type": "text",
+      "id": "additi_description",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "individual",
+      "type": "text",
+      "id": "individual",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "acceptance",
+      "type": "checkbox",
+      "id": "acceptance",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "payment_this",
+      "type": "text",
+      "id": "payment_this",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "travel_total",
+      "type": "text",
+      "id": "travel_total",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "notes",
+      "type": "text",
+      "id": "notes",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "select",
+      "name": "budget_type",
+      "type": "select-one",
+      "id": "budget_type",
+      "required": false,
+      "className": "",
+      "options": [
+        {
+          "value": "",
+          "text": "= Budget Type="
+        },
+        {
+          "value": "01",
+          "text": "General"
+        },
+        {
+          "value": "02",
+          "text": "R&D"
+        }
+      ]
+    },
+    {
+      "tag": "select",
+      "name": "budget_code",
+      "type": "select-one",
+      "id": "budget_code",
+      "required": false,
+      "className": "",
+      "options": [
+        {
+          "value": "",
+          "text": "== Select Budget Code =="
+        }
+      ]
+    },
+    {
+      "tag": "select",
+      "name": "item_no",
+      "type": "select-one",
+      "id": "item_no",
+      "required": false,
+      "className": "",
+      "options": [
+        {
+          "value": "",
+          "text": "== Account Code =="
+        }
+      ]
+    },
+    {
+      "tag": "input",
+      "name": "pp_text",
+      "type": "text",
+      "id": "pp_text",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "account_code",
+      "type": "hidden",
+      "id": "account_code",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "account_seq",
+      "type": "hidden",
+      "id": "account_seq",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "project_code",
+      "type": "text",
+      "id": "project_code",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "semi_file",
+      "type": "file",
+      "id": "semi_file",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "travel_doc_a[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "travel_file"
+    },
+    {
+      "tag": "input",
+      "name": "travel_doc_b[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "travel_file"
+    },
+    {
+      "tag": "input",
+      "name": "travel_doc_c[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "travel_file"
+    },
+    {
+      "tag": "input",
+      "name": "travel_doc_d[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "travel_file"
+    },
+    {
+      "tag": "input",
+      "name": "travel_doc_e[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "travel_file"
+    },
+    {
+      "tag": "input",
+      "name": "travel_doc_f[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "travel_file"
+    },
+    {
+      "tag": "input",
+      "name": "matrials",
+      "type": "radio",
+      "id": "",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "matrials",
+      "type": "radio",
+      "id": "",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "disclosure",
+      "type": "text",
+      "id": "disclosure",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "disclosure_doc_id",
+      "type": "hidden",
+      "id": "disclosure_doc_id",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "item_korea",
+      "type": "hidden",
+      "id": "item_korea",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "select",
+      "name": "file_attach_cnt",
+      "type": "select-one",
+      "id": "file_attach_cnt",
+      "required": false,
+      "className": "",
+      "options": [
+        {
+          "value": "1",
+          "text": "1"
+        },
+        {
+          "value": "2",
+          "text": "2"
+        },
+        {
+          "value": "3",
+          "text": "3"
+        },
+        {
+          "value": "4",
+          "text": "4"
+        },
+        {
+          "value": "5",
+          "text": "5"
+        },
+        {
+          "value": "6",
+          "text": "6"
+        },
+        {
+          "value": "7",
+          "text": "7"
+        },
+        {
+          "value": "8",
+          "text": "8"
+        },
+        {
+          "value": "9",
+          "text": "9"
+        },
+        {
+          "value": "10",
+          "text": "10"
+        },
+        {
+          "value": "11",
+          "text": "11"
+        },
+        {
+          "value": "12",
+          "text": "12"
+        },
+        {
+          "value": "13",
+          "text": "13"
+        },
+        {
+          "value": "14",
+          "text": "14"
+        },
+        {
+          "value": "15",
+          "text": "15"
+        },
+        {
+          "value": "16",
+          "text": "16"
+        },
+        {
+          "value": "17",
+          "text": "17"
+        },
+        {
+          "value": "18",
+          "text": "18"
+        },
+        {
+          "value": "19",
+          "text": "19"
+        },
+        {
+          "value": "20",
+          "text": "20"
+        }
+      ]
+    },
+    {
+      "tag": "input",
+      "name": "doc_attach_file[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "doc_attach_file"
+    },
+    {
+      "tag": "input",
+      "name": "doc_attach_file[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "doc_attach_file"
+    },
+    {
+      "tag": "input",
+      "name": "doc_attach_file[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "doc_attach_file"
+    },
+    {
+      "tag": "input",
+      "name": "doc_attach_file[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "doc_attach_file"
+    },
+    {
+      "tag": "input",
+      "name": "doc_attach_file[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "doc_attach_file"
+    },
+    {
+      "tag": "input",
+      "name": "doc_attach_file[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "doc_attach_file"
+    },
+    {
+      "tag": "input",
+      "name": "doc_attach_file[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "doc_attach_file"
+    },
+    {
+      "tag": "input",
+      "name": "doc_attach_file[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "doc_attach_file"
+    },
+    {
+      "tag": "input",
+      "name": "doc_attach_file[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "doc_attach_file"
+    },
+    {
+      "tag": "input",
+      "name": "doc_attach_file[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "doc_attach_file"
+    },
+    {
+      "tag": "input",
+      "name": "doc_attach_file[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "doc_attach_file"
+    },
+    {
+      "tag": "input",
+      "name": "doc_attach_file[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "doc_attach_file"
+    },
+    {
+      "tag": "input",
+      "name": "doc_attach_file[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "doc_attach_file"
+    },
+    {
+      "tag": "input",
+      "name": "doc_attach_file[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "doc_attach_file"
+    },
+    {
+      "tag": "input",
+      "name": "doc_attach_file[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "doc_attach_file"
+    },
+    {
+      "tag": "input",
+      "name": "doc_attach_file[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "doc_attach_file"
+    },
+    {
+      "tag": "input",
+      "name": "doc_attach_file[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "doc_attach_file"
+    },
+    {
+      "tag": "input",
+      "name": "doc_attach_file[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "doc_attach_file"
+    },
+    {
+      "tag": "input",
+      "name": "doc_attach_file[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "doc_attach_file"
+    },
+    {
+      "tag": "input",
+      "name": "doc_attach_file[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "doc_attach_file"
+    },
+    {
+      "tag": "select",
+      "name": "document_list",
+      "type": "select-one",
+      "id": "document_list",
+      "required": false,
+      "className": "",
+      "options": []
+    }
+  ]
+}
