@@ -14,42 +14,52 @@
   "field_schema": {
     "subject": {
       "type": "text",
+      "dom_name": "subject",
       "required": true,
       "source": "user_input"
     },
     "start_date": {
       "type": "date",
+      "dom_name": "start_date",
+      "dom_type": "text",
       "required": true,
       "source": "user_input"
     },
     "end_date": {
       "type": "date",
+      "dom_name": "end_date",
+      "dom_type": "text",
       "required": true,
       "source": "user_input"
     },
     "start_time": {
       "type": "time",
+      "dom_name": "start_tm",
       "required": false,
       "source": "user_input",
       "note": "only for day-trips"
     },
     "end_time": {
       "type": "time",
+      "dom_name": "end_tm",
       "required": false,
       "source": "user_input"
     },
     "purpose": {
       "type": "textarea",
+      "dom_name": "purpose",
       "required": true,
       "source": "user_input"
     },
     "destination": {
       "type": "text",
+      "dom_name": "travel_dest[]",
       "required": true,
       "source": "user_input"
     },
     "budget_control_no": {
       "type": "text",
+      "dom_note": "NOT a direct DOM input — set dynamically via budget system lookup; use budget_code/item_no cascade instead",
       "required": true,
       "source": "user_input",
       "note": "from IPK budget system"
@@ -164,36 +174,43 @@
   "ajax_cascade_sequence": [
     {
       "field": "bound_code",
-      "delay_ms": 1500,
+      "wait_selector": "select[name='province_code'] option:nth-child(2)",
+      "timeout_ms": 3000,
       "note": "triggers province_code options"
     },
     {
       "field": "province_code",
-      "delay_ms": 2000,
+      "wait_selector": "select[name='city_code'] option:nth-child(2)",
+      "timeout_ms": 3000,
       "note": "triggers city_code options"
     },
     {
       "field": "city_code",
-      "delay_ms": 1500,
+      "wait_selector": "select[name='travel_type_code'] option:nth-child(2)",
+      "timeout_ms": 3000,
       "note": "triggers travel_type_code options"
     },
     {
       "field": "travel_type_code",
-      "delay_ms": 1000
+      "timeout_ms": 1500
     },
     {
       "field": "budget_type",
-      "delay_ms": 2000,
+      "wait_selector": "select[name='budget_code'] option:nth-child(2)",
+      "timeout_ms": 3000,
       "note": "triggers budget_code options"
     },
     {
       "field": "budget_code",
-      "delay_ms": 1500,
+      "wait_selector": "select[name='item_no'] option:nth-child(2)",
+      "timeout_ms": 3000,
+      "condition": "budget_type",
       "note": "triggers item_no options"
     },
     {
       "field": "item_no",
-      "delay_ms": 1000
+      "timeout_ms": 1500,
+      "condition": "budget_code"
     }
   ],
   "city_transport_lookup": {

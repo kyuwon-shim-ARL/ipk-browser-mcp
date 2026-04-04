@@ -12,7 +12,7 @@ export const ipkNavigateSchema = {
     ),
   wait_for: z
     .enum(["networkidle", "load", "domcontentloaded"])
-    .default("networkidle")
+    .default("load")
     .describe("Wait condition after navigation"),
 };
 

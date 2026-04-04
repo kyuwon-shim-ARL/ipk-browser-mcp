@@ -15,34 +15,42 @@
   "field_schema": {
     "subject": {
       "type": "text",
+      "dom_name": "subject",
       "required": true,
       "source": "user_input",
       "note": "Convention: '[Settlement] <original travel request subject>'"
     },
     "start_date": {
       "type": "date",
+      "dom_name": "start_date",
+      "dom_note": "NOT a direct DOM input — comes from parent document via sel_travel hidden field",
       "required": true,
       "source": "user_input"
     },
     "end_date": {
       "type": "date",
+      "dom_name": "end_date",
+      "dom_note": "NOT a direct DOM input — comes from parent document via sel_travel hidden field",
       "required": true,
       "source": "user_input"
     },
     "start_time": {
       "type": "time",
+      "dom_note": "NOT a direct DOM input — comes from parent document",
       "required": false,
       "source": "user_input",
       "note": "Only for day-trips (nights=0). Present in 76% of docs."
     },
     "end_time": {
       "type": "time",
+      "dom_note": "NOT a direct DOM input — comes from parent document",
       "required": false,
       "source": "user_input",
       "note": "Only for day-trips (nights=0). Present in 76% of docs."
     },
     "purpose_category": {
       "type": "select",
+      "dom_note": "NOT a direct DOM input — comes from parent document",
       "required": true,
       "source": "inference",
       "values": [
@@ -62,30 +70,35 @@
     },
     "purpose": {
       "type": "textarea",
+      "dom_note": "NOT a direct DOM input — comes from parent document",
       "required": true,
       "source": "user_input",
       "note": "Free text detail matching the original travel request purpose"
     },
     "destination": {
       "type": "text",
+      "dom_note": "NOT a direct DOM input — comes from parent document",
       "required": true,
       "source": "user_input",
       "note": "Organization/venue name; copied or refined from original travel request"
     },
     "province": {
       "type": "select",
+      "dom_note": "NOT a direct DOM input — comes from parent document",
       "required": true,
       "source": "inference",
       "note": "Part of cascading City & Transportation selector"
     },
     "city": {
       "type": "select",
+      "dom_note": "NOT a direct DOM input — comes from parent document",
       "required": true,
       "source": "inference",
       "note": "Part of cascading City & Transportation selector"
     },
     "transport_mode": {
       "type": "select",
+      "dom_note": "NOT a direct DOM input — comes from parent document",
       "required": true,
       "source": "inference",
       "values": [
@@ -96,13 +109,15 @@
       "note": "Part of cascading City & Transportation selector"
     },
     "budget_control_no": {
-      "type": "text",
+      "type": "hidden",
+      "dom_name": "budget_control_no",
       "required": true,
       "source": "user_input",
       "note": "Must match the BC# from the corresponding approved travel request"
     },
     "budget_type": {
-      "type": "select",
+      "type": "hidden",
+      "dom_name": "budget_type",
       "required": true,
       "source": "inference",
       "values": ["R&D", "General"],
@@ -113,34 +128,73 @@
     },
     "daily_expense": {
       "type": "number",
+      "dom_name": "daily_fee_total",
+      "dom_fields": {
+        "total": "daily_fee_total",
+        "card": "daily_fee_card",
+        "cash": "daily_fee_cash"
+      },
       "required": true,
       "source": "inference",
       "note": "Per-day stipend. 20,000 for day-trips (nights=0); 30,000/day for overnight"
     },
     "transport_fee": {
       "type": "number",
+      "dom_name": "transport_fee_total",
+      "dom_fields": {
+        "total": "transport_fee_total",
+        "card": "transport_fee_card",
+        "cash": "transport_fee_cash"
+      },
       "required": false,
       "source": "user_input",
       "note": "Actual transport receipts amount (train, bus, etc). Default 0."
     },
     "accommodation": {
       "type": "number",
+      "dom_name": "accommodation_fee_total",
+      "dom_fields": {
+        "total": "accommodation_fee_total",
+        "card": "accommodation_fee_card",
+        "cash": "accommodation_fee_cash"
+      },
       "required": false,
       "source": "user_input",
       "note": "Actual accommodation receipts amount. Default 0."
     },
     "food_expense": {
       "type": "number",
+      "dom_name": "food_fee_total",
+      "dom_fields": {
+        "total": "food_fee_total",
+        "card": "food_fee_card",
+        "cash": "food_fee_cash"
+      },
       "required": false,
       "source": "user_input",
       "note": "Actual food expense. Default 0."
     },
     "attached_approved_doc_ref": {
       "type": "text",
+      "dom_name": "sel_travel",
+      "dom_type": "hidden",
       "required": true,
       "source": "user_input",
-      "note": "Doc number of the corresponding approved travel request (AppFrm-023)"
+      "note": "Doc number of the corresponding approved travel request (AppFrm-023); set via sel_travel hidden field"
     }
+  },
+  "dom_fields": {
+    "note": "Actual DOM input names in the settlement form (loaded from parent document via p_doc_id/sel_travel)",
+    "hidden": ["budget_control_no", "budget_type", "sel_travel"],
+    "totals_structure": {
+      "transport": {"total": "transport_fee_total", "card": "transport_fee_card", "cash": "transport_fee_cash"},
+      "accommodation": {"total": "accommodation_fee_total", "card": "accommodation_fee_card", "cash": "accommodation_fee_cash"},
+      "food": {"total": "food_fee_total", "card": "food_fee_card", "cash": "food_fee_cash"},
+      "daily": {"total": "daily_fee_total", "card": "daily_fee_card", "cash": "daily_fee_cash"}
+    },
+    "own_vehicle": ["ocar_pay", "ocar_card_pay", "ocar_sum"],
+    "toll": ["toll_pay", "toll_card_pay", "toll_sum"],
+    "other": ["settle_amount", "piv", "food_yn", "food_ex_cnt"]
   },
   "inference_rules": [
     {
@@ -219,31 +273,37 @@
   "ajax_cascade_sequence": [
     {
       "field": "province",
-      "delay_ms": 1500,
+      "wait_selector": "select[name='city'] option:nth-child(2)",
+      "timeout_ms": 3000,
       "note": "triggers city options (same as AppFrm-023)"
     },
     {
       "field": "city",
-      "delay_ms": 2000,
+      "wait_selector": "select[name='transport_mode'] option:nth-child(2)",
+      "timeout_ms": 3000,
       "note": "triggers transport_mode options"
     },
     {
       "field": "transport_mode",
-      "delay_ms": 1000
+      "timeout_ms": 1500
     },
     {
       "field": "budget_type",
-      "delay_ms": 2000,
+      "wait_selector": "select[name='budget_code'] option:nth-child(2)",
+      "timeout_ms": 3000,
       "note": "triggers budget_code options"
     },
     {
       "field": "budget_code",
-      "delay_ms": 1500,
-      "note": "triggers item_no options"
+      "wait_selector": "select[name='item_no'] option:nth-child(2)",
+      "timeout_ms": 3000,
+      "condition": "budget_type",
+      "note": "triggers item_no options; only if budget_type set"
     },
     {
       "field": "item_no",
-      "delay_ms": 1000
+      "timeout_ms": 1500,
+      "condition": "budget_code"
     }
   ],
   "city_transport_lookup": {
