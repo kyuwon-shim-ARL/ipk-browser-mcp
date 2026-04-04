@@ -8,75 +8,101 @@
   "field_schema": {
     "leave_type": {
       "type": "select",
+      "dom_name": "leave_kind[]",
       "required": true,
       "source": "user_input",
       "values": ["Annual leave", "Compensatory leave", "Paternity Leave", "Sick leave"],
       "distribution": {"Annual leave": 0.56, "Compensatory leave": 0.38, "Paternity Leave": 0.04, "Sick leave": 0.01}
     },
+    "using_type": {
+      "type": "select",
+      "dom_name": "using_type[]",
+      "required": true,
+      "source": "inference",
+      "note": "Full day vs Hours selector. Full day value='01', Hours value='04'",
+      "values": ["Full day", "Hours"],
+      "dom_values": {"Full day": "01", "Hours": "04"}
+    },
     "start_date": {
       "type": "date",
+      "dom_name": "begin_date[]",
+      "dom_type": "text",
       "required": true,
       "source": "user_input"
     },
     "end_date": {
       "type": "date",
+      "dom_name": "end_date[]",
+      "dom_type": "text",
       "required": true,
       "source": "user_input"
     },
     "start_hour": {
       "type": "number",
+      "dom_name": "start_time[]",
+      "dom_type": "select",
       "required": false,
       "source": "user_input",
       "note": "Only for partial-day leave (81% of cases). Common: 14~17, 15~17, 16~17"
     },
     "end_hour": {
       "type": "number",
+      "dom_name": "end_time[]",
+      "dom_type": "select",
       "required": false,
       "source": "user_input"
     },
     "purpose": {
       "type": "text",
+      "dom_name": "purpose",
       "required": true,
       "source": "inference",
       "note": "82% are 'child care' for Kyuwon Shim"
     },
     "destination": {
       "type": "text",
+      "dom_name": "destination",
       "required": true,
       "source": "inference",
       "note": "69% are 'Seoul', 22% are home address"
     },
     "substitute_name": {
       "type": "text",
+      "dom_name": "substitute_name",
       "required": true,
       "source": "profile",
       "note": "88% Guinam Wee, 7% Juchan Hwang, 4% Sunju Kim"
     },
     "substitute_payroll": {
       "type": "text",
+      "dom_name": "substitute_payroll",
       "required": true,
       "source": "profile",
       "linked_to": "substitute_name"
     },
     "substitute_position": {
       "type": "text",
+      "dom_name": "substitute_position",
       "required": true,
       "source": "profile",
       "linked_to": "substitute_name"
     },
     "substitute_contact": {
       "type": "text",
+      "dom_name": "substitute_contact",
       "required": true,
       "source": "profile",
       "linked_to": "substitute_name"
     },
     "address": {
       "type": "text",
+      "dom_name": "emergency_address",
       "required": true,
       "source": "profile"
     },
     "telephone": {
       "type": "text",
+      "dom_name": "emergency_telephone",
       "required": true,
       "source": "profile"
     }
