@@ -88,8 +88,6 @@ function ensureProcess(): ChildProcess | null {
     }
   });
 
-  // Reset crash count on successful spawn
-  crashCount = Math.max(0, crashCount - 1);
   return child;
 }
 
@@ -136,6 +134,10 @@ async function processQueue(): Promise<void> {
         });
       });
 
+      // Reset crash count only after successful RPC response (not on spawn)
+      if (!resp.error) {
+        crashCount = 0;
+      }
       item.resolve(resp);
     } catch (err) {
       item.resolve({ id: item.request.id, error: { code: "INTERNAL_ERROR", message: String(err) } });

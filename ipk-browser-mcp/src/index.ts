@@ -11,6 +11,7 @@ import { ipkFetchApprovalsSchema, ipkFetchApprovalsDescription, handleIpkFetchAp
 import { ipkNavigateSchema, ipkNavigateDescription, handleIpkNavigate } from "./tools/ipk-navigate.js";
 import { ipkGetContentSchema, ipkGetContentDescription, handleIpkGetContent } from "./tools/ipk-content.js";
 import { screenshotSchema, screenshotDescription, handleScreenshot, cleanupExpiredScreenshots } from "./tools/screenshot.js";
+import { ipkInspectFormSchema, ipkInspectFormDescription, handleIpkInspectForm } from "./tools/ipk-inspect.js";
 
 const config = loadConfig();
 const sessionManager = new SessionManager(config);
@@ -51,6 +52,11 @@ server.tool("ipk_get_content", ipkGetContentDescription, ipkGetContentSchema, as
 // Tool 6: screenshot
 server.tool("screenshot", screenshotDescription, screenshotSchema, async (params) => {
   return handleScreenshot(sessionManager, config, params);
+});
+
+// Tool 7: ipk_inspect_form
+server.tool("ipk_inspect_form", ipkInspectFormDescription, ipkInspectFormSchema, async (params) => {
+  return handleIpkInspectForm(sessionManager, config, params as { form_code: string; compare_template?: boolean });
 });
 
 // Start server

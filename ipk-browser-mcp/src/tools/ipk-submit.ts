@@ -1,4 +1,5 @@
 import { z } from "zod";
+import * as fs from "fs";
 import { SessionManager } from "../browser/session.js";
 import { textResult } from "../util.js";
 import {
@@ -9,7 +10,9 @@ import {
   setRequiredSelect,
   setFormMode,
   submitForm,
+  executeAjaxCascade,
 } from "../browser/iframe-helper.js";
+import type { CascadeStep } from "../browser/iframe-helper.js";
 import {
   Config,
   FormType,
@@ -30,10 +33,16 @@ const ALLOWED_ATTACHMENT_DIRS = [
 
 /** Validate that an attachment path is safe to upload. */
 function validateAttachmentPath(filePath: string): string | null {
-  const resolved = path.resolve(filePath);
-  // Block path traversal
-  if (resolved !== filePath && filePath.includes("..")) {
+  // Block path traversal before resolving
+  if (filePath.includes("..")) {
     return "Attachment path contains path traversal (..)";
+  }
+  // Resolve symlinks to get the real filesystem path (security: prevents symlink-to-sensitive-file attacks)
+  let resolved: string;
+  try {
+    resolved = fs.realpathSync(filePath);
+  } catch {
+    return `Attachment path does not exist or is not accessible: ${filePath}`;
   }
   // Block dotfiles and sensitive directories
   if (/\/\./.test(resolved)) {
@@ -43,7 +52,7 @@ function validateAttachmentPath(filePath: string): string | null {
   if (resolved.startsWith("/etc") || resolved.startsWith("/proc") || resolved.startsWith("/sys")) {
     return "Attachment path points to a system directory";
   }
-  // Must be in an allowed directory
+  // Must be in an allowed directory (checked against real path, not symlink path)
   const inAllowed = ALLOWED_ATTACHMENT_DIRS.some((dir) => resolved.startsWith(dir));
   if (!inAllowed) {
     return `Attachment must be in one of: ${ALLOWED_ATTACHMENT_DIRS.join(", ")}`;
@@ -216,7 +225,8 @@ export async function handleIpkSubmitForm(
         return textResult({ error: true, code: "FRAME_NOT_FOUND", message: "main_menu frame not found" });
       }
       await mainFrame.goto(btUrl, { timeout: config.navTimeoutMs });
-      await mainFrame.waitForLoadState("networkidle");
+      await mainFrame.waitForLoadState("load");
+      await mainFrame.waitForSelector("form input, form select", { timeout: 5000 }).catch(() => null);
       sessionManager.touchActivity();
       await page.waitForTimeout(1500);
       return await submitBudgetTransfer(page, mainFrame, sessionManager, config, params, mode);
@@ -345,7 +355,7 @@ async function submitLeave(
   await setFieldValue(frame, 'input[name="emergency_telephone"]', process.env.IPK_EMERGENCY_TELEPHONE || "N/A");
 
   // Set subject last to avoid being overwritten by change events
-  await setFieldValue(frame, 'input[name="subject"]', subject);
+  await setRequiredField(frame, 'input[name="subject"]', subject, "subject");
 
   // Handle substitute selection via popup
   try {
@@ -356,7 +366,8 @@ async function submitLeave(
       }),
     ]);
 
-    await popup.waitForLoadState("networkidle");
+    await popup.waitForLoadState("load");
+    await popup.waitForSelector("tr", { timeout: 5000 }).catch(() => null);
     await popup.waitForTimeout(1000);
 
     // Select substitute by name - PARAMETERIZED
@@ -660,22 +671,16 @@ async function submitTravelRequest(
   // Set common fields (required)
   await setRequiredField(frame, 'input[name="subject"]', subject, "subject");
 
-  // Try budget fields (may exist on travel request forms)
-  await setSelectValue(frame, 'select[name="budget_type"]', budgetType);
+  // Budget fields (required)
+  await setRequiredSelect(frame, 'select[name="budget_type"]', budgetType, "budget_type");
   await page.waitForTimeout(1000);
-  await setSelectValue(frame, 'select[name="budget_code"]', budgetCode);
+  await setRequiredSelect(frame, 'select[name="budget_code"]', budgetCode, "budget_code");
 
-  // Travel-specific fields - try various selectors that might exist
-  await setFieldValue(frame, 'input[name="start_day"]', startDate);
-  await setFieldValue(frame, 'input[name="end_day"]', endDate);
-  await setFieldValue(frame, '.validate[name="start_day"]', startDate);
-  await setFieldValue(frame, '.validate[name="end_day"]', endDate);
-  await setFieldValue(frame, 'input[name="destination"]', destination);
-  await setFieldValue(frame, 'textarea[name="destination"]', destination);
-  await setFieldValue(frame, '.validate[name="report_dest"]', destination);
-  await setFieldValue(frame, 'input[name="purpose"]', purpose);
-  await setFieldValue(frame, 'textarea[name="purpose"]', purpose);
-  await setFieldValue(frame, '.validate[name="purpose_field"]', purpose);
+  // Travel-specific fields (required)
+  await setRequiredField(frame, '.validate[name="start_day"]', startDate, "start_day");
+  await setRequiredField(frame, '.validate[name="end_day"]', endDate, "end_day");
+  await setRequiredField(frame, '.validate[name="report_dest"]', destination, "report_dest");
+  await setRequiredField(frame, '.validate[name="purpose_field"]', purpose, "purpose_field");
 
   // Organization and attendees
   if (params.organization) {
@@ -918,7 +923,13 @@ async function submitCardExpense(
   });
 }
 
-/** Travel Settlement (AppFrm-054) — domestic travel expense settlement */
+/** Travel Settlement (AppFrm-054) — domestic travel expense settlement
+ *
+ * Key mechanism: sel_travel hidden field links to the approved travel request (AppFrm-023).
+ * Setting sel_travel + dispatching 'change' may auto-populate parent-doc fields
+ * (start_date, end_date, province, city, transport_mode, purpose_category, purpose, destination).
+ * If auto-populate doesn't work, we fall back to manual cascade + field setting.
+ */
 async function submitTravelSettlement(
   page: any,
   frame: any,
@@ -927,110 +938,138 @@ async function submitTravelSettlement(
   params: Record<string, any>,
   mode: "draft" | "request"
 ) {
-  const userInfo = sessionManager.getUserInfo()!;
-  const startDate = params.start_date || todayStr();
-  const endDate = params.end_date || startDate;
-  const destination = params.destination || "";
   const purpose = params.purpose || "Business travel";
   const subject = params.title || `[Settlement] ${purpose}`;
-  const budgetControlNo = params.budget_control_no || "";
-  const approvedDocRef = params.approved_doc_ref || "";
-  const purposeCategory = params.purpose_category || "Participation in the conference/seminar";
+  const approvedDocRef = params.approved_doc_ref || params.sel_travel || "";
 
-  // Calculate nights and daily expense
-  const startD = new Date(startDate);
-  const endD = new Date(endDate);
-  const nights = Math.max(0, Math.round((endD.getTime() - startD.getTime()) / 86400000));
+  // Step 1: Set sel_travel hidden field to link the approved travel request
+  let autoPopulated = false;
+  if (approvedDocRef) {
+    await frame.evaluate(
+      (docRef: string) => {
+        const selTravel = document.querySelector('input[name="sel_travel"]') as HTMLInputElement | null;
+        if (selTravel) {
+          selTravel.value = docRef;
+          selTravel.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+      },
+      approvedDocRef
+    );
+    // Wait to see if groupware JS auto-populates fields
+    await page.waitForTimeout(2000);
+
+    // Check if auto-populate worked by verifying at least one parent-doc field is filled
+    autoPopulated = await frame.evaluate(() => {
+      const startDate = document.querySelector('input[name="start_date"]') as HTMLInputElement | null;
+      const province = document.querySelector('select[name="province"]') as HTMLSelectElement | null;
+      return !!(
+        (startDate && startDate.value && startDate.value !== "") ||
+        (province && province.value && province.value !== "" && province.value !== "0")
+      );
+    });
+  }
+
+  // Step 2: If auto-populate didn't work, manually set parent-doc fields + run cascade
+  if (!autoPopulated) {
+    const startDate = params.start_date || todayStr();
+    const endDate = params.end_date || startDate;
+
+    // Set date fields manually
+    await setFieldValue(frame, 'input[name="start_date"]', startDate);
+    await setFieldValue(frame, 'input[name="end_date"]', endDate);
+
+    // Set text fields from parent doc
+    if (params.purpose_category) {
+      await setSelectValue(frame, 'select[name="purpose_category"]', params.purpose_category);
+    }
+    if (params.purpose) {
+      await setFieldValue(frame, 'textarea[name="purpose"], input[name="purpose"]', params.purpose);
+    }
+    if (params.destination) {
+      await setFieldValue(frame, 'input[name="destination"]', params.destination);
+    }
+
+    // Run AJAX cascade: province → city → transport_mode → budget_type → budget_code → item_no
+    const province = params.province || "";
+    const city = params.city || "";
+    const transportMode = params.transport_mode || "Other Public Transporation";
+    const budgetType = params.budget_type || "02"; // R&D default
+
+    if (province) {
+      const cascadeSteps: CascadeStep[] = [
+        {
+          field: "province",
+          value: province,
+          waitSelector: "select[name='city'] option:nth-child(2)",
+          timeoutMs: 3000,
+        },
+        {
+          field: "city",
+          value: city,
+          waitSelector: "select[name='transport_mode'] option:nth-child(2)",
+          timeoutMs: 3000,
+        },
+        {
+          field: "transport_mode",
+          value: transportMode,
+          timeoutMs: 1500,
+        },
+        {
+          field: "budget_type",
+          value: budgetType,
+          waitSelector: "select[name='budget_code'] option:nth-child(2)",
+          timeoutMs: 3000,
+        },
+      ];
+
+      // Add budget_code step if provided
+      if (params.budget_code) {
+        cascadeSteps.push({
+          field: "budget_code",
+          value: params.budget_code,
+          waitSelector: "select[name='item_no'] option:nth-child(2)",
+          timeoutMs: 3000,
+          condition: "budget_type",
+        });
+      }
+      // Add item_no step if provided
+      if (params.item_no) {
+        cascadeSteps.push({
+          field: "item_no",
+          value: params.item_no,
+          timeoutMs: 1500,
+          condition: "budget_code",
+        });
+      }
+
+      await executeAjaxCascade(page, frame, cascadeSteps);
+    }
+  }
+
+  // Step 3: Set subject
+  await setRequiredField(frame, 'input[name="subject"]', subject, "subject");
+
+  // Step 4: Set budget hidden fields (may already be set by cascade, but ensure)
+  const budgetControlNo = params.budget_control_no || "";
+  if (budgetControlNo) {
+    await setFieldValue(frame, 'input[name="budget_control_no"]', budgetControlNo);
+  }
+
+  // Step 5: Expense amounts
+  const startDate = params.start_date || todayStr();
+  const endDate = params.end_date || startDate;
+  const nights = Math.max(0, Math.round((new Date(endDate).getTime() - new Date(startDate).getTime()) / 86400000));
   const dailyExpense = params.daily_expense || (nights === 0 ? 20000 : 30000 * nights);
   const transportFee = params.transport_fee || 0;
   const accommodationFee = params.accommodation || 0;
   const foodExpense = params.food_expense || 0;
 
-  // Budget type
-  const budgetType = params.budget_type || "02"; // R&D default
+  await setFieldValue(frame, 'input[name="daily_fee_total"]', String(dailyExpense));
+  if (transportFee) await setFieldValue(frame, 'input[name="ocar_pay"]', String(transportFee));
+  if (accommodationFee) await setFieldValue(frame, 'input[name="accommodation_fee_total"]', String(accommodationFee));
+  if (foodExpense) await setFieldValue(frame, 'input[name="food_fee_total"]', String(foodExpense));
 
-  // Set subject
-  await setRequiredField(frame, 'input[name="subject"]', subject, "subject");
-
-  // Traveler info
-  await setFieldValue(frame, '.validate[name="report_name"]', userInfo.name);
-  await setFieldValue(frame, '.validate[name="report_date"]', todayStr());
-
-  // Dates
-  await setRequiredField(frame, 'input[name="start_day"]', startDate, "start_day");
-  await setRequiredField(frame, 'input[name="end_day"]', endDate, "end_day");
-  // Also try .validate selectors (form variants)
-  await setFieldValue(frame, '.validate[name="start_day"]', startDate);
-  await setFieldValue(frame, '.validate[name="end_day"]', endDate);
-
-  // Start/end times for day trips
-  if (params.start_time) await setFieldValue(frame, 'input[name="start_time"]', params.start_time);
-  if (params.end_time) await setFieldValue(frame, 'input[name="end_time"]', params.end_time);
-
-  // Purpose category
-  await setSelectValue(frame, 'select[name="purpose_category"]', purposeCategory);
-  await setFieldValue(frame, 'textarea[name="purpose"]', purpose);
-  await setFieldValue(frame, '.validate[name="purpose_field"]', purpose);
-
-  // Destination
-  await setFieldValue(frame, 'input[name="destination"]', destination);
-  await setFieldValue(frame, '.validate[name="report_dest"]', destination);
-
-  // AJAX cascade: province → city → transport_mode
-  if (params.province) {
-    await setSelectValue(frame, 'select[name="province"]', params.province);
-    await page.waitForTimeout(2000); // Wait for city AJAX
-  }
-  if (params.city) {
-    await setSelectValue(frame, 'select[name="city"]', params.city);
-    await page.waitForTimeout(2000); // Wait for transport AJAX
-  }
-  if (params.transport_mode) {
-    await setSelectValue(frame, 'select[name="transport_mode"]', params.transport_mode);
-    await page.waitForTimeout(1000);
-  }
-
-  // Budget type → code cascade
-  await setSelectValue(frame, 'select[name="budget_type"]', budgetType);
-  await page.waitForTimeout(2000);
-  if (params.budget_code) {
-    await setSelectValue(frame, 'select[name="budget_code"]', params.budget_code);
-    await page.waitForTimeout(1500);
-  }
-
-  // Budget control number
-  if (budgetControlNo) {
-    await setFieldValue(frame, 'input[name="budget_control_no"]', budgetControlNo);
-    await setFieldValue(frame, '.validate[name="budget_control_no"]', budgetControlNo);
-  }
-
-  // Expense amounts
-  await setFieldValue(frame, 'input[name="daily_expense"]', String(dailyExpense));
-  if (transportFee) await setFieldValue(frame, 'input[name="transport_fee"]', String(transportFee));
-  if (accommodationFee) await setFieldValue(frame, 'input[name="accommodation"]', String(accommodationFee));
-  if (foodExpense) await setFieldValue(frame, 'input[name="food_expense"]', String(foodExpense));
-
-  // Own vehicle fields
-  if (params.oil_price) await setFieldValue(frame, 'input[name="oil_price"]', String(params.oil_price));
-  if (params.distance_km) await setFieldValue(frame, 'input[name="distance_km"]', String(params.distance_km));
-  if (params.toll_fee) await setFieldValue(frame, 'input[name="toll"]', String(params.toll_fee));
-
-  // Own car cost = oil_price * distance_km / 10
-  if (params.oil_price && params.distance_km) {
-    const ownCarCost = Math.round(params.oil_price * params.distance_km / 10);
-    await setFieldValue(frame, 'input[name="own_car"]', String(ownCarCost));
-  }
-
-  // Approved doc reference
-  if (approvedDocRef) {
-    await setFieldValue(frame, 'input[name="approved_doc_ref"]', approvedDocRef);
-    await setFieldValue(frame, '.validate[name="approved_doc_ref"]', approvedDocRef);
-  }
-
-  // Invitation field (default: No)
-  await setSelectValue(frame, 'select[name="travel_with_invitation"]', "No");
-
-  // Handle attachment
+  // Step 6: Handle attachment
   if (params.attachment_path) {
     const fileInput = frame.locator('input[name="doc_attach_file[]"]').first();
     await fileInput.setInputFiles(params.attachment_path);
@@ -1042,6 +1081,12 @@ async function submitTravelSettlement(
   const docId = await submitForm(page, frame, "check_form_request");
 
   const warnings: string[] = [];
+  if (!approvedDocRef) {
+    warnings.push("No approved_doc_ref (sel_travel) provided — parent document fields may be incomplete.");
+  }
+  if (!autoPopulated && approvedDocRef) {
+    warnings.push("sel_travel auto-populate did not work — used manual cascade fallback.");
+  }
   if (params.transport_mode?.includes("Own Vehicle") && !params.attachment_path) {
     warnings.push("Own vehicle travel requires 거리.pdf (Naver Maps screenshot) attachment.");
   }
@@ -1053,6 +1098,7 @@ async function submitTravelSettlement(
     error: false,
     data: {
       success: true, docId, mode, formType: "travel_settlement", subject,
+      autoPopulated,
       message: docId
         ? `Travel settlement ${mode === "draft" ? "draft saved" : "submitted"} (doc_id: ${docId})`
         : `Travel settlement ${mode} completed`,
@@ -1096,18 +1142,14 @@ async function submitLeaveReturn(
 
   // Set form fields
   await setRequiredField(frame, 'input[name="subject"]', subject, "subject");
-  await setFieldValue(frame, 'input[name="original_leave_doc"]', originalDoc);
-  await setFieldValue(frame, '.validate[name="original_leave_doc"]', originalDoc);
+  await setRequiredField(frame, 'input[name="original_leave_doc"]', originalDoc, "original_leave_doc");
 
   // Leave type selection
-  await setSelectValue(frame, 'select[name="leave_kind"]', leaveCode);
   await setSelectValue(frame, 'select[name="leave_kind[]"]', leaveCode);
 
   // Period
   await setRequiredField(frame, 'input[name="begin_date"]', periodStart, "begin_date");
-  await setFieldValue(frame, 'input[name="begin_date[]"]', periodStart);
   await setRequiredField(frame, 'input[name="end_date"]', periodEnd, "end_date");
-  await setFieldValue(frame, 'input[name="end_date[]"]', periodEnd);
 
   // Return days/hours
   await setFieldValue(frame, 'input[name="return_days"]', String(returnDays));
@@ -1282,13 +1324,12 @@ async function submitOverseasTravel(
   }
 
   // Country and conference
-  await setFieldValue(frame, 'input[name="country"]', country);
-  await setFieldValue(frame, '.validate[name="country"]', country);
+  await setRequiredField(frame, 'input[name="country"]', country, "country");
   await setFieldValue(frame, 'input[name="conference_name"]', conferenceName);
   await setFieldValue(frame, '.validate[name="conference_name"]', conferenceName);
 
   // Purpose
-  await setFieldValue(frame, 'textarea[name="purpose"]', purpose);
+  await setRequiredField(frame, 'textarea[name="purpose"]', purpose, "purpose");
   await setFieldValue(frame, '.validate[name="purpose_field"]', purpose);
 
   // Travel with invitation (default: No), Car rent (default: No)
@@ -1306,12 +1347,9 @@ async function submitOverseasTravel(
   });
 
   // Dates
-  await setFieldValue(frame, 'input[name="travel_start"]', travelStart);
-  await setFieldValue(frame, '.validate[name="travel_start"]', travelStart);
-  await setFieldValue(frame, 'input[name="travel_end"]', travelEnd);
-  await setFieldValue(frame, '.validate[name="travel_end"]', travelEnd);
+  await setRequiredField(frame, 'input[name="travel_start"]', travelStart, "travel_start");
+  await setRequiredField(frame, 'input[name="travel_end"]', travelEnd, "travel_end");
   await setFieldValue(frame, 'input[name="payment_date"]', paymentDate);
-  await setFieldValue(frame, '.validate[name="payment_date"]', paymentDate);
 
   // Schedule rows (daily itinerary)
   if (params.schedule_rows && Array.isArray(params.schedule_rows)) {
