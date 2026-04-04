@@ -185,6 +185,76 @@ describe("Wave 2: travel_settlement daily expense calculation", () => {
   });
 });
 
+// ── T4: FORM_REGISTRY ↔ template JSON integrity ─────────────────────────────
+describe("FORM_REGISTRY ↔ template JSON integrity", () => {
+  const fs = require("fs");
+  const path = require("path");
+  const templateDir = path.resolve(__dirname, "..", "..", "..", "form_templates");
+
+  it("FORM_REGISTRY templateFiles that exist on disk are valid JSON", () => {
+    const invalid: string[] = [];
+    for (const [key, entry] of Object.entries(FORM_REGISTRY)) {
+      const filePath = path.join(templateDir, entry.templateFile);
+      if (!fs.existsSync(filePath)) continue; // not all templates exist yet
+      try {
+        const content = JSON.parse(fs.readFileSync(filePath, "utf-8"));
+        if (!content.form_code) invalid.push(`${key}: missing form_code`);
+      } catch {
+        invalid.push(`${key}: invalid JSON`);
+      }
+    }
+    expect(invalid, `Invalid template files: ${invalid.join(", ")}`).toHaveLength(0);
+  });
+
+  it("templates with ajax_cascade_sequence have valid step structure", () => {
+    const templatesWithCascade = ["AppFrm-023.json"];
+    for (const filename of templatesWithCascade) {
+      const filePath = path.join(templateDir, filename);
+      if (!fs.existsSync(filePath)) continue;
+      const template = JSON.parse(fs.readFileSync(filePath, "utf-8"));
+      const steps = template.ajax_cascade_sequence;
+      expect(Array.isArray(steps), `${filename}: ajax_cascade_sequence should be array`).toBe(true);
+      for (const step of steps) {
+        expect(step.field, `${filename}: each step needs 'field'`).toBeTruthy();
+        expect(step.timeout_ms, `${filename}: step '${step.field}' needs timeout_ms`).toBeGreaterThan(0);
+        // Steps that trigger downstream options should have wait_selector
+        if (step.wait_selector) {
+          expect(typeof step.wait_selector).toBe("string");
+        }
+      }
+    }
+  });
+
+  it("templates with field_schema have required fields marked", () => {
+    const requiredTemplates = [
+      { file: "AppFrm-023.json", minRequired: 4 },
+      { file: "AppFrm-054.json", minRequired: 3 },
+      { file: "AppFrm-073.json", minRequired: 5 },
+    ];
+    for (const { file, minRequired } of requiredTemplates) {
+      const filePath = path.join(templateDir, file);
+      if (!fs.existsSync(filePath)) continue;
+      const template = JSON.parse(fs.readFileSync(filePath, "utf-8"));
+      const schema = template.field_schema;
+      const requiredCount = Object.values(schema).filter((f: any) => f.required).length;
+      expect(requiredCount, `${file}: expected >= ${minRequired} required fields`).toBeGreaterThanOrEqual(minRequired);
+    }
+  });
+
+  it("AppFrm-023 cascade wait_selectors reference valid DOM selectors", () => {
+    const filePath = path.join(templateDir, "AppFrm-023.json");
+    if (!fs.existsSync(filePath)) return;
+    const template = JSON.parse(fs.readFileSync(filePath, "utf-8"));
+    const steps = template.ajax_cascade_sequence;
+    for (const step of steps) {
+      if (step.wait_selector) {
+        // wait_selector should match pattern: select[name='xxx'] option:nth-child(N)
+        expect(step.wait_selector).toMatch(/select\[name='[^']+'\]\s*option:nth-child\(\d+\)/);
+      }
+    }
+  });
+});
+
 describe("Wave 2: seminar validation", () => {
   it("requires title/subject", () => {
     const subject = "";
