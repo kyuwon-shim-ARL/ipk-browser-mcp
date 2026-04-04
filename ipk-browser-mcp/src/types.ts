@@ -199,6 +199,10 @@ function env(key: string, fallback: string = ""): string {
 }
 
 export function loadConfig(): Config {
+  // Ensure consistent timezone for date calculations (daily_expense, nights inference)
+  if (!process.env.TZ) {
+    process.env.TZ = "Asia/Seoul";
+  }
   return {
     baseUrl: env("IPK_BASE_URL", "https://gw.ip-korea.org"),
     username: env("IPK_USERNAME"),
