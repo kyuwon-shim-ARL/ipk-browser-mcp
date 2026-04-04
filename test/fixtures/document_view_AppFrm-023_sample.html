@@ -1,0 +1,427 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"><html><head>
+	<title>Welcome to Institut Pasteur Korea GroupWare</title>
+	<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7"> 
+	<meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate">
+	<meta http-equiv="pragma" content="no-cache">
+	<meta http-equiv="expires" content="0">
+	
+	<link href="/lib/css/common.css" rel="stylesheet" type="text/css">
+		
+	
+	<script language="javascript" src="/lib/js/common.js"></script>
+<script>
+
+function fnWindowClose() {
+	if ( typeof(parent.fnPopupClose) == 'function' ) {
+		parent.fnPopupClose();
+	} else if ( typeof(parent.removeTab) == 'function' ) {
+		parent.removeTab();
+	} else if ( typeof(opener) != "undefined" ) {
+//		if ( typeof(opener.fnAjaxReload) != 'undefined' ) {
+//			opener.fnAjaxReload(false);
+//		}
+		window.close();
+	} 
+}
+
+function fnWindowPrint() {
+	var doctype = document.documentElement.previousSibling.nodeValue;
+	var publicId = document.documentElement.previousSibling.publicId;
+	
+	if ( doctype == "DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\"" || publicId == "-//W3C//DTD XHTML 1.0 Transitional//EN" ) {
+		$('html').printThis({
+    	importCSS: true,
+    	loadCSS: "/lib/css/printThis.css"
+		});
+	} else {
+		//window.print();
+		window.document.execCommand('print', false, null)
+	}
+}
+
+	function Reset_Form()
+	{
+	
+	
+		obj = document.getElementsByName('pannel1');
+		
+		obj1 = document.getElementsByName('pannel2');
+
+
+		  if (obj1[0].outerHTML) {
+		    stringOuterHTML=pannel2.outerHTML;
+		  } else {
+		    stringOuterHTML=(new XMLSerializer).serializeToString(obj1[0]);
+		  }
+		
+
+
+
+		obj[0].innerHTML = stringOuterHTML;
+
+		attach_reseth();		
+		
+		
+		
+		
+		
+					
+	}
+	
+	function attach_reseth()
+	{
+
+		obj = document.getElementsByName('doc_attach_file[]');
+		obj1 = document.getElementsByName('file_attach_cnt');
+		
+		obj1 = obj1[0];
+						
+		for(i=0;i<obj.length;i++)
+		{
+			if(obj1.value > i)
+			{						
+				obj[i].style.display='';
+			}
+			else
+			{
+				obj[i].style.display='none';
+			}
+		}
+		
+	}
+	
+	function attach_file()
+	{
+		obj = document.getElementsByName('doc_attach_file[]');
+		obj1 = document.getElementsByName('file_attach_cnt');
+		
+		obj1 = obj1[0];
+			
+		err_flag = 'N';
+						
+		for(i=0;i<obj1.value;i++)
+		{
+			
+			if(obj[i].value != '')
+			{
+				err_flag ='Y';
+				break;
+			}	
+		}
+		
+		if(err_flag =='N')
+		{
+			alert('select Attachment File'); 	
+		}
+		else
+		{
+			document.all('mode').value='file';
+			document.form1.submit();	
+			
+		}
+		
+				
+	}
+				
+		
+	function del_file(flag)
+	{
+		if(confirm('attachment file delete!\n\nProcess Ok?'))
+		{
+			document.all('del_no').value=flag;
+			document.all('mode').value='file';
+			document.form1.submit();				
+				
+		}
+		
+	}
+
+	function attach_file_trans()
+	{
+			
+		
+		if(document.getElementsByName("trans_attach_file[]")[0].value == '' && document.getElementsByName("trans_attach_file[]")[1].value == '' && document.getElementsByName("trans_attach_file[]")[2].value == '')
+		{
+			alert('select Attachment File'); 	
+		}
+		else
+		{
+			document.all('mode').value='tran_file';
+			document.form1.submit();	
+			
+		}
+		
+				
+	}
+	
+	function del_trans_file(flag)
+	{
+		if(confirm('attachment file delete!\n\nProcess Ok?'))
+		{
+			document.all('del_no').value=flag;
+			document.all('mode').value='tran_file';
+			document.form1.submit();				
+				
+		}
+		
+	}	
+	
+	function del_doc(flag)
+	{
+		if(confirm('attachment Document delete!\n\nProcess Ok?'))
+		{
+			document.all('del_no').value=flag;
+			document.all('mode').value='doc';
+			document.form1.submit();				
+				
+		}
+		
+	}
+	
+	
+	function check_audit()
+	{
+		
+		document.form1.mode.value='audit_ext';
+		
+		document.form1.submit();
+		
+			
+		
+	}
+	
+</script></head>
+
+
+
+		
+
+<body id="con" onload="Reset_Form()">
+	
+
+	<div id="conm">
+	
+	<!-- login -->
+	<!-- start welcome -->
+
+	<table style="width:900px" class="documentinfo" id="documentinfo">
+	<tbody><tr>
+		<td class="login" style="height:10px"><table width="100%">
+		<tbody><tr>
+			<td class="font11"> Welcome,  <strong>Kyuwon Shim </strong> &nbsp; &nbsp; 
+			</td>
+			<td align="right">
+				
+			
+			<a href="/Document/document_list.php?type=approved_cc">Approved Cc(New) <font class="import">0</font></a> 									
+			| <a href="/Document/document_list.php?type=myapprove">Approval <font class="import">0</font></a> 
+			| <a href="/Document/document_list.php?type=myapprove_proxy">Approval(Proxy) <font class="import">0</font></a> 
+
+						
+			
+			| <a href="/Document/document_list.php?type=approved">Finished <font class="import">133</font></a> | <a href="/Document/document_list.php?type=progress">Progress <font class="import">3</font></a></td>
+		</tr>
+		</tbody></table></td>
+	</tr>	
+	<tr>
+		<td class="login" style="height:10px"><table width="100%">
+		<tbody><tr>
+			<td class="font11">&nbsp;&nbsp; <font color="blue"> <b><font color="blue">kyuwon.shim</font> / Master ID / Research Division /   Antibacterial Resistance Lab /  Post-Doc /  Post-Doc / G2 / Team Member			</b></font></td>
+			<td align="right"></td>
+		</tr>
+		</tbody></table></td>
+	</tr>
+	<tr><td height="20"></td></tr>
+	</tbody></table>	<!-- end welcome -->	
+	<!-- login -->
+	
+	<!-- title -->
+<form name="form1" method="post" action="document_view.php" enctype="multipart/form-data">		
+<input type="hidden" name="doc_id" value="291416">
+<input type="hidden" name="approve_type" value="">
+<input type="hidden" name="start_page" value="">
+<input type="hidden" name="type" value="">
+<input type="hidden" name="search_key" value="">
+<input type="hidden" name="doc_form" value="">
+<input type="hidden" name="order" value="">
+<input type="hidden" name="org_form" value="">
+<input type="hidden" name="s_date" value="">
+<input type="hidden" name="e_date" value="">
+<input type="hidden" name="keyword" value="">
+<input type="hidden" name="writer" value="">
+<input type="hidden" name="title" value="">
+<input type="hidden" name="attachment" value="">
+<input type="hidden" name="contents" value="">
+<input type="hidden" name="mode" value="">
+<input type="hidden" name="d_doc_number" value="">
+<input type="hidden" name="del_no">
+<input type="hidden" name="review_menu" value="">
+
+
+
+
+	<table width="900px" cellpadding="0" cellspacing="0">
+	<tbody><tr>
+		<td class="tit_back"><img src="/images/"></td>
+		<td class="tit_txt">Approval &gt;  </td>
+	</tr>
+	</tbody></table>
+	
+
+
+<div align="right" style="width:900px" id="pannel1" name="pannel1"><div align="right" style="width:900px" id="pannel2" name="pannel2">
+
+	
+	
+
+	
+		
+
+
+	
+
+
+
+
+		<a href="/Document/document_list.php?start_page=&amp;approve_kind=&amp;type=&amp;search_key=&amp;search_val=&amp;doc_form=&amp;order=&amp;org_form=&amp;s_date=&amp;e_date=&amp;keyword=&amp;writer=&amp;title=&amp;attachment=&amp;contents=&amp;document_number=&amp;only_f=&amp;review_menu=&amp;item_seq=">
+			<font class="insert">[ Document List]</font>		
+		</a>
+		
+		
+					
+		
+		<a href="javascript:window.open('./document_view.php?doc_id=291416&amp;approve_type=&amp;pop_view=y','doc_view','width=960,height=720,top=100,left=100,resizable=0,scrollbars=1');void(0);">
+			<font class="insert">[ Print ]</font>		
+		</a>		
+		
+		
+	</div></div>	
+	<!-- title -->	
+	 
+	 
+
+
+	<div class="tbl01 topms" style="width:900px">
+	<table border="0" cellpadding="0" cellspacing="0" style="width:899px">
+		<colgroup><col width="20%"><col width="69%">
+			
+
+
+
+		</colgroup><tbody><tr>
+			<th class="l02">File Attachment List</th>
+			<td class="l">	
+									</td>
+		</tr>
+		<tr>
+			<th class="l02">Attach Approved Document</th>
+			<td class="l">
+							<br>
+				<div align="right">
+					<a href="javascript:void(0)" onclick="window.open('./document_select.php?doc_id=291416','document_select','width=1000,height=800,top=100,left=100,resizable=0,scrollbars=1')">[ Attachment Document ]</a>
+				</div>					
+			</td>
+		</tr>				
+		<tr>
+			<th class="l02">Opinion of approval </th>
+			<td class="l">
+						
+						
+			</td>
+		</tr>
+			
+		<tr>
+			<th class="l02">Document Modify History</th>
+			<td class="l">	
+						</td>
+		</tr>
+		
+	</tbody></table>
+
+	</div>
+
+</form></div>	
+
+	<div align="right" style="width:900px" id="pannel2" name="pannel2">
+
+	
+	
+
+	
+		
+
+
+	
+
+
+
+
+		<a href="/Document/document_list.php?start_page=&amp;approve_kind=&amp;type=&amp;search_key=&amp;search_val=&amp;doc_form=&amp;order=&amp;org_form=&amp;s_date=&amp;e_date=&amp;keyword=&amp;writer=&amp;title=&amp;attachment=&amp;contents=&amp;document_number=&amp;only_f=&amp;review_menu=&amp;item_seq=">
+			<font class="insert">[ Document List]</font>		
+		</a>
+		
+		
+					
+		
+		<a href="javascript:window.open('./document_view.php?doc_id=291416&amp;approve_type=&amp;pop_view=y','doc_view','width=960,height=720,top=100,left=100,resizable=0,scrollbars=1');void(0);">
+			<font class="insert">[ Print ]</font>		
+		</a>		
+		
+		
+	</div>
+
+<div id="delgate_bg_div" style="width:1024px;position:absolute;left:0;top:80px;background-color:000000;height:1400px;filter:alpha(Opacity:70,style;0);Opacity:.5;display:none">
+</div>
+<div id="delgate_div" style="position:absolute;left:220px;top:100px;display:none;z-index:2" width="100%">
+	<table bgcolor="000000">
+	<tbody><tr>
+		<td>
+			<table width="500px" cellpadding="5" cellspacing="0">
+			<tbody><tr bgcolor="888888">
+				<th>
+					<font color="FFFFFF">Document can be delegated.</font>
+				</th>
+			</tr>
+			<tr bgcolor="EEEEEE">
+				<td class="l">
+					<b><font color="blue">This document can be delegated to you for approval.<br>Click "Yes", if you want to approve it,<br>Click "No", if you want to delegate it up to your supervisor.</font></b>
+					<br>
+					<br>
+						<center>
+							<a href="javascript:void(0)" onclick="window.location='./document_view.php?doc_id=291416&amp;mode=arbitraies&amp;approve_type=&amp;start_page=&amp;type=';">
+								<b>
+								<font color="red">								
+									[ Yes ]
+								</font>
+								</b>
+							</a>
+							&nbsp;
+							&nbsp;
+							<a href="javascript:void(0)" onclick="document.all('delgate_div').style.display='none';document.all('delgate_bg_div').style.display='none';">
+								<b>								
+								<font color="green">
+									
+										[ No ]
+									
+								</font>
+								</b>
+							</a>
+							
+							
+						</center>					
+					<br>
+					<br>
+				</td>
+			</tr>
+			</tbody></table>
+		</td>
+	</tr>
+	</tbody></table>
+</div>	
+
+
+
+
+		
+</body></html>

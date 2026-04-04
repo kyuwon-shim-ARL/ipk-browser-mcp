@@ -1,0 +1,1069 @@
+{
+  "url": "https://gw.ip-korea.org/Document/document_write.php?approve_type=AppFrm-054",
+  "element_count": 118,
+  "elements": [
+    {
+      "tag": "input",
+      "name": "del_no",
+      "type": "hidden",
+      "id": "del_no",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "approve_line_temp",
+      "type": "hidden",
+      "id": "approve_line_temp",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "start_page",
+      "type": "hidden",
+      "id": "start_page",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "select",
+      "name": "retention",
+      "type": "select-one",
+      "id": "retention",
+      "required": false,
+      "className": "",
+      "options": [
+        {
+          "value": "1",
+          "text": "1 year"
+        },
+        {
+          "value": "3",
+          "text": "3 years"
+        },
+        {
+          "value": "5",
+          "text": "5 years"
+        },
+        {
+          "value": "10",
+          "text": "10 years"
+        },
+        {
+          "value": "30",
+          "text": "30 years"
+        },
+        {
+          "value": "100",
+          "text": "Semi - Permanent"
+        },
+        {
+          "value": "999",
+          "text": "Permanent"
+        }
+      ]
+    },
+    {
+      "tag": "input",
+      "name": "close_date",
+      "type": "text",
+      "id": "close_date",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "urgent",
+      "type": "checkbox",
+      "id": "urgent",
+      "required": false,
+      "className": "check"
+    },
+    {
+      "tag": "input",
+      "name": "security",
+      "type": "checkbox",
+      "id": "security",
+      "required": false,
+      "className": "check"
+    },
+    {
+      "tag": "input",
+      "name": "apporve_cc",
+      "type": "text",
+      "id": "apporve_cc",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "subject",
+      "type": "text",
+      "id": "subject",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "mode",
+      "type": "hidden",
+      "id": "mode",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "holder_check",
+      "type": "hidden",
+      "id": "holder_check",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "approve_type",
+      "type": "hidden",
+      "id": "approve_type",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "document_select_no",
+      "type": "hidden",
+      "id": "document_select_no",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "mode1",
+      "type": "hidden",
+      "id": "mode1",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "doc_id",
+      "type": "hidden",
+      "id": "doc_id",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "type",
+      "type": "hidden",
+      "id": "type",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "budget_code",
+      "type": "hidden",
+      "id": "budget_code",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "budget_type",
+      "type": "hidden",
+      "id": "budget_type",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "travele_type_gb",
+      "type": "hidden",
+      "id": "travele_type_gb",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "travele_type_code",
+      "type": "hidden",
+      "id": "travele_type_code",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "milestone_seq",
+      "type": "hidden",
+      "id": "milestone_seq",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "review_menu",
+      "type": "hidden",
+      "id": "review_menu",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "p_doc_id",
+      "type": "hidden",
+      "id": "p_doc_id",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "budget_control_no",
+      "type": "hidden",
+      "id": "budget_control_no",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "check_state",
+      "type": "hidden",
+      "id": "check_state",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "sel_travel",
+      "type": "hidden",
+      "id": "",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "transport_fee_total",
+      "type": "text",
+      "id": "transport_fee_total",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "transport_fee_card",
+      "type": "text",
+      "id": "transport_fee_card",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "transport_fee_cash",
+      "type": "text",
+      "id": "transport_fee_cash",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "transport_fee_sum",
+      "type": "text",
+      "id": "transport_fee_sum",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "transport_fee_diff",
+      "type": "text",
+      "id": "transport_fee_diff",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "transport_fee_mark",
+      "type": "text",
+      "id": "transport_fee_mark",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "air_card_pay",
+      "type": "text",
+      "id": "air_card_pay",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "air_pay",
+      "type": "text",
+      "id": "air_pay",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "air_sum",
+      "type": "text",
+      "id": "air_sum",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "train_card_pay",
+      "type": "text",
+      "id": "train_card_pay",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "train_pay",
+      "type": "text",
+      "id": "train_pay",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "train_sum",
+      "type": "text",
+      "id": "train_sum",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "ocar_card_pay",
+      "type": "text",
+      "id": "ocar_card_pay",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "ocar_pay",
+      "type": "text",
+      "id": "ocar_pay",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "ocar_sum",
+      "type": "text",
+      "id": "ocar_sum",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "taxi_card_pay",
+      "type": "text",
+      "id": "taxi_card_pay",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "taxi_pay",
+      "type": "text",
+      "id": "taxi_pay",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "taxi_sum",
+      "type": "text",
+      "id": "taxi_sum",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "opub_card_pay",
+      "type": "text",
+      "id": "opub_card_pay",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "opub_pay",
+      "type": "text",
+      "id": "opub_pay",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "opub_sum",
+      "type": "text",
+      "id": "opub_sum",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "toll_card_pay",
+      "type": "text",
+      "id": "toll_card_pay",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "toll_pay",
+      "type": "text",
+      "id": "toll_pay",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "toll_sum",
+      "type": "text",
+      "id": "toll_sum",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "daily_fee_total",
+      "type": "text",
+      "id": "daily_fee_total",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "daily_fee_card",
+      "type": "text",
+      "id": "daily_fee_card",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "daily_fee_cash",
+      "type": "text",
+      "id": "daily_fee_cash",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "daily_fee_sum",
+      "type": "text",
+      "id": "daily_fee_sum",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "daily_fee_diff",
+      "type": "text",
+      "id": "daily_fee_diff",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "daily_fee_mark",
+      "type": "text",
+      "id": "daily_fee_mark",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "accommodation_fee_total",
+      "type": "text",
+      "id": "accommodation_fee_total",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "accommodation_fee_card",
+      "type": "text",
+      "id": "accommodation_fee_card",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "accommodation_fee_cash",
+      "type": "text",
+      "id": "accommodation_fee_cash",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "accommodation_fee_sum",
+      "type": "text",
+      "id": "accommodation_fee_sum",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "accommodation_fee_diff",
+      "type": "text",
+      "id": "accommodation_fee_diff",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "accommodation_fee_mark",
+      "type": "text",
+      "id": "accommodation_fee_mark",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "food_fee_total",
+      "type": "text",
+      "id": "food_fee_total",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "food_fee_card",
+      "type": "text",
+      "id": "food_fee_card",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "food_fee_cash",
+      "type": "text",
+      "id": "food_fee_cash",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "food_fee_sum",
+      "type": "text",
+      "id": "food_fee_sum",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "food_fee_diff",
+      "type": "text",
+      "id": "food_fee_diff",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "food_fee_mark",
+      "type": "text",
+      "id": "food_fee_mark",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "food_yn",
+      "type": "radio",
+      "id": "",
+      "required": false,
+      "className": "food_yn"
+    },
+    {
+      "tag": "input",
+      "name": "food_yn",
+      "type": "radio",
+      "id": "",
+      "required": false,
+      "className": "food_yn"
+    },
+    {
+      "tag": "select",
+      "name": "food_ex_cnt",
+      "type": "select-one",
+      "id": "food_ex_cnt",
+      "required": false,
+      "className": "",
+      "options": [
+        {
+          "value": "0",
+          "text": "0"
+        }
+      ]
+    },
+    {
+      "tag": "input",
+      "name": "miscellaneous_fee_total",
+      "type": "text",
+      "id": "miscellaneous_fee_total",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "miscellaneous_fee_card",
+      "type": "text",
+      "id": "miscellaneous_fee_card",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "miscellaneous_fee_cash",
+      "type": "text",
+      "id": "miscellaneous_fee_cash",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "miscellaneous_fee_sum",
+      "type": "text",
+      "id": "miscellaneous_fee_sum",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "miscellaneous_fee_diff",
+      "type": "text",
+      "id": "miscellaneous_fee_diff",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "miscellaneous_fee_mark",
+      "type": "text",
+      "id": "miscellaneous_fee_mark",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "additional_fee_total",
+      "type": "text",
+      "id": "additional_fee_total",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "additional_fee_card",
+      "type": "text",
+      "id": "additional_fee_card",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "additional_fee_cash",
+      "type": "text",
+      "id": "additional_fee_cash",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "additional_fee_sum",
+      "type": "text",
+      "id": "additional_fee_sum",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "additional_fee_diff",
+      "type": "text",
+      "id": "additional_fee_diff",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "additional_fee_mark",
+      "type": "text",
+      "id": "additional_fee_mark",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "t1",
+      "type": "text",
+      "id": "t1",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "t2",
+      "type": "text",
+      "id": "t2",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "t3",
+      "type": "text",
+      "id": "t3",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "t4",
+      "type": "text",
+      "id": "t4",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "t5",
+      "type": "text",
+      "id": "t5",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "settle_amount",
+      "type": "text",
+      "id": "settle_amount",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "piv",
+      "type": "text",
+      "id": "piv",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "travel_doc_a[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "travel_doc_b[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "travel_doc_c[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "travel_doc_d[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "travel_doc_e[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "input",
+      "name": "travel_doc_f[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": ""
+    },
+    {
+      "tag": "select",
+      "name": "file_attach_cnt",
+      "type": "select-one",
+      "id": "file_attach_cnt",
+      "required": false,
+      "className": "",
+      "options": [
+        {
+          "value": "1",
+          "text": "1"
+        },
+        {
+          "value": "2",
+          "text": "2"
+        },
+        {
+          "value": "3",
+          "text": "3"
+        },
+        {
+          "value": "4",
+          "text": "4"
+        },
+        {
+          "value": "5",
+          "text": "5"
+        },
+        {
+          "value": "6",
+          "text": "6"
+        },
+        {
+          "value": "7",
+          "text": "7"
+        },
+        {
+          "value": "8",
+          "text": "8"
+        },
+        {
+          "value": "9",
+          "text": "9"
+        },
+        {
+          "value": "10",
+          "text": "10"
+        },
+        {
+          "value": "11",
+          "text": "11"
+        },
+        {
+          "value": "12",
+          "text": "12"
+        },
+        {
+          "value": "13",
+          "text": "13"
+        },
+        {
+          "value": "14",
+          "text": "14"
+        },
+        {
+          "value": "15",
+          "text": "15"
+        },
+        {
+          "value": "16",
+          "text": "16"
+        },
+        {
+          "value": "17",
+          "text": "17"
+        },
+        {
+          "value": "18",
+          "text": "18"
+        },
+        {
+          "value": "19",
+          "text": "19"
+        },
+        {
+          "value": "20",
+          "text": "20"
+        }
+      ]
+    },
+    {
+      "tag": "input",
+      "name": "doc_attach_file[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "doc_attach_file"
+    },
+    {
+      "tag": "input",
+      "name": "doc_attach_file[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "doc_attach_file"
+    },
+    {
+      "tag": "input",
+      "name": "doc_attach_file[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "doc_attach_file"
+    },
+    {
+      "tag": "input",
+      "name": "doc_attach_file[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "doc_attach_file"
+    },
+    {
+      "tag": "input",
+      "name": "doc_attach_file[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "doc_attach_file"
+    },
+    {
+      "tag": "input",
+      "name": "doc_attach_file[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "doc_attach_file"
+    },
+    {
+      "tag": "input",
+      "name": "doc_attach_file[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "doc_attach_file"
+    },
+    {
+      "tag": "input",
+      "name": "doc_attach_file[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "doc_attach_file"
+    },
+    {
+      "tag": "input",
+      "name": "doc_attach_file[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "doc_attach_file"
+    },
+    {
+      "tag": "input",
+      "name": "doc_attach_file[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "doc_attach_file"
+    },
+    {
+      "tag": "input",
+      "name": "doc_attach_file[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "doc_attach_file"
+    },
+    {
+      "tag": "input",
+      "name": "doc_attach_file[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "doc_attach_file"
+    },
+    {
+      "tag": "input",
+      "name": "doc_attach_file[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "doc_attach_file"
+    },
+    {
+      "tag": "input",
+      "name": "doc_attach_file[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "doc_attach_file"
+    },
+    {
+      "tag": "input",
+      "name": "doc_attach_file[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "doc_attach_file"
+    },
+    {
+      "tag": "input",
+      "name": "doc_attach_file[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "doc_attach_file"
+    },
+    {
+      "tag": "input",
+      "name": "doc_attach_file[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "doc_attach_file"
+    },
+    {
+      "tag": "input",
+      "name": "doc_attach_file[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "doc_attach_file"
+    },
+    {
+      "tag": "input",
+      "name": "doc_attach_file[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "doc_attach_file"
+    },
+    {
+      "tag": "input",
+      "name": "doc_attach_file[]",
+      "type": "file",
+      "id": "",
+      "required": false,
+      "className": "doc_attach_file"
+    },
+    {
+      "tag": "select",
+      "name": "document_list",
+      "type": "select-one",
+      "id": "document_list",
+      "required": false,
+      "className": "",
+      "options": []
+    }
+  ]
+}

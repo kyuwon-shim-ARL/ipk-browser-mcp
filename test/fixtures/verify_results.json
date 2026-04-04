@@ -1,0 +1,495 @@
+{
+  "T1_inspect": {
+    "AppFrm-054": {
+      "dom_element_count": 118,
+      "comparison": {
+        "template_fields": 18,
+        "dom_fields": 98,
+        "in_template_not_in_dom": [
+          "city",
+          "destination",
+          "end_date",
+          "end_time",
+          "province",
+          "purpose",
+          "purpose_category",
+          "start_date",
+          "start_time",
+          "transport_mode"
+        ],
+        "in_dom_not_in_template": [
+          "accommodation_fee_card",
+          "accommodation_fee_cash",
+          "accommodation_fee_diff",
+          "accommodation_fee_mark",
+          "accommodation_fee_sum",
+          "additional_fee_card",
+          "additional_fee_cash",
+          "additional_fee_diff",
+          "additional_fee_mark",
+          "additional_fee_sum",
+          "additional_fee_total",
+          "air_card_pay",
+          "air_pay",
+          "air_sum",
+          "apporve_cc",
+          "approve_line_temp",
+          "approve_type",
+          "budget_code",
+          "check_state",
+          "close_date",
+          "daily_fee_card",
+          "daily_fee_cash",
+          "daily_fee_diff",
+          "daily_fee_mark",
+          "daily_fee_sum",
+          "del_no",
+          "doc_attach_file[]",
+          "doc_id",
+          "document_list",
+          "document_select_no",
+          "file_attach_cnt",
+          "food_ex_cnt",
+          "food_fee_card",
+          "food_fee_cash",
+          "food_fee_diff",
+          "food_fee_mark",
+          "food_fee_sum",
+          "food_yn",
+          "holder_check",
+          "milestone_seq",
+          "miscellaneous_fee_card",
+          "miscellaneous_fee_cash",
+          "miscellaneous_fee_diff",
+          "miscellaneous_fee_mark",
+          "miscellaneous_fee_sum",
+          "miscellaneous_fee_total",
+          "mode",
+          "mode1",
+          "ocar_card_pay",
+          "ocar_pay",
+          "ocar_sum",
+          "opub_card_pay",
+          "opub_pay",
+          "opub_sum",
+          "p_doc_id",
+          "piv",
+          "retention",
+          "review_menu",
+          "security",
+          "settle_amount",
+          "start_page",
+          "t1",
+          "t2",
+          "t3",
+          "t4",
+          "t5",
+          "taxi_card_pay",
+          "taxi_pay",
+          "taxi_sum",
+          "toll_card_pay",
+          "toll_pay",
+          "toll_sum",
+          "train_card_pay",
+          "train_pay",
+          "train_sum",
+          "transport_fee_card",
+          "transport_fee_cash",
+          "transport_fee_diff",
+          "transport_fee_mark",
+          "transport_fee_sum",
+          "travel_doc_a[]",
+          "travel_doc_b[]",
+          "travel_doc_c[]",
+          "travel_doc_d[]",
+          "travel_doc_e[]",
+          "travel_doc_f[]",
+          "travele_type_code",
+          "travele_type_gb",
+          "type",
+          "urgent"
+        ],
+        "type_mismatches": [
+          {
+            "field": "daily_expense",
+            "template": "number",
+            "dom": "text"
+          },
+          {
+            "field": "transport_fee",
+            "template": "number",
+            "dom": "text"
+          },
+          {
+            "field": "accommodation",
+            "template": "number",
+            "dom": "text"
+          },
+          {
+            "field": "food_expense",
+            "template": "number",
+            "dom": "text"
+          }
+        ],
+        "match_rate": "8/18"
+      }
+    },
+    "AppFrm-023": {
+      "dom_element_count": 255,
+      "comparison": {
+        "template_fields": 8,
+        "dom_fields": 156,
+        "in_template_not_in_dom": [
+          "budget_control_no"
+        ],
+        "in_dom_not_in_template": [
+          "acceptance",
+          "accomm_card",
+          "accomm_card_pay",
+          "accomm_day",
+          "accomm_description",
+          "accomm_pay",
+          "accomm_stand",
+          "accomm_sum",
+          "accomm_total",
+          "accomm_warning",
+          "account_code",
+          "account_seq",
+          "actual_price",
+          "additi_card",
+          "additi_card_pay",
+          "additi_day",
+          "additi_description",
+          "additi_pay",
+          "additi_stand",
+          "additi_sum",
+          "additi_total",
+          "air_card_pay",
+          "air_pay",
+          "air_sum",
+          "apporve_cc",
+          "approve_line_temp",
+          "approve_type",
+          "bound_code",
+          "budget_code",
+          "budget_type",
+          "car_type",
+          "city_code",
+          "close_date",
+          "control_no",
+          "copcard1",
+          "copcard2",
+          "copcard3",
+          "copcard4",
+          "credit_card_no",
+          "daily_card",
+          "daily_card_pay",
+          "daily_day",
+          "daily_description",
+          "daily_pay",
+          "daily_stand",
+          "daily_sum",
+          "daily_total",
+          "days",
+          "del_no",
+          "disclosure",
+          "disclosure_doc_id",
+          "doc_attach_file[]",
+          "doc_id",
+          "document_list",
+          "document_select_no",
+          "domestic_check",
+          "er_row_cnt",
+          "file_attach_cnt",
+          "fin_support_chk[]",
+          "fin_support_desc[]",
+          "fin_support_type",
+          "food_card",
+          "food_card_pay",
+          "food_day",
+          "food_description",
+          "food_ex_cnt",
+          "food_pay",
+          "food_stand",
+          "food_sum",
+          "food_total",
+          "food_warning",
+          "food_yn",
+          "grade_posi",
+          "holder_check",
+          "individual",
+          "item_korea",
+          "item_no",
+          "matrials",
+          "milestone_seq",
+          "miscell_card",
+          "miscell_card_pay",
+          "miscell_day",
+          "miscell_description",
+          "miscell_pay",
+          "miscell_stand",
+          "miscell_sum",
+          "miscell_total",
+          "mode",
+          "mode1",
+          "night",
+          "notes",
+          "ocar_card_pay",
+          "ocar_day",
+          "ocar_pay",
+          "ocar_stand",
+          "ocar_sum",
+          "open_flag",
+          "opub_card_pay",
+          "opub_pay",
+          "opub_sum",
+          "owner",
+          "payment_this",
+          "pp_text",
+          "project_code",
+          "province_code",
+          "purpose_type",
+          "retention",
+          "review_menu",
+          "security",
+          "semi_file",
+          "start_page",
+          "state_id",
+          "taxi_card_pay",
+          "taxi_pay",
+          "taxi_sum",
+          "taxi_warning",
+          "toll_card_pay",
+          "toll_pay",
+          "toll_sum",
+          "train_card_pay",
+          "train_pay",
+          "train_sum",
+          "trans_card",
+          "trans_card_pay",
+          "trans_day",
+          "trans_description",
+          "trans_pay",
+          "trans_stand",
+          "trans_sum",
+          "trans_total",
+          "travel_doc_a[]",
+          "travel_doc_b[]",
+          "travel_doc_c[]",
+          "travel_doc_d[]",
+          "travel_doc_e[]",
+          "travel_doc_f[]",
+          "travel_total",
+          "travel_trans[]",
+          "travel_type_code",
+          "travele_type_code",
+          "travele_type_gb",
+          "type",
+          "unit[]",
+          "unit_gb[]",
+          "unit_rate[]",
+          "unit_str[]",
+          "unit_type[]",
+          "urgent",
+          "working_code"
+        ],
+        "type_mismatches": [
+          {
+            "field": "start_time",
+            "template": "time",
+            "dom": "select"
+          },
+          {
+            "field": "end_time",
+            "template": "time",
+            "dom": "select"
+          }
+        ],
+        "match_rate": "7/8"
+      }
+    },
+    "AppFrm-073": {
+      "dom_element_count": 66,
+      "comparison": {
+        "template_fields": 14,
+        "dom_fields": 47,
+        "in_template_not_in_dom": [],
+        "in_dom_not_in_template": [
+          "ann_prev",
+          "apporve_cc",
+          "approve_line_temp",
+          "approve_type",
+          "close_date",
+          "comp_prev",
+          "comp_val[]",
+          "curr_ann_dt",
+          "curr_comp_dt",
+          "curr_save_dt",
+          "day_etime",
+          "day_stime",
+          "del_no",
+          "doc_attach_file[]",
+          "doc_id",
+          "document_list",
+          "document_select_no",
+          "file_attach_cnt",
+          "mode",
+          "mode1",
+          "order_no[]",
+          "paid_val[]",
+          "real_days[]",
+          "retention",
+          "save_prev",
+          "save_val[]",
+          "security",
+          "start_page",
+          "subject",
+          "total_day",
+          "type",
+          "unpaid_val[]",
+          "urgent"
+        ],
+        "type_mismatches": [],
+        "match_rate": "14/14"
+      }
+    }
+  },
+  "T2_document_lookup": {
+    "doc_id": "291416",
+    "doc_subject": "Annual leave, 2026-03-31~2026-03-31, Seoul, Kyuwon Shim",
+    "html_length": 10417,
+    "fixture_saved": "test/fixtures/document_view_AppFrm-023_sample.html",
+    "parsed_fields": {
+      "_warnings": [
+        "Could not extract doc_no"
+      ],
+      "subject": "",
+      "writer": "",
+      "detected_doc_type": "travel_request"
+    },
+    "fields_extracted": 3
+  },
+  "T3_field_test": {
+    "form_code": "AppFrm-073",
+    "field_tests": {
+      "subject": {
+        "found": true,
+        "selector": "input[name=\"subject\"]",
+        "value": "[TEST] Verification Subject - DO NOT SUBMIT"
+      },
+      "available_selects": [
+        {
+          "name": "retention",
+          "options_count": 7,
+          "first_options": [
+            {
+              "v": "1",
+              "t": "1 year"
+            },
+            {
+              "v": "3",
+              "t": "3 years"
+            },
+            {
+              "v": "5",
+              "t": "5 years"
+            }
+          ]
+        },
+        {
+          "name": "leave_kind[]",
+          "options_count": 15,
+          "first_options": [
+            {
+              "v": "",
+              "t": "== select Leave kind =="
+            },
+            {
+              "v": "01",
+              "t": "Annual leave"
+            },
+            {
+              "v": "11",
+              "t": "Compensatory leave"
+            }
+          ]
+        },
+        {
+          "name": "using_type[]",
+          "options_count": 3,
+          "first_options": [
+            {
+              "v": "",
+              "t": "== select Using Type =="
+            },
+            {
+              "v": "01",
+              "t": "Full day"
+            },
+            {
+              "v": "04",
+              "t": "Hours"
+            }
+          ]
+        },
+        {
+          "name": "start_time[]",
+          "options_count": 9,
+          "first_options": [
+            {
+              "v": "",
+              "t": "= From ="
+            },
+            {
+              "v": "10",
+              "t": "10"
+            },
+            {
+              "v": "11",
+              "t": "11"
+            }
+          ]
+        },
+        {
+          "name": "end_time[]",
+          "options_count": 1,
+          "first_options": [
+            {
+              "v": "",
+              "t": "= To ="
+            }
+          ]
+        },
+        {
+          "name": "file_attach_cnt",
+          "options_count": 20,
+          "first_options": [
+            {
+              "v": "1",
+              "t": "1"
+            },
+            {
+              "v": "2",
+              "t": "2"
+            },
+            {
+              "v": "3",
+              "t": "3"
+            }
+          ]
+        },
+        {
+          "name": "document_list",
+          "options_count": 0,
+          "first_options": []
+        }
+      ],
+      "date_field": {
+        "found": true,
+        "selector": ".validate[name=\"begin_date[]\"]",
+        "value": "2026-04-01"
+      }
+    }
+  },
+  "errors": []
+}

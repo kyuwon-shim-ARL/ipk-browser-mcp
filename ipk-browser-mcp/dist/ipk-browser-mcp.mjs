@@ -6791,12 +6791,12 @@ var require_dist = __commonJS({
         throw new Error(`Unknown format "${name}"`);
       return f;
     };
-    function addFormats(ajv, list, fs3, exportName) {
+    function addFormats(ajv, list, fs5, exportName) {
       var _a;
       var _b;
       (_a = (_b = ajv.opts.code).formats) !== null && _a !== void 0 ? _a : _b.formats = (0, codegen_1._)`require("ajv-formats/dist/formats").${exportName}`;
       for (const f of list)
-        ajv.addFormat(f, fs3[f]);
+        ajv.addFormat(f, fs5[f]);
     }
     module.exports = exports = formatsPlugin;
     Object.defineProperty(exports, "__esModule", { value: true });
@@ -21061,8 +21061,8 @@ var CONFIG_DIR = `${process.env.HOME}/.config/ipk-browser-mcp`;
 var ENV_FILE = `${CONFIG_DIR}/.env`;
 function loadDotenv() {
   try {
-    const { readFileSync } = __require("fs");
-    const content = readFileSync(ENV_FILE, "utf-8");
+    const { readFileSync: readFileSync2 } = __require("fs");
+    const content = readFileSync2(ENV_FILE, "utf-8");
     const vars = {};
     for (const line of content.split("\n")) {
       const trimmed = line.trim();
@@ -21085,6 +21085,9 @@ function env(key, fallback = "") {
   return process.env[key] || loadDotenv()[key] || fallback;
 }
 function loadConfig() {
+  if (!process.env.TZ) {
+    process.env.TZ = "Asia/Seoul";
+  }
   return {
     baseUrl: env("IPK_BASE_URL", "https://gw.ip-korea.org"),
     username: env("IPK_USERNAME"),
@@ -21304,6 +21307,9 @@ async function handleIpkLogin(sessionManager2, params) {
   });
 }
 
+// src/tools/ipk-submit.ts
+import * as fs2 from "fs";
+
 // src/browser/iframe-helper.ts
 function getMainFrame(page) {
   return page.frame("main_menu");
@@ -21315,7 +21321,7 @@ async function navigateToForm(page, formType, config3) {
   const frame = getMainFrame(page);
   if (!frame) return null;
   await frame.goto(url, { timeout: config3.navTimeoutMs });
-  await frame.waitForLoadState("networkidle");
+  await frame.waitForLoadState("load");
   await frame.waitForSelector("form input, form textarea, form select", { timeout: 5e3 }).catch(() => null);
   return frame;
 }
@@ -21334,7 +21340,7 @@ async function navigateInFrame(page, url, config3) {
     fullUrl = `${config3.baseUrl}${url.startsWith("/") ? "" : "/"}${url}`;
   }
   await frame.goto(fullUrl, { timeout: config3.navTimeoutMs });
-  await frame.waitForLoadState("networkidle");
+  await frame.waitForLoadState("load");
   return frame;
 }
 async function setFieldValue(frame, selector, value) {
@@ -21378,6 +21384,48 @@ async function setRequiredSelect(frame, selector, value, fieldName) {
     throw new Error(`FIELD_NOT_FOUND: Required select '${fieldName}' not found (selector: ${selector})`);
   }
 }
+async function executeAjaxCascade(page, frame, steps) {
+  const errors = [];
+  let completed = 0;
+  for (const step of steps) {
+    if (step.condition) {
+      const conditionMet = await frame.evaluate(
+        (sel) => {
+          const el = document.querySelector(`select[name="${sel}"]`);
+          return el ? el.value !== "" && el.value !== "0" : false;
+        },
+        step.condition
+      );
+      if (!conditionMet) {
+        continue;
+      }
+    }
+    const selector = `select[name="${step.field}"]`;
+    const ok = await setSelectValue(frame, selector, step.value);
+    if (!ok) {
+      errors.push(`SELECTOR_NOT_FOUND: select[name="${step.field}"]`);
+      continue;
+    }
+    const timeout = step.timeoutMs || 3e3;
+    if (step.waitSelector) {
+      try {
+        await frame.waitForSelector(step.waitSelector, { timeout });
+      } catch {
+        await page.waitForTimeout(500);
+        try {
+          await frame.waitForSelector(step.waitSelector, { timeout: timeout / 2 });
+        } catch {
+          errors.push(`CASCADE_TIMEOUT: ${step.field} \u2192 waited for "${step.waitSelector}" (${timeout}ms)`);
+          continue;
+        }
+      }
+    } else {
+      await page.waitForTimeout(Math.min(timeout, 2e3));
+    }
+    completed++;
+  }
+  return { completed, total: steps.length, errors };
+}
 async function setFormMode(frame, mode) {
   await frame.evaluate(
     (m) => {
@@ -21388,50 +21436,38 @@ async function setFormMode(frame, mode) {
   );
 }
 async function submitForm(page, frame, method = "check_form_request") {
-  try {
-    if (method === "check_form_request") {
-      await Promise.all([
-        page.waitForNavigation({ timeout: 15e3, waitUntil: "load" }).catch(() => null),
-        frame.evaluate(() => {
-          window.Check_Form_Request("insert");
-        })
-      ]);
-    } else {
-      await Promise.all([
-        page.waitForNavigation({ timeout: 2e4, waitUntil: "load" }).catch(() => null),
-        frame.evaluate(() => {
-          document.form1.submit();
-        })
-      ]);
-    }
-    try {
-      await frame.waitForURL("**/document_view.php**", { timeout: 1e4 });
-    } catch {
-      await page.waitForTimeout(3e3);
-    }
-    const frameUrl = frame.url();
-    if (frameUrl.includes("document_view.php") && frameUrl.includes("doc_id=")) {
-      const match = frameUrl.match(/doc_id=([^&]+)/);
-      return match ? match[1] : null;
-    }
-    return null;
-  } catch {
-    try {
-      await frame.waitForURL("**/document_view.php**", { timeout: 1e4 });
-    } catch {
-      await page.waitForTimeout(3e3);
-    }
-    const frameUrl = frame.url();
-    if (frameUrl.includes("doc_id=")) {
-      const match = frameUrl.match(/doc_id=([^&]+)/);
-      return match ? match[1] : null;
-    }
-    return null;
+  if (method === "check_form_request") {
+    await Promise.all([
+      page.waitForNavigation({ timeout: 15e3, waitUntil: "load" }).catch(() => null),
+      frame.evaluate(() => {
+        window.Check_Form_Request("insert");
+      })
+    ]);
+  } else {
+    await Promise.all([
+      page.waitForNavigation({ timeout: 2e4, waitUntil: "load" }).catch(() => null),
+      frame.evaluate(() => {
+        document.form1.submit();
+      })
+    ]);
   }
+  try {
+    await frame.waitForURL("**/document_view.php**", { timeout: 1e4 });
+  } catch {
+    await page.waitForTimeout(3e3);
+  }
+  const frameUrl = frame.url();
+  if (frameUrl.includes("document_view.php") && frameUrl.includes("doc_id=")) {
+    const match = frameUrl.match(/doc_id=([^&]+)/);
+    return match ? match[1] : null;
+  }
+  if (frameUrl.includes("document_write.php")) {
+    throw new Error("SUBMIT_FAILED: Form submission did not redirect. The form may have validation errors.");
+  }
+  return null;
 }
 
 // src/tools/ipk-submit.ts
-import * as path2 from "path";
 var ALLOWED_ATTACHMENT_DIRS = [
   "/tmp",
   `${process.env.HOME}/Downloads`,
@@ -21439,9 +21475,14 @@ var ALLOWED_ATTACHMENT_DIRS = [
   `${process.env.HOME}/Desktop`
 ];
 function validateAttachmentPath(filePath) {
-  const resolved = path2.resolve(filePath);
-  if (resolved !== filePath && filePath.includes("..")) {
+  if (filePath.includes("..")) {
     return "Attachment path contains path traversal (..)";
+  }
+  let resolved;
+  try {
+    resolved = fs2.realpathSync(filePath);
+  } catch {
+    return `Attachment path does not exist or is not accessible: ${filePath}`;
   }
   if (/\/\./.test(resolved)) {
     return "Attachment path points to a hidden file/directory";
@@ -21601,7 +21642,8 @@ async function handleIpkSubmitForm(sessionManager2, config3, params) {
         return textResult({ error: true, code: "FRAME_NOT_FOUND", message: "main_menu frame not found" });
       }
       await mainFrame.goto(btUrl, { timeout: config3.navTimeoutMs });
-      await mainFrame.waitForLoadState("networkidle");
+      await mainFrame.waitForLoadState("load");
+      await mainFrame.waitForSelector("form input, form select", { timeout: 5e3 }).catch(() => null);
       sessionManager2.touchActivity();
       await page.waitForTimeout(1500);
       return await submitBudgetTransfer(page, mainFrame, sessionManager2, config3, params, mode);
@@ -21707,7 +21749,7 @@ async function submitLeave(page, frame, sessionManager2, config3, params, mode) 
   await setFieldValue(frame, 'input[name="destination"]', destination);
   await setFieldValue(frame, 'input[name="emergency_address"]', process.env.IPK_EMERGENCY_ADDRESS || "Seoul");
   await setFieldValue(frame, 'input[name="emergency_telephone"]', process.env.IPK_EMERGENCY_TELEPHONE || "N/A");
-  await setFieldValue(frame, 'input[name="subject"]', subject);
+  await setRequiredField(frame, 'input[name="subject"]', subject, "subject");
   try {
     const [popup] = await Promise.all([
       page.waitForEvent("popup", { timeout: 1e4 }),
@@ -21715,7 +21757,8 @@ async function submitLeave(page, frame, sessionManager2, config3, params, mode) 
         window.fnWinOpen("./user_select.php?sel_type=radio");
       })
     ]);
-    await popup.waitForLoadState("networkidle");
+    await popup.waitForLoadState("load");
+    await popup.waitForSelector("tr", { timeout: 5e3 }).catch(() => null);
     await popup.waitForTimeout(1e3);
     const selected = await popup.evaluate(
       (name) => {
@@ -21934,19 +21977,13 @@ async function submitTravelRequest(page, frame, sessionManager2, config3, params
   }
   const subject = `[Request] ${title}`;
   await setRequiredField(frame, 'input[name="subject"]', subject, "subject");
-  await setSelectValue(frame, 'select[name="budget_type"]', budgetType);
+  await setRequiredSelect(frame, 'select[name="budget_type"]', budgetType, "budget_type");
   await page.waitForTimeout(1e3);
-  await setSelectValue(frame, 'select[name="budget_code"]', budgetCode);
-  await setFieldValue(frame, 'input[name="start_day"]', startDate);
-  await setFieldValue(frame, 'input[name="end_day"]', endDate);
-  await setFieldValue(frame, '.validate[name="start_day"]', startDate);
-  await setFieldValue(frame, '.validate[name="end_day"]', endDate);
-  await setFieldValue(frame, 'input[name="destination"]', destination);
-  await setFieldValue(frame, 'textarea[name="destination"]', destination);
-  await setFieldValue(frame, '.validate[name="report_dest"]', destination);
-  await setFieldValue(frame, 'input[name="purpose"]', purpose);
-  await setFieldValue(frame, 'textarea[name="purpose"]', purpose);
-  await setFieldValue(frame, '.validate[name="purpose_field"]', purpose);
+  await setRequiredSelect(frame, 'select[name="budget_code"]', budgetCode, "budget_code");
+  await setRequiredField(frame, '.validate[name="start_day"]', startDate, "start_day");
+  await setRequiredField(frame, '.validate[name="end_day"]', endDate, "end_day");
+  await setRequiredField(frame, '.validate[name="report_dest"]', destination, "report_dest");
+  await setRequiredField(frame, '.validate[name="purpose_field"]', purpose, "purpose_field");
   if (params.organization) {
     await setFieldValue(frame, '.validate[name="org_field"]', params.organization);
     await setFieldValue(frame, 'input[name="organization"]', params.organization);
@@ -22123,75 +22160,108 @@ async function submitCardExpense(page, frame, sessionManager2, config3, params, 
   });
 }
 async function submitTravelSettlement(page, frame, sessionManager2, config3, params, mode) {
-  const userInfo = sessionManager2.getUserInfo();
-  const startDate = params.start_date || todayStr();
-  const endDate = params.end_date || startDate;
-  const destination = params.destination || "";
   const purpose = params.purpose || "Business travel";
   const subject = params.title || `[Settlement] ${purpose}`;
+  const approvedDocRef = params.approved_doc_ref || params.sel_travel || "";
+  let autoPopulated = false;
+  if (approvedDocRef) {
+    await frame.evaluate(
+      (docRef) => {
+        const selTravel = document.querySelector('input[name="sel_travel"]');
+        if (selTravel) {
+          selTravel.value = docRef;
+          selTravel.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+      },
+      approvedDocRef
+    );
+    await page.waitForTimeout(2e3);
+    autoPopulated = await frame.evaluate(() => {
+      const startDate2 = document.querySelector('input[name="start_date"]');
+      const province = document.querySelector('select[name="province"]');
+      return !!(startDate2 && startDate2.value && startDate2.value !== "" || province && province.value && province.value !== "" && province.value !== "0");
+    });
+  }
+  if (!autoPopulated) {
+    const startDate2 = params.start_date || todayStr();
+    const endDate2 = params.end_date || startDate2;
+    await setFieldValue(frame, 'input[name="start_date"]', startDate2);
+    await setFieldValue(frame, 'input[name="end_date"]', endDate2);
+    if (params.purpose_category) {
+      await setSelectValue(frame, 'select[name="purpose_category"]', params.purpose_category);
+    }
+    if (params.purpose) {
+      await setFieldValue(frame, 'textarea[name="purpose"], input[name="purpose"]', params.purpose);
+    }
+    if (params.destination) {
+      await setFieldValue(frame, 'input[name="destination"]', params.destination);
+    }
+    const province = params.province || "";
+    const city = params.city || "";
+    const transportMode = params.transport_mode || "Other Public Transporation";
+    const budgetType = params.budget_type || "02";
+    if (province) {
+      const cascadeSteps = [
+        {
+          field: "province",
+          value: province,
+          waitSelector: "select[name='city'] option:nth-child(2)",
+          timeoutMs: 3e3
+        },
+        {
+          field: "city",
+          value: city,
+          waitSelector: "select[name='transport_mode'] option:nth-child(2)",
+          timeoutMs: 3e3
+        },
+        {
+          field: "transport_mode",
+          value: transportMode,
+          timeoutMs: 1500
+        },
+        {
+          field: "budget_type",
+          value: budgetType,
+          waitSelector: "select[name='budget_code'] option:nth-child(2)",
+          timeoutMs: 3e3
+        }
+      ];
+      if (params.budget_code) {
+        cascadeSteps.push({
+          field: "budget_code",
+          value: params.budget_code,
+          waitSelector: "select[name='item_no'] option:nth-child(2)",
+          timeoutMs: 3e3,
+          condition: "budget_type"
+        });
+      }
+      if (params.item_no) {
+        cascadeSteps.push({
+          field: "item_no",
+          value: params.item_no,
+          timeoutMs: 1500,
+          condition: "budget_code"
+        });
+      }
+      await executeAjaxCascade(page, frame, cascadeSteps);
+    }
+  }
+  await setRequiredField(frame, 'input[name="subject"]', subject, "subject");
   const budgetControlNo = params.budget_control_no || "";
-  const approvedDocRef = params.approved_doc_ref || "";
-  const purposeCategory = params.purpose_category || "Participation in the conference/seminar";
-  const startD = new Date(startDate);
-  const endD = new Date(endDate);
-  const nights = Math.max(0, Math.round((endD.getTime() - startD.getTime()) / 864e5));
+  if (budgetControlNo) {
+    await setFieldValue(frame, 'input[name="budget_control_no"]', budgetControlNo);
+  }
+  const startDate = params.start_date || todayStr();
+  const endDate = params.end_date || startDate;
+  const nights = Math.max(0, Math.round((new Date(endDate).getTime() - new Date(startDate).getTime()) / 864e5));
   const dailyExpense = params.daily_expense || (nights === 0 ? 2e4 : 3e4 * nights);
   const transportFee = params.transport_fee || 0;
   const accommodationFee = params.accommodation || 0;
   const foodExpense = params.food_expense || 0;
-  const budgetType = params.budget_type || "02";
-  await setRequiredField(frame, 'input[name="subject"]', subject, "subject");
-  await setFieldValue(frame, '.validate[name="report_name"]', userInfo.name);
-  await setFieldValue(frame, '.validate[name="report_date"]', todayStr());
-  await setRequiredField(frame, 'input[name="start_day"]', startDate, "start_day");
-  await setRequiredField(frame, 'input[name="end_day"]', endDate, "end_day");
-  await setFieldValue(frame, '.validate[name="start_day"]', startDate);
-  await setFieldValue(frame, '.validate[name="end_day"]', endDate);
-  if (params.start_time) await setFieldValue(frame, 'input[name="start_time"]', params.start_time);
-  if (params.end_time) await setFieldValue(frame, 'input[name="end_time"]', params.end_time);
-  await setSelectValue(frame, 'select[name="purpose_category"]', purposeCategory);
-  await setFieldValue(frame, 'textarea[name="purpose"]', purpose);
-  await setFieldValue(frame, '.validate[name="purpose_field"]', purpose);
-  await setFieldValue(frame, 'input[name="destination"]', destination);
-  await setFieldValue(frame, '.validate[name="report_dest"]', destination);
-  if (params.province) {
-    await setSelectValue(frame, 'select[name="province"]', params.province);
-    await page.waitForTimeout(2e3);
-  }
-  if (params.city) {
-    await setSelectValue(frame, 'select[name="city"]', params.city);
-    await page.waitForTimeout(2e3);
-  }
-  if (params.transport_mode) {
-    await setSelectValue(frame, 'select[name="transport_mode"]', params.transport_mode);
-    await page.waitForTimeout(1e3);
-  }
-  await setSelectValue(frame, 'select[name="budget_type"]', budgetType);
-  await page.waitForTimeout(2e3);
-  if (params.budget_code) {
-    await setSelectValue(frame, 'select[name="budget_code"]', params.budget_code);
-    await page.waitForTimeout(1500);
-  }
-  if (budgetControlNo) {
-    await setFieldValue(frame, 'input[name="budget_control_no"]', budgetControlNo);
-    await setFieldValue(frame, '.validate[name="budget_control_no"]', budgetControlNo);
-  }
-  await setFieldValue(frame, 'input[name="daily_expense"]', String(dailyExpense));
-  if (transportFee) await setFieldValue(frame, 'input[name="transport_fee"]', String(transportFee));
-  if (accommodationFee) await setFieldValue(frame, 'input[name="accommodation"]', String(accommodationFee));
-  if (foodExpense) await setFieldValue(frame, 'input[name="food_expense"]', String(foodExpense));
-  if (params.oil_price) await setFieldValue(frame, 'input[name="oil_price"]', String(params.oil_price));
-  if (params.distance_km) await setFieldValue(frame, 'input[name="distance_km"]', String(params.distance_km));
-  if (params.toll_fee) await setFieldValue(frame, 'input[name="toll"]', String(params.toll_fee));
-  if (params.oil_price && params.distance_km) {
-    const ownCarCost = Math.round(params.oil_price * params.distance_km / 10);
-    await setFieldValue(frame, 'input[name="own_car"]', String(ownCarCost));
-  }
-  if (approvedDocRef) {
-    await setFieldValue(frame, 'input[name="approved_doc_ref"]', approvedDocRef);
-    await setFieldValue(frame, '.validate[name="approved_doc_ref"]', approvedDocRef);
-  }
-  await setSelectValue(frame, 'select[name="travel_with_invitation"]', "No");
+  await setFieldValue(frame, 'input[name="daily_fee_total"]', String(dailyExpense));
+  if (transportFee) await setFieldValue(frame, 'input[name="ocar_pay"]', String(transportFee));
+  if (accommodationFee) await setFieldValue(frame, 'input[name="accommodation_fee_total"]', String(accommodationFee));
+  if (foodExpense) await setFieldValue(frame, 'input[name="food_fee_total"]', String(foodExpense));
   if (params.attachment_path) {
     const fileInput = frame.locator('input[name="doc_attach_file[]"]').first();
     await fileInput.setInputFiles(params.attachment_path);
@@ -22201,6 +22271,12 @@ async function submitTravelSettlement(page, frame, sessionManager2, config3, par
   await setFormMode(frame, mode);
   const docId = await submitForm(page, frame, "check_form_request");
   const warnings = [];
+  if (!approvedDocRef) {
+    warnings.push("No approved_doc_ref (sel_travel) provided \u2014 parent document fields may be incomplete.");
+  }
+  if (!autoPopulated && approvedDocRef) {
+    warnings.push("sel_travel auto-populate did not work \u2014 used manual cascade fallback.");
+  }
   if (params.transport_mode?.includes("Own Vehicle") && !params.attachment_path) {
     warnings.push("Own vehicle travel requires \uAC70\uB9AC.pdf (Naver Maps screenshot) attachment.");
   }
@@ -22215,6 +22291,7 @@ async function submitTravelSettlement(page, frame, sessionManager2, config3, par
       mode,
       formType: "travel_settlement",
       subject,
+      autoPopulated,
       message: docId ? `Travel settlement ${mode === "draft" ? "draft saved" : "submitted"} (doc_id: ${docId})` : `Travel settlement ${mode} completed`,
       warning: warnings.length > 0 ? warnings.join(" | ") : void 0
     }
@@ -22242,14 +22319,10 @@ async function submitLeaveReturn(page, frame, sessionManager2, config3, params, 
   }
   const subject = params.title || `Leave return ${returnLabel} ${originalDoc}`;
   await setRequiredField(frame, 'input[name="subject"]', subject, "subject");
-  await setFieldValue(frame, 'input[name="original_leave_doc"]', originalDoc);
-  await setFieldValue(frame, '.validate[name="original_leave_doc"]', originalDoc);
-  await setSelectValue(frame, 'select[name="leave_kind"]', leaveCode);
+  await setRequiredField(frame, 'input[name="original_leave_doc"]', originalDoc, "original_leave_doc");
   await setSelectValue(frame, 'select[name="leave_kind[]"]', leaveCode);
   await setRequiredField(frame, 'input[name="begin_date"]', periodStart, "begin_date");
-  await setFieldValue(frame, 'input[name="begin_date[]"]', periodStart);
   await setRequiredField(frame, 'input[name="end_date"]', periodEnd, "end_date");
-  await setFieldValue(frame, 'input[name="end_date[]"]', periodEnd);
   await setFieldValue(frame, 'input[name="return_days"]', String(returnDays));
   await setFieldValue(frame, 'input[name="return_hours"]', String(returnHours));
   await setFieldValue(frame, 'textarea[name="description"]', description);
@@ -22375,11 +22448,10 @@ async function submitOverseasTravel(page, frame, sessionManager2, config3, param
     await setFieldValue(frame, 'input[name="budget_control_no"]', budgetControlNo);
     await setFieldValue(frame, '.validate[name="budget_control_no"]', budgetControlNo);
   }
-  await setFieldValue(frame, 'input[name="country"]', country);
-  await setFieldValue(frame, '.validate[name="country"]', country);
+  await setRequiredField(frame, 'input[name="country"]', country, "country");
   await setFieldValue(frame, 'input[name="conference_name"]', conferenceName);
   await setFieldValue(frame, '.validate[name="conference_name"]', conferenceName);
-  await setFieldValue(frame, 'textarea[name="purpose"]', purpose);
+  await setRequiredField(frame, 'textarea[name="purpose"]', purpose, "purpose");
   await setFieldValue(frame, '.validate[name="purpose_field"]', purpose);
   await frame.evaluate(() => {
     const radioSelectors = [
@@ -22397,12 +22469,9 @@ async function submitOverseasTravel(page, frame, sessionManager2, config3, param
       }
     }
   });
-  await setFieldValue(frame, 'input[name="travel_start"]', travelStart);
-  await setFieldValue(frame, '.validate[name="travel_start"]', travelStart);
-  await setFieldValue(frame, 'input[name="travel_end"]', travelEnd);
-  await setFieldValue(frame, '.validate[name="travel_end"]', travelEnd);
+  await setRequiredField(frame, 'input[name="travel_start"]', travelStart, "travel_start");
+  await setRequiredField(frame, 'input[name="travel_end"]', travelEnd, "travel_end");
   await setFieldValue(frame, 'input[name="payment_date"]', paymentDate);
-  await setFieldValue(frame, '.validate[name="payment_date"]', paymentDate);
   if (params.schedule_rows && Array.isArray(params.schedule_rows)) {
     await frame.evaluate(
       (rows) => {
@@ -22598,7 +22667,7 @@ var ipkNavigateSchema = {
   url: external_exports.string().describe(
     "URL to navigate to. Can be a full URL or a path relative to the groupware base URL (e.g. '/Document/document_list.php')"
   ),
-  wait_for: external_exports.enum(["networkidle", "load", "domcontentloaded"]).default("networkidle").describe("Wait condition after navigation")
+  wait_for: external_exports.enum(["networkidle", "load", "domcontentloaded"]).default("load").describe("Wait condition after navigation")
 };
 var ipkNavigateDescription = "Navigate within the IPK groupware main_menu iframe. Accepts full URLs or relative paths. Content is rendered inside the groupware iframe structure.";
 async function handleIpkNavigate(sessionManager2, config3, params) {
@@ -22778,8 +22847,8 @@ async function handleIpkGetContent(sessionManager2, config3, params) {
 }
 
 // src/tools/screenshot.ts
-import * as fs2 from "fs";
-import * as path3 from "path";
+import * as fs3 from "fs";
+import * as path2 from "path";
 var screenshotSchema = {
   filename: external_exports.string().optional().describe("Custom filename (without path). Default: auto-generated timestamp."),
   full_page: external_exports.boolean().default(false).describe("Capture full page (true) or viewport only (false)")
@@ -22791,10 +22860,10 @@ async function handleScreenshot(sessionManager2, config3, params) {
   }
   const page = sessionManager2.getPage();
   try {
-    fs2.mkdirSync(config3.screenshotDir, { recursive: true });
+    fs3.mkdirSync(config3.screenshotDir, { recursive: true });
     const timestamp = (/* @__PURE__ */ new Date()).toISOString().replace(/[:.]/g, "-");
     const filename = params.filename || `ipk-${timestamp}.png`;
-    const filepath = path3.join(config3.screenshotDir, filename);
+    const filepath = path2.join(config3.screenshotDir, filename);
     await page.screenshot({
       path: filepath,
       fullPage: params.full_page || false
@@ -22802,8 +22871,8 @@ async function handleScreenshot(sessionManager2, config3, params) {
     const ttlMs = config3.screenshotTtlMinutes * 60 * 1e3;
     setTimeout(() => {
       try {
-        if (fs2.existsSync(filepath)) {
-          fs2.unlinkSync(filepath);
+        if (fs3.existsSync(filepath)) {
+          fs3.unlinkSync(filepath);
         }
       } catch {
       }
@@ -22824,19 +22893,129 @@ async function handleScreenshot(sessionManager2, config3, params) {
 }
 function cleanupExpiredScreenshots(config3) {
   try {
-    if (!fs2.existsSync(config3.screenshotDir)) return;
+    if (!fs3.existsSync(config3.screenshotDir)) return;
     const now = Date.now();
     const ttlMs = config3.screenshotTtlMinutes * 60 * 1e3;
-    const files = fs2.readdirSync(config3.screenshotDir);
+    const files = fs3.readdirSync(config3.screenshotDir);
     for (const file of files) {
       if (!file.endsWith(".png")) continue;
-      const filepath = path3.join(config3.screenshotDir, file);
-      const stat = fs2.statSync(filepath);
+      const filepath = path2.join(config3.screenshotDir, file);
+      const stat = fs3.statSync(filepath);
       if (now - stat.mtimeMs > ttlMs) {
-        fs2.unlinkSync(filepath);
+        fs3.unlinkSync(filepath);
       }
     }
   } catch {
+  }
+}
+
+// src/tools/ipk-inspect.ts
+import * as fs4 from "fs";
+import * as path3 from "path";
+var ipkInspectFormSchema = {
+  form_code: external_exports.string().describe("Form code to inspect, e.g. AppFrm-054"),
+  compare_template: external_exports.boolean().default(true).describe("Cross-verify against form_templates JSON")
+};
+var ipkInspectFormDescription = "Inspect a groupware form's DOM elements and cross-verify against form templates. Use to discover actual field names, types, and options for any form.";
+async function handleIpkInspectForm(sessionManager2, config3, params) {
+  if (!sessionManager2.isLoggedIn()) {
+    return textResult({ error: true, code: "NOT_LOGGED_IN", message: "Call ipk_login first" });
+  }
+  const page = sessionManager2.getPage();
+  const formCode = params.form_code;
+  const compareTemplate = params.compare_template !== false;
+  try {
+    const url = `/Document/document_write.php?approve_type=${formCode}`;
+    const frame = await navigateInFrame(page, url, config3);
+    if (!frame) {
+      return textResult({
+        error: true,
+        code: "FRAME_NOT_FOUND",
+        message: "main_menu frame not found. Ensure you are logged in and the groupware is accessible."
+      });
+    }
+    await frame.waitForSelector("input, select, textarea", { timeout: 8e3 }).catch(() => null);
+    const domElements = await frame.evaluate(() => {
+      const elements = [];
+      document.querySelectorAll("input, select, textarea").forEach((el) => {
+        if (!el.name) return;
+        const info = {
+          tag: el.tagName.toLowerCase(),
+          name: el.name,
+          type: el.type || el.tagName.toLowerCase(),
+          id: el.id || "",
+          required: el.required || false
+        };
+        if (el.tagName === "SELECT") {
+          info.options = Array.from(el.options).map((o) => ({
+            value: o.value,
+            text: (o.textContent || "").trim()
+          }));
+        }
+        elements.push(info);
+      });
+      return elements;
+    });
+    const result = {
+      form_code: formCode,
+      dom_url: frame.url(),
+      element_count: domElements.length,
+      elements: domElements
+    };
+    if (compareTemplate) {
+      const projectRoot = path3.resolve(__dirname, "..", "..");
+      const templatePath = path3.join(projectRoot, "form_templates", `${formCode}.json`);
+      try {
+        const raw = fs4.readFileSync(templatePath, "utf-8");
+        const template = JSON.parse(raw);
+        const fieldSchema = template.field_schema || {};
+        const templateKeys = new Set(Object.keys(fieldSchema));
+        const domNames = new Set(domElements.map((e) => e.name));
+        const inTemplateNotInDom = [...templateKeys].filter((k) => !domNames.has(k));
+        const inDomNotInTemplate = [...domNames].filter((k) => !templateKeys.has(k));
+        const typeMismatches = [];
+        for (const el of domElements) {
+          if (!templateKeys.has(el.name)) continue;
+          const tType = fieldSchema[el.name].type;
+          const domType = el.tag === "textarea" ? "textarea" : el.tag === "select" ? "select" : el.type;
+          const normalize = (t) => {
+            if (t === "textarea") return "textarea";
+            if (t === "select" || t === "select-one" || t === "select-multiple") return "select";
+            if (t === "number" || t === "text" || t === "date" || t === "time") return t;
+            return t;
+          };
+          const normTemplate = normalize(tType);
+          const normDom = normalize(domType);
+          if (normTemplate !== normDom) {
+            typeMismatches.push({
+              field: el.name,
+              template_type: tType,
+              dom_type: domType
+            });
+          }
+        }
+        result.template_comparison = {
+          template_found: true,
+          template_path: templatePath,
+          mismatch_report: {
+            in_template_not_in_dom: inTemplateNotInDom,
+            in_dom_not_in_template: inDomNotInTemplate,
+            type_mismatches: typeMismatches
+          }
+        };
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        result.template_comparison = {
+          template_found: false,
+          template_path: templatePath,
+          error: `Template not found or parse error: ${msg}`
+        };
+      }
+    }
+    return textResult({ error: false, data: result });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return textResult({ error: true, code: "INSPECT_ERROR", message: msg });
   }
 }
 
@@ -22865,6 +23044,9 @@ server.tool("ipk_get_content", ipkGetContentDescription, ipkGetContentSchema, as
 });
 server.tool("screenshot", screenshotDescription, screenshotSchema, async (params) => {
   return handleScreenshot(sessionManager, config2, params);
+});
+server.tool("ipk_inspect_form", ipkInspectFormDescription, ipkInspectFormSchema, async (params) => {
+  return handleIpkInspectForm(sessionManager, config2, params);
 });
 var transport = new StdioServerTransport();
 await server.connect(transport);
