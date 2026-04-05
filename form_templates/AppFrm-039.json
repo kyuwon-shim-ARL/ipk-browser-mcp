@@ -15,6 +15,7 @@
       "type": "text",
       "required": true,
       "source": "user_input",
+      "dom_name": "subject",
       "coverage": "100%",
       "note": "Free-form title describing the transfer purpose, e.g. 'Budget Transfer_ProjectName' or item name"
     },
@@ -22,6 +23,8 @@
       "type": "text",
       "required": true,
       "source": "user_input",
+      "dom_name": null,
+      "dom_note": "No dedicated input[name=\"account_no\"]; handler tries select[name=\"budget_code\"] and select[name=\"from_budget_code\"] for the source budget",
       "coverage": "100%",
       "note": "Budget account/project code, e.g. NN2512-0001, FS2226-0001, RS_JSJ"
     },
@@ -29,6 +32,8 @@
       "type": "text",
       "required": true,
       "source": "user_input",
+      "dom_name": null,
+      "dom_note": "No direct DOM selector found in handler — may be auto-populated from budget cascade",
       "coverage": "100%",
       "note": "Full project title corresponding to account_no"
     },
@@ -36,6 +41,8 @@
       "type": "text",
       "required": true,
       "source": "user_input",
+      "dom_name": null,
+      "dom_note": "No direct DOM selector found in handler — may be auto-populated from budget cascade",
       "coverage": "100%",
       "format": "YYYY-MM-DD ~ YYYY-MM-DD"
     },
@@ -43,6 +50,8 @@
       "type": "table",
       "required": true,
       "source": "user_input",
+      "dom_name": null,
+      "dom_note": "table rows — handler tries multiple selector variants: select[name=\"budget_code\"], select[name=\"from_budget_code\"], select[name=\"budget_code_from\"], input[name=\"from_budget\"], input[name=\"budget_code_from\"] (source); select[name=\"to_budget_code\"], select[name=\"budget_code_to\"], input[name=\"to_budget\"], input[name=\"budget_code_to\"] (target); input[name=\"amount\"], input[name=\"transfer_amount\"], input[name=\"item_amount[]\"], input[name=\"total_amt\"] (amount)",
       "coverage": "100%",
       "note": "One or more rows of source/target/amount. 81% of docs have exactly 1 row.",
       "item_schema": {
@@ -70,6 +79,8 @@
       "type": "text",
       "required": true,
       "source": "user_input",
+      "dom_name": null,
+      "dom_note": "No direct DOM selector found in handler — budget control number may be a hidden/read-only field",
       "coverage": "100%",
       "note": "Budget control number from IPK budget system, e.g. 26000266"
     },
@@ -77,6 +88,8 @@
       "type": "textarea",
       "required": true,
       "source": "user_input",
+      "dom_name": "reason",
+      "dom_note": "Handler tries multiple selectors: textarea[name=\"reason\"], textarea[name=\"p_reason\"], textarea[name=\"contents1\"], input[name=\"sub_subject\"]",
       "coverage": "100%",
       "note": "Reason/purpose for the budget transfer"
     },
@@ -84,6 +97,8 @@
       "type": "text",
       "required": false,
       "source": "user_input",
+      "dom_name": null,
+      "dom_note": "No direct DOM selector found in handler for equipment block fields",
       "coverage": "10%",
       "note": "Only for equipment/tool purchases targeting [ 120312] Tools or [ 120336] Office devices asset"
     },
@@ -91,6 +106,8 @@
       "type": "text",
       "required": false,
       "source": "user_input",
+      "dom_name": null,
+      "dom_note": "No direct DOM selector found in handler for equipment block fields",
       "coverage": "10%",
       "linked_to": "equipment_name"
     },
@@ -98,6 +115,8 @@
       "type": "text",
       "required": false,
       "source": "user_input",
+      "dom_name": null,
+      "dom_note": "No direct DOM selector found in handler for equipment block fields",
       "coverage": "10%",
       "linked_to": "equipment_name"
     },
@@ -105,6 +124,8 @@
       "type": "number",
       "required": false,
       "source": "user_input",
+      "dom_name": null,
+      "dom_note": "No direct DOM selector found in handler for equipment block fields",
       "coverage": "10%",
       "linked_to": "equipment_name"
     },
@@ -112,6 +133,8 @@
       "type": "textarea",
       "required": false,
       "source": "user_input",
+      "dom_name": null,
+      "dom_note": "No direct DOM selector found in handler for equipment block fields",
       "coverage": "10%",
       "linked_to": "equipment_name"
     }

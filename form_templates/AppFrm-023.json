@@ -59,6 +59,7 @@
     },
     "budget_control_no": {
       "type": "text",
+      "dom_name": null,
       "dom_note": "NOT a direct DOM input — set dynamically via budget system lookup; use budget_code/item_no cascade instead",
       "required": true,
       "source": "user_input",

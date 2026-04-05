@@ -36,6 +36,7 @@
     },
     "start_time": {
       "type": "time",
+      "dom_name": null,
       "dom_note": "NOT a direct DOM input — comes from parent document",
       "required": false,
       "source": "user_input",
@@ -43,6 +44,7 @@
     },
     "end_time": {
       "type": "time",
+      "dom_name": null,
       "dom_note": "NOT a direct DOM input — comes from parent document",
       "required": false,
       "source": "user_input",
@@ -50,6 +52,7 @@
     },
     "purpose_category": {
       "type": "select",
+      "dom_name": "purpose_category",
       "dom_note": "NOT a direct DOM input — comes from parent document",
       "required": true,
       "source": "inference",
@@ -70,6 +73,7 @@
     },
     "purpose": {
       "type": "textarea",
+      "dom_name": "purpose",
       "dom_note": "NOT a direct DOM input — comes from parent document",
       "required": true,
       "source": "user_input",
@@ -77,6 +81,7 @@
     },
     "destination": {
       "type": "text",
+      "dom_name": "destination",
       "dom_note": "NOT a direct DOM input — comes from parent document",
       "required": true,
       "source": "user_input",
@@ -84,6 +89,7 @@
     },
     "province": {
       "type": "select",
+      "dom_name": "province",
       "dom_note": "NOT a direct DOM input — comes from parent document",
       "required": true,
       "source": "inference",
@@ -91,6 +97,7 @@
     },
     "city": {
       "type": "select",
+      "dom_name": "city",
       "dom_note": "NOT a direct DOM input — comes from parent document",
       "required": true,
       "source": "inference",
@@ -98,6 +105,7 @@
     },
     "transport_mode": {
       "type": "select",
+      "dom_name": "transport_mode",
       "dom_note": "NOT a direct DOM input — comes from parent document",
       "required": true,
       "source": "inference",
