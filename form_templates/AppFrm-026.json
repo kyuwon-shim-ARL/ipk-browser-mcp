@@ -18,6 +18,7 @@
       "required": true,
       "source": "profile",
       "dom_name": "traveler",
+      "dom_selector": ".validate[name=\"traveler\"]",
       "note": "Name and payroll ID of the traveler, format: 'Name(XXXXXX)'"
     },
     "budget_control_no": {
@@ -25,6 +26,7 @@
       "required": true,
       "source": "user_input",
       "dom_name": "budget_control_no",
+      "dom_selector": ".validate[name=\"budget_control_no\"]",
       "note": "Budget control number from the original travel request approval"
     },
     "country": {
@@ -39,6 +41,7 @@
       "required": true,
       "source": "user_input",
       "dom_name": "conference_name",
+      "dom_selector": ".validate[name=\"conference_name\"]",
       "note": "Full name of the conference or organization visited"
     },
     "purpose": {
@@ -46,6 +49,7 @@
       "required": true,
       "source": "user_input",
       "dom_name": "purpose",
+      "dom_selector": ".validate[name=\"purpose_field\"]",
       "note": "Section: Purpose of Business Travel (narrative description)"
     },
     "travel_with_invitation": {
@@ -73,6 +77,7 @@
       "required": false,
       "source": "user_input",
       "dom_name": "business_materials",
+      "dom_selector": ".validate[name=\"business_materials\"]",
       "note": "Attached business-related materials (filename and byte size)"
     },
     "budget_account_code": {
@@ -123,6 +128,7 @@
       "required": false,
       "source": "user_input",
       "dom_name": "transport_fee_total",
+      "dom_selector": ".validate[name=\"transport_fee_total\"]",
       "note": "Approved transport budget (KRW). Present in 79% of docs"
     },
     "transport_fee_corp_card": {
@@ -130,6 +136,7 @@
       "required": false,
       "source": "user_input",
       "dom_name": "transport_fee_card",
+      "dom_selector": ".validate[name=\"transport_fee_card\"]",
       "note": "Amount paid via institute credit card for transport"
     },
     "transport_fee_cash": {
@@ -145,6 +152,7 @@
       "required": true,
       "source": "user_input",
       "dom_name": "daily_expense_total",
+      "dom_selector": ".validate[name=\"daily_expense_total\"]",
       "note": "Daily allowance budget. Present in 100% of docs"
     },
     "daily_expense_cash": {
@@ -152,6 +160,7 @@
       "required": true,
       "source": "user_input",
       "dom_name": "daily_expense_cash",
+      "dom_selector": ".validate[name=\"daily_expense_cash\"]",
       "note": "Daily allowance paid as cash/personal card"
     },
     "accommodation_total_budget": {
@@ -159,6 +168,7 @@
       "required": false,
       "source": "user_input",
       "dom_name": "accommodation_total",
+      "dom_selector": ".validate[name=\"accommodation_total\"]",
       "note": "Accommodation budget. Present in 71% of docs"
     },
     "accommodation_corp_card": {
@@ -166,6 +176,7 @@
       "required": false,
       "source": "user_input",
       "dom_name": "accommodation_card",
+      "dom_selector": ".validate[name=\"accommodation_card\"]",
       "note": "Accommodation paid via institute credit card"
     },
     "food_expense_total_budget": {
@@ -173,6 +184,7 @@
       "required": true,
       "source": "user_input",
       "dom_name": "food_expense_total",
+      "dom_selector": ".validate[name=\"food_expense_total\"]",
       "note": "Food expense budget. Present in 100% of docs"
     },
     "food_expense_cash": {
@@ -180,6 +192,7 @@
       "required": true,
       "source": "user_input",
       "dom_name": "food_expense_cash",
+      "dom_selector": ".validate[name=\"food_expense_cash\"]",
       "note": "Food expense paid as cash/personal card"
     },
     "miscellaneous_total_budget": {
@@ -195,6 +208,7 @@
       "required": false,
       "source": "profile",
       "dom_name": "corp_card_no",
+      "dom_selector": ".validate[name=\"corp_card_no\"]",
       "note": "Institute credit card number, format: XXXX-XXXX-XXXX-XXXX. Present in 93% of docs"
     },
     "settle_amount": {
@@ -202,6 +216,7 @@
       "required": true,
       "source": "derived",
       "dom_name": "settle_amount",
+      "dom_selector": ".validate[name=\"settle_amount\"]",
       "note": "Total settled amount (KRW). Range across docs: 300,240 ~ 6,185,439, avg ~2,638,485"
     },
     "reimbursement_to_traveler": {
@@ -209,6 +224,7 @@
       "required": true,
       "source": "derived",
       "dom_name": "reimbursement",
+      "dom_selector": ".validate[name=\"reimbursement\"]",
       "note": "Amount to be reimbursed to traveler for out-of-pocket expenses"
     }
   },
