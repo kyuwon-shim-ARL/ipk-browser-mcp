@@ -89,6 +89,7 @@
       "required": true,
       "source": "user_input",
       "dom_name": "reason",
+      "dom_selectors": ["textarea[name=\"reason\"]", "textarea[name=\"p_reason\"]", "textarea[name=\"contents1\"]", "input[name=\"sub_subject\"]"],
       "dom_note": "Handler tries multiple selectors: textarea[name=\"reason\"], textarea[name=\"p_reason\"], textarea[name=\"contents1\"], input[name=\"sub_subject\"]",
       "coverage": "100%",
       "note": "Reason/purpose for the budget transfer"

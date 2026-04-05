@@ -22,6 +22,7 @@ import {
   BUDGET_TRANSFER_CODES,
 } from "../types.js";
 import * as path from "path";
+import { FORM_REGISTRY } from "../form-registry.js";
 
 // ─── Template-driven generic form filler ───────────────────────────────────
 
@@ -135,6 +136,26 @@ async function genericFillForm(
 }
 
 // ─── End generic form filler ────────────────────────────────────────────────
+
+/**
+ * Load field_schema from a form template JSON file.
+ * Returns null if the template doesn't exist or lacks field_schema.
+ */
+function loadTemplateFieldSchema(formType: string): Record<string, TemplateFieldSchema> | null {
+  const registry = FORM_REGISTRY[formType as keyof typeof FORM_REGISTRY];
+  if (!registry) return null;
+
+  const projectRoot = path.resolve(__dirname, "..", "..");
+  const templatePath = path.join(projectRoot, "form_templates", registry.templateFile);
+
+  try {
+    const raw = fs.readFileSync(templatePath, "utf-8");
+    const template = JSON.parse(raw);
+    return template.field_schema || null;
+  } catch {
+    return null;
+  }
+}
 
 /** Allowed directories for attachment file uploads. Prevents arbitrary file reads. */
 const ALLOWED_ATTACHMENT_DIRS = [
@@ -372,8 +393,14 @@ export async function handleIpkSubmitForm(
         return await submitSeminar(page, frame, sessionManager, config, params, mode);
       case "overseas_travel":
         return await submitOverseasTravel(page, frame, sessionManager, config, params, mode);
-      default:
-        return textResult({ error: true, code: "UNKNOWN_FORM", message: `Unknown form type: ${formType}` });
+      default: {
+        // Generic template-driven handler for any form type with a template JSON
+        const templateSchema = loadTemplateFieldSchema(formType);
+        if (!templateSchema) {
+          return textResult({ error: true, code: "UNKNOWN_FORM", message: `Unknown form type: ${formType}` });
+        }
+        return await submitGeneric(page, frame, sessionManager, config, params, mode, formType, templateSchema);
+      }
     }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
@@ -1704,6 +1731,66 @@ async function submitOverseasTravel(
       message: docId
         ? `Overseas travel settlement ${mode === "draft" ? "draft saved" : "submitted"} (doc_id: ${docId})`
         : `Overseas travel settlement ${mode} completed`,
+    },
+  });
+}
+
+/** Generic template-driven form handler for any form with a field_schema template */
+async function submitGeneric(
+  page: any,
+  frame: any,
+  sessionManager: SessionManager,
+  config: Config,
+  params: Record<string, any>,
+  mode: "draft" | "request",
+  formType: string,
+  templateSchema: Record<string, TemplateFieldSchema>
+) {
+  // Build userData from params, mapping template field keys to user-supplied values
+  const userData: Record<string, any> = {};
+  for (const fieldKey of Object.keys(templateSchema)) {
+    if (params[fieldKey] !== undefined) {
+      userData[fieldKey] = params[fieldKey];
+    }
+  }
+
+  // Auto-set subject if template has it and user provided title
+  if (templateSchema.subject && !userData.subject && params.title) {
+    userData.subject = params.title;
+  }
+
+  // Handle AJAX cascade if template defines ajax_cascade_sequence
+  // (cascade fields need to be set sequentially, not via genericFillForm)
+  // For now, rely on genericFillForm which handles simple fields
+
+  await genericFillForm(frame, templateSchema, userData);
+
+  // Handle attachment if provided
+  if (params.attachment_path) {
+    const validationError = validateAttachmentPath(params.attachment_path);
+    if (validationError) {
+      return textResult({ error: true, code: "INVALID_ATTACHMENT", message: validationError });
+    }
+    const fileInput = frame.locator('input[name="doc_attach_file[]"]').first();
+    await fileInput.setInputFiles(params.attachment_path);
+    await page.waitForTimeout(1000);
+  }
+
+  await page.waitForTimeout(1000);
+  await setFormMode(frame, mode);
+  const docId = await submitForm(page, frame, "check_form_request");
+
+  return textResult({
+    error: false,
+    data: {
+      success: true,
+      docId,
+      mode,
+      formType,
+      message: docId
+        ? `${formType} ${mode === "draft" ? "draft saved" : "submitted"} (doc_id: ${docId})`
+        : `${formType} ${mode} completed`,
+      note: "Filled via generic template handler. Verify form completeness via screenshot.",
     },
   });
 }

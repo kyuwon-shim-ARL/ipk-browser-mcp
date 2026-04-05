@@ -20,6 +20,7 @@
       "required": true,
       "source": "profile",
       "dom_name": "requester",
+      "dom_selector": ".validate[name=\"requester\"]",
       "dom_note": "input[name=\"requester\"]; also mirrored to .validate[name=\"requester\"]",
       "note": "Name of the person presenting/submitting (drafter by default)"
     },
@@ -28,6 +29,7 @@
       "required": true,
       "source": "user_input",
       "dom_name": "disclosure_purpose",
+      "dom_selector": ".validate[name=\"purpose_field\"]",
       "dom_note": "textarea[name=\"disclosure_purpose\"]; also mirrored to .validate[name=\"purpose_field\"]",
       "note": "Section 1: Why the material is being publicly disclosed"
     },
@@ -36,6 +38,7 @@
       "required": true,
       "source": "user_input",
       "dom_name": "disclosure_date",
+      "dom_selector": ".validate[name=\"disclosure_date\"]",
       "dom_note": "input[name=\"disclosure_date\"]; also mirrored to .validate[name=\"disclosure_date\"]",
       "note": "Section 2: Date of the seminar/event/submission"
     },
@@ -44,6 +47,7 @@
       "required": true,
       "source": "user_input",
       "dom_name": "material_description",
+      "dom_selector": ".validate[name=\"material_description\"]",
       "dom_note": "input[name=\"material_description\"]; also mirrored to .validate[name=\"material_description\"]",
       "note": "Section 3: Filename and size of the material (e.g. slides.pptx (12345678 byte))"
     },
@@ -52,6 +56,7 @@
       "required": true,
       "source": "user_input",
       "dom_name": "conference_or_journal",
+      "dom_selector": ".validate[name=\"conference_or_journal\"]",
       "dom_note": "input[name=\"conference_or_journal\"]; also mirrored to .validate[name=\"conference_or_journal\"]",
       "note": "Section 4: Name of the conference, seminar, or journal"
     },
