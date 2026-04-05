@@ -15,24 +15,29 @@
       "type": "text",
       "required": true,
       "source": "user_input",
+      "dom_name": "subject",
       "note": "Common patterns: '[Card] ER_coffee for meeting', '[Card] ER_coffee for lab meeting', '[Card] ER_team lunch', '[Card] General Expense Request'"
     },
     "budget_code": {
       "type": "text",
       "required": true,
       "source": "profile",
+      "dom_name": "budget_code",
+      "dom_note": "select[name=\"budget_code\"] — populated after budget_type cascade",
       "note": "100% of docs use '[GW17_ARRL] 과제수당_ARRL (Period: 2017-01-01~2033-12-31)'"
     },
     "item_date": {
       "type": "date",
       "required": true,
       "source": "user_input",
+      "dom_name": "invoice[]",
       "note": "Date of the actual purchase/invoice"
     },
     "item_account_code": {
       "type": "select",
       "required": true,
       "source": "user_input",
+      "dom_name": "item_account_code[]",
       "values": ["420421", "420420", "420374", "420375"],
       "distribution": {
         "420421": 0.93,
@@ -46,42 +51,50 @@
       "type": "text",
       "required": true,
       "source": "inference",
+      "dom_name": "item_desc[]",
       "note": "Embedded in Account Code cell as '[XXXXX]\\nDescription'. Common: 'Team activities' (93%)"
     },
     "item_amount_excl_vat": {
       "type": "text",
       "required": true,
       "source": "user_input",
+      "dom_name": "item_amount[]",
       "note": "Amount excluding VAT, Korean comma-formatted integer (e.g. '23,819')"
     },
     "item_vat": {
       "type": "text",
       "required": true,
       "source": "user_input",
+      "dom_name": "item_amount_vat[]",
       "note": "VAT amount, Korean comma-formatted integer"
     },
     "item_total_amount": {
       "type": "text",
       "required": true,
       "source": "user_input",
+      "dom_name": "total_amt",
+      "dom_note": "Set via document.getElementsByName(\"total_amt\")[0]; also sets item_amount_ral[]",
       "note": "Total amount including VAT"
     },
     "item_control_no": {
       "type": "text",
       "required": true,
       "source": "user_input",
+      "dom_name": "item_control_no[]",
       "note": "Card receipt control number (e.g. '25103268-01')"
     },
     "item_vendor": {
       "type": "text",
       "required": true,
       "source": "user_input",
+      "dom_name": "item_vendor[]",
       "note": "Vendor/payee name (Korean or English)"
     },
     "venue": {
       "type": "text",
       "required": true,
       "source": "inference",
+      "dom_name": "ov_place",
       "coverage": 0.97,
       "note": "Location of meeting/activity. 2/60 docs (accommodation, special expense) have no venue."
     },
@@ -89,6 +102,7 @@
       "type": "text",
       "required": true,
       "source": "inference",
+      "dom_name": "ov_member",
       "coverage": 0.97,
       "note": "Comma-separated list of attendees"
     },
@@ -96,6 +110,7 @@
       "type": "text",
       "required": true,
       "source": "inference",
+      "dom_name": "ov_purpose",
       "coverage": 0.97,
       "note": "Purpose and brief meeting minutes"
     },
@@ -103,6 +118,8 @@
       "type": "text",
       "required": false,
       "source": "user_input",
+      "dom_name": null,
+      "dom_note": "No direct DOM input — not set by handler",
       "coverage": 0.03,
       "note": "Only present for special cases (accommodation, etc.)"
     }

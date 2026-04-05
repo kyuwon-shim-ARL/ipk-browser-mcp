@@ -12,42 +12,55 @@
       "type": "text",
       "required": true,
       "source": "user_input",
+      "dom_name": "subject",
       "note": "Title of the seminar/event/publication"
     },
     "requester": {
       "type": "text",
       "required": true,
       "source": "profile",
+      "dom_name": "requester",
+      "dom_note": "input[name=\"requester\"]; also mirrored to .validate[name=\"requester\"]",
       "note": "Name of the person presenting/submitting (drafter by default)"
     },
     "disclosure_purpose": {
       "type": "textarea",
       "required": true,
       "source": "user_input",
+      "dom_name": "disclosure_purpose",
+      "dom_note": "textarea[name=\"disclosure_purpose\"]; also mirrored to .validate[name=\"purpose_field\"]",
       "note": "Section 1: Why the material is being publicly disclosed"
     },
     "disclosure_date": {
       "type": "date",
       "required": true,
       "source": "user_input",
+      "dom_name": "disclosure_date",
+      "dom_note": "input[name=\"disclosure_date\"]; also mirrored to .validate[name=\"disclosure_date\"]",
       "note": "Section 2: Date of the seminar/event/submission"
     },
     "material_description": {
       "type": "text",
       "required": true,
       "source": "user_input",
+      "dom_name": "material_description",
+      "dom_note": "input[name=\"material_description\"]; also mirrored to .validate[name=\"material_description\"]",
       "note": "Section 3: Filename and size of the material (e.g. slides.pptx (12345678 byte))"
     },
     "conference_or_journal": {
       "type": "text",
       "required": true,
       "source": "user_input",
+      "dom_name": "conference_or_journal",
+      "dom_note": "input[name=\"conference_or_journal\"]; also mirrored to .validate[name=\"conference_or_journal\"]",
       "note": "Section 4: Name of the conference, seminar, or journal"
     },
     "patent_filed": {
       "type": "radio",
       "required": false,
       "source": "user_input",
+      "dom_name": "Q1",
+      "dom_note": "radio input[name=\"Q1\"][value=\"Y/N\"] — set via frame.evaluate(); fallback selectors: input[name=\"radio_Q1\"], input[name=\"chk_Q1\"]",
       "values": ["Y", "N", ""],
       "distribution": {"Y": 0.33, "N": 0.19, "not_answered": 0.48},
       "note": "Q1: Did you file a patent with the presenting material?"
@@ -56,6 +69,8 @@
       "type": "radio",
       "required": false,
       "source": "user_input",
+      "dom_name": "Q2",
+      "dom_note": "radio input[name=\"Q2\"][value=\"Y/N\"] — set via frame.evaluate(); fallback selectors: input[name=\"radio_Q2\"], input[name=\"chk_Q2\"]",
       "values": ["Y", "N", ""],
       "distribution": {"Y": 0.10, "N": 0.05, "not_answered": 0.86},
       "note": "Q2: Planning to file patent within a year? (only relevant if Q1=N)"
@@ -64,6 +79,8 @@
       "type": "radio",
       "required": false,
       "source": "user_input",
+      "dom_name": "Q3",
+      "dom_note": "radio input[name=\"Q3\"][value=\"Y/N\"] — set via frame.evaluate(); fallback selectors: input[name=\"radio_Q3\"], input[name=\"chk_Q3\"]",
       "values": ["N", "Y", ""],
       "distribution": {"N": 0.67, "Y": 0.19, "not_answered": 0.14},
       "note": "Q3: Is the presenting material published?"
@@ -72,6 +89,8 @@
       "type": "radio",
       "required": false,
       "source": "user_input",
+      "dom_name": "Q4",
+      "dom_note": "radio input[name=\"Q4\"][value=\"Y/N\"] — set via frame.evaluate(); fallback selectors: input[name=\"radio_Q4\"], input[name=\"chk_Q4\"]",
       "values": ["Y", ""],
       "distribution": {"Y": 0.76, "not_answered": 0.24},
       "note": "Q4: Got approval from collaborators? Most common answer: Y"
@@ -80,6 +99,8 @@
       "type": "radio",
       "required": false,
       "source": "user_input",
+      "dom_name": "Q5",
+      "dom_note": "radio input[name=\"Q5\"][value=\"Y/N\"] — set via frame.evaluate(); fallback selectors: input[name=\"radio_Q5\"], input[name=\"chk_Q5\"]",
       "values": ["N", ""],
       "distribution": {"N": 0.67, "not_answered": 0.33},
       "note": "Q5: Does material contain IPK confidential info? Most common answer: N"

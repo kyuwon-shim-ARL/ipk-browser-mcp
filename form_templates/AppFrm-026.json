@@ -10,42 +10,50 @@
       "type": "text",
       "required": true,
       "source": "inference",
+      "dom_name": "subject",
       "note": "Auto: '[Settlement] {conference_name}' or '[Settlement] Overseas Business Travel ({conference_name})'"
     },
     "traveler": {
       "type": "text",
       "required": true,
       "source": "profile",
+      "dom_name": "traveler",
       "note": "Name and payroll ID of the traveler, format: 'Name(XXXXXX)'"
     },
     "budget_control_no": {
       "type": "text",
       "required": true,
       "source": "user_input",
+      "dom_name": "budget_control_no",
       "note": "Budget control number from the original travel request approval"
     },
     "country": {
       "type": "text",
       "required": true,
       "source": "user_input",
+      "dom_name": "country",
       "note": "Destination country and city, e.g. 'USA (San Francisco)', 'Vietnam'"
     },
     "conference_name": {
       "type": "text",
       "required": true,
       "source": "user_input",
+      "dom_name": "conference_name",
       "note": "Full name of the conference or organization visited"
     },
     "purpose": {
       "type": "textarea",
       "required": true,
       "source": "user_input",
+      "dom_name": "purpose",
       "note": "Section: Purpose of Business Travel (narrative description)"
     },
     "travel_with_invitation": {
       "type": "radio",
       "required": true,
       "source": "user_input",
+      "dom_name": "travel_with_invitation",
+      "dom_note": "radio input[name=\"travel_with_invitation\"][value=\"Yes/No\"] — set via frame.evaluate(); fallback: input[name=\"invitation\"]",
       "values": ["Yes", "No"],
       "distribution": {"No": 1.0},
       "note": "All 14 docs: No. Default to No unless explicitly invited"
@@ -54,6 +62,8 @@
       "type": "radio",
       "required": true,
       "source": "user_input",
+      "dom_name": "car_rent",
+      "dom_note": "radio input[name=\"car_rent\"][value=\"Yes/No\"] — set via frame.evaluate(); fallback: input[name=\"rent_car\"]",
       "values": ["Yes", "No"],
       "distribution": {"No": 1.0},
       "note": "All 14 docs: No"
@@ -62,36 +72,44 @@
       "type": "text",
       "required": false,
       "source": "user_input",
+      "dom_name": "business_materials",
       "note": "Attached business-related materials (filename and byte size)"
     },
     "budget_account_code": {
       "type": "text",
       "required": true,
       "source": "profile",
+      "dom_name": "budget_code",
+      "dom_note": "select[name=\"budget_code\"] — populated after select[name=\"budget_type\"] set to '02' (R&D)",
       "note": "Full grant account string, e.g. 'R&D - ... - Overseas Business Travel [410202] (Period: ...)'"
     },
     "payment_date": {
       "type": "date",
       "required": true,
       "source": "user_input",
+      "dom_name": "payment_date",
       "note": "Date of settlement payment; appears in approval section header"
     },
     "travel_start": {
       "type": "date",
       "required": true,
       "source": "user_input",
+      "dom_name": "travel_start",
       "note": "Departure date from Korea"
     },
     "travel_end": {
       "type": "date",
       "required": true,
       "source": "user_input",
+      "dom_name": "travel_end",
       "note": "Arrival back in Korea"
     },
     "schedule_rows": {
       "type": "array",
       "required": true,
       "source": "user_input",
+      "dom_name": null,
+      "dom_note": "table rows set via frame.evaluate(): input[name=\"schedule_from[i]\"], input[name=\"schedule_to[i]\"], input/textarea[name=\"schedule_desc[i]\"], input[name=\"schedule_transport[i]\"]",
       "item_schema": {
         "from": "date",
         "to": "date",
@@ -104,78 +122,93 @@
       "type": "integer",
       "required": false,
       "source": "user_input",
+      "dom_name": "transport_fee_total",
       "note": "Approved transport budget (KRW). Present in 79% of docs"
     },
     "transport_fee_corp_card": {
       "type": "integer",
       "required": false,
       "source": "user_input",
+      "dom_name": "transport_fee_card",
       "note": "Amount paid via institute credit card for transport"
     },
     "transport_fee_cash": {
       "type": "integer",
       "required": false,
       "source": "user_input",
+      "dom_name": null,
+      "dom_note": "Not present in handler expenseFields list — no direct DOM mapping confirmed",
       "note": "Amount paid via personal card/cash for transport"
     },
     "daily_expense_total_budget": {
       "type": "integer",
       "required": true,
       "source": "user_input",
+      "dom_name": "daily_expense_total",
       "note": "Daily allowance budget. Present in 100% of docs"
     },
     "daily_expense_cash": {
       "type": "integer",
       "required": true,
       "source": "user_input",
+      "dom_name": "daily_expense_cash",
       "note": "Daily allowance paid as cash/personal card"
     },
     "accommodation_total_budget": {
       "type": "integer",
       "required": false,
       "source": "user_input",
+      "dom_name": "accommodation_total",
       "note": "Accommodation budget. Present in 71% of docs"
     },
     "accommodation_corp_card": {
       "type": "integer",
       "required": false,
       "source": "user_input",
+      "dom_name": "accommodation_card",
       "note": "Accommodation paid via institute credit card"
     },
     "food_expense_total_budget": {
       "type": "integer",
       "required": true,
       "source": "user_input",
+      "dom_name": "food_expense_total",
       "note": "Food expense budget. Present in 100% of docs"
     },
     "food_expense_cash": {
       "type": "integer",
       "required": true,
       "source": "user_input",
+      "dom_name": "food_expense_cash",
       "note": "Food expense paid as cash/personal card"
     },
     "miscellaneous_total_budget": {
       "type": "integer",
       "required": false,
       "source": "user_input",
+      "dom_name": null,
+      "dom_note": "Not present in handler expenseFields list — no direct DOM mapping confirmed",
       "note": "Misc expenses (visa, insurance etc). Present in 14% of docs"
     },
     "corp_card_no": {
       "type": "text",
       "required": false,
       "source": "profile",
+      "dom_name": "corp_card_no",
       "note": "Institute credit card number, format: XXXX-XXXX-XXXX-XXXX. Present in 93% of docs"
     },
     "settle_amount": {
       "type": "integer",
       "required": true,
       "source": "derived",
+      "dom_name": "settle_amount",
       "note": "Total settled amount (KRW). Range across docs: 300,240 ~ 6,185,439, avg ~2,638,485"
     },
     "reimbursement_to_traveler": {
       "type": "integer",
       "required": true,
       "source": "derived",
+      "dom_name": "reimbursement",
       "note": "Amount to be reimbursed to traveler for out-of-pocket expenses"
     }
   },

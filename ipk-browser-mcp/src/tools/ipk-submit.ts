@@ -23,6 +23,119 @@ import {
 } from "../types.js";
 import * as path from "path";
 
+// ─── Template-driven generic form filler ───────────────────────────────────
+
+/** Field schema entry from a template JSON */
+interface TemplateFieldSchema {
+  type: string;
+  dom_name: string | null;
+  dom_type?: string;
+  required?: boolean;
+  /** Explicit CSS selector override — used instead of auto-generating from dom_name */
+  dom_selector?: string;
+  /** Multiple fallback selectors — tried in order (for fields with variant DOM names) */
+  dom_selectors?: string[];
+  [key: string]: any;
+}
+
+/** Hook definition for pre/post fill or evaluate actions */
+interface FillHook {
+  trigger: "pre_fill" | "post_fill" | "evaluate";
+  /** JavaScript function body to execute via frame.evaluate(). Receives `userData` as argument. */
+  fn: (frame: any, page: any, userData: Record<string, any>) => Promise<void>;
+}
+
+/**
+ * Generic form filler that iterates a template's field_schema and sets DOM values
+ * based on dom_name. Skips fields where dom_name is null (derived/computed).
+ *
+ * @param frame  - The Playwright Frame for the form
+ * @param fieldSchema - template.field_schema object
+ * @param userData - Map of field keys → user-supplied values
+ * @param hooks - Optional hooks for pre/post fill or complex evaluate logic
+ */
+async function genericFillForm(
+  frame: any,
+  fieldSchema: Record<string, TemplateFieldSchema>,
+  userData: Record<string, any>,
+  hooks?: FillHook[]
+): Promise<void> {
+  // Execute pre_fill hooks
+  if (hooks) {
+    for (const hook of hooks) {
+      if (hook.trigger === "pre_fill") await hook.fn(frame, null, userData);
+    }
+  }
+
+  for (const [fieldKey, schema] of Object.entries(fieldSchema)) {
+    // Skip fields with no DOM mapping
+    if (!schema.dom_name) continue;
+
+    // Skip if no user data for this field
+    const value = userData[fieldKey];
+    if (value === undefined || value === null || value === "") continue;
+
+    const strValue = String(value);
+    const domName = schema.dom_name;
+    const fieldType = schema.type;
+
+    // Handle multi-selector fallback (dom_selectors) — try each in order
+    if (schema.dom_selectors) {
+      for (const sel of schema.dom_selectors) {
+        if (fieldType === "select") {
+          await setSelectValue(frame, sel, strValue);
+        } else {
+          await setFieldValue(frame, sel, strValue);
+        }
+      }
+      continue;
+    }
+
+    // Build selector: explicit dom_selector override OR auto-generate from dom_name
+    if (fieldType === "select") {
+      const selector = schema.dom_selector || `select[name="${domName}"]`;
+      if (schema.required) {
+        await setRequiredSelect(frame, selector, strValue, (domName || fieldKey).replace(/\[\]/g, ""));
+      } else {
+        await setSelectValue(frame, selector, strValue);
+      }
+    } else if (fieldType === "radio") {
+      // Radio buttons handled via hooks — skip in generic fill
+      continue;
+    } else if (fieldType === "array" || fieldType === "table") {
+      // Complex types handled via hooks — skip in generic fill
+      continue;
+    } else if (fieldType === "hidden") {
+      const selector = schema.dom_selector || `input[name="${domName}"]`;
+      await setFieldValue(frame, selector, strValue);
+    } else {
+      // text, date, time, number, integer, textarea
+      const selector = schema.dom_selector || `input[name="${domName}"], textarea[name="${domName}"]`;
+      if (schema.required) {
+        await setRequiredField(frame, selector, strValue, (domName || fieldKey).replace(/\[\]/g, ""));
+      } else {
+        await setFieldValue(frame, selector, strValue);
+      }
+    }
+  }
+
+  // Execute post_fill hooks
+  if (hooks) {
+    for (const hook of hooks) {
+      if (hook.trigger === "post_fill") await hook.fn(frame, null, userData);
+    }
+  }
+
+  // Execute evaluate hooks
+  if (hooks) {
+    for (const hook of hooks) {
+      if (hook.trigger === "evaluate") await hook.fn(frame, null, userData);
+    }
+  }
+}
+
+// ─── End generic form filler ────────────────────────────────────────────────
+
 /** Allowed directories for attachment file uploads. Prevents arbitrary file reads. */
 const ALLOWED_ATTACHMENT_DIRS = [
   "/tmp",
@@ -305,14 +418,31 @@ async function submitLeave(
     warnings.push("Substitute person not configured. Set IPK_SUBSTITUTE_NAME env var or pass substitute_name parameter.");
   }
 
-  // Set all form fields via parameterized evaluate (required fields throw on miss)
-  await setRequiredSelect(frame, 'select[name="leave_kind[]"]', leaveCode, "leave_kind");
-  await setRequiredSelect(frame, 'select[name="using_type[]"]', usingType, "using_type");
-  await setRequiredField(frame, 'input[name="begin_date[]"]', startDate, "begin_date");
-  await setRequiredField(frame, 'input[name="end_date[]"]', endDate, "end_date");
+  // Use genericFillForm for standard fields
+  const fieldSchema: Record<string, TemplateFieldSchema> = {
+    leave_kind: { type: "select", dom_name: "leave_kind[]", required: true },
+    using_type: { type: "select", dom_name: "using_type[]", required: true },
+    begin_date: { type: "date", dom_name: "begin_date[]", required: true },
+    end_date: { type: "date", dom_name: "end_date[]", required: true },
+    purpose: { type: "text", dom_name: "purpose", required: false },
+    destination: { type: "text", dom_name: "destination", required: false },
+    emergency_address: { type: "text", dom_name: "emergency_address", required: false },
+    emergency_telephone: { type: "text", dom_name: "emergency_telephone", required: false },
+  };
 
+  await genericFillForm(frame, fieldSchema, {
+    leave_kind: leaveCode,
+    using_type: usingType,
+    begin_date: startDate,
+    end_date: endDate,
+    purpose,
+    destination,
+    emergency_address: process.env.IPK_EMERGENCY_ADDRESS || "Seoul",
+    emergency_telephone: process.env.IPK_EMERGENCY_TELEPHONE || "N/A",
+  });
+
+  // Hourly leave: set time dropdowns via evaluate (not in generic schema — custom DOM manipulation)
   if (isHourly) {
-    // Set start_time dropdown
     await frame.evaluate(
       (st: string) => {
         const startEl = document.querySelector('select[name="start_time[]"]') as HTMLSelectElement;
@@ -330,7 +460,6 @@ async function submitLeave(
     );
     await page.waitForTimeout(500);
 
-    // Set end_time dropdown after start_time change has settled
     await frame.evaluate(
       (et: string) => {
         const endEl = document.querySelector('select[name="end_time[]"]') as HTMLSelectElement;
@@ -348,11 +477,6 @@ async function submitLeave(
     );
     await page.waitForTimeout(500);
   }
-
-  await setFieldValue(frame, 'input[name="purpose"]', purpose);
-  await setFieldValue(frame, 'input[name="destination"]', destination);
-  await setFieldValue(frame, 'input[name="emergency_address"]', process.env.IPK_EMERGENCY_ADDRESS || "Seoul");
-  await setFieldValue(frame, 'input[name="emergency_telephone"]', process.env.IPK_EMERGENCY_TELEPHONE || "N/A");
 
   // Set subject last to avoid being overwritten by change events
   await setRequiredField(frame, 'input[name="subject"]', subject, "subject");
@@ -465,24 +589,42 @@ async function submitExpense(
   const purpose = params.purpose || "overtime work";
   const pReason = params.reason || `${itemName} - receipt attached`;
 
-  // Step 1: Set subject and budget_type (required)
-  await setRequiredField(frame, 'input[name="subject"]', subject, "subject");
-  await setRequiredSelect(frame, 'select[name="budget_type"]', budgetType, "budget_type");
+  // Step 1: Set subject and budget_type first (triggers cascade)
+  const cascadeSchema: Record<string, TemplateFieldSchema> = {
+    subject: { type: "text", dom_name: "subject", required: true },
+    budget_type: { type: "select", dom_name: "budget_type", required: true },
+  };
+  await genericFillForm(frame, cascadeSchema, { subject, budget_type: budgetType });
   await page.waitForTimeout(1000);
 
-  // Step 2: Set remaining fields (required)
-  await setRequiredSelect(frame, 'select[name="budget_code"]', budgetCode, "budget_code");
-  await setRequiredSelect(frame, 'select[name="pay_kind"]', "04", "pay_kind");
-  await setRequiredField(frame, 'textarea[name="p_reason"]', pReason, "p_reason");
-  await setRequiredField(frame, 'input[name="invoice[]"]', date, "invoice");
-  await setRequiredField(frame, 'input[name="item_desc[]"]', itemName, "item_desc");
-  await setFieldValue(frame, 'input[name="item_qty[]"]', "1");
-  await setFieldValue(frame, 'input[name="item_amount[]"]', String(amountNoVat));
-  await setFieldValue(frame, 'input[name="item_amount_vat[]"]', String(vat));
-  await setFieldValue(frame, 'input[name="ov_member"]', participants);
-  await setFieldValue(frame, 'input[name="ov_purpose"]', purpose);
+  // Step 2: Set remaining fields after cascade settles
+  const fieldSchema: Record<string, TemplateFieldSchema> = {
+    budget_code: { type: "select", dom_name: "budget_code", required: true },
+    pay_kind: { type: "select", dom_name: "pay_kind", required: true },
+    p_reason: { type: "textarea", dom_name: "p_reason", required: true },
+    invoice: { type: "date", dom_name: "invoice[]", required: true },
+    item_desc: { type: "text", dom_name: "item_desc[]", required: true },
+    item_qty: { type: "text", dom_name: "item_qty[]", required: false },
+    item_amount: { type: "text", dom_name: "item_amount[]", required: false },
+    item_amount_vat: { type: "text", dom_name: "item_amount_vat[]", required: false },
+    ov_member: { type: "text", dom_name: "ov_member", required: false },
+    ov_purpose: { type: "text", dom_name: "ov_purpose", required: false },
+  };
 
-  // Set totals
+  await genericFillForm(frame, fieldSchema, {
+    budget_code: budgetCode,
+    pay_kind: "04",
+    p_reason: pReason,
+    invoice: date,
+    item_desc: itemName,
+    item_qty: "1",
+    item_amount: String(amountNoVat),
+    item_amount_vat: String(vat),
+    ov_member: participants,
+    ov_purpose: purpose,
+  });
+
+  // Set totals via evaluate (uses getElementsByName — not in generic schema)
   await frame.evaluate(
     (args: { total: string; ral: string }) => {
       const totalEl = document.getElementsByName("total_amt")[0] as HTMLInputElement;
@@ -544,17 +686,32 @@ async function submitWorking(
 
   const subject = `Application for Working on ${workDate}, ${userInfo.name}`;
 
-  // Step 1: Set subject and budget_type (required)
-  await setRequiredField(frame, 'input[name="subject"]', subject, "subject");
-  await setRequiredSelect(frame, 'select[name="budget_type"]', budgetType, "budget_type");
+  // Use genericFillForm — budget_type must be set first with a wait for cascade
+  const fieldSchema: Record<string, TemplateFieldSchema> = {
+    subject: { type: "text", dom_name: "subject", required: true },
+    budget_type: { type: "select", dom_name: "budget_type", required: true },
+  };
+
+  // Step 1: Set subject and budget_type first (triggers cascade)
+  await genericFillForm(frame, fieldSchema, { subject, budget_type: budgetType });
   await page.waitForTimeout(1000);
 
-  // Step 2: Set remaining fields (required)
-  await setRequiredSelect(frame, 'select[name="budget_code"]', budgetCode, "budget_code");
-  await setRequiredField(frame, 'input[name="desired_date"]', workDate, "desired_date");
-  await setRequiredField(frame, 'input[name="wroking_place"]', workPlace, "wroking_place"); // Note: typo is in the original groupware
-  await setRequiredField(frame, 'input[name="sub_subject"]', reason, "sub_subject");
-  await setFieldValue(frame, 'textarea[name="contents1"]', details);
+  // Step 2: Set remaining fields after cascade settles
+  const remainingSchema: Record<string, TemplateFieldSchema> = {
+    budget_code: { type: "select", dom_name: "budget_code", required: true },
+    desired_date: { type: "date", dom_name: "desired_date", required: true },
+    wroking_place: { type: "text", dom_name: "wroking_place", required: true }, // Note: typo is in the original groupware
+    sub_subject: { type: "text", dom_name: "sub_subject", required: true },
+    contents1: { type: "textarea", dom_name: "contents1", required: false },
+  };
+
+  await genericFillForm(frame, remainingSchema, {
+    budget_code: budgetCode,
+    desired_date: workDate,
+    wroking_place: workPlace,
+    sub_subject: reason,
+    contents1: details,
+  });
 
   await page.waitForTimeout(1000);
 
@@ -599,24 +756,47 @@ async function submitTravel(
   const reportLeader = process.env.IPK_GROUP_LEADER || "";
   const userDept = userInfo.dept || process.env.IPK_USER_DEPT || "";
 
-  await setRequiredField(frame, 'input[name="subject"]', title, "subject");
-  await setRequiredField(frame, '.validate[name="report_date"]', reportDate, "report_date");
-  await setRequiredField(frame, '.validate[name="report_name"]', userInfo.name, "report_name");
-  await setFieldValue(frame, '.validate[name="report_post"]', reportPost);
-  await setFieldValue(frame, '.validate[name="report_group"]', userDept);
-  await setFieldValue(frame, '.validate[name="report_leader"]', reportLeader);
-  await setRequiredField(frame, '.validate[name="start_day"]', startDate, "start_day");
-  await setRequiredField(frame, '.validate[name="end_day"]', endDate, "end_day");
-  await setRequiredField(frame, '.validate[name="report_dest"]', destination, "report_dest");
-  await setRequiredField(frame, '.validate[name="purpose_field"]', purpose, "purpose_field");
-  await setFieldValue(frame, '.validate[name="date_field"]', schedule);
-  await setFieldValue(frame, '.validate[name="org_field"]', organization);
-  await setFieldValue(frame, '.validate[name="person_field"]', attendees);
-  await setFieldValue(frame, '.validate[name="discuss_field"]', params.details || purpose);
-  await setFieldValue(frame, '.validate[name="agenda_field"]', params.schedule || purpose);
-  await setFieldValue(frame, '.validate[name="result_field"]', params.reason || `Expected outcomes: ${purpose}`);
-  await setFieldValue(frame, '.validate[name="other_field"]', "N/A");
-  await setFieldValue(frame, '.validate[name="conclusion_field"]', params.destination ? `${purpose} at ${destination}` : `Travel for ${purpose}`);
+  const travelSchema: Record<string, TemplateFieldSchema> = {
+    subject:          { type: "text", dom_name: "subject", required: true },
+    report_date:      { type: "date", dom_name: "report_date", required: true, dom_selector: '.validate[name="report_date"]' },
+    report_name:      { type: "text", dom_name: "report_name", required: true, dom_selector: '.validate[name="report_name"]' },
+    report_post:      { type: "text", dom_name: "report_post", dom_selector: '.validate[name="report_post"]' },
+    report_group:     { type: "text", dom_name: "report_group", dom_selector: '.validate[name="report_group"]' },
+    report_leader:    { type: "text", dom_name: "report_leader", dom_selector: '.validate[name="report_leader"]' },
+    start_day:        { type: "date", dom_name: "start_day", required: true, dom_selector: '.validate[name="start_day"]' },
+    end_day:          { type: "date", dom_name: "end_day", required: true, dom_selector: '.validate[name="end_day"]' },
+    report_dest:      { type: "text", dom_name: "report_dest", required: true, dom_selector: '.validate[name="report_dest"]' },
+    purpose_field:    { type: "text", dom_name: "purpose_field", required: true, dom_selector: '.validate[name="purpose_field"]' },
+    date_field:       { type: "text", dom_name: "date_field", dom_selector: '.validate[name="date_field"]' },
+    org_field:        { type: "text", dom_name: "org_field", dom_selector: '.validate[name="org_field"]' },
+    person_field:     { type: "text", dom_name: "person_field", dom_selector: '.validate[name="person_field"]' },
+    discuss_field:    { type: "text", dom_name: "discuss_field", dom_selector: '.validate[name="discuss_field"]' },
+    agenda_field:     { type: "text", dom_name: "agenda_field", dom_selector: '.validate[name="agenda_field"]' },
+    result_field:     { type: "text", dom_name: "result_field", dom_selector: '.validate[name="result_field"]' },
+    other_field:      { type: "text", dom_name: "other_field", dom_selector: '.validate[name="other_field"]' },
+    conclusion_field: { type: "text", dom_name: "conclusion_field", dom_selector: '.validate[name="conclusion_field"]' },
+  };
+
+  await genericFillForm(frame, travelSchema, {
+    subject: title,
+    report_date: reportDate,
+    report_name: userInfo.name,
+    report_post: reportPost,
+    report_group: userDept,
+    report_leader: reportLeader,
+    start_day: startDate,
+    end_day: endDate,
+    report_dest: destination,
+    purpose_field: purpose,
+    date_field: schedule,
+    org_field: organization,
+    person_field: attendees,
+    discuss_field: params.details || purpose,
+    agenda_field: params.schedule || purpose,
+    result_field: params.reason || `Expected outcomes: ${purpose}`,
+    other_field: "N/A",
+    conclusion_field: params.destination ? `${purpose} at ${destination}` : `Travel for ${purpose}`,
+  });
 
   // Handle attachment if provided
   if (params.attachment_path) {
@@ -668,36 +848,38 @@ async function submitTravelRequest(
 
   const subject = `[Request] ${title}`;
 
-  // Set common fields (required)
-  await setRequiredField(frame, 'input[name="subject"]', subject, "subject");
-
-  // Budget fields (required)
-  await setRequiredSelect(frame, 'select[name="budget_type"]', budgetType, "budget_type");
+  // Step 1: Set subject and budget_type (triggers cascade)
+  const cascadeSchema: Record<string, TemplateFieldSchema> = {
+    subject:     { type: "text", dom_name: "subject", required: true },
+    budget_type: { type: "select", dom_name: "budget_type", required: true },
+  };
+  await genericFillForm(frame, cascadeSchema, { subject, budget_type: budgetType });
   await page.waitForTimeout(1000);
-  await setRequiredSelect(frame, 'select[name="budget_code"]', budgetCode, "budget_code");
 
-  // Travel-specific fields (required)
-  await setRequiredField(frame, '.validate[name="start_day"]', startDate, "start_day");
-  await setRequiredField(frame, '.validate[name="end_day"]', endDate, "end_day");
-  await setRequiredField(frame, '.validate[name="report_dest"]', destination, "report_dest");
-  await setRequiredField(frame, '.validate[name="purpose_field"]', purpose, "purpose_field");
+  // Step 2: Set budget_code and travel-specific fields after cascade settles
+  const fieldSchema: Record<string, TemplateFieldSchema> = {
+    budget_code:   { type: "select", dom_name: "budget_code", required: true },
+    start_day:     { type: "date", dom_name: "start_day", required: true, dom_selector: '.validate[name="start_day"]' },
+    end_day:       { type: "date", dom_name: "end_day", required: true, dom_selector: '.validate[name="end_day"]' },
+    report_dest:   { type: "text", dom_name: "report_dest", required: true, dom_selector: '.validate[name="report_dest"]' },
+    purpose_field: { type: "text", dom_name: "purpose_field", required: true, dom_selector: '.validate[name="purpose_field"]' },
+    org_field:     { type: "text", dom_name: "org_field", dom_selectors: ['.validate[name="org_field"]', 'input[name="organization"]'] },
+    person_field:  { type: "text", dom_name: "person_field", dom_selectors: ['.validate[name="person_field"]', 'input[name="attendees"]'] },
+    date_field:    { type: "text", dom_name: "date_field", dom_selector: '.validate[name="date_field"]' },
+    discuss_field: { type: "text", dom_name: "discuss_field", dom_selectors: ['textarea[name="contents1"]', '.validate[name="discuss_field"]'] },
+  };
 
-  // Organization and attendees
-  if (params.organization) {
-    await setFieldValue(frame, '.validate[name="org_field"]', params.organization);
-    await setFieldValue(frame, 'input[name="organization"]', params.organization);
-  }
-  if (params.attendees) {
-    await setFieldValue(frame, '.validate[name="person_field"]', params.attendees);
-    await setFieldValue(frame, 'input[name="attendees"]', params.attendees);
-  }
-  if (params.schedule) {
-    await setFieldValue(frame, '.validate[name="date_field"]', params.schedule);
-  }
-  if (params.details) {
-    await setFieldValue(frame, 'textarea[name="contents1"]', params.details);
-    await setFieldValue(frame, '.validate[name="discuss_field"]', params.details);
-  }
+  await genericFillForm(frame, fieldSchema, {
+    budget_code: budgetCode,
+    start_day: startDate,
+    end_day: endDate,
+    report_dest: destination,
+    purpose_field: purpose,
+    org_field: params.organization || "",
+    person_field: params.attendees || "",
+    date_field: params.schedule || "",
+    discuss_field: params.details || "",
+  });
 
   // Handle attachment if provided
   if (params.attachment_path) {
@@ -751,48 +933,54 @@ async function submitBudgetTransfer(
   }
 
   const subject = `[Budget Transfer] ${title}`;
+  const budgetTypeValue = transferType === "rnd" ? "02" : "01";
 
-  // Set subject (required)
-  await setRequiredField(frame, 'input[name="subject"]', subject, "subject");
-
-  // Try budget type selection
-  if (transferType === "rnd") {
-    await setSelectValue(frame, 'select[name="budget_type"]', "02");
-  } else {
-    await setSelectValue(frame, 'select[name="budget_type"]', "01");
-  }
+  // Step 1: Set subject and budget_type (triggers cascade)
+  const cascadeSchema: Record<string, TemplateFieldSchema> = {
+    subject:     { type: "text", dom_name: "subject", required: true },
+    budget_type: { type: "select", dom_name: "budget_type" },
+  };
+  await genericFillForm(frame, cascadeSchema, { subject, budget_type: budgetTypeValue });
   await page.waitForTimeout(1000);
 
-  // Source budget code - try various common selectors
-  if (fromBudget) {
-    await setSelectValue(frame, 'select[name="budget_code"]', fromBudget);
-    await setSelectValue(frame, 'select[name="from_budget_code"]', fromBudget);
-    await setSelectValue(frame, 'select[name="budget_code_from"]', fromBudget);
-    await setFieldValue(frame, 'input[name="from_budget"]', fromBudget);
-    await setFieldValue(frame, 'input[name="budget_code_from"]', fromBudget);
-  }
+  // Step 2: Set remaining fields with multi-selector fallbacks
+  const fieldSchema: Record<string, TemplateFieldSchema> = {
+    from_budget: {
+      type: "text", dom_name: null,
+      dom_selectors: [
+        'select[name="budget_code"]', 'select[name="from_budget_code"]', 'select[name="budget_code_from"]',
+        'input[name="from_budget"]', 'input[name="budget_code_from"]',
+      ],
+    },
+    to_budget: {
+      type: "text", dom_name: null,
+      dom_selectors: [
+        'select[name="to_budget_code"]', 'select[name="budget_code_to"]',
+        'input[name="to_budget"]', 'input[name="budget_code_to"]',
+      ],
+    },
+    amount: {
+      type: "text", dom_name: null,
+      dom_selectors: [
+        'input[name="amount"]', 'input[name="transfer_amount"]',
+        'input[name="item_amount[]"]', 'input[name="total_amt"]',
+      ],
+    },
+    reason: {
+      type: "text", dom_name: null,
+      dom_selectors: [
+        'textarea[name="reason"]', 'textarea[name="p_reason"]',
+        'textarea[name="contents1"]', 'input[name="sub_subject"]',
+      ],
+    },
+  };
 
-  // Destination budget code - try various common selectors
-  if (toBudget) {
-    await setSelectValue(frame, 'select[name="to_budget_code"]', toBudget);
-    await setSelectValue(frame, 'select[name="budget_code_to"]', toBudget);
-    await setFieldValue(frame, 'input[name="to_budget"]', toBudget);
-    await setFieldValue(frame, 'input[name="budget_code_to"]', toBudget);
-  }
-
-  // Amount
-  if (amount) {
-    await setFieldValue(frame, 'input[name="amount"]', String(amount));
-    await setFieldValue(frame, 'input[name="transfer_amount"]', String(amount));
-    await setFieldValue(frame, 'input[name="item_amount[]"]', String(amount));
-    await setFieldValue(frame, 'input[name="total_amt"]', String(amount));
-  }
-
-  // Reason/purpose
-  await setFieldValue(frame, 'textarea[name="reason"]', reason);
-  await setFieldValue(frame, 'textarea[name="p_reason"]', reason);
-  await setFieldValue(frame, 'textarea[name="contents1"]', reason);
-  await setFieldValue(frame, 'input[name="sub_subject"]', reason);
+  await genericFillForm(frame, fieldSchema, {
+    from_budget: fromBudget || undefined,
+    to_budget: toBudget || undefined,
+    amount: amount || undefined,
+    reason,
+  });
 
   // Handle attachment if provided
   if (params.attachment_path) {
@@ -854,42 +1042,54 @@ async function submitCardExpense(
   const purposeMinutes = params.purpose_minutes || params.purpose || "";
   const pReason = params.reason || `${itemDesc} - receipt attached`;
 
-  // Step 1: Set subject and budget_type
-  await setRequiredField(frame, 'input[name="subject"]', subject, "subject");
-  await setRequiredSelect(frame, 'select[name="budget_type"]', "02", "budget_type");
+  // Step 1: Set subject and budget_type first (triggers cascade)
+  const cascadeSchema: Record<string, TemplateFieldSchema> = {
+    subject: { type: "text", dom_name: "subject", required: true },
+    budget_type: { type: "select", dom_name: "budget_type", required: true },
+  };
+  await genericFillForm(frame, cascadeSchema, { subject, budget_type: "02" });
   await page.waitForTimeout(1000);
 
-  // Step 2: Set budget code and payment method
-  await setRequiredSelect(frame, 'select[name="budget_code"]', budgetCode, "budget_code");
-  await setRequiredSelect(frame, 'select[name="pay_kind"]', "04", "pay_kind"); // 04 = Corp Card
+  // Step 2: Set fields after cascade settles
+  const fieldSchema: Record<string, TemplateFieldSchema> = {
+    budget_code: { type: "select", dom_name: "budget_code", required: true },
+    pay_kind: { type: "select", dom_name: "pay_kind", required: true },
+    card_no: { type: "text", dom_name: "card_no", required: false },
+    p_reason: { type: "textarea", dom_name: "p_reason", required: true },
+    invoice: { type: "date", dom_name: "invoice[]", required: true },
+    item_desc: { type: "text", dom_name: "item_desc[]", required: true },
+    item_qty: { type: "text", dom_name: "item_qty[]", required: false },
+    item_amount: { type: "text", dom_name: "item_amount[]", required: false },
+    item_amount_vat: { type: "text", dom_name: "item_amount_vat[]", required: false },
+    item_account_code: { type: "select", dom_name: "item_account_code[]", required: false },
+    item_vendor: { type: "text", dom_name: "item_vendor[]", required: false },
+    item_control_no: { type: "text", dom_name: "item_control_no[]", required: false },
+    ov_member: { type: "text", dom_name: "ov_member", required: false },
+    ov_purpose: { type: "text", dom_name: "ov_purpose", required: false },
+    ov_place: { type: "text", dom_name: "ov_place", required: false },
+  };
 
-  // Card number (try to set if available)
   const cardNo = params.corp_card_no || process.env.IPK_CORP_CARD_NO || "";
-  if (cardNo) {
-    await setFieldValue(frame, 'input[name="card_no"]', cardNo);
-  }
 
-  // Step 3: Expense line items
-  await setRequiredField(frame, 'textarea[name="p_reason"]', pReason, "p_reason");
-  await setRequiredField(frame, 'input[name="invoice[]"]', date, "invoice");
-  await setRequiredField(frame, 'input[name="item_desc[]"]', itemDesc, "item_desc");
-  await setFieldValue(frame, 'input[name="item_qty[]"]', "1");
-  await setFieldValue(frame, 'input[name="item_amount[]"]', String(amountNoVat));
-  await setFieldValue(frame, 'input[name="item_amount_vat[]"]', String(vat));
+  await genericFillForm(frame, fieldSchema, {
+    budget_code: budgetCode,
+    pay_kind: "04", // 04 = Corp Card
+    card_no: cardNo,
+    p_reason: pReason,
+    invoice: date,
+    item_desc: itemDesc,
+    item_qty: "1",
+    item_amount: String(amountNoVat),
+    item_amount_vat: String(vat),
+    item_account_code: accountCode,
+    item_vendor: vendor,
+    item_control_no: controlNo,
+    ov_member: participants,
+    ov_purpose: purposeMinutes,
+    ov_place: venue,
+  });
 
-  // Account code selection
-  await setSelectValue(frame, 'select[name="item_account_code[]"]', accountCode);
-
-  // Vendor and control number
-  if (vendor) await setFieldValue(frame, 'input[name="item_vendor[]"]', vendor);
-  if (controlNo) await setFieldValue(frame, 'input[name="item_control_no[]"]', controlNo);
-
-  // Meeting info fields
-  await setFieldValue(frame, 'input[name="ov_member"]', participants);
-  await setFieldValue(frame, 'input[name="ov_purpose"]', purposeMinutes);
-  if (venue) await setFieldValue(frame, 'input[name="ov_place"]', venue);
-
-  // Set totals
+  // Set totals via evaluate (uses getElementsByName — not in generic schema)
   await frame.evaluate(
     (args: { total: string; ral: string }) => {
       const totalEl = document.getElementsByName("total_amt")[0] as HTMLInputElement;
@@ -974,22 +1174,24 @@ async function submitTravelSettlement(
     const startDate = params.start_date || todayStr();
     const endDate = params.end_date || startDate;
 
-    // Set date fields manually
-    await setFieldValue(frame, 'input[name="start_date"]', startDate);
-    await setFieldValue(frame, 'input[name="end_date"]', endDate);
+    // Set date and text fields via genericFillForm
+    const manualSchema: Record<string, TemplateFieldSchema> = {
+      start_date:       { type: "date", dom_name: "start_date" },
+      end_date:         { type: "date", dom_name: "end_date" },
+      purpose_category: { type: "select", dom_name: "purpose_category" },
+      purpose:          { type: "textarea", dom_name: "purpose" },
+      destination:      { type: "text", dom_name: "destination" },
+    };
 
-    // Set text fields from parent doc
-    if (params.purpose_category) {
-      await setSelectValue(frame, 'select[name="purpose_category"]', params.purpose_category);
-    }
-    if (params.purpose) {
-      await setFieldValue(frame, 'textarea[name="purpose"], input[name="purpose"]', params.purpose);
-    }
-    if (params.destination) {
-      await setFieldValue(frame, 'input[name="destination"]', params.destination);
-    }
+    await genericFillForm(frame, manualSchema, {
+      start_date: startDate,
+      end_date: endDate,
+      purpose_category: params.purpose_category || "",
+      purpose: params.purpose || "",
+      destination: params.destination || "",
+    });
 
-    // Run AJAX cascade: province → city → transport_mode → budget_type → budget_code → item_no
+    // Run AJAX cascade: province -> city -> transport_mode -> budget_type -> budget_code -> item_no
     const province = params.province || "";
     const city = params.city || "";
     const transportMode = params.transport_mode || "Other Public Transporation";
@@ -1046,16 +1248,7 @@ async function submitTravelSettlement(
     }
   }
 
-  // Step 3: Set subject
-  await setRequiredField(frame, 'input[name="subject"]', subject, "subject");
-
-  // Step 4: Set budget hidden fields (may already be set by cascade, but ensure)
-  const budgetControlNo = params.budget_control_no || "";
-  if (budgetControlNo) {
-    await setFieldValue(frame, 'input[name="budget_control_no"]', budgetControlNo);
-  }
-
-  // Step 5: Expense amounts
+  // Step 3: Set subject, budget control, and expense amounts via genericFillForm
   const startDate = params.start_date || todayStr();
   const endDate = params.end_date || startDate;
   const nights = Math.max(0, Math.round((new Date(endDate).getTime() - new Date(startDate).getTime()) / 86400000));
@@ -1064,10 +1257,23 @@ async function submitTravelSettlement(
   const accommodationFee = params.accommodation || 0;
   const foodExpense = params.food_expense || 0;
 
-  await setFieldValue(frame, 'input[name="daily_fee_total"]', String(dailyExpense));
-  if (transportFee) await setFieldValue(frame, 'input[name="ocar_pay"]', String(transportFee));
-  if (accommodationFee) await setFieldValue(frame, 'input[name="accommodation_fee_total"]', String(accommodationFee));
-  if (foodExpense) await setFieldValue(frame, 'input[name="food_fee_total"]', String(foodExpense));
+  const postSchema: Record<string, TemplateFieldSchema> = {
+    subject:                 { type: "text", dom_name: "subject", required: true },
+    budget_control_no:       { type: "hidden", dom_name: "budget_control_no" },
+    daily_fee_total:         { type: "text", dom_name: "daily_fee_total" },
+    ocar_pay:                { type: "text", dom_name: "ocar_pay" },
+    accommodation_fee_total: { type: "text", dom_name: "accommodation_fee_total" },
+    food_fee_total:          { type: "text", dom_name: "food_fee_total" },
+  };
+
+  await genericFillForm(frame, postSchema, {
+    subject,
+    budget_control_no: params.budget_control_no || "",
+    daily_fee_total: String(dailyExpense),
+    ocar_pay: transportFee ? String(transportFee) : "",
+    accommodation_fee_total: accommodationFee ? String(accommodationFee) : "",
+    food_fee_total: foodExpense ? String(foodExpense) : "",
+  });
 
   // Step 6: Handle attachment
   if (params.attachment_path) {
@@ -1140,24 +1346,40 @@ async function submitLeaveReturn(
   }
   const subject = params.title || `Leave return ${returnLabel} ${originalDoc}`;
 
-  // Set form fields
-  await setRequiredField(frame, 'input[name="subject"]', subject, "subject");
-  await setRequiredField(frame, 'input[name="original_leave_doc"]', originalDoc, "original_leave_doc");
+  // Use genericFillForm with AppFrm-028 field schema
+  const fieldSchema: Record<string, TemplateFieldSchema> = {
+    subject: { type: "text", dom_name: "subject", required: true },
+    original_leave_doc: { type: "text", dom_name: "original_leave_doc", required: true },
+    leave_type: { type: "select", dom_name: "leave_kind[]", required: false },
+    period_start: { type: "date", dom_name: "begin_date", required: true },
+    period_end: { type: "date", dom_name: "end_date", required: true },
+    return_days: { type: "integer", dom_name: "return_days", required: false },
+    return_hours: { type: "integer", dom_name: "return_hours", required: false },
+    description: { type: "textarea", dom_name: "description", required: false },
+  };
 
-  // Leave type selection
-  await setSelectValue(frame, 'select[name="leave_kind[]"]', leaveCode);
+  const userData: Record<string, any> = {
+    subject,
+    original_leave_doc: originalDoc,
+    leave_type: leaveCode,
+    period_start: periodStart,
+    period_end: periodEnd,
+    return_days: String(returnDays),
+    return_hours: String(returnHours),
+    description,
+  };
 
-  // Period
-  await setRequiredField(frame, 'input[name="begin_date"]', periodStart, "begin_date");
-  await setRequiredField(frame, 'input[name="end_date"]', periodEnd, "end_date");
+  // Post-fill hook: mirror description to contents1
+  const hooks: FillHook[] = [
+    {
+      trigger: "post_fill",
+      fn: async (f: any) => {
+        await setFieldValue(f, 'textarea[name="contents1"]', description);
+      },
+    },
+  ];
 
-  // Return days/hours
-  await setFieldValue(frame, 'input[name="return_days"]', String(returnDays));
-  await setFieldValue(frame, 'input[name="return_hours"]', String(returnHours));
-
-  // Description
-  await setFieldValue(frame, 'textarea[name="description"]', description);
-  await setFieldValue(frame, 'textarea[name="contents1"]', description);
+  await genericFillForm(frame, fieldSchema, userData, hooks);
 
   await page.waitForTimeout(1000);
   await setFormMode(frame, mode);
@@ -1195,73 +1417,90 @@ async function submitSeminar(
   const materialDesc = params.material_description || "";
   const conferenceOrJournal = params.conference_or_journal || params.organization || "";
 
-  // Set form fields
-  await setRequiredField(frame, 'input[name="subject"]', subject, "subject");
-  await setFieldValue(frame, 'input[name="requester"]', requester);
-  await setFieldValue(frame, '.validate[name="requester"]', requester);
-
-  // Section 1: Purpose
-  await setFieldValue(frame, 'textarea[name="disclosure_purpose"]', disclosurePurpose);
-  await setFieldValue(frame, '.validate[name="purpose_field"]', disclosurePurpose);
-
-  // Section 2: Date
-  await setFieldValue(frame, 'input[name="disclosure_date"]', disclosureDate);
-  await setFieldValue(frame, '.validate[name="disclosure_date"]', disclosureDate);
-
-  // Section 3: Material description
-  await setFieldValue(frame, 'input[name="material_description"]', materialDesc);
-  await setFieldValue(frame, '.validate[name="material_description"]', materialDesc);
-
-  // Section 4: Conference or journal
-  await setFieldValue(frame, 'input[name="conference_or_journal"]', conferenceOrJournal);
-  await setFieldValue(frame, '.validate[name="conference_or_journal"]', conferenceOrJournal);
-
-  // Radio Q&A fields (Q1-Q5) via parameterized evaluate
-  const radioValues: Record<string, string> = {
-    patent_filed: params.patent_filed || "",
-    patent_planned: params.patent_planned || "",
-    material_published: params.material_published || "N",
-    collaborator_approval: params.collaborator_approval || "Y",
-    contains_confidential: params.contains_confidential || "N",
+  // Use genericFillForm with AppFrm-043 field schema
+  const fieldSchema: Record<string, TemplateFieldSchema> = {
+    subject: { type: "text", dom_name: "subject", required: true },
+    requester: { type: "text", dom_name: "requester", required: false },
+    disclosure_purpose: { type: "textarea", dom_name: "disclosure_purpose", required: false },
+    disclosure_date: { type: "date", dom_name: "disclosure_date", required: false },
+    material_description: { type: "text", dom_name: "material_description", required: false },
+    conference_or_journal: { type: "text", dom_name: "conference_or_journal", required: false },
   };
 
-  await frame.evaluate(
-    (rv: Record<string, string>) => {
-      // Map param names to radio group names/indices in the form
-      const radioMap: [string, string][] = [
-        ["patent_filed", "Q1"],
-        ["patent_planned", "Q2"],
-        ["material_published", "Q3"],
-        ["collaborator_approval", "Q4"],
-        ["contains_confidential", "Q5"],
-      ];
-      for (const [paramKey, qName] of radioMap) {
-        const val = rv[paramKey];
-        if (!val) continue;
-        // Try multiple selector patterns for radio buttons
-        const selectors = [
-          `input[name="${qName}"][value="${val}"]`,
-          `input[name="radio_${qName}"][value="${val}"]`,
-          `input[name="chk_${qName}"][value="${val}"]`,
-        ];
-        for (const sel of selectors) {
-          const el = document.querySelector(sel) as HTMLInputElement;
-          if (el) { el.checked = true; el.dispatchEvent(new Event("change", { bubbles: true })); break; }
-        }
-      }
-    },
-    radioValues
-  );
+  const userData: Record<string, any> = {
+    subject,
+    requester,
+    disclosure_purpose: disclosurePurpose,
+    disclosure_date: disclosureDate,
+    material_description: materialDesc,
+    conference_or_journal: conferenceOrJournal,
+  };
 
-  // Predatory check checkbox (mandatory acknowledgment — always check)
-  await frame.evaluate(() => {
-    const chk = document.querySelector('input[name="chk410306"]') as HTMLInputElement
-      || document.querySelector('input[type="checkbox"][name*="chk"]') as HTMLInputElement;
-    if (chk && !chk.checked) {
-      chk.checked = true;
-      chk.dispatchEvent(new Event("change", { bubbles: true }));
-    }
-  });
+  // Post-fill hooks: mirror to .validate fields, set radios, check predatory checkbox
+  const hooks: FillHook[] = [
+    {
+      trigger: "post_fill",
+      fn: async (f: any) => {
+        // Mirror fields to .validate selectors
+        await setFieldValue(f, '.validate[name="requester"]', requester);
+        await setFieldValue(f, '.validate[name="purpose_field"]', disclosurePurpose);
+        await setFieldValue(f, '.validate[name="disclosure_date"]', disclosureDate);
+        await setFieldValue(f, '.validate[name="material_description"]', materialDesc);
+        await setFieldValue(f, '.validate[name="conference_or_journal"]', conferenceOrJournal);
+      },
+    },
+    {
+      trigger: "evaluate",
+      fn: async (f: any) => {
+        // Radio Q&A fields (Q1-Q5) via parameterized evaluate
+        const radioValues: Record<string, string> = {
+          patent_filed: params.patent_filed || "",
+          patent_planned: params.patent_planned || "",
+          material_published: params.material_published || "N",
+          collaborator_approval: params.collaborator_approval || "Y",
+          contains_confidential: params.contains_confidential || "N",
+        };
+
+        await f.evaluate(
+          (rv: Record<string, string>) => {
+            const radioMap: [string, string][] = [
+              ["patent_filed", "Q1"],
+              ["patent_planned", "Q2"],
+              ["material_published", "Q3"],
+              ["collaborator_approval", "Q4"],
+              ["contains_confidential", "Q5"],
+            ];
+            for (const [paramKey, qName] of radioMap) {
+              const val = rv[paramKey];
+              if (!val) continue;
+              const selectors = [
+                `input[name="${qName}"][value="${val}"]`,
+                `input[name="radio_${qName}"][value="${val}"]`,
+                `input[name="chk_${qName}"][value="${val}"]`,
+              ];
+              for (const sel of selectors) {
+                const el = document.querySelector(sel) as HTMLInputElement;
+                if (el) { el.checked = true; el.dispatchEvent(new Event("change", { bubbles: true })); break; }
+              }
+            }
+          },
+          radioValues
+        );
+
+        // Predatory check checkbox (mandatory acknowledgment — always check)
+        await f.evaluate(() => {
+          const chk = document.querySelector('input[name="chk410306"]') as HTMLInputElement
+            || document.querySelector('input[type="checkbox"][name*="chk"]') as HTMLInputElement;
+          if (chk && !chk.checked) {
+            chk.checked = true;
+            chk.dispatchEvent(new Event("change", { bubbles: true }));
+          }
+        });
+      },
+    },
+  ];
+
+  await genericFillForm(frame, fieldSchema, userData, hooks);
 
   // Handle attachment
   if (params.attachment_path) {
@@ -1308,109 +1547,143 @@ async function submitOverseasTravel(
   const budgetControlNo = params.budget_control_no || "";
   const corpCardNo = params.corp_card_no || process.env.IPK_CORP_CARD_NO || "";
 
-  // Set basic fields
-  await setRequiredField(frame, 'input[name="subject"]', subject, "subject");
-
-  // Traveler info
+  // Use genericFillForm for standard text/date fields
   const payrollId = process.env.IPK_PAYROLL_ID || "";
   const travelerStr = payrollId ? `${userInfo.name}(${payrollId})` : userInfo.name;
-  await setFieldValue(frame, 'input[name="traveler"]', travelerStr);
-  await setFieldValue(frame, '.validate[name="traveler"]', travelerStr);
 
-  // Budget control number
-  if (budgetControlNo) {
-    await setFieldValue(frame, 'input[name="budget_control_no"]', budgetControlNo);
-    await setFieldValue(frame, '.validate[name="budget_control_no"]', budgetControlNo);
-  }
+  const fieldSchema: Record<string, TemplateFieldSchema> = {
+    subject: { type: "text", dom_name: "subject", required: true },
+    traveler: { type: "text", dom_name: "traveler", required: false },
+    budget_control_no: { type: "text", dom_name: "budget_control_no", required: false },
+    country: { type: "text", dom_name: "country", required: true },
+    conference_name: { type: "text", dom_name: "conference_name", required: false },
+    purpose: { type: "textarea", dom_name: "purpose", required: true },
+    travel_start: { type: "date", dom_name: "travel_start", required: true },
+    travel_end: { type: "date", dom_name: "travel_end", required: true },
+    payment_date: { type: "date", dom_name: "payment_date", required: false },
+    corp_card_no: { type: "text", dom_name: "corp_card_no", required: false },
+    // Expense fields
+    transport_fee_total: { type: "number", dom_name: "transport_fee_total", required: false },
+    transport_fee_card: { type: "number", dom_name: "transport_fee_card", required: false },
+    daily_expense_total: { type: "number", dom_name: "daily_expense_total", required: false },
+    daily_expense_cash: { type: "number", dom_name: "daily_expense_cash", required: false },
+    accommodation_total: { type: "number", dom_name: "accommodation_total", required: false },
+    accommodation_card: { type: "number", dom_name: "accommodation_card", required: false },
+    food_expense_total: { type: "number", dom_name: "food_expense_total", required: false },
+    food_expense_cash: { type: "number", dom_name: "food_expense_cash", required: false },
+    settle_amount: { type: "number", dom_name: "settle_amount", required: false },
+    reimbursement: { type: "number", dom_name: "reimbursement", required: false },
+    business_materials: { type: "text", dom_name: "business_materials", required: false },
+  };
 
-  // Country and conference
-  await setRequiredField(frame, 'input[name="country"]', country, "country");
-  await setFieldValue(frame, 'input[name="conference_name"]', conferenceName);
-  await setFieldValue(frame, '.validate[name="conference_name"]', conferenceName);
+  const userData: Record<string, any> = {
+    subject,
+    traveler: travelerStr,
+    budget_control_no: budgetControlNo,
+    country,
+    conference_name: conferenceName,
+    purpose,
+    travel_start: travelStart,
+    travel_end: travelEnd,
+    payment_date: paymentDate,
+    corp_card_no: corpCardNo,
+    transport_fee_total: params.transport_fee_budget,
+    transport_fee_card: params.transport_fee_corp_card,
+    daily_expense_total: params.daily_expense_budget,
+    daily_expense_cash: params.daily_expense_cash,
+    accommodation_total: params.accommodation_budget,
+    accommodation_card: params.accommodation_corp_card,
+    food_expense_total: params.food_expense_budget,
+    food_expense_cash: params.food_expense_cash,
+    settle_amount: params.settle_amount,
+    reimbursement: params.reimbursement,
+    business_materials: params.material_description,
+  };
 
-  // Purpose
-  await setRequiredField(frame, 'textarea[name="purpose"]', purpose, "purpose");
-  await setFieldValue(frame, '.validate[name="purpose_field"]', purpose);
+  // Post-fill hooks: mirror to .validate fields, set radios, schedule rows, budget cascade
+  const hooks: FillHook[] = [
+    {
+      trigger: "post_fill",
+      fn: async (f: any) => {
+        // Mirror fields to .validate selectors
+        await setFieldValue(f, '.validate[name="traveler"]', travelerStr);
+        if (budgetControlNo) await setFieldValue(f, '.validate[name="budget_control_no"]', budgetControlNo);
+        await setFieldValue(f, '.validate[name="conference_name"]', conferenceName);
+        await setFieldValue(f, '.validate[name="purpose_field"]', purpose);
+        if (corpCardNo) await setFieldValue(f, '.validate[name="corp_card_no"]', corpCardNo);
 
-  // Travel with invitation (default: No), Car rent (default: No)
-  await frame.evaluate(() => {
-    const radioSelectors = [
-      ['input[name="travel_with_invitation"][value="No"]', 'input[name="invitation"][value="No"]'],
-      ['input[name="car_rent"][value="No"]', 'input[name="rent_car"][value="No"]'],
-    ];
-    for (const selectors of radioSelectors) {
-      for (const sel of selectors) {
-        const el = document.querySelector(sel) as HTMLInputElement;
-        if (el) { el.checked = true; el.dispatchEvent(new Event("change", { bubbles: true })); break; }
-      }
-    }
-  });
-
-  // Dates
-  await setRequiredField(frame, 'input[name="travel_start"]', travelStart, "travel_start");
-  await setRequiredField(frame, 'input[name="travel_end"]', travelEnd, "travel_end");
-  await setFieldValue(frame, 'input[name="payment_date"]', paymentDate);
-
-  // Schedule rows (daily itinerary)
-  if (params.schedule_rows && Array.isArray(params.schedule_rows)) {
-    await frame.evaluate(
-      (rows: { from: string; to: string; schedule: string; transportation: string }[]) => {
-        for (let i = 0; i < rows.length; i++) {
-          const row = rows[i];
-          const fromEl = document.querySelector(`input[name="schedule_from[${i}]"]`) as HTMLInputElement;
-          const toEl = document.querySelector(`input[name="schedule_to[${i}]"]`) as HTMLInputElement;
-          const schedEl = document.querySelector(`input[name="schedule_desc[${i}]"]`) as HTMLInputElement
-            || document.querySelector(`textarea[name="schedule_desc[${i}]"]`) as HTMLTextAreaElement;
-          const transEl = document.querySelector(`input[name="schedule_transport[${i}]"]`) as HTMLInputElement;
-          if (fromEl) fromEl.value = row.from;
-          if (toEl) toEl.value = row.to;
-          if (schedEl) schedEl.value = row.schedule;
-          if (transEl) transEl.value = row.transportation;
+        // Mirror expense fields to .validate
+        const expenseFields: [string, number | undefined][] = [
+          ["transport_fee_total", params.transport_fee_budget],
+          ["transport_fee_card", params.transport_fee_corp_card],
+          ["daily_expense_total", params.daily_expense_budget],
+          ["daily_expense_cash", params.daily_expense_cash],
+          ["accommodation_total", params.accommodation_budget],
+          ["accommodation_card", params.accommodation_corp_card],
+          ["food_expense_total", params.food_expense_budget],
+          ["food_expense_cash", params.food_expense_cash],
+          ["settle_amount", params.settle_amount],
+          ["reimbursement", params.reimbursement],
+        ];
+        for (const [fieldName, value] of expenseFields) {
+          if (value !== undefined && value !== null) {
+            await setFieldValue(f, `.validate[name="${fieldName}"]`, String(value));
+          }
+        }
+        if (params.material_description) {
+          await setFieldValue(f, '.validate[name="business_materials"]', params.material_description);
         }
       },
-      params.schedule_rows
-    );
-  }
+    },
+    {
+      trigger: "evaluate",
+      fn: async (f: any) => {
+        // Travel with invitation (default: No), Car rent (default: No)
+        await f.evaluate(() => {
+          const radioSelectors = [
+            ['input[name="travel_with_invitation"][value="No"]', 'input[name="invitation"][value="No"]'],
+            ['input[name="car_rent"][value="No"]', 'input[name="rent_car"][value="No"]'],
+          ];
+          for (const selectors of radioSelectors) {
+            for (const sel of selectors) {
+              const el = document.querySelector(sel) as HTMLInputElement;
+              if (el) { el.checked = true; el.dispatchEvent(new Event("change", { bubbles: true })); break; }
+            }
+          }
+        });
 
-  // Budget account code
+        // Schedule rows (daily itinerary)
+        if (params.schedule_rows && Array.isArray(params.schedule_rows)) {
+          await f.evaluate(
+            (rows: { from: string; to: string; schedule: string; transportation: string }[]) => {
+              for (let i = 0; i < rows.length; i++) {
+                const row = rows[i];
+                const fromEl = document.querySelector(`input[name="schedule_from[${i}]"]`) as HTMLInputElement;
+                const toEl = document.querySelector(`input[name="schedule_to[${i}]"]`) as HTMLInputElement;
+                const schedEl = document.querySelector(`input[name="schedule_desc[${i}]"]`) as HTMLInputElement
+                  || document.querySelector(`textarea[name="schedule_desc[${i}]"]`) as HTMLTextAreaElement;
+                const transEl = document.querySelector(`input[name="schedule_transport[${i}]"]`) as HTMLInputElement;
+                if (fromEl) fromEl.value = row.from;
+                if (toEl) toEl.value = row.to;
+                if (schedEl) schedEl.value = row.schedule;
+                if (transEl) transEl.value = row.transportation;
+              }
+            },
+            params.schedule_rows
+          );
+        }
+      },
+    },
+  ];
+
+  await genericFillForm(frame, fieldSchema, userData, hooks);
+
+  // Budget account code (needs cascade wait — kept outside generic fill)
   if (params.budget_code) {
     await setSelectValue(frame, 'select[name="budget_type"]', "02"); // R&D
     await page.waitForTimeout(2000);
     await setSelectValue(frame, 'select[name="budget_code"]', params.budget_code);
     await page.waitForTimeout(1500);
-  }
-
-  // Corp card number
-  if (corpCardNo) {
-    await setFieldValue(frame, 'input[name="corp_card_no"]', corpCardNo);
-    await setFieldValue(frame, '.validate[name="corp_card_no"]', corpCardNo);
-  }
-
-  // Expense categories: transport, daily, accommodation, food, misc
-  const expenseFields: [string, number | undefined][] = [
-    ["transport_fee_total", params.transport_fee_budget],
-    ["transport_fee_card", params.transport_fee_corp_card],
-    ["daily_expense_total", params.daily_expense_budget],
-    ["daily_expense_cash", params.daily_expense_cash],
-    ["accommodation_total", params.accommodation_budget],
-    ["accommodation_card", params.accommodation_corp_card],
-    ["food_expense_total", params.food_expense_budget],
-    ["food_expense_cash", params.food_expense_cash],
-    ["settle_amount", params.settle_amount],
-    ["reimbursement", params.reimbursement],
-  ];
-
-  for (const [fieldName, value] of expenseFields) {
-    if (value !== undefined && value !== null) {
-      await setFieldValue(frame, `input[name="${fieldName}"]`, String(value));
-      await setFieldValue(frame, `.validate[name="${fieldName}"]`, String(value));
-    }
-  }
-
-  // Business materials description
-  if (params.material_description) {
-    await setFieldValue(frame, 'input[name="business_materials"]', params.material_description);
-    await setFieldValue(frame, '.validate[name="business_materials"]', params.material_description);
   }
 
   // Handle attachment
