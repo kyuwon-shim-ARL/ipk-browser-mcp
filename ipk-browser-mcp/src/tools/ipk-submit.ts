@@ -306,7 +306,21 @@ export const ipkSubmitFormDescription =
   "leave (휴가/AppFrm-073), expense (경비/AppFrm-020), working (휴일근무/AppFrm-027), travel (출장보고/AppFrm-076), travel_request (출장신청/AppFrm-023), budget_transfer (예산전용/AppFrm-039), " +
   "card_expense (카드경비/AppFrm-020), travel_settlement (출장정산/AppFrm-054), leave_return (대체휴일반납/AppFrm-028), seminar (세미나공시/AppFrm-043), overseas_travel (해외출장/AppFrm-026). " +
   "By default saves as draft (draft_only=true). To actually submit for approval, set draft_only=false AND confirm_submit=true. " +
-  "For budget_transfer, use transfer_type='rnd' (AppFrm-039, default) or transfer_type='general' (AppFrm-053).";
+  "For budget_transfer, use transfer_type='rnd' (AppFrm-039, default) or transfer_type='general' (AppFrm-053). " +
+  "Required params per form_type: " +
+  "leave: leave_type, start_date, end_date; " +
+  "expense: budget_code, amount, reason; " +
+  "working: budget_code, work_date, reason; " +
+  "travel: title, destination, start_date, end_date; " +
+  "travel_request: budget_code, title, destination, start_date, end_date; " +
+  "budget_transfer: from_account, to_account, amount, reason; " +
+  "card_expense: budget_code, amount, reason; " +
+  "travel_settlement: budget_code, title, destination, start_date, end_date; " +
+  "leave_return: leave_type, start_date, end_date; " +
+  "seminar: title, date, location; " +
+  "overseas_travel: budget_code, title, destination, start_date, end_date, purpose. " +
+  "Error recovery: NOT_LOGGED_IN→call ipk_login first; FRAME_NOT_FOUND→call ipk_navigate first; " +
+  "CONFIRMATION_REQUIRED→set draft_only=true for safe draft mode; SESSION_EXPIRING→re-login.";
 
 export async function handleIpkSubmitForm(
   sessionManager: SessionManager,
@@ -607,7 +621,7 @@ async function submitExpense(
   const vat = amount - amountNoVat;
   const itemName = params.reason || params.purpose || "overtime meal";
   const subject = params.title || `[Card] ${itemName}`;
-  const budgetType = params.budget_type || "02";
+  const budgetType = params.budget_type || "01"; // General expense default
   const budgetCode = params.budget_code;
   if (!budgetCode) {
     return textResult({ error: true, code: "MISSING_BUDGET_CODE", message: "budget_code is required. Provide the active fiscal year budget code (e.g. NN2612-0001)." });
@@ -705,7 +719,7 @@ async function submitWorking(
   const reason = params.reason || "experiment";
   const workPlace = params.work_place || "IPK";
   const details = params.details || reason;
-  const budgetType = params.budget_type || "02";
+  const budgetType = params.budget_type || "02"; // IPK is R&D institute, "02" (R&D) is correct default
   const budgetCode = params.budget_code;
   if (!budgetCode) {
     return textResult({ error: true, code: "MISSING_BUDGET_CODE", message: "budget_code is required. Provide the active fiscal year budget code (e.g. NN2612-0001)." });
@@ -867,7 +881,7 @@ async function submitTravelRequest(
   const startDate = params.start_date || todayStr();
   const endDate = params.end_date || startDate;
   const purpose = params.purpose || "Business travel";
-  const budgetType = params.budget_type || "02";
+  const budgetType = params.budget_type || "02"; // IPK is R&D institute, "02" (R&D) is correct default
   const budgetCode = params.budget_code;
   if (!budgetCode) {
     return textResult({ error: true, code: "MISSING_BUDGET_CODE", message: "budget_code is required. Provide the active fiscal year budget code (e.g. NN2612-0001)." });
@@ -1222,7 +1236,7 @@ async function submitTravelSettlement(
     const province = params.province || "";
     const city = params.city || "";
     const transportMode = params.transport_mode || "Other Public Transporation";
-    const budgetType = params.budget_type || "02"; // R&D default
+    const budgetType = params.budget_type || "02"; // IPK is R&D institute, "02" (R&D) is correct default
 
     if (province) {
       const cascadeSteps: CascadeStep[] = [
@@ -1707,7 +1721,7 @@ async function submitOverseasTravel(
 
   // Budget account code (needs cascade wait — kept outside generic fill)
   if (params.budget_code) {
-    await setSelectValue(frame, 'select[name="budget_type"]', "02"); // R&D
+    await setSelectValue(frame, 'select[name="budget_type"]', "01"); // General expense default
     await page.waitForTimeout(2000);
     await setSelectValue(frame, 'select[name="budget_code"]', params.budget_code);
     await page.waitForTimeout(1500);

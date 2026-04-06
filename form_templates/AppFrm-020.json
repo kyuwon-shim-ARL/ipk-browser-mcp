@@ -19,7 +19,7 @@
       "note": "Common patterns: '[Card] ER_coffee for meeting', '[Card] ER_coffee for lab meeting', '[Card] ER_team lunch', '[Card] General Expense Request'"
     },
     "budget_code": {
-      "type": "text",
+      "type": "select",
       "required": true,
       "source": "profile",
       "dom_name": "budget_code",

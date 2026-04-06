@@ -27,8 +27,10 @@ export async function navigateToForm(
 
   await frame.goto(url, { timeout: config.navTimeoutMs });
   await frame.waitForLoadState("load");
-  // Wait for form elements to be interactive (replaces blanket 1500ms timeout)
+  // Wait for form elements to be interactive
   await frame.waitForSelector("form input, form textarea, form select", { timeout: 5000 }).catch(() => null);
+  // Allow dynamic form elements (e.g. leave_kind[] select) to fully render
+  await page.waitForTimeout(1500);
 
   return frame;
 }
@@ -70,6 +72,9 @@ export async function setFieldValue(
   selector: string,
   value: string
 ): Promise<boolean> {
+  // Wait for element to appear in DOM before attempting to set value
+  await frame.waitForSelector(selector, { timeout: 5000 }).catch(() => null);
+
   return frame.evaluate(
     (args: { sel: string; val: string }) => {
       const el = document.querySelector(args.sel) as HTMLInputElement | HTMLTextAreaElement | null;
@@ -94,6 +99,10 @@ export async function setSelectValue(
   selector: string,
   value: string
 ): Promise<boolean> {
+  // Wait for element to appear in DOM before attempting to set value
+  const el = await frame.waitForSelector(selector, { timeout: 5000 }).catch(() => null);
+  if (!el) return false;
+
   return frame.evaluate(
     (args: { sel: string; val: string }) => {
       const el = document.querySelector(args.sel) as HTMLSelectElement | null;
@@ -277,23 +286,3 @@ export async function submitForm(
   return null;
 }
 
-/**
- * Set common reporter fields (name, date, destination) found in multiple form types.
- * DRY helper for travel_settlement, leave_return, seminar, overseas_travel.
- */
-export async function setReporterInfo(
-  frame: Frame,
-  userInfo: { name: string },
-  reportDate: string,
-  destination?: string
-): Promise<void> {
-  // Try multiple selector patterns used across forms
-  await setFieldValue(frame, '.validate[name="report_name"]', userInfo.name);
-  await setFieldValue(frame, 'input[name="report_name"]', userInfo.name);
-  await setFieldValue(frame, '.validate[name="report_date"]', reportDate);
-  await setFieldValue(frame, 'input[name="report_date"]', reportDate);
-  if (destination) {
-    await setFieldValue(frame, '.validate[name="report_dest"]', destination);
-    await setFieldValue(frame, 'input[name="report_dest"]', destination);
-  }
-}

@@ -2,7 +2,7 @@ import { z } from "zod";
 import { SessionManager } from "../browser/session.js";
 import { navigateInFrame, getMainFrame } from "../browser/iframe-helper.js";
 import { Config, ApprovalItem } from "../types.js";
-import { maskPiiFields } from "../security/masking.js";
+
 import { textResult } from "../util.js";
 
 export const ipkFetchApprovalsSchema = {

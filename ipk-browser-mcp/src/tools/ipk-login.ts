@@ -9,7 +9,8 @@ export const ipkLoginSchema = {
 
 export const ipkLoginDescription =
   "Log in to IPK groupware (gw.ip-korea.org). Returns a session for subsequent tool calls. " +
-  "Credentials can be provided as parameters or via IPK_USERNAME/IPK_PASSWORD environment variables.";
+  "Credentials can be provided as parameters or via IPK_USERNAME/IPK_PASSWORD environment variables. " +
+  "Env config path: ~/.config/ipk-browser-mcp/.env (IPK_USERNAME, IPK_PASSWORD, IPK_BASE_URL, SCREENSHOT_DIR).";
 
 export async function handleIpkLogin(
   sessionManager: SessionManager,
