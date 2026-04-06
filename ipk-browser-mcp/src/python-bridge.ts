@@ -151,7 +151,7 @@ async function processQueue(): Promise<void> {
  * Call a Python bridge method via JSON-RPC over stdio.
  * Returns the RPC response (either {result} or {error}).
  */
-export async function callPythonBridge(
+async function callPythonBridge(
   method: string,
   params: Record<string, any> = {}
 ): Promise<RpcResponse> {

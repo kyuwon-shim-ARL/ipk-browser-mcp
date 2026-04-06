@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { SessionManager } from "../browser/session.js";
-import { navigateInFrame, getMainFrame } from "../browser/iframe-helper.js";
+import { navigateInFrame } from "../browser/iframe-helper.js";
 import { Config } from "../types.js";
 import { textResult } from "../util.js";
 
