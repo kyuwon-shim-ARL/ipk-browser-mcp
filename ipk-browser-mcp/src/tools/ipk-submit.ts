@@ -424,6 +424,64 @@ export const ipkSubmitFormDescription =
   "Error recovery: NOT_LOGGED_IN→call ipk_login first; FRAME_NOT_FOUND→call ipk_navigate first; " +
   "CONFIRMATION_REQUIRED→set draft_only=true for safe draft mode; SESSION_EXPIRING→re-login.";
 
+/** Per-form navigation configuration for forms that need custom URL construction. */
+interface FormNavConfig {
+  /** If set, navigate to this URL directly (interpolated with params). */
+  customUrl?: (params: Record<string, any>, config: Config) => string;
+  /** Selector to wait for after navigation (default: "form input, form select"). */
+  waitSelector?: string;
+  /** Post-navigation wait in ms (default: 2000). */
+  waitMs?: number;
+  /** Pre-navigate validation (returns error message or null). */
+  validate?: (params: Record<string, any>) => string | null;
+}
+
+/** Navigation overrides for forms that cannot use the standard navigateToForm path. */
+const FORM_NAV_CONFIG: Partial<Record<string, FormNavConfig>> = {
+  card_expense_rd: {
+    validate: (params) =>
+      !params.trseq || !params.appr_no
+        ? "card_expense_rd requires trseq and appr_no (from corporation_card_list.php Make ER link)."
+        : null,
+    customUrl: (params, config) =>
+      `${config.baseUrl}/Document/document_write.php?approve_type=AppFrm-021&mker=Y&trseq=${encodeURIComponent(params.trseq)}&appr_no=${encodeURIComponent(params.appr_no)}`,
+    waitSelector: 'input[name="subject"]',
+    waitMs: 2000,
+  },
+  budget_transfer: {
+    customUrl: (params, config) => {
+      const btCode = BUDGET_TRANSFER_CODES[params.transfer_type || "rnd"] || BUDGET_TRANSFER_CODES.rnd;
+      return `${config.baseUrl}/Document/document_write.php?approve_type=${btCode}`;
+    },
+    waitSelector: "form input, form select",
+    waitMs: 1500,
+  },
+};
+
+/** Per-form submit handlers. Looked up by formType — no switch/if needed. */
+type FormHandler = (
+  page: any,
+  frame: any,
+  sessionManager: SessionManager,
+  config: Config,
+  params: Record<string, any>,
+  mode: "draft" | "request"
+) => Promise<any>;
+
+const FORM_HANDLERS: Record<string, FormHandler> = {
+  leave: submitLeave,
+  expense: submitExpense,
+  working: submitWorking,
+  travel: submitTravel,
+  travel_request: submitTravelRequest,
+  card_expense: submitCardExpense,
+  card_expense_rd: submitCardExpenseRD,
+  travel_settlement: submitTravelSettlement,
+  leave_return: submitLeaveReturn,
+  seminar: submitSeminar,
+  overseas_travel: submitOverseasTravel,
+};
+
 export async function handleIpkSubmitForm(
   sessionManager: SessionManager,
   config: Config,
@@ -466,78 +524,53 @@ export async function handleIpkSubmitForm(
   }
 
   try {
-    // card_expense_rd uses a mker URL with trseq + appr_no params from the card receipt list
-    if (formType === "card_expense_rd") {
-      const trseq = params.trseq;
-      const apprNo = params.appr_no;
-      if (!trseq || !apprNo) {
-        return textResult({ error: true, code: "MISSING_CARD_RECEIPT_REF", message: "card_expense_rd requires trseq and appr_no (from corporation_card_list.php Make ER link)." });
-      }
-      const cerdUrl = `${config.baseUrl}/Document/document_write.php?approve_type=AppFrm-021&mker=Y&trseq=${encodeURIComponent(trseq)}&appr_no=${encodeURIComponent(apprNo)}`;
-      const mainFrame = page.frame("main_menu");
-      if (!mainFrame) {
-        return textResult({ error: true, code: "FRAME_NOT_FOUND", message: "main_menu frame not found" });
-      }
-      await mainFrame.goto(cerdUrl, { timeout: config.navTimeoutMs });
-      await mainFrame.waitForLoadState("load");
-      await mainFrame.waitForSelector('input[name="subject"]', { timeout: 5000 }).catch(() => null);
-      sessionManager.touchActivity();
-      await page.waitForTimeout(2000);
-      return await submitCardExpenseRD(page, mainFrame, sessionManager, config, params, mode);
-    }
+    // Validate and navigate using per-form config (or standard path)
+    const navConfig = FORM_NAV_CONFIG[formType];
+    let frame: any;
 
-    // budget_transfer has two variants (rnd/general), so navigate directly instead of using navigateToForm
-    if (formType === "budget_transfer") {
-      const btCode = BUDGET_TRANSFER_CODES[params.transfer_type || "rnd"] || BUDGET_TRANSFER_CODES.rnd;
-      const btUrl = `${config.baseUrl}/Document/document_write.php?approve_type=${btCode}`;
-      const mainFrame = page.frame("main_menu");
-      if (!mainFrame) {
-        return textResult({ error: true, code: "FRAME_NOT_FOUND", message: "main_menu frame not found" });
-      }
-      await mainFrame.goto(btUrl, { timeout: config.navTimeoutMs });
-      await mainFrame.waitForLoadState("load");
-      await mainFrame.waitForSelector("form input, form select", { timeout: 5000 }).catch(() => null);
-      sessionManager.touchActivity();
-      await page.waitForTimeout(1500);
-      return await submitBudgetTransfer(page, mainFrame, sessionManager, config, params, mode);
-    }
-
-    const frame = await navigateToForm(page, formType, config);
-    if (!frame) {
-      return textResult({ error: true, code: "NAVIGATION_FAILED", message: "Failed to navigate to form" });
-    }
-    sessionManager.touchActivity();
-
-    switch (formType) {
-      case "leave":
-        return await submitLeave(page, frame, sessionManager, config, params, mode);
-      case "expense":
-        return await submitExpense(page, frame, sessionManager, config, params, mode);
-      case "working":
-        return await submitWorking(page, frame, sessionManager, config, params, mode);
-      case "travel":
-        return await submitTravel(page, frame, sessionManager, config, params, mode);
-      case "travel_request":
-        return await submitTravelRequest(page, frame, sessionManager, config, params, mode);
-      case "card_expense":
-        return await submitCardExpense(page, frame, sessionManager, config, params, mode);
-      case "travel_settlement":
-        return await submitTravelSettlement(page, frame, sessionManager, config, params, mode);
-      case "leave_return":
-        return await submitLeaveReturn(page, frame, sessionManager, config, params, mode);
-      case "seminar":
-        return await submitSeminar(page, frame, sessionManager, config, params, mode);
-      case "overseas_travel":
-        return await submitOverseasTravel(page, frame, sessionManager, config, params, mode);
-      default: {
-        // Generic template-driven handler for any form type with a template JSON
-        const templateSchema = loadTemplateFieldSchema(formType);
-        if (!templateSchema) {
-          return textResult({ error: true, code: "UNKNOWN_FORM", message: `Unknown form type: ${formType}` });
+    if (navConfig) {
+      // Validate required params for this form's nav
+      if (navConfig.validate) {
+        const validErr = navConfig.validate(params);
+        if (validErr) {
+          return textResult({ error: true, code: "MISSING_CARD_RECEIPT_REF", message: validErr });
         }
-        return await submitGeneric(page, frame, sessionManager, config, params, mode, formType, templateSchema);
       }
+      // Custom URL navigation
+      const mainFrame = page.frame("main_menu");
+      if (!mainFrame) {
+        return textResult({ error: true, code: "FRAME_NOT_FOUND", message: "main_menu frame not found" });
+      }
+      const url = navConfig.customUrl!(params, config);
+      await mainFrame.goto(url, { timeout: config.navTimeoutMs });
+      await mainFrame.waitForLoadState("load");
+      const waitSel = navConfig.waitSelector ?? "form input, form select";
+      await mainFrame.waitForSelector(waitSel, { timeout: 5000 }).catch(() => null);
+      sessionManager.touchActivity();
+      await page.waitForTimeout(navConfig.waitMs ?? 2000);
+      frame = mainFrame;
+    } else {
+      // Standard navigation
+      frame = await navigateToForm(page, formType, config);
+      if (!frame) {
+        return textResult({ error: true, code: "NAVIGATION_FAILED", message: "Failed to navigate to form" });
+      }
+      sessionManager.touchActivity();
     }
+
+    // Dispatch to per-form handler (or generic fallback)
+    const handler = FORM_HANDLERS[formType];
+    if (handler) {
+      return await handler(page, frame, sessionManager, config, params, mode);
+    }
+
+    // Generic template-driven fallback for any unlisted form type
+    const templateSchema = loadTemplateFieldSchema(formType);
+    if (!templateSchema) {
+      return textResult({ error: true, code: "UNKNOWN_FORM", message: `Unknown form type: ${formType}` });
+    }
+    return await submitGeneric(page, frame, sessionManager, config, params, mode, formType, templateSchema);
+
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return textResult({ error: true, code: "SUBMIT_ERROR", message: msg });
