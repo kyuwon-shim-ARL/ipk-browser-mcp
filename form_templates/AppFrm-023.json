@@ -16,46 +16,53 @@
       "type": "text",
       "dom_name": "subject",
       "required": true,
-      "source": "user_input"
+      "source": "user_input",
+      "widget_type": "text"
     },
     "start_date": {
       "type": "date",
       "dom_name": "start_date",
       "dom_type": "text",
       "required": true,
-      "source": "user_input"
+      "source": "user_input",
+      "widget_type": "date"
     },
     "end_date": {
       "type": "date",
       "dom_name": "end_date",
       "dom_type": "text",
       "required": true,
-      "source": "user_input"
+      "source": "user_input",
+      "widget_type": "date"
     },
     "start_time": {
       "type": "time",
       "dom_name": "start_tm",
       "required": false,
       "source": "user_input",
-      "note": "only for day-trips"
+      "note": "only for day-trips",
+      "widget_type": "text"
     },
     "end_time": {
       "type": "time",
       "dom_name": "end_tm",
       "required": false,
-      "source": "user_input"
+      "source": "user_input",
+      "widget_type": "text"
     },
     "purpose": {
       "type": "textarea",
       "dom_name": "purpose",
       "required": true,
-      "source": "user_input"
+      "source": "user_input",
+      "widget_type": "textarea"
     },
     "destination": {
       "type": "text",
       "dom_name": "travel_dest[]",
       "required": true,
-      "source": "user_input"
+      "source": "user_input",
+      "widget_type": "text"
     },
     "budget_control_no": {
       "type": "text",
@@ -297,7 +304,11 @@
   "own_vehicle_rules": {
     "description": "When transport_mode is 'Own Vehicle - Gasoline' or 'Own Vehicle - Diesel'",
     "cost_formula": "oil_price_per_liter × distance_km / fuel_efficiency(10km/L)",
-    "observed_oil_prices": [1584, 1668, 1906],
+    "observed_oil_prices": [
+      1584,
+      1668,
+      1906
+    ],
     "oil_price_unit": "KRW/L",
     "distance_source": "Naver Maps (map.naver.com) driving route from IPK (판교) to destination",
     "required_attachments": {

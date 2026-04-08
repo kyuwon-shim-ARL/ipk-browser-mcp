@@ -17,7 +17,8 @@
       "source": "user_input",
       "dom_name": "subject",
       "coverage": "100%",
-      "note": "Free-form title describing the transfer purpose, e.g. 'Budget Transfer_ProjectName' or item name"
+      "note": "Free-form title describing the transfer purpose, e.g. 'Budget Transfer_ProjectName' or item name",
+      "widget_type": "text"
     },
     "account_no": {
       "type": "text",
@@ -89,10 +90,16 @@
       "required": true,
       "source": "user_input",
       "dom_name": "reason",
-      "dom_selectors": ["textarea[name=\"reason\"]", "textarea[name=\"p_reason\"]", "textarea[name=\"contents1\"]", "input[name=\"sub_subject\"]"],
+      "dom_selectors": [
+        "textarea[name=\"reason\"]",
+        "textarea[name=\"p_reason\"]",
+        "textarea[name=\"contents1\"]",
+        "input[name=\"sub_subject\"]"
+      ],
       "dom_note": "Handler tries multiple selectors: textarea[name=\"reason\"], textarea[name=\"p_reason\"], textarea[name=\"contents1\"], input[name=\"sub_subject\"]",
       "coverage": "100%",
-      "note": "Reason/purpose for the budget transfer"
+      "note": "Reason/purpose for the budget transfer",
+      "widget_type": "textarea"
     },
     "equipment_name": {
       "type": "text",
@@ -144,8 +151,17 @@
     {
       "description": "Equipment block required when target is a tools/asset account",
       "if_field": "target_account_code",
-      "matches": ["120312", "120336"],
-      "then_require": ["equipment_name", "manufacturer", "features", "price_krw", "purchase_purpose"]
+      "matches": [
+        "120312",
+        "120336"
+      ],
+      "then_require": [
+        "equipment_name",
+        "manufacturer",
+        "features",
+        "price_krw",
+        "purchase_purpose"
+      ]
     },
     {
       "description": "Subject auto-suggestion from transfer pattern",
@@ -155,7 +171,7 @@
     {
       "description": "Common source accounts by frequency",
       "source_account_distribution": {
-        "[ 410703] Reagent & Supplies": 0.40,
+        "[ 410703] Reagent & Supplies": 0.4,
         "[ 410705] Assay & Test": 0.19,
         "[ 410201] Domestic Business Travel": 0.13,
         "[ 410310] Conferences:Meeting with External Specialists": 0.08,
@@ -170,7 +186,7 @@
         "[ 410306] Participating in Conferences": 0.13,
         "[ 410920] Office devices (General-purpose)": 0.12,
         "[ 410705] Assay & Test": 0.12,
-        "[ 410318] IT Software (IT Subscription)": 0.10,
+        "[ 410318] IT Software (IT Subscription)": 0.1,
         "[ 410312] Inviting or consulting specialists": 0.07,
         "[ 120336] Office devices asset (General-purpose)": 0.06,
         "[ 410911] Commission": 0.06,
@@ -182,23 +198,67 @@
     }
   ],
   "common_source_target_pairs": [
-    {"source": "[ 410703] Reagent & Supplies", "target": "[ 410306] Participating in Conferences", "count": 5},
-    {"source": "[ 410703] Reagent & Supplies", "target": "[ 410201] Domestic Business Travel", "count": 5},
-    {"source": "[ 410705] Assay & Test", "target": "[ 410306] Participating in Conferences", "count": 4},
-    {"source": "[ 410705] Assay & Test", "target": "[ 410201] Domestic Business Travel", "count": 4},
-    {"source": "[ 410703] Reagent & Supplies", "target": "[ 410318] IT Software (IT Subscription)", "count": 4},
-    {"source": "[ 410705] Assay & Test", "target": "[ 410318] IT Software (IT Subscription)", "count": 3},
-    {"source": "[ 410703] Reagent & Supplies", "target": "[ 120312] Tools", "count": 3},
-    {"source": "[ 410310] Conferences:Meeting with External Specialists", "target": "[ 410312] Inviting or consulting specialists", "count": 3},
-    {"source": "[ 412103] Overtime Meals", "target": "[ 410920] Office devices (General-purpose)", "count": 3},
-    {"source": "[ 410201] Domestic Business Travel", "target": "[ 410306] Participating in Conferences", "count": 3}
+    {
+      "source": "[ 410703] Reagent & Supplies",
+      "target": "[ 410306] Participating in Conferences",
+      "count": 5
+    },
+    {
+      "source": "[ 410703] Reagent & Supplies",
+      "target": "[ 410201] Domestic Business Travel",
+      "count": 5
+    },
+    {
+      "source": "[ 410705] Assay & Test",
+      "target": "[ 410306] Participating in Conferences",
+      "count": 4
+    },
+    {
+      "source": "[ 410705] Assay & Test",
+      "target": "[ 410201] Domestic Business Travel",
+      "count": 4
+    },
+    {
+      "source": "[ 410703] Reagent & Supplies",
+      "target": "[ 410318] IT Software (IT Subscription)",
+      "count": 4
+    },
+    {
+      "source": "[ 410705] Assay & Test",
+      "target": "[ 410318] IT Software (IT Subscription)",
+      "count": 3
+    },
+    {
+      "source": "[ 410703] Reagent & Supplies",
+      "target": "[ 120312] Tools",
+      "count": 3
+    },
+    {
+      "source": "[ 410310] Conferences:Meeting with External Specialists",
+      "target": "[ 410312] Inviting or consulting specialists",
+      "count": 3
+    },
+    {
+      "source": "[ 412103] Overtime Meals",
+      "target": "[ 410920] Office devices (General-purpose)",
+      "count": 3
+    },
+    {
+      "source": "[ 410201] Domestic Business Travel",
+      "target": "[ 410306] Participating in Conferences",
+      "count": 3
+    }
   ],
   "writer_profiles": {
     "Hyungjun Kim": {
       "total_docs": 33,
       "avg_amount_krw": 4055896,
       "equipment_purchases": 6,
-      "common_account_nos": ["NN2503-0002", "FS2226-0001", "NN2508-0001"]
+      "common_account_nos": [
+        "NN2503-0002",
+        "FS2226-0001",
+        "NN2508-0001"
+      ]
     },
     "Minjeong Woo": {
       "total_docs": 14,
@@ -234,7 +294,10 @@
       "total_docs": 4,
       "avg_amount_krw": 2300000,
       "equipment_purchases": 0,
-      "common_account_nos": ["NN2512-0001", "RS_JSJ"]
+      "common_account_nos": [
+        "NN2512-0001",
+        "RS_JSJ"
+      ]
     }
   },
   "amount_stats": {

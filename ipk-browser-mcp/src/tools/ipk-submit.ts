@@ -26,6 +26,17 @@ import { FORM_REGISTRY } from "../form-registry.js";
 
 // ─── Template-driven generic form filler ───────────────────────────────────
 
+type WidgetType = "text" | "select" | "date" | "checkbox" | "radio" | "textarea" | "file_upload" | "account_lookup" | "rich_text";
+
+interface PostAction {
+  /** Action type */
+  action: "click_button" | "wait_selector" | "iframe_switch" | "assert_value";
+  /** CSS selector target */
+  target?: string;
+  /** Expected or input value */
+  value?: string;
+}
+
 /** Field schema entry from a template JSON */
 interface TemplateFieldSchema {
   type: string;
@@ -36,6 +47,16 @@ interface TemplateFieldSchema {
   dom_selector?: string;
   /** Multiple fallback selectors — tried in order (for fields with variant DOM names) */
   dom_selectors?: string[];
+  /** Explicit widget type for genericFillForm dispatch (overrides type-based dispatch) */
+  widget_type?: WidgetType;
+  /** Declarative post-fill actions executed after this field is set */
+  post_actions?: PostAction[];
+  /** For file_upload: which userData key holds file path(s) (default: same as fieldKey) */
+  file_paths_key?: string;
+  /** For account_lookup: row index in account_str[], account_code[], etc. (default: 1) */
+  account_row_idx?: number;
+  /** For account_lookup: approve_type to pass to pr_account_sel.php (default: form's appFrmCode) */
+  account_approve_type?: string;
   [key: string]: any;
 }
 
@@ -47,6 +68,32 @@ interface FillHook {
 }
 
 /**
+ * Execute declarative post-fill actions on a frame.
+ */
+async function executePostActions(frame: any, actions: PostAction[]): Promise<void> {
+  for (const act of actions) {
+    if (act.action === "wait_selector" && act.target) {
+      await frame.waitForSelector(act.target, { timeout: 5000 }).catch(() => null);
+    } else if (act.action === "click_button" && act.target) {
+      await frame.locator(act.target).click().catch(() => null);
+    } else if (act.action === "assert_value" && act.target && act.value) {
+      // Soft assert — logs but doesn't throw
+      const actual = await frame.evaluate(
+        (args: { sel: string }) => {
+          const el = document.querySelector(args.sel) as HTMLInputElement | null;
+          return el ? el.value : null;
+        },
+        { sel: act.target }
+      ).catch(() => null);
+      if (actual !== act.value) {
+        console.warn(`[genericFillForm] assert_value failed: ${act.target} expected "${act.value}" got "${actual}"`);
+      }
+    }
+    // iframe_switch not implemented at field level
+  }
+}
+
+/**
  * Generic form filler that iterates a template's field_schema and sets DOM values
  * based on dom_name. Skips fields where dom_name is null (derived/computed).
  *
@@ -54,12 +101,14 @@ interface FillHook {
  * @param fieldSchema - template.field_schema object
  * @param userData - Map of field keys → user-supplied values
  * @param hooks - Optional hooks for pre/post fill or complex evaluate logic
+ * @param opts - Optional extended options for new widget types (file_upload, account_lookup)
  */
 async function genericFillForm(
   frame: any,
   fieldSchema: Record<string, TemplateFieldSchema>,
   userData: Record<string, any>,
-  hooks?: FillHook[]
+  hooks?: FillHook[],
+  opts?: { page?: any; approveType?: string; baseUrl?: string; budgetType?: string; budgetCode?: string }
 ): Promise<void> {
   // Execute pre_fill hooks
   if (hooks) {
@@ -88,6 +137,49 @@ async function genericFillForm(
         } else {
           await setFieldValue(frame, sel, strValue);
         }
+      }
+      continue;
+    }
+
+    // Resolve effective widget type: explicit widget_type overrides type
+    const widgetType = schema.widget_type || fieldType;
+
+    if (widgetType === "file_upload") {
+      // Dispatch to attachFiles primitive
+      const pathsKey = schema.file_paths_key || fieldKey;
+      const rawPaths = userData[pathsKey] ?? value;
+      const paths: string[] = Array.isArray(rawPaths) ? rawPaths : [String(rawPaths)];
+      const validPaths = paths.filter(Boolean);
+      if (validPaths.length > 0) {
+        const { attachFiles } = await import("../internal/primitives/attachment.js");
+        await attachFiles(frame, validPaths);
+      }
+      if (schema.post_actions) {
+        await executePostActions(frame, schema.post_actions);
+      }
+      continue;
+    }
+
+    if (widgetType === "account_lookup") {
+      // Dispatch to account primitive (needs page from opts)
+      if (opts?.page && opts?.baseUrl && opts?.budgetCode) {
+        const { fetchAccountCodes, setAccountCodeOnRow } = await import("../internal/primitives/account.js");
+        const codes = await fetchAccountCodes(opts.page, {
+          baseUrl: opts.baseUrl,
+          budgetType: opts.budgetType || "02",
+          budgetCode: opts.budgetCode,
+          approveType: schema.account_approve_type || opts.approveType || "AppFrm-021",
+        });
+        const strVal = String(value);
+        const match = codes.find((c) => c.code === strVal) ||
+          codes.find((c) => c.label.toLowerCase().includes(strVal.toLowerCase()));
+        if (match) {
+          const rowIdx = schema.account_row_idx ?? 1;
+          await setAccountCodeOnRow(frame, rowIdx, match);
+        }
+      }
+      if (schema.post_actions) {
+        await executePostActions(frame, schema.post_actions);
       }
       continue;
     }

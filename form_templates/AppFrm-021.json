@@ -1,0 +1,126 @@
+{
+  "form_code": "AppFrm-021",
+  "form_name": "R&D Expense Request from Card (mker)",
+  "analysis_basis": "Discovered 2026-04-07 via Playwright probe of Google Cloud + RunPod ER drafts. URL pattern: document_write.php?approve_type=AppFrm-021&mker=Y&trseq={trseq}&appr_no={appr_no}",
+  "url_pattern": "/Document/document_write.php?approve_type=AppFrm-021&mker=Y&trseq={trseq}&appr_no={appr_no}",
+  "fixed_fields": {
+    "saving_years": "5 years",
+    "budget_type": "R&D",
+    "payment": "Corporate Credit Card"
+  },
+  "prefilled_by_system": [
+    "budget_type",
+    "budget_code",
+    "pay_kind",
+    "card_number",
+    "invoice[]",
+    "item_amount[]",
+    "item_amount_ral[]",
+    "item_amount_ral1[]",
+    "item_amount_vat[]",
+    "vender[]",
+    "p_t[]",
+    "c_t[]",
+    "trseq (hidden)",
+    "apprno (hidden)"
+  ],
+  "field_schema": {
+    "subject": {
+      "type": "text",
+      "required": true,
+      "source": "user_input",
+      "dom_name": "subject",
+      "note": "English-only. Common pattern: '[Card] [LAB] {vendor} usage fee - {date} (KRW {amount})'",
+      "widget_type": "text"
+    },
+    "item_name": {
+      "type": "text",
+      "required": true,
+      "source": "user_input",
+      "dom_name": "item_name[]",
+      "row_index": 1,
+      "note": "First visible row at index 1 (index 0 is hidden template)",
+      "widget_type": "text"
+    },
+    "item_qty": {
+      "type": "text",
+      "required": true,
+      "source": "default",
+      "dom_name": "item_qty[]",
+      "row_index": 1,
+      "default": "1",
+      "widget_type": "text"
+    },
+    "seller_en": {
+      "type": "text",
+      "required": true,
+      "source": "user_input",
+      "dom_name": "seller[]",
+      "row_index": 1,
+      "note": "English vendor name (e.g. 'Google Cloud Korea LLC', 'Runpod Inc (USA)')",
+      "widget_type": "text"
+    },
+    "p_reason": {
+      "type": "textarea",
+      "required": false,
+      "source": "user_input",
+      "dom_name": "p_reason",
+      "note": "Notes / purpose justification. Multi-line allowed.",
+      "widget_type": "textarea"
+    },
+    "account_code": {
+      "type": "popup_select",
+      "required": true,
+      "source": "user_input_or_auto",
+      "dom_name": "account_str[]",
+      "popup": "pr_account_sel.php",
+      "popup_handler": "Sel_account('{rowIdx}')",
+      "popup_callback": "Check_Item(seq, code, label)",
+      "row_index": 1,
+      "note": "Use account-helper.fetchAccountCodes + setAccountCodeOnRow to bypass popup. Common code for cloud services: 410318 (IT Software / IT Subscription).",
+      "widget_type": "text"
+    }
+  },
+  "submit_flow": {
+    "stage_1": "javascript:document.all('mode1').value='draft';Check_Form_Request('insert')",
+    "stage_2_modal": "jQuery-confirm 'Notice! Evidence Check!' — bypass via direct form submit",
+    "stage_3_popup": "POST to ./budget_check_er.php targeting popup 'budget_frame'",
+    "stage_4_finalize": "Popup calls submit_form() which retargets parent to ./document_write.php and submits",
+    "success_url_pattern": "document_view.php?doc_id={id}&approve_type=AppFrm-021&type=drafts",
+    "helper": "src/browser/er-submit-helper.ts:submitERWithBudgetCheck"
+  },
+  "validation_rules": {
+    "min_attachments": 1,
+    "alert_on_empty_attach": "Please attach at least one file."
+  },
+  "common_account_codes_by_budget": {
+    "NN2606-0001 (R&D Mid-career)": [
+      {
+        "code": "410318",
+        "label": "IT Software (IT Subscription)",
+        "use_for": [
+          "Google Cloud",
+          "RunPod",
+          "AWS",
+          "AI subscriptions"
+        ]
+      },
+      {
+        "code": "410703",
+        "label": "Reagent & Supplies"
+      },
+      {
+        "code": "410705",
+        "label": "Assay & Test"
+      },
+      {
+        "code": "415101",
+        "label": "Internal labor"
+      },
+      {
+        "code": "416101",
+        "label": "Overhead"
+      }
+    ]
+  }
+}

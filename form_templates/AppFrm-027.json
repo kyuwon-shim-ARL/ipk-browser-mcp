@@ -1,0 +1,13 @@
+{
+  "form_code": "AppFrm-027",
+  "form_name": "Holiday/Weekend Work Request",
+  "field_schema": {
+    "subject": {"type": "text", "widget_type": "text", "dom_name": "subject", "required": true, "source": "user_input"},
+    "budget_type": {"type": "select", "widget_type": "select", "dom_name": "budget_type", "required": true, "source": "user_input"},
+    "budget_code": {"type": "select", "widget_type": "select", "dom_name": "budget_code", "required": true, "source": "user_input"},
+    "work_date": {"type": "date", "widget_type": "date", "dom_name": "holi_start", "required": true, "source": "user_input"},
+    "work_place": {"type": "text", "widget_type": "text", "dom_name": "work_place", "required": true, "source": "user_input"},
+    "reason": {"type": "text", "widget_type": "textarea", "dom_name": "reason", "required": true, "source": "user_input"},
+    "details": {"type": "text", "widget_type": "textarea", "dom_name": "work_content", "required": false, "source": "user_input"}
+  }
+}

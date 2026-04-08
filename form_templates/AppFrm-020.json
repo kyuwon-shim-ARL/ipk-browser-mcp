@@ -16,7 +16,8 @@
       "required": true,
       "source": "user_input",
       "dom_name": "subject",
-      "note": "Common patterns: '[Card] ER_coffee for meeting', '[Card] ER_coffee for lab meeting', '[Card] ER_team lunch', '[Card] General Expense Request'"
+      "note": "Common patterns: '[Card] ER_coffee for meeting', '[Card] ER_coffee for lab meeting', '[Card] ER_team lunch', '[Card] General Expense Request'",
+      "widget_type": "text"
     },
     "budget_code": {
       "type": "select",
@@ -24,49 +25,60 @@
       "source": "profile",
       "dom_name": "budget_code",
       "dom_note": "select[name=\"budget_code\"] — populated after budget_type cascade",
-      "note": "100% of docs use '[GW17_ARRL] 과제수당_ARRL (Period: 2017-01-01~2033-12-31)'"
+      "note": "100% of docs use '[GW17_ARRL] 과제수당_ARRL (Period: 2017-01-01~2033-12-31)'",
+      "widget_type": "select"
     },
     "item_date": {
       "type": "date",
       "required": true,
       "source": "user_input",
       "dom_name": "invoice[]",
-      "note": "Date of the actual purchase/invoice"
+      "note": "Date of the actual purchase/invoice",
+      "widget_type": "date"
     },
     "item_account_code": {
       "type": "select",
       "required": true,
       "source": "user_input",
       "dom_name": "item_account_code[]",
-      "values": ["420421", "420420", "420374", "420375"],
+      "values": [
+        "420421",
+        "420420",
+        "420374",
+        "420375"
+      ],
       "distribution": {
         "420421": 0.93,
         "420420": 0.03,
         "420374": 0.02,
         "420375": 0.02
       },
-      "note": "420421=Team activities (93%), 420420=Conference: Meeting with External Specialists, 420374=Other Commissions, 420375=Registration & Subscription"
+      "note": "420421=Team activities (93%), 420420=Conference: Meeting with External Specialists, 420374=Other Commissions, 420375=Registration & Subscription",
+      "widget_type": "select"
     },
     "item_description": {
       "type": "text",
       "required": true,
       "source": "inference",
       "dom_name": "item_desc[]",
-      "note": "Embedded in Account Code cell as '[XXXXX]\\nDescription'. Common: 'Team activities' (93%)"
+      "note": "Embedded in Account Code cell as '[XXXXX]\\nDescription'. Common: 'Team activities' (93%)",
+      "widget_type": "text"
     },
     "item_amount_excl_vat": {
       "type": "text",
       "required": true,
       "source": "user_input",
       "dom_name": "item_amount[]",
-      "note": "Amount excluding VAT, Korean comma-formatted integer (e.g. '23,819')"
+      "note": "Amount excluding VAT, Korean comma-formatted integer (e.g. '23,819')",
+      "widget_type": "text"
     },
     "item_vat": {
       "type": "text",
       "required": true,
       "source": "user_input",
       "dom_name": "item_amount_vat[]",
-      "note": "VAT amount, Korean comma-formatted integer"
+      "note": "VAT amount, Korean comma-formatted integer",
+      "widget_type": "text"
     },
     "item_total_amount": {
       "type": "text",
@@ -74,21 +86,24 @@
       "source": "user_input",
       "dom_name": "total_amt",
       "dom_note": "Set via document.getElementsByName(\"total_amt\")[0]; also sets item_amount_ral[]",
-      "note": "Total amount including VAT"
+      "note": "Total amount including VAT",
+      "widget_type": "text"
     },
     "item_control_no": {
       "type": "text",
       "required": true,
       "source": "user_input",
       "dom_name": "item_control_no[]",
-      "note": "Card receipt control number (e.g. '25103268-01')"
+      "note": "Card receipt control number (e.g. '25103268-01')",
+      "widget_type": "text"
     },
     "item_vendor": {
       "type": "text",
       "required": true,
       "source": "user_input",
       "dom_name": "item_vendor[]",
-      "note": "Vendor/payee name (Korean or English)"
+      "note": "Vendor/payee name (Korean or English)",
+      "widget_type": "text"
     },
     "venue": {
       "type": "text",
@@ -96,7 +111,8 @@
       "source": "inference",
       "dom_name": "ov_place",
       "coverage": 0.97,
-      "note": "Location of meeting/activity. 2/60 docs (accommodation, special expense) have no venue."
+      "note": "Location of meeting/activity. 2/60 docs (accommodation, special expense) have no venue.",
+      "widget_type": "text"
     },
     "participants": {
       "type": "text",
@@ -104,7 +120,8 @@
       "source": "inference",
       "dom_name": "ov_member",
       "coverage": 0.97,
-      "note": "Comma-separated list of attendees"
+      "note": "Comma-separated list of attendees",
+      "widget_type": "text"
     },
     "purpose_minutes": {
       "type": "text",
@@ -112,7 +129,8 @@
       "source": "inference",
       "dom_name": "ov_purpose",
       "coverage": 0.97,
-      "note": "Purpose and brief meeting minutes"
+      "note": "Purpose and brief meeting minutes",
+      "widget_type": "text"
     },
     "notes": {
       "type": "text",
@@ -205,6 +223,21 @@
       "avg_amount_krw": 20900
     }
   },
-  "minimum_user_input": ["subject", "item_date", "item_amount_excl_vat", "item_vat", "item_total_amount", "item_control_no", "item_vendor"],
-  "optional_user_input": ["venue", "participants", "purpose_minutes", "notes", "item_account_code", "item_description"]
+  "minimum_user_input": [
+    "subject",
+    "item_date",
+    "item_amount_excl_vat",
+    "item_vat",
+    "item_total_amount",
+    "item_control_no",
+    "item_vendor"
+  ],
+  "optional_user_input": [
+    "venue",
+    "participants",
+    "purpose_minutes",
+    "notes",
+    "item_account_code",
+    "item_description"
+  ]
 }

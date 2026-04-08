@@ -8,34 +8,54 @@
   "field_schema": {
     "leave_type": {
       "type": "select",
+      "widget_type": "select",
       "dom_name": "leave_kind[]",
       "required": true,
       "source": "user_input",
-      "values": ["Annual leave", "Compensatory leave", "Paternity Leave", "Sick leave"],
-      "distribution": {"Annual leave": 0.56, "Compensatory leave": 0.38, "Paternity Leave": 0.04, "Sick leave": 0.01}
+      "values": [
+        "Annual leave",
+        "Compensatory leave",
+        "Paternity Leave",
+        "Sick leave"
+      ],
+      "distribution": {
+        "Annual leave": 0.56,
+        "Compensatory leave": 0.38,
+        "Paternity Leave": 0.04,
+        "Sick leave": 0.01
+      }
     },
     "using_type": {
       "type": "select",
+      "widget_type": "select",
       "dom_name": "using_type[]",
       "required": true,
       "source": "inference",
       "note": "Full day vs Hours selector. Full day value='01', Hours value='04'",
-      "values": ["Full day", "Hours"],
-      "dom_values": {"Full day": "01", "Hours": "04"}
+      "values": [
+        "Full day",
+        "Hours"
+      ],
+      "dom_values": {
+        "Full day": "01",
+        "Hours": "04"
+      }
     },
     "start_date": {
       "type": "date",
       "dom_name": "begin_date[]",
       "dom_type": "text",
       "required": true,
-      "source": "user_input"
+      "source": "user_input",
+      "widget_type": "date"
     },
     "end_date": {
       "type": "date",
       "dom_name": "end_date[]",
       "dom_type": "text",
       "required": true,
-      "source": "user_input"
+      "source": "user_input",
+      "widget_type": "date"
     },
     "start_hour": {
       "type": "number",
@@ -43,68 +63,78 @@
       "dom_type": "select",
       "required": false,
       "source": "user_input",
-      "note": "Only for partial-day leave (81% of cases). Common: 14~17, 15~17, 16~17"
+      "note": "Only for partial-day leave (81% of cases). Common: 14~17, 15~17, 16~17",
+      "widget_type": "text"
     },
     "end_hour": {
       "type": "number",
       "dom_name": "end_time[]",
       "dom_type": "select",
       "required": false,
-      "source": "user_input"
+      "source": "user_input",
+      "widget_type": "text"
     },
     "purpose": {
       "type": "text",
       "dom_name": "purpose",
       "required": true,
       "source": "inference",
-      "note": "82% are 'child care' for Kyuwon Shim"
+      "note": "82% are 'child care' for Kyuwon Shim",
+      "widget_type": "text"
     },
     "destination": {
       "type": "text",
       "dom_name": "destination",
       "required": true,
       "source": "inference",
-      "note": "69% are 'Seoul', 22% are home address"
+      "note": "69% are 'Seoul', 22% are home address",
+      "widget_type": "text"
     },
     "substitute_name": {
       "type": "text",
       "dom_name": "substitute_name",
       "required": true,
       "source": "profile",
-      "note": "88% Guinam Wee, 7% Juchan Hwang, 4% Sunju Kim"
+      "note": "88% Guinam Wee, 7% Juchan Hwang, 4% Sunju Kim",
+      "widget_type": "text"
     },
     "substitute_payroll": {
       "type": "text",
       "dom_name": "substitute_payroll",
       "required": true,
       "source": "profile",
-      "linked_to": "substitute_name"
+      "linked_to": "substitute_name",
+      "widget_type": "text"
     },
     "substitute_position": {
       "type": "text",
       "dom_name": "substitute_position",
       "required": true,
       "source": "profile",
-      "linked_to": "substitute_name"
+      "linked_to": "substitute_name",
+      "widget_type": "text"
     },
     "substitute_contact": {
       "type": "text",
       "dom_name": "substitute_contact",
       "required": true,
       "source": "profile",
-      "linked_to": "substitute_name"
+      "linked_to": "substitute_name",
+      "widget_type": "text"
     },
     "address": {
       "type": "text",
       "dom_name": "emergency_address",
       "required": true,
-      "source": "profile"
+      "source": "profile",
+      "widget_type": "text"
     },
     "telephone": {
       "type": "text",
       "dom_name": "emergency_telephone",
       "required": true,
-      "source": "profile"
+      "source": "profile",
+      "widget_type": "text"
     }
   },
   "inference_rules": [
@@ -166,6 +196,16 @@
       "contact": "031-8018-8014"
     }
   },
-  "minimum_user_input": ["leave_type", "start_date", "end_date"],
-  "optional_user_input": ["start_hour", "end_hour", "purpose", "destination", "substitute_name"]
+  "minimum_user_input": [
+    "leave_type",
+    "start_date",
+    "end_date"
+  ],
+  "optional_user_input": [
+    "start_hour",
+    "end_hour",
+    "purpose",
+    "destination",
+    "substitute_name"
+  ]
 }

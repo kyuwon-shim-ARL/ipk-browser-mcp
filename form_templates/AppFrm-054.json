@@ -18,21 +18,24 @@
       "dom_name": "subject",
       "required": true,
       "source": "user_input",
-      "note": "Convention: '[Settlement] <original travel request subject>'"
+      "note": "Convention: '[Settlement] <original travel request subject>'",
+      "widget_type": "text"
     },
     "start_date": {
       "type": "date",
       "dom_name": "start_date",
       "dom_note": "NOT a direct DOM input — comes from parent document via sel_travel hidden field",
       "required": true,
-      "source": "user_input"
+      "source": "user_input",
+      "widget_type": "date"
     },
     "end_date": {
       "type": "date",
       "dom_name": "end_date",
       "dom_note": "NOT a direct DOM input — comes from parent document via sel_travel hidden field",
       "required": true,
-      "source": "user_input"
+      "source": "user_input",
+      "widget_type": "date"
     },
     "start_time": {
       "type": "time",
@@ -69,7 +72,8 @@
         "Technical meeting": 0.04,
         "Training": 0.03,
         "Post or Paper presentation": 0.02
-      }
+      },
+      "widget_type": "select"
     },
     "purpose": {
       "type": "textarea",
@@ -77,7 +81,8 @@
       "dom_note": "NOT a direct DOM input — comes from parent document",
       "required": true,
       "source": "user_input",
-      "note": "Free text detail matching the original travel request purpose"
+      "note": "Free text detail matching the original travel request purpose",
+      "widget_type": "textarea"
     },
     "destination": {
       "type": "text",
@@ -85,7 +90,8 @@
       "dom_note": "NOT a direct DOM input — comes from parent document",
       "required": true,
       "source": "user_input",
-      "note": "Organization/venue name; copied or refined from original travel request"
+      "note": "Organization/venue name; copied or refined from original travel request",
+      "widget_type": "text"
     },
     "province": {
       "type": "select",
@@ -93,7 +99,8 @@
       "dom_note": "NOT a direct DOM input — comes from parent document",
       "required": true,
       "source": "inference",
-      "note": "Part of cascading City & Transportation selector"
+      "note": "Part of cascading City & Transportation selector",
+      "widget_type": "select"
     },
     "city": {
       "type": "select",
@@ -101,7 +108,8 @@
       "dom_note": "NOT a direct DOM input — comes from parent document",
       "required": true,
       "source": "inference",
-      "note": "Part of cascading City & Transportation selector"
+      "note": "Part of cascading City & Transportation selector",
+      "widget_type": "select"
     },
     "transport_mode": {
       "type": "select",
@@ -114,25 +122,31 @@
         "Own Vehicle - Gasoline",
         "Own Vehicle - Diesel"
       ],
-      "note": "Part of cascading City & Transportation selector"
+      "note": "Part of cascading City & Transportation selector",
+      "widget_type": "select"
     },
     "budget_control_no": {
       "type": "hidden",
       "dom_name": "budget_control_no",
       "required": true,
       "source": "user_input",
-      "note": "Must match the BC# from the corresponding approved travel request"
+      "note": "Must match the BC# from the corresponding approved travel request",
+      "widget_type": "text"
     },
     "budget_type": {
       "type": "hidden",
       "dom_name": "budget_type",
       "required": true,
       "source": "inference",
-      "values": ["R&D", "General"],
+      "values": [
+        "R&D",
+        "General"
+      ],
       "distribution": {
         "R&D": 0.84,
         "General": 0.16
-      }
+      },
+      "widget_type": "text"
     },
     "daily_expense": {
       "type": "number",
@@ -144,7 +158,8 @@
       },
       "required": true,
       "source": "inference",
-      "note": "Per-day stipend. 20,000 for day-trips (nights=0); 30,000/day for overnight"
+      "note": "Per-day stipend. 20,000 for day-trips (nights=0); 30,000/day for overnight",
+      "widget_type": "text"
     },
     "transport_fee": {
       "type": "number",
@@ -156,7 +171,8 @@
       },
       "required": false,
       "source": "user_input",
-      "note": "Actual transport receipts amount (train, bus, etc). Default 0."
+      "note": "Actual transport receipts amount (train, bus, etc). Default 0.",
+      "widget_type": "text"
     },
     "accommodation": {
       "type": "number",
@@ -168,7 +184,8 @@
       },
       "required": false,
       "source": "user_input",
-      "note": "Actual accommodation receipts amount. Default 0."
+      "note": "Actual accommodation receipts amount. Default 0.",
+      "widget_type": "text"
     },
     "food_expense": {
       "type": "number",
@@ -180,7 +197,8 @@
       },
       "required": false,
       "source": "user_input",
-      "note": "Actual food expense. Default 0."
+      "note": "Actual food expense. Default 0.",
+      "widget_type": "text"
     },
     "attached_approved_doc_ref": {
       "type": "text",
@@ -188,21 +206,55 @@
       "dom_type": "hidden",
       "required": true,
       "source": "user_input",
-      "note": "Doc number of the corresponding approved travel request (AppFrm-023); set via sel_travel hidden field"
+      "note": "Doc number of the corresponding approved travel request (AppFrm-023); set via sel_travel hidden field",
+      "widget_type": "text"
     }
   },
   "dom_fields": {
     "note": "Actual DOM input names in the settlement form (loaded from parent document via p_doc_id/sel_travel)",
-    "hidden": ["budget_control_no", "budget_type", "sel_travel"],
+    "hidden": [
+      "budget_control_no",
+      "budget_type",
+      "sel_travel"
+    ],
     "totals_structure": {
-      "transport": {"total": "transport_fee_total", "card": "transport_fee_card", "cash": "transport_fee_cash"},
-      "accommodation": {"total": "accommodation_fee_total", "card": "accommodation_fee_card", "cash": "accommodation_fee_cash"},
-      "food": {"total": "food_fee_total", "card": "food_fee_card", "cash": "food_fee_cash"},
-      "daily": {"total": "daily_fee_total", "card": "daily_fee_card", "cash": "daily_fee_cash"}
+      "transport": {
+        "total": "transport_fee_total",
+        "card": "transport_fee_card",
+        "cash": "transport_fee_cash"
+      },
+      "accommodation": {
+        "total": "accommodation_fee_total",
+        "card": "accommodation_fee_card",
+        "cash": "accommodation_fee_cash"
+      },
+      "food": {
+        "total": "food_fee_total",
+        "card": "food_fee_card",
+        "cash": "food_fee_cash"
+      },
+      "daily": {
+        "total": "daily_fee_total",
+        "card": "daily_fee_card",
+        "cash": "daily_fee_cash"
+      }
     },
-    "own_vehicle": ["ocar_pay", "ocar_card_pay", "ocar_sum"],
-    "toll": ["toll_pay", "toll_card_pay", "toll_sum"],
-    "other": ["settle_amount", "piv", "food_yn", "food_ex_cnt"]
+    "own_vehicle": [
+      "ocar_pay",
+      "ocar_card_pay",
+      "ocar_sum"
+    ],
+    "toll": [
+      "toll_pay",
+      "toll_card_pay",
+      "toll_sum"
+    ],
+    "other": [
+      "settle_amount",
+      "piv",
+      "food_yn",
+      "food_ex_cnt"
+    ]
   },
   "inference_rules": [
     {
@@ -230,22 +282,42 @@
       "then_set": "purpose_category",
       "rules": [
         {
-          "keywords": ["conference", "symposium", "seminar", "workshop", "meeting", "forum"],
+          "keywords": [
+            "conference",
+            "symposium",
+            "seminar",
+            "workshop",
+            "meeting",
+            "forum"
+          ],
           "value": "Participation in the conference/seminar",
           "confidence": 0.9
         },
         {
-          "keywords": ["sampling", "collection", "visit", "survey", "vendor"],
+          "keywords": [
+            "sampling",
+            "collection",
+            "visit",
+            "survey",
+            "vendor"
+          ],
           "value": "Simple visit to vendor & etc",
           "confidence": 0.85
         },
         {
-          "keywords": ["training", "교육"],
+          "keywords": [
+            "training",
+            "교육"
+          ],
           "value": "Training",
           "confidence": 0.9
         },
         {
-          "keywords": ["presentation", "poster", "paper"],
+          "keywords": [
+            "presentation",
+            "poster",
+            "paper"
+          ],
           "value": "Post or Paper presentation",
           "confidence": 0.85
         }
@@ -316,32 +388,68 @@
   ],
   "city_transport_lookup": {
     "Seoul (서울특별시) - Seoul (서울)": [
-      {"transport": "Other Public Transporation", "count": 30},
-      {"transport": "Own Vehicle - Gasoline", "count": 16}
+      {
+        "transport": "Other Public Transporation",
+        "count": 30
+      },
+      {
+        "transport": "Own Vehicle - Gasoline",
+        "count": 16
+      }
     ],
     "Gyeonggi-do (경기도) - Suwon (수원)": [
-      {"transport": "Own Vehicle - Gasoline", "count": 13},
-      {"transport": "Other Public Transporation", "count": 7}
+      {
+        "transport": "Own Vehicle - Gasoline",
+        "count": 13
+      },
+      {
+        "transport": "Other Public Transporation",
+        "count": 7
+      }
     ],
     "Daejeon (대전광역시) - Daejeon (대전광역시)": [
-      {"transport": "Own Vehicle - Gasoline", "count": 11},
-      {"transport": "Other Public Transporation", "count": 2}
+      {
+        "transport": "Own Vehicle - Gasoline",
+        "count": 11
+      },
+      {
+        "transport": "Other Public Transporation",
+        "count": 2
+      }
     ],
     "Busan (부산광역시) - Busan (부산광역시)": [
-      {"transport": "Own Vehicle - Gasoline", "count": 6},
-      {"transport": "Other Public Transporation", "count": 4}
+      {
+        "transport": "Own Vehicle - Gasoline",
+        "count": 6
+      },
+      {
+        "transport": "Other Public Transporation",
+        "count": 4
+      }
     ],
     "Gangwon-do (강원도) - Other (기타)": [
-      {"transport": "Own Vehicle - Gasoline", "count": 3}
+      {
+        "transport": "Own Vehicle - Gasoline",
+        "count": 3
+      }
     ],
     "Jeju-do (제주도) - Jeju (제주)": [
-      {"transport": "Other Public Transporation", "count": 2}
+      {
+        "transport": "Other Public Transporation",
+        "count": 2
+      }
     ],
     "Gyeongsangbuk-do (경상북도) - Pohang (포항)": [
-      {"transport": "Other Public Transporation", "count": 2}
+      {
+        "transport": "Other Public Transporation",
+        "count": 2
+      }
     ],
     "Gyeonggi-do (경기도) - Suwon (수원) - Own Vehicle - Diesel": [
-      {"transport": "Own Vehicle - Diesel", "count": 1}
+      {
+        "transport": "Own Vehicle - Diesel",
+        "count": 1
+      }
     ]
   },
   "writer_profiles": {

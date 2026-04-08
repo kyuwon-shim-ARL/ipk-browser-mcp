@@ -11,7 +11,8 @@
       "required": true,
       "source": "inference",
       "dom_name": "subject",
-      "note": "Auto: '[Settlement] {conference_name}' or '[Settlement] Overseas Business Travel ({conference_name})'"
+      "note": "Auto: '[Settlement] {conference_name}' or '[Settlement] Overseas Business Travel ({conference_name})'",
+      "widget_type": "text"
     },
     "traveler": {
       "type": "text",
@@ -19,7 +20,8 @@
       "source": "profile",
       "dom_name": "traveler",
       "dom_selector": ".validate[name=\"traveler\"]",
-      "note": "Name and payroll ID of the traveler, format: 'Name(XXXXXX)'"
+      "note": "Name and payroll ID of the traveler, format: 'Name(XXXXXX)'",
+      "widget_type": "text"
     },
     "budget_control_no": {
       "type": "text",
@@ -27,14 +29,16 @@
       "source": "user_input",
       "dom_name": "budget_control_no",
       "dom_selector": ".validate[name=\"budget_control_no\"]",
-      "note": "Budget control number from the original travel request approval"
+      "note": "Budget control number from the original travel request approval",
+      "widget_type": "text"
     },
     "country": {
       "type": "text",
       "required": true,
       "source": "user_input",
       "dom_name": "country",
-      "note": "Destination country and city, e.g. 'USA (San Francisco)', 'Vietnam'"
+      "note": "Destination country and city, e.g. 'USA (San Francisco)', 'Vietnam'",
+      "widget_type": "text"
     },
     "conference_name": {
       "type": "text",
@@ -42,7 +46,8 @@
       "source": "user_input",
       "dom_name": "conference_name",
       "dom_selector": ".validate[name=\"conference_name\"]",
-      "note": "Full name of the conference or organization visited"
+      "note": "Full name of the conference or organization visited",
+      "widget_type": "text"
     },
     "purpose": {
       "type": "textarea",
@@ -50,7 +55,8 @@
       "source": "user_input",
       "dom_name": "purpose",
       "dom_selector": ".validate[name=\"purpose_field\"]",
-      "note": "Section: Purpose of Business Travel (narrative description)"
+      "note": "Section: Purpose of Business Travel (narrative description)",
+      "widget_type": "textarea"
     },
     "travel_with_invitation": {
       "type": "radio",
@@ -58,9 +64,15 @@
       "source": "user_input",
       "dom_name": "travel_with_invitation",
       "dom_note": "radio input[name=\"travel_with_invitation\"][value=\"Yes/No\"] — set via frame.evaluate(); fallback: input[name=\"invitation\"]",
-      "values": ["Yes", "No"],
-      "distribution": {"No": 1.0},
-      "note": "All 14 docs: No. Default to No unless explicitly invited"
+      "values": [
+        "Yes",
+        "No"
+      ],
+      "distribution": {
+        "No": 1.0
+      },
+      "note": "All 14 docs: No. Default to No unless explicitly invited",
+      "widget_type": "radio"
     },
     "car_rent": {
       "type": "radio",
@@ -68,9 +80,15 @@
       "source": "user_input",
       "dom_name": "car_rent",
       "dom_note": "radio input[name=\"car_rent\"][value=\"Yes/No\"] — set via frame.evaluate(); fallback: input[name=\"rent_car\"]",
-      "values": ["Yes", "No"],
-      "distribution": {"No": 1.0},
-      "note": "All 14 docs: No"
+      "values": [
+        "Yes",
+        "No"
+      ],
+      "distribution": {
+        "No": 1.0
+      },
+      "note": "All 14 docs: No",
+      "widget_type": "radio"
     },
     "business_materials": {
       "type": "text",
@@ -78,7 +96,8 @@
       "source": "user_input",
       "dom_name": "business_materials",
       "dom_selector": ".validate[name=\"business_materials\"]",
-      "note": "Attached business-related materials (filename and byte size)"
+      "note": "Attached business-related materials (filename and byte size)",
+      "widget_type": "text"
     },
     "budget_account_code": {
       "type": "text",
@@ -86,28 +105,32 @@
       "source": "profile",
       "dom_name": "budget_code",
       "dom_note": "select[name=\"budget_code\"] — populated after select[name=\"budget_type\"] set to '02' (R&D)",
-      "note": "Full grant account string, e.g. 'R&D - ... - Overseas Business Travel [410202] (Period: ...)'"
+      "note": "Full grant account string, e.g. 'R&D - ... - Overseas Business Travel [410202] (Period: ...)'",
+      "widget_type": "text"
     },
     "payment_date": {
       "type": "date",
       "required": true,
       "source": "user_input",
       "dom_name": "payment_date",
-      "note": "Date of settlement payment; appears in approval section header"
+      "note": "Date of settlement payment; appears in approval section header",
+      "widget_type": "date"
     },
     "travel_start": {
       "type": "date",
       "required": true,
       "source": "user_input",
       "dom_name": "travel_start",
-      "note": "Departure date from Korea"
+      "note": "Departure date from Korea",
+      "widget_type": "date"
     },
     "travel_end": {
       "type": "date",
       "required": true,
       "source": "user_input",
       "dom_name": "travel_end",
-      "note": "Arrival back in Korea"
+      "note": "Arrival back in Korea",
+      "widget_type": "date"
     },
     "schedule_rows": {
       "type": "array",
@@ -129,7 +152,8 @@
       "source": "user_input",
       "dom_name": "transport_fee_total",
       "dom_selector": ".validate[name=\"transport_fee_total\"]",
-      "note": "Approved transport budget (KRW). Present in 79% of docs"
+      "note": "Approved transport budget (KRW). Present in 79% of docs",
+      "widget_type": "text"
     },
     "transport_fee_corp_card": {
       "type": "integer",
@@ -137,7 +161,8 @@
       "source": "user_input",
       "dom_name": "transport_fee_card",
       "dom_selector": ".validate[name=\"transport_fee_card\"]",
-      "note": "Amount paid via institute credit card for transport"
+      "note": "Amount paid via institute credit card for transport",
+      "widget_type": "text"
     },
     "transport_fee_cash": {
       "type": "integer",
@@ -153,7 +178,8 @@
       "source": "user_input",
       "dom_name": "daily_expense_total",
       "dom_selector": ".validate[name=\"daily_expense_total\"]",
-      "note": "Daily allowance budget. Present in 100% of docs"
+      "note": "Daily allowance budget. Present in 100% of docs",
+      "widget_type": "text"
     },
     "daily_expense_cash": {
       "type": "integer",
@@ -161,7 +187,8 @@
       "source": "user_input",
       "dom_name": "daily_expense_cash",
       "dom_selector": ".validate[name=\"daily_expense_cash\"]",
-      "note": "Daily allowance paid as cash/personal card"
+      "note": "Daily allowance paid as cash/personal card",
+      "widget_type": "text"
     },
     "accommodation_total_budget": {
       "type": "integer",
@@ -169,7 +196,8 @@
       "source": "user_input",
       "dom_name": "accommodation_total",
       "dom_selector": ".validate[name=\"accommodation_total\"]",
-      "note": "Accommodation budget. Present in 71% of docs"
+      "note": "Accommodation budget. Present in 71% of docs",
+      "widget_type": "text"
     },
     "accommodation_corp_card": {
       "type": "integer",
@@ -177,7 +205,8 @@
       "source": "user_input",
       "dom_name": "accommodation_card",
       "dom_selector": ".validate[name=\"accommodation_card\"]",
-      "note": "Accommodation paid via institute credit card"
+      "note": "Accommodation paid via institute credit card",
+      "widget_type": "text"
     },
     "food_expense_total_budget": {
       "type": "integer",
@@ -185,7 +214,8 @@
       "source": "user_input",
       "dom_name": "food_expense_total",
       "dom_selector": ".validate[name=\"food_expense_total\"]",
-      "note": "Food expense budget. Present in 100% of docs"
+      "note": "Food expense budget. Present in 100% of docs",
+      "widget_type": "text"
     },
     "food_expense_cash": {
       "type": "integer",
@@ -193,7 +223,8 @@
       "source": "user_input",
       "dom_name": "food_expense_cash",
       "dom_selector": ".validate[name=\"food_expense_cash\"]",
-      "note": "Food expense paid as cash/personal card"
+      "note": "Food expense paid as cash/personal card",
+      "widget_type": "text"
     },
     "miscellaneous_total_budget": {
       "type": "integer",
@@ -209,7 +240,8 @@
       "source": "profile",
       "dom_name": "corp_card_no",
       "dom_selector": ".validate[name=\"corp_card_no\"]",
-      "note": "Institute credit card number, format: XXXX-XXXX-XXXX-XXXX. Present in 93% of docs"
+      "note": "Institute credit card number, format: XXXX-XXXX-XXXX-XXXX. Present in 93% of docs",
+      "widget_type": "text"
     },
     "settle_amount": {
       "type": "integer",
@@ -217,7 +249,8 @@
       "source": "derived",
       "dom_name": "settle_amount",
       "dom_selector": ".validate[name=\"settle_amount\"]",
-      "note": "Total settled amount (KRW). Range across docs: 300,240 ~ 6,185,439, avg ~2,638,485"
+      "note": "Total settled amount (KRW). Range across docs: 300,240 ~ 6,185,439, avg ~2,638,485",
+      "widget_type": "text"
     },
     "reimbursement_to_traveler": {
       "type": "integer",
@@ -225,7 +258,8 @@
       "source": "derived",
       "dom_name": "reimbursement",
       "dom_selector": ".validate[name=\"reimbursement\"]",
-      "note": "Amount to be reimbursed to traveler for out-of-pocket expenses"
+      "note": "Amount to be reimbursed to traveler for out-of-pocket expenses",
+      "widget_type": "text"
     }
   },
   "inference_rules": [
@@ -263,12 +297,26 @@
   ],
   "traveler_profiles": {
     "note": "9 unique travelers identified in 14 documents",
-    "fields": ["corp_card", "budget_accounts", "countries_visited", "drafter_info"]
+    "fields": [
+      "corp_card",
+      "budget_accounts",
+      "countries_visited",
+      "drafter_info"
+    ]
   },
   "budget_summary": {
-    "settle_amount_range_krw": [300240, 6185439],
+    "settle_amount_range_krw": [
+      300240,
+      6185439
+    ],
     "settle_amount_avg_krw": 2638485,
-    "common_categories": ["Transport Fee", "Daily Expense", "Accommodation", "Food Expense", "Miscellaneous"]
+    "common_categories": [
+      "Transport Fee",
+      "Daily Expense",
+      "Accommodation",
+      "Food Expense",
+      "Miscellaneous"
+    ]
   },
   "minimum_user_input": [
     "budget_control_no",
