@@ -1,0 +1,14 @@
+{
+  "form_type": "travel_request",
+  "appFrmCode": "AppFrm-023",
+  "inspected_at": "2026-04-08T00:00:00Z",
+  "fields": [
+    {"dom_name": "subject", "widget_type": "text", "found": true},
+    {"dom_name": "start_date", "widget_type": "date", "found": true},
+    {"dom_name": "end_date", "widget_type": "date", "found": true},
+    {"dom_name": "start_tm", "widget_type": "text", "found": true},
+    {"dom_name": "end_tm", "widget_type": "text", "found": true},
+    {"dom_name": "purpose", "widget_type": "textarea", "found": true},
+    {"dom_name": "travel_dest[]", "widget_type": "text", "found": true}
+  ]
+}

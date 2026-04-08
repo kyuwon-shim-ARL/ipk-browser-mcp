@@ -1,0 +1,21 @@
+{
+  "form_type": "leave",
+  "appFrmCode": "AppFrm-073",
+  "inspected_at": "2026-04-08T00:00:00Z",
+  "fields": [
+    {"dom_name": "leave_kind[]", "widget_type": "select", "found": true},
+    {"dom_name": "using_type[]", "widget_type": "select", "found": true},
+    {"dom_name": "begin_date[]", "widget_type": "date", "found": true},
+    {"dom_name": "end_date[]", "widget_type": "date", "found": true},
+    {"dom_name": "start_time[]", "widget_type": "text", "found": true},
+    {"dom_name": "end_time[]", "widget_type": "text", "found": true},
+    {"dom_name": "purpose", "widget_type": "text", "found": true},
+    {"dom_name": "destination", "widget_type": "text", "found": true},
+    {"dom_name": "substitute_name", "widget_type": "text", "found": true},
+    {"dom_name": "substitute_payroll", "widget_type": "text", "found": true},
+    {"dom_name": "substitute_position", "widget_type": "text", "found": true},
+    {"dom_name": "substitute_contact", "widget_type": "text", "found": true},
+    {"dom_name": "emergency_address", "widget_type": "text", "found": true},
+    {"dom_name": "emergency_telephone", "widget_type": "text", "found": true}
+  ]
+}

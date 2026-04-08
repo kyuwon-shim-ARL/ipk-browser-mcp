@@ -1,0 +1,18 @@
+{
+  "form_type": "seminar",
+  "appFrmCode": "AppFrm-043",
+  "inspected_at": "2026-04-08T00:00:00Z",
+  "fields": [
+    {"dom_name": "subject", "widget_type": "text", "found": true},
+    {"dom_name": "requester", "widget_type": "text", "found": true},
+    {"dom_name": "disclosure_purpose", "widget_type": "textarea", "found": true},
+    {"dom_name": "disclosure_date", "widget_type": "date", "found": true},
+    {"dom_name": "material_description", "widget_type": "text", "found": true},
+    {"dom_name": "conference_or_journal", "widget_type": "text", "found": true},
+    {"dom_name": "Q1", "widget_type": "radio", "found": true},
+    {"dom_name": "Q2", "widget_type": "radio", "found": true},
+    {"dom_name": "Q3", "widget_type": "radio", "found": true},
+    {"dom_name": "Q4", "widget_type": "radio", "found": true},
+    {"dom_name": "Q5", "widget_type": "radio", "found": true}
+  ]
+}

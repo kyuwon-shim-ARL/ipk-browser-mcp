@@ -1,0 +1,23 @@
+{
+  "form_type": "travel_settlement",
+  "appFrmCode": "AppFrm-054",
+  "inspected_at": "2026-04-08T00:00:00Z",
+  "fields": [
+    {"dom_name": "subject", "widget_type": "text", "found": true},
+    {"dom_name": "start_date", "widget_type": "date", "found": true},
+    {"dom_name": "end_date", "widget_type": "date", "found": true},
+    {"dom_name": "purpose_category", "widget_type": "select", "found": true},
+    {"dom_name": "purpose", "widget_type": "textarea", "found": true},
+    {"dom_name": "destination", "widget_type": "text", "found": true},
+    {"dom_name": "province", "widget_type": "select", "found": true},
+    {"dom_name": "city", "widget_type": "select", "found": true},
+    {"dom_name": "transport_mode", "widget_type": "select", "found": true},
+    {"dom_name": "budget_control_no", "widget_type": "text", "found": true},
+    {"dom_name": "budget_type", "widget_type": "text", "found": true},
+    {"dom_name": "daily_fee_total", "widget_type": "text", "found": true},
+    {"dom_name": "transport_fee_total", "widget_type": "text", "found": true},
+    {"dom_name": "accommodation_fee_total", "widget_type": "text", "found": true},
+    {"dom_name": "food_fee_total", "widget_type": "text", "found": true},
+    {"dom_name": "sel_travel", "widget_type": "text", "found": true}
+  ]
+}
