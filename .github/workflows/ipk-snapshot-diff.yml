@@ -1,0 +1,63 @@
+name: IPK Template 3-Axis Completeness Check
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'form_templates/**'
+      - 'ipk-browser-mcp/src/form-registry.json'
+  pull_request:
+    paths:
+      - 'form_templates/**'
+      - 'ipk-browser-mcp/src/form-registry.json'
+  schedule:
+    # Weekly: every Monday at 09:00 UTC (18:00 KST)
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+    inputs:
+      live_diff:
+        description: 'Run live inspect_form drift check (requires IPK_BASE_URL secret)'
+        required: false
+        default: 'false'
+
+jobs:
+  completeness-gate:
+    name: 3-Axis Template Completeness
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ipk-browser-mcp
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: ipk-browser-mcp/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run 3-axis completeness check
+        run: node scripts/check-3axis-completeness.mjs
+
+      - name: Run vitest template completeness tests
+        run: npx vitest run test/tools/template-completeness.test.ts
+
+      # Live drift diff — only runs when IPK_LIVE=1 is explicitly set
+      # Requires IPK_BASE_URL, IPK_USERNAME, IPK_PASSWORD secrets and VPN/tunnel
+      # To enable: set live_diff=true in workflow_dispatch or add IPK_LIVE secret
+      - name: Live inspect_form drift check (optional)
+        if: ${{ inputs.live_diff == 'true' || vars.IPK_LIVE == '1' }}
+        env:
+          IPK_LIVE: '1'
+          IPK_BASE_URL: ${{ secrets.IPK_BASE_URL }}
+          IPK_USERNAME: ${{ secrets.IPK_USERNAME }}
+          IPK_PASSWORD: ${{ secrets.IPK_PASSWORD }}
+        run: |
+          echo "Live drift check would run here."
+          echo "Requires VPN tunnel or self-hosted runner with IPK network access."
+          echo "Skipping in default CI environment."
