@@ -1,0 +1,15 @@
+{
+  "form_type": "leave_return",
+  "appFrmCode": "AppFrm-028",
+  "inspected_at": "2026-04-08T00:00:00Z",
+  "fields": [
+    {"dom_name": "original_leave_doc", "widget_type": "text", "found": true},
+    {"dom_name": "leave_kind[]", "widget_type": "select", "found": true},
+    {"dom_name": "begin_date", "widget_type": "date", "found": true},
+    {"dom_name": "end_date", "widget_type": "date", "found": true},
+    {"dom_name": "return_days", "widget_type": "text", "found": true},
+    {"dom_name": "return_hours", "widget_type": "text", "found": true},
+    {"dom_name": "description", "widget_type": "textarea", "found": true},
+    {"dom_name": "subject", "widget_type": "text", "found": true}
+  ]
+}

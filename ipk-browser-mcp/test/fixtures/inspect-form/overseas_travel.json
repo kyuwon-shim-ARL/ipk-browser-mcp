@@ -1,0 +1,31 @@
+{
+  "form_type": "overseas_travel",
+  "appFrmCode": "AppFrm-026",
+  "inspected_at": "2026-04-08T00:00:00Z",
+  "fields": [
+    {"dom_name": "subject", "widget_type": "text", "found": true},
+    {"dom_name": "traveler", "widget_type": "text", "found": true},
+    {"dom_name": "budget_control_no", "widget_type": "text", "found": true},
+    {"dom_name": "country", "widget_type": "text", "found": true},
+    {"dom_name": "conference_name", "widget_type": "text", "found": true},
+    {"dom_name": "purpose", "widget_type": "textarea", "found": true},
+    {"dom_name": "travel_with_invitation", "widget_type": "radio", "found": true},
+    {"dom_name": "car_rent", "widget_type": "radio", "found": true},
+    {"dom_name": "business_materials", "widget_type": "text", "found": true},
+    {"dom_name": "budget_code", "widget_type": "text", "found": true},
+    {"dom_name": "payment_date", "widget_type": "date", "found": true},
+    {"dom_name": "travel_start", "widget_type": "date", "found": true},
+    {"dom_name": "travel_end", "widget_type": "date", "found": true},
+    {"dom_name": "transport_fee_total", "widget_type": "text", "found": true},
+    {"dom_name": "transport_fee_card", "widget_type": "text", "found": true},
+    {"dom_name": "daily_expense_total", "widget_type": "text", "found": true},
+    {"dom_name": "daily_expense_cash", "widget_type": "text", "found": true},
+    {"dom_name": "accommodation_total", "widget_type": "text", "found": true},
+    {"dom_name": "accommodation_card", "widget_type": "text", "found": true},
+    {"dom_name": "food_expense_total", "widget_type": "text", "found": true},
+    {"dom_name": "food_expense_cash", "widget_type": "text", "found": true},
+    {"dom_name": "corp_card_no", "widget_type": "text", "found": true},
+    {"dom_name": "settle_amount", "widget_type": "text", "found": true},
+    {"dom_name": "reimbursement", "widget_type": "text", "found": true}
+  ]
+}

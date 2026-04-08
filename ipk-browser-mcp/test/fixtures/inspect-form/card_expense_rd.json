@@ -1,0 +1,13 @@
+{
+  "form_type": "card_expense_rd",
+  "appFrmCode": "AppFrm-021",
+  "inspected_at": "2026-04-08T00:00:00Z",
+  "fields": [
+    {"dom_name": "subject", "widget_type": "text", "found": true},
+    {"dom_name": "item_name[]", "widget_type": "text", "found": true},
+    {"dom_name": "item_qty[]", "widget_type": "text", "found": true},
+    {"dom_name": "seller[]", "widget_type": "text", "found": true},
+    {"dom_name": "p_reason", "widget_type": "textarea", "found": true},
+    {"dom_name": "account_str[]", "widget_type": "text", "found": true}
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "form_type": "expense",
+  "appFrmCode": "AppFrm-020",
+  "inspected_at": "2026-04-08T00:00:00Z",
+  "fields": [
+    {"dom_name": "subject", "widget_type": "text", "found": true},
+    {"dom_name": "budget_code", "widget_type": "select", "found": true},
+    {"dom_name": "invoice[]", "widget_type": "date", "found": true},
+    {"dom_name": "item_account_code[]", "widget_type": "select", "found": true},
+    {"dom_name": "item_desc[]", "widget_type": "text", "found": true},
+    {"dom_name": "item_amount[]", "widget_type": "text", "found": true},
+    {"dom_name": "item_amount_vat[]", "widget_type": "text", "found": true},
+    {"dom_name": "total_amt", "widget_type": "text", "found": true},
+    {"dom_name": "item_control_no[]", "widget_type": "text", "found": true},
+    {"dom_name": "item_vendor[]", "widget_type": "text", "found": true},
+    {"dom_name": "ov_place", "widget_type": "text", "found": true},
+    {"dom_name": "ov_member", "widget_type": "text", "found": true},
+    {"dom_name": "ov_purpose", "widget_type": "text", "found": true}
+  ]
+}
