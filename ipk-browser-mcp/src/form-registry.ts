@@ -17,6 +17,7 @@ export const FORM_REGISTRY = {
   travel_settlement: { appFrmCode: "AppFrm-054", templateFile: "AppFrm-054.json", status: "implemented", description: "출장정산" },
   leave_return:      { appFrmCode: "AppFrm-028", templateFile: "AppFrm-028.json", status: "implemented", description: "대체휴일반납" },
   card_expense:      { appFrmCode: "AppFrm-020", templateFile: "AppFrm-020.json", status: "implemented", description: "카드경비" },
+  card_expense_rd:   { appFrmCode: "AppFrm-021", templateFile: "AppFrm-021.json", status: "implemented", description: "R&D 카드경비 (mker)" },
   seminar:           { appFrmCode: "AppFrm-043", templateFile: "AppFrm-043.json", status: "implemented", description: "세미나공시" },
   overseas_travel:   { appFrmCode: "AppFrm-026", templateFile: "AppFrm-026.json", status: "implemented", description: "해외출장" },
 } as const;

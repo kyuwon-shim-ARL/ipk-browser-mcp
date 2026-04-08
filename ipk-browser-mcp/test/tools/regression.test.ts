@@ -22,9 +22,15 @@ describe("Form registry consistency (T7)", () => {
     }
   });
 
-  it("All 11 FormTypes are present", () => {
-    expect(Object.keys(FORM_CODES)).toHaveLength(11);
-    expect(Object.keys(FORM_REGISTRY)).toHaveLength(11);
+  it("All 12 FormTypes are present", () => {
+    expect(Object.keys(FORM_CODES)).toHaveLength(12);
+    expect(Object.keys(FORM_REGISTRY)).toHaveLength(12);
+  });
+
+  it("card_expense_rd maps to AppFrm-021 (R&D ER from Card via mker)", () => {
+    expect(FORM_CODES.card_expense_rd).toBe("AppFrm-021");
+    expect(FORM_REGISTRY.card_expense_rd.appFrmCode).toBe("AppFrm-021");
+    expect(FORM_REGISTRY.card_expense_rd.templateFile).toBe("AppFrm-021.json");
   });
 
   it("All FORM_REGISTRY entries are 'implemented' status", () => {

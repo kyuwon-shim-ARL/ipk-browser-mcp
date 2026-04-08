@@ -80,15 +80,17 @@ describe.skipIf(!pythonAvailable)("Python bridge integration tests", () => {
     }
   });
 
-  it("load_registry returns 11 FormType entries", async () => {
+  it("load_registry returns 12 FormType entries", async () => {
     const resp = await sendRequest(bridge, "load_registry");
     expect(resp.error).toBeUndefined();
     const result = resp.result;
-    expect(Object.keys(result)).toHaveLength(11);
+    expect(Object.keys(result)).toHaveLength(12);
     expect(result.leave).toBeDefined();
     expect(result.leave.appFrmCode).toBe("AppFrm-073");
     expect(result.expense).toBeDefined();
     expect(result.overseas_travel).toBeDefined();
+    expect(result.card_expense_rd).toBeDefined();
+    expect(result.card_expense_rd.appFrmCode).toBe("AppFrm-021");
   });
 
   it("infer_fields returns inferred field values", async () => {
