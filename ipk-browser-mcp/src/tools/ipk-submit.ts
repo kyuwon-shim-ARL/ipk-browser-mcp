@@ -198,8 +198,18 @@ export const ipkSubmitFormSchema = {
   form_type: z.enum([
     "leave", "expense", "working", "travel", "travel_request", "budget_transfer",
     // Wave 2 form types
-    "travel_settlement", "leave_return", "card_expense", "seminar", "overseas_travel",
+    "travel_settlement", "leave_return", "card_expense", "card_expense_rd", "seminar", "overseas_travel",
   ]).describe("Form type to submit"),
+
+  // card_expense_rd (AppFrm-021) — R&D ER constructed from a corporate card receipt.
+  // Required: trseq + appr_no (from corporation_card_list.php Make ER link). Most other
+  // fields are auto-filled by the form via the mker=Y URL pattern.
+  trseq: z.string().optional().describe("Card receipt transaction sequence (e.g. '26040417102'). Required for card_expense_rd."),
+  appr_no: z.string().optional().describe("Card approval number (e.g. '19984403' or 'i5773800' for overseas). Required for card_expense_rd."),
+  item_name: z.string().optional().describe("Item name for card_expense_rd row (English). e.g. 'Google Cloud Gemini API service'."),
+  seller_en: z.string().optional().describe("English vendor name for card_expense_rd row. e.g. 'Google Cloud Korea LLC'."),
+  account_code_label: z.string().optional().describe("Substring/regex to auto-pick account code from Sel_account popup options (e.g. 'IT Software'). If account_code is also given, account_code wins."),
+  attachment_paths: z.array(z.string()).optional().describe("Multiple attachment file paths for card_expense_rd. Each file is uploaded to a separate slot."),
   draft_only: z.boolean().default(true).describe("Save as draft (true) or submit for approval (false). Defaults to true for safety."),
   confirm_submit: z.boolean().default(false).describe("Must be true to actually submit for approval. Ignored when draft_only=true."),
 
@@ -364,6 +374,26 @@ export async function handleIpkSubmitForm(
   }
 
   try {
+    // card_expense_rd uses a mker URL with trseq + appr_no params from the card receipt list
+    if (formType === "card_expense_rd") {
+      const trseq = params.trseq;
+      const apprNo = params.appr_no;
+      if (!trseq || !apprNo) {
+        return textResult({ error: true, code: "MISSING_CARD_RECEIPT_REF", message: "card_expense_rd requires trseq and appr_no (from corporation_card_list.php Make ER link)." });
+      }
+      const cerdUrl = `${config.baseUrl}/Document/document_write.php?approve_type=AppFrm-021&mker=Y&trseq=${encodeURIComponent(trseq)}&appr_no=${encodeURIComponent(apprNo)}`;
+      const mainFrame = page.frame("main_menu");
+      if (!mainFrame) {
+        return textResult({ error: true, code: "FRAME_NOT_FOUND", message: "main_menu frame not found" });
+      }
+      await mainFrame.goto(cerdUrl, { timeout: config.navTimeoutMs });
+      await mainFrame.waitForLoadState("load");
+      await mainFrame.waitForSelector('input[name="subject"]', { timeout: 5000 }).catch(() => null);
+      sessionManager.touchActivity();
+      await page.waitForTimeout(2000);
+      return await submitCardExpenseRD(page, mainFrame, sessionManager, config, params, mode);
+    }
+
     // budget_transfer has two variants (rnd/general), so navigate directly instead of using navigateToForm
     if (formType === "budget_transfer") {
       const btCode = BUDGET_TRANSFER_CODES[params.transfer_type || "rnd"] || BUDGET_TRANSFER_CODES.rnd;
@@ -1160,6 +1190,247 @@ async function submitCardExpense(
         ? `Card expense ${mode === "draft" ? "draft saved" : "submitted"} (doc_id: ${docId})`
         : `Card expense ${mode} completed`,
       warning: !params.attachment_path ? "No attachment provided. Card expense forms require a receipt." : undefined,
+    },
+  });
+}
+
+/** R&D Card Expense from Card Receipt (AppFrm-021, mker=Y mode)
+ *
+ * This form is opened from the IPK corporation_card_list.php page via a "Make ER"
+ * link with `?approve_type=AppFrm-021&mker=Y&trseq={trseq}&appr_no={appr_no}`.
+ * The system pre-fills budget_type, budget_code, payment, card number, invoice
+ * date, item amounts (excl/VAT/total), and vendor (Korean) from the card receipt.
+ *
+ * The user must provide:
+ *  - subject (English title)
+ *  - item_name + seller_en (English vendor) for the row
+ *  - p_reason (Notes / purpose)
+ *  - account_code (or account_code_label for auto-pick from Sel_account popup)
+ *  - At least 1 attachment_path (or attachment_paths array for multi-file)
+ *
+ * Submit flow uses the 2-stage budget_check_er popup orchestration via the
+ * er-submit-helper module.
+ *
+ * Discovered: 2026-04-07 session probe (Google Cloud + RunPod ER drafts).
+ */
+async function submitCardExpenseRD(
+  page: any,
+  frame: any,
+  _sessionManager: SessionManager,
+  config: Config,
+  params: Record<string, any>,
+  mode: "draft" | "request"
+) {
+  // Helpers (lazy import to keep top of file lean)
+  const accountHelper = await import("../internal/primitives/account.js");
+  const attachmentHelper = await import("../internal/primitives/attachment.js");
+
+  // Subject naming convention (kept short — form auto-prefixes "[Card]"):
+  // Just "{Vendor} ({service}) usage fee" — no lab tag, no date, no amount.
+  // Card receipt date and KRW amount are already shown in the form body.
+  const subject = params.subject || params.title || "Card receipt";
+  const itemName = params.item_name || "Card receipt item";
+  const sellerEn = params.seller_en || params.item_vendor || "";
+  const pReason = params.p_reason || params.reason || "";
+
+  // Read prefilled values to confirm form loaded correctly
+  const prefilled = await frame.evaluate(() => {
+    const get = (n: string, idx = 0) => {
+      const els = document.querySelectorAll(`[name="${n}"]`) as NodeListOf<HTMLInputElement>;
+      return els[idx] ? els[idx].value : null;
+    };
+    return {
+      budget_type: get("budget_type"),
+      budget_code: get("budget_code"),
+      amount: get("item_amount[]", 1),
+      vender_kor: get("vender[]", 1),
+    };
+  });
+  if (!prefilled.budget_code) {
+    return textResult({
+      error: true,
+      code: "FORM_NOT_LOADED",
+      message: "AppFrm-021 mker form did not prefill. Check trseq/appr_no values.",
+    });
+  }
+
+  // Step 1: Fill user-discretion fields
+  await frame.evaluate(
+    (args: { subject: string; itemName: string; sellerEn: string; pReason: string }) => {
+      const subjectEl = document.querySelector('input[name="subject"]') as HTMLInputElement | null;
+      if (subjectEl) subjectEl.value = args.subject;
+      const items = document.querySelectorAll('input[name="item_name[]"]') as NodeListOf<HTMLInputElement>;
+      const qtys = document.querySelectorAll('input[name="item_qty[]"]') as NodeListOf<HTMLInputElement>;
+      const sellers = document.querySelectorAll('input[name="seller[]"]') as NodeListOf<HTMLInputElement>;
+      const itemDescs = document.querySelectorAll('input[name="item_desc[]"]') as NodeListOf<HTMLInputElement>;
+      if (items[1]) items[1].value = args.itemName;
+      if (qtys[1] && !qtys[1].value) qtys[1].value = "1";
+      if (sellers[1]) sellers[1].value = args.sellerEn;
+      if (itemDescs[1]) itemDescs[1].value = args.itemName;
+      const pr = document.querySelectorAll('textarea[name="p_reason"]') as NodeListOf<HTMLTextAreaElement>;
+      pr.forEach((t) => { t.value = args.pReason; });
+    },
+    { subject, itemName, sellerEn, pReason }
+  );
+
+  // Step 2: Resolve account code (explicit code wins, then label match, then default 410318)
+  let accountSet = false;
+  if (params.item_account_code) {
+    // Explicit code provided — fetch full list to find matching seq, then inject
+    const codes = await accountHelper.fetchAccountCodes(page as any, {
+      baseUrl: config.baseUrl,
+      budgetType: prefilled.budget_type || "02",
+      budgetCode: prefilled.budget_code,
+      approveType: "AppFrm-021",
+    });
+    const match = codes.find((c) => c.code === params.item_account_code);
+    if (match) {
+      // Inject directly into the iframe-frame's document
+      await frame.evaluate(
+        (args: { rowIdx: number; account: { seq: string; code: string; label: string } }) => {
+          const acStr = document.getElementsByName("account_str[]") as NodeListOf<HTMLInputElement>;
+          const acCode = document.getElementsByName("account_code[]") as NodeListOf<HTMLInputElement>;
+          const acSeq = document.getElementsByName("account_seq[]") as NodeListOf<HTMLInputElement>;
+          const msSeq = document.getElementsByName("milestone_seq[]") as NodeListOf<HTMLInputElement>;
+          const msChk = document.getElementsByName("milestone_check") as NodeListOf<HTMLInputElement>;
+          if (acStr[args.rowIdx]) acStr[args.rowIdx].value = `[${args.account.code}] ${args.account.label}`;
+          if (acCode[args.rowIdx]) acCode[args.rowIdx].value = args.account.code;
+          if (acSeq[args.rowIdx]) acSeq[args.rowIdx].value = args.account.seq;
+          if (msSeq[args.rowIdx]) msSeq[args.rowIdx].value = "";
+          if (msChk[args.rowIdx]) msChk[args.rowIdx].value = "-";
+        },
+        { rowIdx: 1, account: match }
+      );
+      accountSet = true;
+    }
+  }
+  if (!accountSet && params.account_code_label) {
+    const codes = await accountHelper.fetchAccountCodes(page as any, {
+      baseUrl: config.baseUrl,
+      budgetType: prefilled.budget_type || "02",
+      budgetCode: prefilled.budget_code,
+      approveType: "AppFrm-021",
+    });
+    const labelLower = String(params.account_code_label).toLowerCase();
+    const match = codes.find((c) => c.label.toLowerCase().includes(labelLower));
+    if (match) {
+      await frame.evaluate(
+        (args: { rowIdx: number; account: { seq: string; code: string; label: string } }) => {
+          const acStr = document.getElementsByName("account_str[]") as NodeListOf<HTMLInputElement>;
+          const acCode = document.getElementsByName("account_code[]") as NodeListOf<HTMLInputElement>;
+          const acSeq = document.getElementsByName("account_seq[]") as NodeListOf<HTMLInputElement>;
+          const msSeq = document.getElementsByName("milestone_seq[]") as NodeListOf<HTMLInputElement>;
+          const msChk = document.getElementsByName("milestone_check") as NodeListOf<HTMLInputElement>;
+          if (acStr[args.rowIdx]) acStr[args.rowIdx].value = `[${args.account.code}] ${args.account.label}`;
+          if (acCode[args.rowIdx]) acCode[args.rowIdx].value = args.account.code;
+          if (acSeq[args.rowIdx]) acSeq[args.rowIdx].value = args.account.seq;
+          if (msSeq[args.rowIdx]) msSeq[args.rowIdx].value = "";
+          if (msChk[args.rowIdx]) msChk[args.rowIdx].value = "-";
+        },
+        { rowIdx: 1, account: match }
+      );
+      accountSet = true;
+    }
+  }
+  if (!accountSet) {
+    return textResult({
+      error: true,
+      code: "ACCOUNT_CODE_REQUIRED",
+      message: "card_expense_rd: provide item_account_code (e.g. '410318') or account_code_label (e.g. 'IT Software'). Use ipk_inspect_form or ./pr_account_sel.php to list valid codes for the budget.",
+    });
+  }
+
+  // Step 3: Attach file(s)
+  const filePaths: string[] = Array.isArray(params.attachment_paths)
+    ? params.attachment_paths
+    : params.attachment_path
+      ? [params.attachment_path]
+      : [];
+  if (filePaths.length === 0) {
+    return textResult({
+      error: true,
+      code: "ATTACHMENT_REQUIRED",
+      message: "card_expense_rd requires at least one attachment_path or attachment_paths[]. The form alerts 'Please attach at least one file.' on submit.",
+    });
+  }
+  // Set file_attach_cnt = N then upload N files into doc_attach_file[]
+  const attachResult = await attachmentHelper.attachFiles(frame, filePaths);
+  await page.waitForTimeout(500);
+
+  // Step 4: 2-stage submit (Evidence Check modal bypass + budget_check_er popup orchestration)
+  // We replicate the logic of er-submit-helper.submitERWithBudgetCheck but operate on the
+  // iframe (frame) since the form lives inside main_menu.
+  const popupHolder: { docId: string | null; finalUrl: string } = {
+    docId: null,
+    finalUrl: "",
+  };
+  const popupPromise = new Promise<void>((resolve) => {
+    page.once("popup", async (pop: any) => {
+      try {
+        await pop.waitForLoadState("networkidle", { timeout: 15000 });
+        await pop.waitForTimeout(1500);
+        await pop.evaluate("submit_form()").catch(() => {});
+        await pop.waitForTimeout(4000);
+      } catch {
+        // ignore
+      } finally {
+        resolve();
+      }
+    });
+    setTimeout(resolve, 25000);
+  });
+
+  try {
+    await frame.evaluate((mode1Val: string) => {
+      const w = window as any;
+      const doc = document as any;
+      if (doc.all && doc.all("mode1")) doc.all("mode1").value = mode1Val;
+      const form = doc.form1 as HTMLFormElement;
+      if (!form) throw new Error("form1 not found");
+      (form as any).mode.value = "insert";
+      w.open("", "budget_frame", "width=940,height=400,top=100,left=100,resizable=0,scrollbars=1");
+      (form as any).target = "budget_frame";
+      (form as any).action = "./budget_check_er.php";
+      form.submit();
+    }, mode === "draft" ? "draft" : "");
+  } catch (err) {
+    return textResult({
+      error: true,
+      code: "SUBMIT_FAILED",
+      message: `card_expense_rd submit trigger failed: ${err instanceof Error ? err.message : String(err)}`,
+    });
+  }
+
+  await popupPromise;
+  await page.waitForTimeout(2000);
+  try {
+    await page.waitForLoadState("networkidle", { timeout: 10000 });
+  } catch {
+    // navigation may have already settled
+  }
+
+  // After submit, frame URL should be document_view.php?doc_id=...
+  popupHolder.finalUrl = (frame.url && typeof frame.url === "function") ? frame.url() : page.url();
+  const m = popupHolder.finalUrl.match(/[?&]doc_id=(\d+)/);
+  popupHolder.docId = m ? m[1] : null;
+
+  // Mark _sessionManager as intentionally unused for tsc strictness
+  void _sessionManager;
+
+  return textResult({
+    error: false,
+    data: {
+      success: popupHolder.docId !== null,
+      docId: popupHolder.docId,
+      mode,
+      formType: "card_expense_rd",
+      subject,
+      finalUrl: popupHolder.finalUrl,
+      attached: attachResult.attached,
+      skipped_attachments: attachResult.skipped,
+      message: popupHolder.docId
+        ? `R&D card ER ${mode === "draft" ? "draft saved" : "submitted"} (doc_id: ${popupHolder.docId}, ${attachResult.attached}/${filePaths.length} files attached)`
+        : `R&D card ER ${mode} attempted but doc_id not found in URL — check Drafts manually`,
     },
   });
 }

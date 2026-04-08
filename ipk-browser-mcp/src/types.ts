@@ -1,3 +1,23 @@
+import type { Frame } from "playwright";
+
+/**
+ * Structural subtype of Playwright's Frame, covering only the APIs that
+ * internal primitives actually use. Using this instead of `Page | Frame`
+ * prevents silent breakage when a helper calls a Page-only method on a
+ * Frame (e.g. `context()`, `once("popup", ...)`) — tsc catches it.
+ *
+ * Introduced in IPK-DR-006 Phase 1 refactor.
+ */
+export type FrameLike = Pick<
+  Frame,
+  | "evaluate"
+  | "locator"
+  | "waitForSelector"
+  | "waitForTimeout"
+  | "waitForLoadState"
+  | "frameLocator"
+>;
+
 /** Supported form types in IPK groupware */
 export type FormType =
   | "leave"           // 휴가 (AppFrm-073)
@@ -10,6 +30,7 @@ export type FormType =
   | "travel_settlement" // 출장정산 (AppFrm-054)
   | "leave_return"      // 대체휴일반납 (AppFrm-028)
   | "card_expense"      // 카드경비 (AppFrm-020)
+  | "card_expense_rd"   // R&D ER from Card via mker=Y (AppFrm-021)
   | "seminar"           // 세미나공시 (AppFrm-043)
   | "overseas_travel";  // 해외출장 (AppFrm-026)
 
@@ -56,6 +77,7 @@ export const FORM_CODES: Record<FormType, string> = {
   travel_settlement: "AppFrm-054",
   leave_return: "AppFrm-028",
   card_expense: "AppFrm-020",
+  card_expense_rd: "AppFrm-021",
   seminar: "AppFrm-043",
   overseas_travel: "AppFrm-026",
 };

@@ -11,6 +11,9 @@ var __require = /* @__PURE__ */ ((x) => typeof require !== "undefined" ? require
   if (typeof require !== "undefined") return require.apply(this, arguments);
   throw Error('Dynamic require of "' + x + '" is not supported');
 });
+var __esm = (fn, res) => function __init() {
+  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+};
 var __commonJS = (cb, mod) => function __require2() {
   return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
 };
@@ -6791,16 +6794,176 @@ var require_dist = __commonJS({
         throw new Error(`Unknown format "${name}"`);
       return f;
     };
-    function addFormats(ajv, list, fs5, exportName) {
+    function addFormats(ajv, list, fs6, exportName) {
       var _a;
       var _b;
       (_a = (_b = ajv.opts.code).formats) !== null && _a !== void 0 ? _a : _b.formats = (0, codegen_1._)`require("ajv-formats/dist/formats").${exportName}`;
       for (const f of list)
-        ajv.addFormat(f, fs5[f]);
+        ajv.addFormat(f, fs6[f]);
     }
     module.exports = exports = formatsPlugin;
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.default = formatsPlugin;
+  }
+});
+
+// src/internal/primitives/account.ts
+var account_exports = {};
+__export(account_exports, {
+  fetchAccountCodes: () => fetchAccountCodes,
+  pickAccountCode: () => pickAccountCode,
+  setAccountCodeOnRow: () => setAccountCodeOnRow
+});
+async function fetchAccountCodes(page, opts) {
+  const flag = opts.rowFlag ?? "1";
+  const url = `${opts.baseUrl}/Document/pr_account_sel.php?budget_type=${encodeURIComponent(opts.budgetType)}&budget_code=${encodeURIComponent(opts.budgetCode)}&sel_item=${encodeURIComponent(flag)}&approve_type=${encodeURIComponent(opts.approveType)}`;
+  const ctx = page.context();
+  const probe = await ctx.newPage();
+  try {
+    await probe.goto(url, { waitUntil: "networkidle", timeout: 3e4 });
+    return await probe.evaluate(() => {
+      const result = [];
+      const links = Array.from(document.querySelectorAll("a"));
+      for (const a of links) {
+        const oc = a.getAttribute("onclick") || "";
+        const m = oc.match(
+          /Check_Item\(\s*'([^']*)'\s*,\s*'([^']*)'\s*,\s*'([^']*)'\s*\)/
+        );
+        if (m) {
+          result.push({ seq: m[1], code: m[2], label: m[3] });
+        }
+      }
+      return result;
+    });
+  } finally {
+    await probe.close();
+  }
+}
+async function setAccountCodeOnRow(ctx, rowIdx, account) {
+  await ctx.evaluate(
+    ({ rowIdx: rowIdx2, account: account2 }) => {
+      const acStr = document.getElementsByName(
+        "account_str[]"
+      );
+      const acCode = document.getElementsByName(
+        "account_code[]"
+      );
+      const acSeq = document.getElementsByName(
+        "account_seq[]"
+      );
+      const msSeq = document.getElementsByName(
+        "milestone_seq[]"
+      );
+      const msChk = document.getElementsByName(
+        "milestone_check"
+      );
+      if (acStr[rowIdx2]) acStr[rowIdx2].value = `[${account2.code}] ${account2.label}`;
+      if (acCode[rowIdx2]) acCode[rowIdx2].value = account2.code;
+      if (acSeq[rowIdx2]) acSeq[rowIdx2].value = account2.seq;
+      if (msSeq[rowIdx2]) msSeq[rowIdx2].value = "";
+      if (msChk[rowIdx2]) msChk[rowIdx2].value = "-";
+    },
+    { rowIdx, account }
+  );
+}
+async function pickAccountCode(page, opts, labelMatch) {
+  const codes = await fetchAccountCodes(page, opts);
+  const matcher = typeof labelMatch === "string" ? (s) => s.toLowerCase().includes(labelMatch.toLowerCase()) : (s) => labelMatch.test(s);
+  return codes.find((c) => matcher(c.label)) ?? null;
+}
+var init_account = __esm({
+  "src/internal/primitives/account.ts"() {
+    "use strict";
+  }
+});
+
+// src/internal/primitives/attachment.ts
+var attachment_exports = {};
+__export(attachment_exports, {
+  attachFiles: () => attachFiles,
+  clearAllAttachments: () => clearAllAttachments
+});
+import * as fs2 from "fs";
+async function attachFiles(ctx, filePaths) {
+  const result = { attached: 0, skipped: [] };
+  const valid = [];
+  for (const p of filePaths) {
+    if (!fs2.existsSync(p)) {
+      result.skipped.push({ path: p, reason: "file not found on local fs" });
+    } else {
+      valid.push(p);
+    }
+  }
+  if (valid.length === 0) return result;
+  await ctx.evaluate((n) => {
+    const sel = document.querySelector(
+      'select[name="file_attach_cnt"]'
+    );
+    if (sel) {
+      sel.value = String(n);
+      sel.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+  }, valid.length);
+  await ctx.waitForTimeout(300);
+  const fileLocators = ctx.locator('input[name="doc_attach_file[]"]');
+  for (let i = 0; i < valid.length; i++) {
+    try {
+      await fileLocators.nth(i).setInputFiles(valid[i]);
+      result.attached += 1;
+    } catch (err) {
+      result.skipped.push({
+        path: valid[i],
+        reason: `setInputFiles failed: ${err instanceof Error ? err.message : String(err)}`
+      });
+    }
+  }
+  return result;
+}
+async function clearAllAttachments(ctx, opts = {}) {
+  const maxIter = opts.maxIter ?? 25;
+  const waitMs = opts.waitMs ?? 1500;
+  let deleted = 0;
+  const readExisting = async () => {
+    return await ctx.evaluate(() => {
+      const out = [];
+      for (const a of Array.from(document.querySelectorAll("a"))) {
+        const href = a.getAttribute("href") || "";
+        const m = href.match(/del_file\('(\d+)'\)/);
+        if (m) out.push(m[1]);
+      }
+      return [...new Set(out)];
+    });
+  };
+  let existing = await readExisting();
+  let iter = 0;
+  while (existing.length > 0 && iter < maxIter) {
+    iter += 1;
+    const order = existing[0];
+    try {
+      await ctx.evaluate((flag) => {
+        const delNo = document.getElementById("del_no");
+        const modeEl = document.all?.("mode");
+        if (delNo) delNo.value = flag;
+        if (modeEl) modeEl.value = "file";
+        const form = document.form1;
+        if (form) form.submit();
+      }, order);
+    } catch {
+      break;
+    }
+    try {
+      await ctx.waitForLoadState("networkidle", { timeout: 15e3 });
+    } catch {
+    }
+    await ctx.waitForTimeout(waitMs);
+    deleted += 1;
+    existing = await readExisting();
+  }
+  return { deleted, remaining: existing };
+}
+var init_attachment = __esm({
+  "src/internal/primitives/attachment.ts"() {
+    "use strict";
   }
 });
 
@@ -21028,6 +21191,7 @@ var FORM_CODES = {
   travel_settlement: "AppFrm-054",
   leave_return: "AppFrm-028",
   card_expense: "AppFrm-020",
+  card_expense_rd: "AppFrm-021",
   seminar: "AppFrm-043",
   overseas_travel: "AppFrm-026"
 };
@@ -21286,7 +21450,7 @@ var ipkLoginSchema = {
   username: external_exports.string().optional().describe("IPK groupware username. Falls back to IPK_USERNAME env var."),
   password: external_exports.string().optional().describe("IPK groupware password. Falls back to IPK_PASSWORD env var.")
 };
-var ipkLoginDescription = "Log in to IPK groupware (gw.ip-korea.org). Returns a session for subsequent tool calls. Credentials can be provided as parameters or via IPK_USERNAME/IPK_PASSWORD environment variables.";
+var ipkLoginDescription = "Log in to IPK groupware (gw.ip-korea.org). Returns a session for subsequent tool calls. Credentials can be provided as parameters or via IPK_USERNAME/IPK_PASSWORD environment variables. Env config path: ~/.config/ipk-browser-mcp/.env (IPK_USERNAME, IPK_PASSWORD, IPK_BASE_URL, SCREENSHOT_DIR).";
 async function handleIpkLogin(sessionManager2, params) {
   const username = params.username || process.env.IPK_USERNAME || "";
   const password = params.password || process.env.IPK_PASSWORD || "";
@@ -21308,7 +21472,7 @@ async function handleIpkLogin(sessionManager2, params) {
 }
 
 // src/tools/ipk-submit.ts
-import * as fs2 from "fs";
+import * as fs3 from "fs";
 
 // src/browser/iframe-helper.ts
 function getMainFrame(page) {
@@ -21323,6 +21487,7 @@ async function navigateToForm(page, formType, config3) {
   await frame.goto(url, { timeout: config3.navTimeoutMs });
   await frame.waitForLoadState("load");
   await frame.waitForSelector("form input, form textarea, form select", { timeout: 5e3 }).catch(() => null);
+  await page.waitForTimeout(1500);
   return frame;
 }
 async function navigateInFrame(page, url, config3) {
@@ -21344,6 +21509,7 @@ async function navigateInFrame(page, url, config3) {
   return frame;
 }
 async function setFieldValue(frame, selector, value) {
+  await frame.waitForSelector(selector, { timeout: 5e3 }).catch(() => null);
   return frame.evaluate(
     (args) => {
       const el = document.querySelector(args.sel);
@@ -21359,12 +21525,14 @@ async function setFieldValue(frame, selector, value) {
   );
 }
 async function setSelectValue(frame, selector, value) {
+  const el = await frame.waitForSelector(selector, { timeout: 5e3 }).catch(() => null);
+  if (!el) return false;
   return frame.evaluate(
     (args) => {
-      const el = document.querySelector(args.sel);
-      if (el) {
-        el.value = args.val;
-        el.dispatchEvent(new Event("change", { bubbles: true }));
+      const el2 = document.querySelector(args.sel);
+      if (el2) {
+        el2.value = args.val;
+        el2.dispatchEvent(new Event("change", { bubbles: true }));
         return true;
       }
       return false;
@@ -21482,6 +21650,7 @@ var FORM_REGISTRY = {
   travel_settlement: { appFrmCode: "AppFrm-054", templateFile: "AppFrm-054.json", status: "implemented", description: "\uCD9C\uC7A5\uC815\uC0B0" },
   leave_return: { appFrmCode: "AppFrm-028", templateFile: "AppFrm-028.json", status: "implemented", description: "\uB300\uCCB4\uD734\uC77C\uBC18\uB0A9" },
   card_expense: { appFrmCode: "AppFrm-020", templateFile: "AppFrm-020.json", status: "implemented", description: "\uCE74\uB4DC\uACBD\uBE44" },
+  card_expense_rd: { appFrmCode: "AppFrm-021", templateFile: "AppFrm-021.json", status: "implemented", description: "R&D \uCE74\uB4DC\uACBD\uBE44 (mker)" },
   seminar: { appFrmCode: "AppFrm-043", templateFile: "AppFrm-043.json", status: "implemented", description: "\uC138\uBBF8\uB098\uACF5\uC2DC" },
   overseas_travel: { appFrmCode: "AppFrm-026", templateFile: "AppFrm-026.json", status: "implemented", description: "\uD574\uC678\uCD9C\uC7A5" }
 };
@@ -21550,7 +21719,7 @@ function loadTemplateFieldSchema(formType) {
   const projectRoot = path2.resolve(__dirname, "..", "..");
   const templatePath = path2.join(projectRoot, "form_templates", registry2.templateFile);
   try {
-    const raw = fs2.readFileSync(templatePath, "utf-8");
+    const raw = fs3.readFileSync(templatePath, "utf-8");
     const template = JSON.parse(raw);
     return template.field_schema || null;
   } catch {
@@ -21569,7 +21738,7 @@ function validateAttachmentPath(filePath) {
   }
   let resolved;
   try {
-    resolved = fs2.realpathSync(filePath);
+    resolved = fs3.realpathSync(filePath);
   } catch {
     return `Attachment path does not exist or is not accessible: ${filePath}`;
   }
@@ -21597,9 +21766,19 @@ var ipkSubmitFormSchema = {
     "travel_settlement",
     "leave_return",
     "card_expense",
+    "card_expense_rd",
     "seminar",
     "overseas_travel"
   ]).describe("Form type to submit"),
+  // card_expense_rd (AppFrm-021) — R&D ER constructed from a corporate card receipt.
+  // Required: trseq + appr_no (from corporation_card_list.php Make ER link). Most other
+  // fields are auto-filled by the form via the mker=Y URL pattern.
+  trseq: external_exports.string().optional().describe("Card receipt transaction sequence (e.g. '26040417102'). Required for card_expense_rd."),
+  appr_no: external_exports.string().optional().describe("Card approval number (e.g. '19984403' or 'i5773800' for overseas). Required for card_expense_rd."),
+  item_name: external_exports.string().optional().describe("Item name for card_expense_rd row (English). e.g. 'Google Cloud Gemini API service'."),
+  seller_en: external_exports.string().optional().describe("English vendor name for card_expense_rd row. e.g. 'Google Cloud Korea LLC'."),
+  account_code_label: external_exports.string().optional().describe("Substring/regex to auto-pick account code from Sel_account popup options (e.g. 'IT Software'). If account_code is also given, account_code wins."),
+  attachment_paths: external_exports.array(external_exports.string()).optional().describe("Multiple attachment file paths for card_expense_rd. Each file is uploaded to a separate slot."),
   draft_only: external_exports.boolean().default(true).describe("Save as draft (true) or submit for approval (false). Defaults to true for safety."),
   confirm_submit: external_exports.boolean().default(false).describe("Must be true to actually submit for approval. Ignored when draft_only=true."),
   // Leave fields
@@ -21693,7 +21872,7 @@ var ipkSubmitFormSchema = {
   reimbursement: external_exports.number().optional().describe("Amount to reimburse traveler (KRW)"),
   corp_card_no: external_exports.string().optional().describe("Corporate card number (XXXX-XXXX-XXXX-XXXX)")
 };
-var ipkSubmitFormDescription = "Submit a form in IPK groupware. All 11 form types are fully implemented: leave (\uD734\uAC00/AppFrm-073), expense (\uACBD\uBE44/AppFrm-020), working (\uD734\uC77C\uADFC\uBB34/AppFrm-027), travel (\uCD9C\uC7A5\uBCF4\uACE0/AppFrm-076), travel_request (\uCD9C\uC7A5\uC2E0\uCCAD/AppFrm-023), budget_transfer (\uC608\uC0B0\uC804\uC6A9/AppFrm-039), card_expense (\uCE74\uB4DC\uACBD\uBE44/AppFrm-020), travel_settlement (\uCD9C\uC7A5\uC815\uC0B0/AppFrm-054), leave_return (\uB300\uCCB4\uD734\uC77C\uBC18\uB0A9/AppFrm-028), seminar (\uC138\uBBF8\uB098\uACF5\uC2DC/AppFrm-043), overseas_travel (\uD574\uC678\uCD9C\uC7A5/AppFrm-026). By default saves as draft (draft_only=true). To actually submit for approval, set draft_only=false AND confirm_submit=true. For budget_transfer, use transfer_type='rnd' (AppFrm-039, default) or transfer_type='general' (AppFrm-053).";
+var ipkSubmitFormDescription = "Submit a form in IPK groupware. All 11 form types are fully implemented: leave (\uD734\uAC00/AppFrm-073), expense (\uACBD\uBE44/AppFrm-020), working (\uD734\uC77C\uADFC\uBB34/AppFrm-027), travel (\uCD9C\uC7A5\uBCF4\uACE0/AppFrm-076), travel_request (\uCD9C\uC7A5\uC2E0\uCCAD/AppFrm-023), budget_transfer (\uC608\uC0B0\uC804\uC6A9/AppFrm-039), card_expense (\uCE74\uB4DC\uACBD\uBE44/AppFrm-020), travel_settlement (\uCD9C\uC7A5\uC815\uC0B0/AppFrm-054), leave_return (\uB300\uCCB4\uD734\uC77C\uBC18\uB0A9/AppFrm-028), seminar (\uC138\uBBF8\uB098\uACF5\uC2DC/AppFrm-043), overseas_travel (\uD574\uC678\uCD9C\uC7A5/AppFrm-026). By default saves as draft (draft_only=true). To actually submit for approval, set draft_only=false AND confirm_submit=true. For budget_transfer, use transfer_type='rnd' (AppFrm-039, default) or transfer_type='general' (AppFrm-053). Required params per form_type: leave: leave_type, start_date, end_date; expense: budget_code, amount, reason; working: budget_code, work_date, reason; travel: title, destination, start_date, end_date; travel_request: budget_code, title, destination, start_date, end_date; budget_transfer: from_account, to_account, amount, reason; card_expense: budget_code, amount, reason; travel_settlement: budget_code, title, destination, start_date, end_date; leave_return: leave_type, start_date, end_date; seminar: title, date, location; overseas_travel: budget_code, title, destination, start_date, end_date, purpose. Error recovery: NOT_LOGGED_IN\u2192call ipk_login first; FRAME_NOT_FOUND\u2192call ipk_navigate first; CONFIRMATION_REQUIRED\u2192set draft_only=true for safe draft mode; SESSION_EXPIRING\u2192re-login.";
 async function handleIpkSubmitForm(sessionManager2, config3, params) {
   if (!sessionManager2.isLoggedIn()) {
     return textResult({ error: true, code: "NOT_LOGGED_IN", message: "Call ipk_login first" });
@@ -21723,6 +21902,24 @@ async function handleIpkSubmitForm(sessionManager2, config3, params) {
     });
   }
   try {
+    if (formType === "card_expense_rd") {
+      const trseq = params.trseq;
+      const apprNo = params.appr_no;
+      if (!trseq || !apprNo) {
+        return textResult({ error: true, code: "MISSING_CARD_RECEIPT_REF", message: "card_expense_rd requires trseq and appr_no (from corporation_card_list.php Make ER link)." });
+      }
+      const cerdUrl = `${config3.baseUrl}/Document/document_write.php?approve_type=AppFrm-021&mker=Y&trseq=${encodeURIComponent(trseq)}&appr_no=${encodeURIComponent(apprNo)}`;
+      const mainFrame = page.frame("main_menu");
+      if (!mainFrame) {
+        return textResult({ error: true, code: "FRAME_NOT_FOUND", message: "main_menu frame not found" });
+      }
+      await mainFrame.goto(cerdUrl, { timeout: config3.navTimeoutMs });
+      await mainFrame.waitForLoadState("load");
+      await mainFrame.waitForSelector('input[name="subject"]', { timeout: 5e3 }).catch(() => null);
+      sessionManager2.touchActivity();
+      await page.waitForTimeout(2e3);
+      return await submitCardExpenseRD(page, mainFrame, sessionManager2, config3, params, mode);
+    }
     if (formType === "budget_transfer") {
       const btCode = BUDGET_TRANSFER_CODES[params.transfer_type || "rnd"] || BUDGET_TRANSFER_CODES.rnd;
       const btUrl = `${config3.baseUrl}/Document/document_write.php?approve_type=${btCode}`;
@@ -21931,7 +22128,7 @@ async function submitExpense(page, frame, sessionManager2, config3, params, mode
   const vat = amount - amountNoVat;
   const itemName = params.reason || params.purpose || "overtime meal";
   const subject = params.title || `[Card] ${itemName}`;
-  const budgetType = params.budget_type || "02";
+  const budgetType = params.budget_type || "01";
   const budgetCode = params.budget_code;
   if (!budgetCode) {
     return textResult({ error: true, code: "MISSING_BUDGET_CODE", message: "budget_code is required. Provide the active fiscal year budget code (e.g. NN2612-0001)." });
@@ -22366,6 +22563,188 @@ async function submitCardExpense(page, frame, sessionManager2, config3, params, 
       subject,
       message: docId ? `Card expense ${mode === "draft" ? "draft saved" : "submitted"} (doc_id: ${docId})` : `Card expense ${mode} completed`,
       warning: !params.attachment_path ? "No attachment provided. Card expense forms require a receipt." : void 0
+    }
+  });
+}
+async function submitCardExpenseRD(page, frame, _sessionManager, config3, params, mode) {
+  const accountHelper = await Promise.resolve().then(() => (init_account(), account_exports));
+  const attachmentHelper = await Promise.resolve().then(() => (init_attachment(), attachment_exports));
+  const subject = params.subject || params.title || "Card receipt";
+  const itemName = params.item_name || "Card receipt item";
+  const sellerEn = params.seller_en || params.item_vendor || "";
+  const pReason = params.p_reason || params.reason || "";
+  const prefilled = await frame.evaluate(() => {
+    const get = (n, idx = 0) => {
+      const els = document.querySelectorAll(`[name="${n}"]`);
+      return els[idx] ? els[idx].value : null;
+    };
+    return {
+      budget_type: get("budget_type"),
+      budget_code: get("budget_code"),
+      amount: get("item_amount[]", 1),
+      vender_kor: get("vender[]", 1)
+    };
+  });
+  if (!prefilled.budget_code) {
+    return textResult({
+      error: true,
+      code: "FORM_NOT_LOADED",
+      message: "AppFrm-021 mker form did not prefill. Check trseq/appr_no values."
+    });
+  }
+  await frame.evaluate(
+    (args) => {
+      const subjectEl = document.querySelector('input[name="subject"]');
+      if (subjectEl) subjectEl.value = args.subject;
+      const items = document.querySelectorAll('input[name="item_name[]"]');
+      const qtys = document.querySelectorAll('input[name="item_qty[]"]');
+      const sellers = document.querySelectorAll('input[name="seller[]"]');
+      const itemDescs = document.querySelectorAll('input[name="item_desc[]"]');
+      if (items[1]) items[1].value = args.itemName;
+      if (qtys[1] && !qtys[1].value) qtys[1].value = "1";
+      if (sellers[1]) sellers[1].value = args.sellerEn;
+      if (itemDescs[1]) itemDescs[1].value = args.itemName;
+      const pr = document.querySelectorAll('textarea[name="p_reason"]');
+      pr.forEach((t) => {
+        t.value = args.pReason;
+      });
+    },
+    { subject, itemName, sellerEn, pReason }
+  );
+  let accountSet = false;
+  if (params.item_account_code) {
+    const codes = await accountHelper.fetchAccountCodes(page, {
+      baseUrl: config3.baseUrl,
+      budgetType: prefilled.budget_type || "02",
+      budgetCode: prefilled.budget_code,
+      approveType: "AppFrm-021"
+    });
+    const match = codes.find((c) => c.code === params.item_account_code);
+    if (match) {
+      await frame.evaluate(
+        (args) => {
+          const acStr = document.getElementsByName("account_str[]");
+          const acCode = document.getElementsByName("account_code[]");
+          const acSeq = document.getElementsByName("account_seq[]");
+          const msSeq = document.getElementsByName("milestone_seq[]");
+          const msChk = document.getElementsByName("milestone_check");
+          if (acStr[args.rowIdx]) acStr[args.rowIdx].value = `[${args.account.code}] ${args.account.label}`;
+          if (acCode[args.rowIdx]) acCode[args.rowIdx].value = args.account.code;
+          if (acSeq[args.rowIdx]) acSeq[args.rowIdx].value = args.account.seq;
+          if (msSeq[args.rowIdx]) msSeq[args.rowIdx].value = "";
+          if (msChk[args.rowIdx]) msChk[args.rowIdx].value = "-";
+        },
+        { rowIdx: 1, account: match }
+      );
+      accountSet = true;
+    }
+  }
+  if (!accountSet && params.account_code_label) {
+    const codes = await accountHelper.fetchAccountCodes(page, {
+      baseUrl: config3.baseUrl,
+      budgetType: prefilled.budget_type || "02",
+      budgetCode: prefilled.budget_code,
+      approveType: "AppFrm-021"
+    });
+    const labelLower = String(params.account_code_label).toLowerCase();
+    const match = codes.find((c) => c.label.toLowerCase().includes(labelLower));
+    if (match) {
+      await frame.evaluate(
+        (args) => {
+          const acStr = document.getElementsByName("account_str[]");
+          const acCode = document.getElementsByName("account_code[]");
+          const acSeq = document.getElementsByName("account_seq[]");
+          const msSeq = document.getElementsByName("milestone_seq[]");
+          const msChk = document.getElementsByName("milestone_check");
+          if (acStr[args.rowIdx]) acStr[args.rowIdx].value = `[${args.account.code}] ${args.account.label}`;
+          if (acCode[args.rowIdx]) acCode[args.rowIdx].value = args.account.code;
+          if (acSeq[args.rowIdx]) acSeq[args.rowIdx].value = args.account.seq;
+          if (msSeq[args.rowIdx]) msSeq[args.rowIdx].value = "";
+          if (msChk[args.rowIdx]) msChk[args.rowIdx].value = "-";
+        },
+        { rowIdx: 1, account: match }
+      );
+      accountSet = true;
+    }
+  }
+  if (!accountSet) {
+    return textResult({
+      error: true,
+      code: "ACCOUNT_CODE_REQUIRED",
+      message: "card_expense_rd: provide item_account_code (e.g. '410318') or account_code_label (e.g. 'IT Software'). Use ipk_inspect_form or ./pr_account_sel.php to list valid codes for the budget."
+    });
+  }
+  const filePaths = Array.isArray(params.attachment_paths) ? params.attachment_paths : params.attachment_path ? [params.attachment_path] : [];
+  if (filePaths.length === 0) {
+    return textResult({
+      error: true,
+      code: "ATTACHMENT_REQUIRED",
+      message: "card_expense_rd requires at least one attachment_path or attachment_paths[]. The form alerts 'Please attach at least one file.' on submit."
+    });
+  }
+  const attachResult = await attachmentHelper.attachFiles(frame, filePaths);
+  await page.waitForTimeout(500);
+  const popupHolder = {
+    docId: null,
+    finalUrl: ""
+  };
+  const popupPromise = new Promise((resolve3) => {
+    page.once("popup", async (pop) => {
+      try {
+        await pop.waitForLoadState("networkidle", { timeout: 15e3 });
+        await pop.waitForTimeout(1500);
+        await pop.evaluate("submit_form()").catch(() => {
+        });
+        await pop.waitForTimeout(4e3);
+      } catch {
+      } finally {
+        resolve3();
+      }
+    });
+    setTimeout(resolve3, 25e3);
+  });
+  try {
+    await frame.evaluate((mode1Val) => {
+      const w = window;
+      const doc = document;
+      if (doc.all && doc.all("mode1")) doc.all("mode1").value = mode1Val;
+      const form = doc.form1;
+      if (!form) throw new Error("form1 not found");
+      form.mode.value = "insert";
+      w.open("", "budget_frame", "width=940,height=400,top=100,left=100,resizable=0,scrollbars=1");
+      form.target = "budget_frame";
+      form.action = "./budget_check_er.php";
+      form.submit();
+    }, mode === "draft" ? "draft" : "");
+  } catch (err) {
+    return textResult({
+      error: true,
+      code: "SUBMIT_FAILED",
+      message: `card_expense_rd submit trigger failed: ${err instanceof Error ? err.message : String(err)}`
+    });
+  }
+  await popupPromise;
+  await page.waitForTimeout(2e3);
+  try {
+    await page.waitForLoadState("networkidle", { timeout: 1e4 });
+  } catch {
+  }
+  popupHolder.finalUrl = frame.url && typeof frame.url === "function" ? frame.url() : page.url();
+  const m = popupHolder.finalUrl.match(/[?&]doc_id=(\d+)/);
+  popupHolder.docId = m ? m[1] : null;
+  void _sessionManager;
+  return textResult({
+    error: false,
+    data: {
+      success: popupHolder.docId !== null,
+      docId: popupHolder.docId,
+      mode,
+      formType: "card_expense_rd",
+      subject,
+      finalUrl: popupHolder.finalUrl,
+      attached: attachResult.attached,
+      skipped_attachments: attachResult.skipped,
+      message: popupHolder.docId ? `R&D card ER ${mode === "draft" ? "draft saved" : "submitted"} (doc_id: ${popupHolder.docId}, ${attachResult.attached}/${filePaths.length} files attached)` : `R&D card ER ${mode} attempted but doc_id not found in URL \u2014 check Drafts manually`
     }
   });
 }
@@ -22824,7 +23203,7 @@ async function submitOverseasTravel(page, frame, sessionManager2, config3, param
   ];
   await genericFillForm(frame, fieldSchema, userData, hooks);
   if (params.budget_code) {
-    await setSelectValue(frame, 'select[name="budget_type"]', "02");
+    await setSelectValue(frame, 'select[name="budget_type"]', "01");
     await page.waitForTimeout(2e3);
     await setSelectValue(frame, 'select[name="budget_code"]', params.budget_code);
     await page.waitForTimeout(1500);
@@ -23189,7 +23568,7 @@ async function handleIpkGetContent(sessionManager2, config3, params) {
 }
 
 // src/tools/screenshot.ts
-import * as fs3 from "fs";
+import * as fs4 from "fs";
 import * as path3 from "path";
 var screenshotSchema = {
   filename: external_exports.string().optional().describe("Custom filename (without path). Default: auto-generated timestamp."),
@@ -23202,7 +23581,7 @@ async function handleScreenshot(sessionManager2, config3, params) {
   }
   const page = sessionManager2.getPage();
   try {
-    fs3.mkdirSync(config3.screenshotDir, { recursive: true });
+    fs4.mkdirSync(config3.screenshotDir, { recursive: true });
     const timestamp = (/* @__PURE__ */ new Date()).toISOString().replace(/[:.]/g, "-");
     const filename = params.filename || `ipk-${timestamp}.png`;
     const filepath = path3.join(config3.screenshotDir, filename);
@@ -23213,8 +23592,8 @@ async function handleScreenshot(sessionManager2, config3, params) {
     const ttlMs = config3.screenshotTtlMinutes * 60 * 1e3;
     setTimeout(() => {
       try {
-        if (fs3.existsSync(filepath)) {
-          fs3.unlinkSync(filepath);
+        if (fs4.existsSync(filepath)) {
+          fs4.unlinkSync(filepath);
         }
       } catch {
       }
@@ -23235,16 +23614,16 @@ async function handleScreenshot(sessionManager2, config3, params) {
 }
 function cleanupExpiredScreenshots(config3) {
   try {
-    if (!fs3.existsSync(config3.screenshotDir)) return;
+    if (!fs4.existsSync(config3.screenshotDir)) return;
     const now = Date.now();
     const ttlMs = config3.screenshotTtlMinutes * 60 * 1e3;
-    const files = fs3.readdirSync(config3.screenshotDir);
+    const files = fs4.readdirSync(config3.screenshotDir);
     for (const file of files) {
       if (!file.endsWith(".png")) continue;
       const filepath = path3.join(config3.screenshotDir, file);
-      const stat = fs3.statSync(filepath);
+      const stat = fs4.statSync(filepath);
       if (now - stat.mtimeMs > ttlMs) {
-        fs3.unlinkSync(filepath);
+        fs4.unlinkSync(filepath);
       }
     }
   } catch {
@@ -23252,7 +23631,7 @@ function cleanupExpiredScreenshots(config3) {
 }
 
 // src/tools/ipk-inspect.ts
-import * as fs4 from "fs";
+import * as fs5 from "fs";
 import * as path4 from "path";
 var ipkInspectFormSchema = {
   form_code: external_exports.string().describe("Form code to inspect, e.g. AppFrm-054"),
@@ -23308,7 +23687,7 @@ async function handleIpkInspectForm(sessionManager2, config3, params) {
       const projectRoot = path4.resolve(__dirname, "..", "..");
       const templatePath = path4.join(projectRoot, "form_templates", `${formCode}.json`);
       try {
-        const raw = fs4.readFileSync(templatePath, "utf-8");
+        const raw = fs5.readFileSync(templatePath, "utf-8");
         const template = JSON.parse(raw);
         const fieldSchema = template.field_schema || {};
         const templateKeys = new Set(Object.keys(fieldSchema));

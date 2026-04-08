@@ -8,12 +8,14 @@ const formTypeSchema = z.object({ form_type: ipkSubmitFormSchema.form_type });
 const ALL_FORM_TYPES = [
   // Implemented
   "leave", "expense", "working", "travel", "travel_request", "budget_transfer",
-  // Stub types added in T1
+  // Wave 2
   "travel_settlement", "leave_return", "card_expense", "seminar", "overseas_travel",
+  // DR-005: R&D ER from Card (mker=Y)
+  "card_expense_rd",
 ] as const;
 
 describe("FormType validity", () => {
-  it("all 11 FormTypes pass Zod parse", () => {
+  it("all 12 FormTypes pass Zod parse", () => {
     for (const ft of ALL_FORM_TYPES) {
       expect(() => formTypeSchema.parse({ form_type: ft })).not.toThrow();
     }
