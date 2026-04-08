@@ -6807,76 +6807,6 @@ var require_dist = __commonJS({
   }
 });
 
-// src/internal/primitives/account.ts
-var account_exports = {};
-__export(account_exports, {
-  fetchAccountCodes: () => fetchAccountCodes,
-  pickAccountCode: () => pickAccountCode,
-  setAccountCodeOnRow: () => setAccountCodeOnRow
-});
-async function fetchAccountCodes(page, opts) {
-  const flag = opts.rowFlag ?? "1";
-  const url = `${opts.baseUrl}/Document/pr_account_sel.php?budget_type=${encodeURIComponent(opts.budgetType)}&budget_code=${encodeURIComponent(opts.budgetCode)}&sel_item=${encodeURIComponent(flag)}&approve_type=${encodeURIComponent(opts.approveType)}`;
-  const ctx = page.context();
-  const probe = await ctx.newPage();
-  try {
-    await probe.goto(url, { waitUntil: "networkidle", timeout: 3e4 });
-    return await probe.evaluate(() => {
-      const result = [];
-      const links = Array.from(document.querySelectorAll("a"));
-      for (const a of links) {
-        const oc = a.getAttribute("onclick") || "";
-        const m = oc.match(
-          /Check_Item\(\s*'([^']*)'\s*,\s*'([^']*)'\s*,\s*'([^']*)'\s*\)/
-        );
-        if (m) {
-          result.push({ seq: m[1], code: m[2], label: m[3] });
-        }
-      }
-      return result;
-    });
-  } finally {
-    await probe.close();
-  }
-}
-async function setAccountCodeOnRow(ctx, rowIdx, account) {
-  await ctx.evaluate(
-    ({ rowIdx: rowIdx2, account: account2 }) => {
-      const acStr = document.getElementsByName(
-        "account_str[]"
-      );
-      const acCode = document.getElementsByName(
-        "account_code[]"
-      );
-      const acSeq = document.getElementsByName(
-        "account_seq[]"
-      );
-      const msSeq = document.getElementsByName(
-        "milestone_seq[]"
-      );
-      const msChk = document.getElementsByName(
-        "milestone_check"
-      );
-      if (acStr[rowIdx2]) acStr[rowIdx2].value = `[${account2.code}] ${account2.label}`;
-      if (acCode[rowIdx2]) acCode[rowIdx2].value = account2.code;
-      if (acSeq[rowIdx2]) acSeq[rowIdx2].value = account2.seq;
-      if (msSeq[rowIdx2]) msSeq[rowIdx2].value = "";
-      if (msChk[rowIdx2]) msChk[rowIdx2].value = "-";
-    },
-    { rowIdx, account }
-  );
-}
-async function pickAccountCode(page, opts, labelMatch) {
-  const codes = await fetchAccountCodes(page, opts);
-  const matcher = typeof labelMatch === "string" ? (s) => s.toLowerCase().includes(labelMatch.toLowerCase()) : (s) => labelMatch.test(s);
-  return codes.find((c) => matcher(c.label)) ?? null;
-}
-var init_account = __esm({
-  "src/internal/primitives/account.ts"() {
-    "use strict";
-  }
-});
-
 // src/internal/primitives/attachment.ts
 var attachment_exports = {};
 __export(attachment_exports, {
@@ -6963,6 +6893,76 @@ async function clearAllAttachments(ctx, opts = {}) {
 }
 var init_attachment = __esm({
   "src/internal/primitives/attachment.ts"() {
+    "use strict";
+  }
+});
+
+// src/internal/primitives/account.ts
+var account_exports = {};
+__export(account_exports, {
+  fetchAccountCodes: () => fetchAccountCodes,
+  pickAccountCode: () => pickAccountCode,
+  setAccountCodeOnRow: () => setAccountCodeOnRow
+});
+async function fetchAccountCodes(page, opts) {
+  const flag = opts.rowFlag ?? "1";
+  const url = `${opts.baseUrl}/Document/pr_account_sel.php?budget_type=${encodeURIComponent(opts.budgetType)}&budget_code=${encodeURIComponent(opts.budgetCode)}&sel_item=${encodeURIComponent(flag)}&approve_type=${encodeURIComponent(opts.approveType)}`;
+  const ctx = page.context();
+  const probe = await ctx.newPage();
+  try {
+    await probe.goto(url, { waitUntil: "networkidle", timeout: 3e4 });
+    return await probe.evaluate(() => {
+      const result = [];
+      const links = Array.from(document.querySelectorAll("a"));
+      for (const a of links) {
+        const oc = a.getAttribute("onclick") || "";
+        const m = oc.match(
+          /Check_Item\(\s*'([^']*)'\s*,\s*'([^']*)'\s*,\s*'([^']*)'\s*\)/
+        );
+        if (m) {
+          result.push({ seq: m[1], code: m[2], label: m[3] });
+        }
+      }
+      return result;
+    });
+  } finally {
+    await probe.close();
+  }
+}
+async function setAccountCodeOnRow(ctx, rowIdx, account) {
+  await ctx.evaluate(
+    ({ rowIdx: rowIdx2, account: account2 }) => {
+      const acStr = document.getElementsByName(
+        "account_str[]"
+      );
+      const acCode = document.getElementsByName(
+        "account_code[]"
+      );
+      const acSeq = document.getElementsByName(
+        "account_seq[]"
+      );
+      const msSeq = document.getElementsByName(
+        "milestone_seq[]"
+      );
+      const msChk = document.getElementsByName(
+        "milestone_check"
+      );
+      if (acStr[rowIdx2]) acStr[rowIdx2].value = `[${account2.code}] ${account2.label}`;
+      if (acCode[rowIdx2]) acCode[rowIdx2].value = account2.code;
+      if (acSeq[rowIdx2]) acSeq[rowIdx2].value = account2.seq;
+      if (msSeq[rowIdx2]) msSeq[rowIdx2].value = "";
+      if (msChk[rowIdx2]) msChk[rowIdx2].value = "-";
+    },
+    { rowIdx, account }
+  );
+}
+async function pickAccountCode(page, opts, labelMatch) {
+  const codes = await fetchAccountCodes(page, opts);
+  const matcher = typeof labelMatch === "string" ? (s) => s.toLowerCase().includes(labelMatch.toLowerCase()) : (s) => labelMatch.test(s);
+  return codes.find((c) => matcher(c.label)) ?? null;
+}
+var init_account = __esm({
+  "src/internal/primitives/account.ts"() {
     "use strict";
   }
 });
@@ -21656,7 +21656,27 @@ var FORM_REGISTRY = {
 };
 
 // src/tools/ipk-submit.ts
-async function genericFillForm(frame, fieldSchema, userData, hooks) {
+async function executePostActions(frame, actions) {
+  for (const act of actions) {
+    if (act.action === "wait_selector" && act.target) {
+      await frame.waitForSelector(act.target, { timeout: 5e3 }).catch(() => null);
+    } else if (act.action === "click_button" && act.target) {
+      await frame.locator(act.target).click().catch(() => null);
+    } else if (act.action === "assert_value" && act.target && act.value) {
+      const actual = await frame.evaluate(
+        (args) => {
+          const el = document.querySelector(args.sel);
+          return el ? el.value : null;
+        },
+        { sel: act.target }
+      ).catch(() => null);
+      if (actual !== act.value) {
+        console.warn(`[genericFillForm] assert_value failed: ${act.target} expected "${act.value}" got "${actual}"`);
+      }
+    }
+  }
+}
+async function genericFillForm(frame, fieldSchema, userData, hooks, opts) {
   if (hooks) {
     for (const hook of hooks) {
       if (hook.trigger === "pre_fill") await hook.fn(frame, null, userData);
@@ -21676,6 +21696,42 @@ async function genericFillForm(frame, fieldSchema, userData, hooks) {
         } else {
           await setFieldValue(frame, sel, strValue);
         }
+      }
+      continue;
+    }
+    const widgetType = schema.widget_type || fieldType;
+    if (widgetType === "file_upload") {
+      const pathsKey = schema.file_paths_key || fieldKey;
+      const rawPaths = userData[pathsKey] ?? value;
+      const paths = Array.isArray(rawPaths) ? rawPaths : [String(rawPaths)];
+      const validPaths = paths.filter(Boolean);
+      if (validPaths.length > 0) {
+        const { attachFiles: attachFiles2 } = await Promise.resolve().then(() => (init_attachment(), attachment_exports));
+        await attachFiles2(frame, validPaths);
+      }
+      if (schema.post_actions) {
+        await executePostActions(frame, schema.post_actions);
+      }
+      continue;
+    }
+    if (widgetType === "account_lookup") {
+      if (opts?.page && opts?.baseUrl && opts?.budgetCode) {
+        const { fetchAccountCodes: fetchAccountCodes2, setAccountCodeOnRow: setAccountCodeOnRow2 } = await Promise.resolve().then(() => (init_account(), account_exports));
+        const codes = await fetchAccountCodes2(opts.page, {
+          baseUrl: opts.baseUrl,
+          budgetType: opts.budgetType || "02",
+          budgetCode: opts.budgetCode,
+          approveType: schema.account_approve_type || opts.approveType || "AppFrm-021"
+        });
+        const strVal = String(value);
+        const match = codes.find((c) => c.code === strVal) || codes.find((c) => c.label.toLowerCase().includes(strVal.toLowerCase()));
+        if (match) {
+          const rowIdx = schema.account_row_idx ?? 1;
+          await setAccountCodeOnRow2(frame, rowIdx, match);
+        }
+      }
+      if (schema.post_actions) {
+        await executePostActions(frame, schema.post_actions);
       }
       continue;
     }

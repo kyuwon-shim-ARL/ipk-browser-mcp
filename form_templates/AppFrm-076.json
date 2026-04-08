@@ -1,0 +1,14 @@
+{
+  "form_code": "AppFrm-076",
+  "form_name": "Business Travel Report",
+  "field_schema": {
+    "subject": {"type": "text", "widget_type": "text", "dom_name": "subject", "required": true, "source": "user_input"},
+    "destination": {"type": "text", "widget_type": "text", "dom_name": "destination", "required": true, "source": "user_input"},
+    "start_date": {"type": "date", "widget_type": "date", "dom_name": "start_date", "required": true, "source": "user_input"},
+    "end_date": {"type": "date", "widget_type": "date", "dom_name": "end_date", "required": true, "source": "user_input"},
+    "organization": {"type": "text", "widget_type": "text", "dom_name": "organization", "required": false, "source": "user_input"},
+    "attendees": {"type": "text", "widget_type": "text", "dom_name": "attendees", "required": false, "source": "user_input"},
+    "schedule": {"type": "textarea", "widget_type": "textarea", "dom_name": "schedule", "required": false, "source": "user_input"},
+    "reason": {"type": "textarea", "widget_type": "textarea", "dom_name": "reason", "required": false, "source": "user_input"}
+  }
+}

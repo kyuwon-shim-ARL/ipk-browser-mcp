@@ -11,7 +11,8 @@
       "required": true,
       "source": "user_input",
       "dom_name": "original_leave_doc",
-      "note": "Document number of the original leave being returned (e.g. ARL-260121-02)"
+      "note": "Document number of the original leave being returned (e.g. ARL-260121-02)",
+      "widget_type": "text"
     },
     "leave_type": {
       "type": "select",
@@ -19,23 +20,32 @@
       "source": "inference",
       "dom_name": "leave_kind[]",
       "dom_note": "select[name=\"leave_kind[]\"] — value is LEAVE_TYPES code (e.g. '01' for annual, '04' for compensatory)",
-      "values": ["Annual leave", "Compensatory leave"],
-      "distribution": {"Compensatory leave": 0.58, "Annual leave": 0.42},
-      "note": "Must match the leave type of the original leave doc"
+      "values": [
+        "Annual leave",
+        "Compensatory leave"
+      ],
+      "distribution": {
+        "Compensatory leave": 0.58,
+        "Annual leave": 0.42
+      },
+      "note": "Must match the leave type of the original leave doc",
+      "widget_type": "select"
     },
     "period_start": {
       "type": "date",
       "required": true,
       "source": "user_input",
       "dom_name": "begin_date",
-      "note": "Start date of the leave being returned"
+      "note": "Start date of the leave being returned",
+      "widget_type": "date"
     },
     "period_end": {
       "type": "date",
       "required": true,
       "source": "user_input",
       "dom_name": "end_date",
-      "note": "End date of the leave being returned (same as start for single-day)"
+      "note": "End date of the leave being returned (same as start for single-day)",
+      "widget_type": "date"
     },
     "requested_days_hours": {
       "type": "text",
@@ -60,14 +70,16 @@
       "required": true,
       "source": "derived",
       "dom_name": "return_days",
-      "note": "Integer days component of return_days_hours"
+      "note": "Integer days component of return_days_hours",
+      "widget_type": "text"
     },
     "return_hours": {
       "type": "integer",
       "required": true,
       "source": "derived",
       "dom_name": "return_hours",
-      "note": "Integer hours component of return_days_hours"
+      "note": "Integer hours component of return_days_hours",
+      "widget_type": "text"
     },
     "description": {
       "type": "textarea",
@@ -75,14 +87,16 @@
       "source": "user_input",
       "dom_name": "description",
       "dom_note": "textarea[name=\"description\"]; also mirrored to textarea[name=\"contents1\"]",
-      "note": "Reason for returning the leave (e.g. came back to work, hospitalization ended early)"
+      "note": "Reason for returning the leave (e.g. came back to work, hospitalization ended early)",
+      "widget_type": "textarea"
     },
     "subject": {
       "type": "text",
       "required": true,
       "source": "inference",
       "dom_name": "subject",
-      "note": "Auto-generated: 'Leave return {N}day(s)/{N}hour(s) {original_leave_doc}'"
+      "note": "Auto-generated: 'Leave return {N}day(s)/{N}hour(s) {original_leave_doc}'",
+      "widget_type": "text"
     }
   },
   "inference_rules": [
@@ -105,6 +119,12 @@
     "note": "Nearly even split; partial-hour returns are slightly more common"
   },
   "subject_pattern": "Leave return {1day|1hour|Xdays|Xhours} {original_doc_number}",
-  "minimum_user_input": ["original_leave_doc", "period_start", "period_end", "return_days_hours", "description"],
+  "minimum_user_input": [
+    "original_leave_doc",
+    "period_start",
+    "period_end",
+    "return_days_hours",
+    "description"
+  ],
   "optional_user_input": []
 }
