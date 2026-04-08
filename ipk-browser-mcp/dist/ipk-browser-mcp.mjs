@@ -21929,6 +21929,35 @@ var ipkSubmitFormSchema = {
   corp_card_no: external_exports.string().optional().describe("Corporate card number (XXXX-XXXX-XXXX-XXXX)")
 };
 var ipkSubmitFormDescription = "Submit a form in IPK groupware. All 11 form types are fully implemented: leave (\uD734\uAC00/AppFrm-073), expense (\uACBD\uBE44/AppFrm-020), working (\uD734\uC77C\uADFC\uBB34/AppFrm-027), travel (\uCD9C\uC7A5\uBCF4\uACE0/AppFrm-076), travel_request (\uCD9C\uC7A5\uC2E0\uCCAD/AppFrm-023), budget_transfer (\uC608\uC0B0\uC804\uC6A9/AppFrm-039), card_expense (\uCE74\uB4DC\uACBD\uBE44/AppFrm-020), travel_settlement (\uCD9C\uC7A5\uC815\uC0B0/AppFrm-054), leave_return (\uB300\uCCB4\uD734\uC77C\uBC18\uB0A9/AppFrm-028), seminar (\uC138\uBBF8\uB098\uACF5\uC2DC/AppFrm-043), overseas_travel (\uD574\uC678\uCD9C\uC7A5/AppFrm-026). By default saves as draft (draft_only=true). To actually submit for approval, set draft_only=false AND confirm_submit=true. For budget_transfer, use transfer_type='rnd' (AppFrm-039, default) or transfer_type='general' (AppFrm-053). Required params per form_type: leave: leave_type, start_date, end_date; expense: budget_code, amount, reason; working: budget_code, work_date, reason; travel: title, destination, start_date, end_date; travel_request: budget_code, title, destination, start_date, end_date; budget_transfer: from_account, to_account, amount, reason; card_expense: budget_code, amount, reason; travel_settlement: budget_code, title, destination, start_date, end_date; leave_return: leave_type, start_date, end_date; seminar: title, date, location; overseas_travel: budget_code, title, destination, start_date, end_date, purpose. Error recovery: NOT_LOGGED_IN\u2192call ipk_login first; FRAME_NOT_FOUND\u2192call ipk_navigate first; CONFIRMATION_REQUIRED\u2192set draft_only=true for safe draft mode; SESSION_EXPIRING\u2192re-login.";
+var FORM_NAV_CONFIG = {
+  card_expense_rd: {
+    validate: (params) => !params.trseq || !params.appr_no ? "card_expense_rd requires trseq and appr_no (from corporation_card_list.php Make ER link)." : null,
+    customUrl: (params, config3) => `${config3.baseUrl}/Document/document_write.php?approve_type=AppFrm-021&mker=Y&trseq=${encodeURIComponent(params.trseq)}&appr_no=${encodeURIComponent(params.appr_no)}`,
+    waitSelector: 'input[name="subject"]',
+    waitMs: 2e3
+  },
+  budget_transfer: {
+    customUrl: (params, config3) => {
+      const btCode = BUDGET_TRANSFER_CODES[params.transfer_type || "rnd"] || BUDGET_TRANSFER_CODES.rnd;
+      return `${config3.baseUrl}/Document/document_write.php?approve_type=${btCode}`;
+    },
+    waitSelector: "form input, form select",
+    waitMs: 1500
+  }
+};
+var FORM_HANDLERS = {
+  leave: submitLeave,
+  expense: submitExpense,
+  working: submitWorking,
+  travel: submitTravel,
+  travel_request: submitTravelRequest,
+  card_expense: submitCardExpense,
+  card_expense_rd: submitCardExpenseRD,
+  travel_settlement: submitTravelSettlement,
+  leave_return: submitLeaveReturn,
+  seminar: submitSeminar,
+  overseas_travel: submitOverseasTravel
+};
 async function handleIpkSubmitForm(sessionManager2, config3, params) {
   if (!sessionManager2.isLoggedIn()) {
     return textResult({ error: true, code: "NOT_LOGGED_IN", message: "Call ipk_login first" });
@@ -21958,72 +21987,43 @@ async function handleIpkSubmitForm(sessionManager2, config3, params) {
     });
   }
   try {
-    if (formType === "card_expense_rd") {
-      const trseq = params.trseq;
-      const apprNo = params.appr_no;
-      if (!trseq || !apprNo) {
-        return textResult({ error: true, code: "MISSING_CARD_RECEIPT_REF", message: "card_expense_rd requires trseq and appr_no (from corporation_card_list.php Make ER link)." });
-      }
-      const cerdUrl = `${config3.baseUrl}/Document/document_write.php?approve_type=AppFrm-021&mker=Y&trseq=${encodeURIComponent(trseq)}&appr_no=${encodeURIComponent(apprNo)}`;
-      const mainFrame = page.frame("main_menu");
-      if (!mainFrame) {
-        return textResult({ error: true, code: "FRAME_NOT_FOUND", message: "main_menu frame not found" });
-      }
-      await mainFrame.goto(cerdUrl, { timeout: config3.navTimeoutMs });
-      await mainFrame.waitForLoadState("load");
-      await mainFrame.waitForSelector('input[name="subject"]', { timeout: 5e3 }).catch(() => null);
-      sessionManager2.touchActivity();
-      await page.waitForTimeout(2e3);
-      return await submitCardExpenseRD(page, mainFrame, sessionManager2, config3, params, mode);
-    }
-    if (formType === "budget_transfer") {
-      const btCode = BUDGET_TRANSFER_CODES[params.transfer_type || "rnd"] || BUDGET_TRANSFER_CODES.rnd;
-      const btUrl = `${config3.baseUrl}/Document/document_write.php?approve_type=${btCode}`;
-      const mainFrame = page.frame("main_menu");
-      if (!mainFrame) {
-        return textResult({ error: true, code: "FRAME_NOT_FOUND", message: "main_menu frame not found" });
-      }
-      await mainFrame.goto(btUrl, { timeout: config3.navTimeoutMs });
-      await mainFrame.waitForLoadState("load");
-      await mainFrame.waitForSelector("form input, form select", { timeout: 5e3 }).catch(() => null);
-      sessionManager2.touchActivity();
-      await page.waitForTimeout(1500);
-      return await submitBudgetTransfer(page, mainFrame, sessionManager2, config3, params, mode);
-    }
-    const frame = await navigateToForm(page, formType, config3);
-    if (!frame) {
-      return textResult({ error: true, code: "NAVIGATION_FAILED", message: "Failed to navigate to form" });
-    }
-    sessionManager2.touchActivity();
-    switch (formType) {
-      case "leave":
-        return await submitLeave(page, frame, sessionManager2, config3, params, mode);
-      case "expense":
-        return await submitExpense(page, frame, sessionManager2, config3, params, mode);
-      case "working":
-        return await submitWorking(page, frame, sessionManager2, config3, params, mode);
-      case "travel":
-        return await submitTravel(page, frame, sessionManager2, config3, params, mode);
-      case "travel_request":
-        return await submitTravelRequest(page, frame, sessionManager2, config3, params, mode);
-      case "card_expense":
-        return await submitCardExpense(page, frame, sessionManager2, config3, params, mode);
-      case "travel_settlement":
-        return await submitTravelSettlement(page, frame, sessionManager2, config3, params, mode);
-      case "leave_return":
-        return await submitLeaveReturn(page, frame, sessionManager2, config3, params, mode);
-      case "seminar":
-        return await submitSeminar(page, frame, sessionManager2, config3, params, mode);
-      case "overseas_travel":
-        return await submitOverseasTravel(page, frame, sessionManager2, config3, params, mode);
-      default: {
-        const templateSchema = loadTemplateFieldSchema(formType);
-        if (!templateSchema) {
-          return textResult({ error: true, code: "UNKNOWN_FORM", message: `Unknown form type: ${formType}` });
+    const navConfig = FORM_NAV_CONFIG[formType];
+    let frame;
+    if (navConfig) {
+      if (navConfig.validate) {
+        const validErr = navConfig.validate(params);
+        if (validErr) {
+          return textResult({ error: true, code: "MISSING_CARD_RECEIPT_REF", message: validErr });
         }
-        return await submitGeneric(page, frame, sessionManager2, config3, params, mode, formType, templateSchema);
       }
+      const mainFrame = page.frame("main_menu");
+      if (!mainFrame) {
+        return textResult({ error: true, code: "FRAME_NOT_FOUND", message: "main_menu frame not found" });
+      }
+      const url = navConfig.customUrl(params, config3);
+      await mainFrame.goto(url, { timeout: config3.navTimeoutMs });
+      await mainFrame.waitForLoadState("load");
+      const waitSel = navConfig.waitSelector ?? "form input, form select";
+      await mainFrame.waitForSelector(waitSel, { timeout: 5e3 }).catch(() => null);
+      sessionManager2.touchActivity();
+      await page.waitForTimeout(navConfig.waitMs ?? 2e3);
+      frame = mainFrame;
+    } else {
+      frame = await navigateToForm(page, formType, config3);
+      if (!frame) {
+        return textResult({ error: true, code: "NAVIGATION_FAILED", message: "Failed to navigate to form" });
+      }
+      sessionManager2.touchActivity();
     }
+    const handler = FORM_HANDLERS[formType];
+    if (handler) {
+      return await handler(page, frame, sessionManager2, config3, params, mode);
+    }
+    const templateSchema = loadTemplateFieldSchema(formType);
+    if (!templateSchema) {
+      return textResult({ error: true, code: "UNKNOWN_FORM", message: `Unknown form type: ${formType}` });
+    }
+    return await submitGeneric(page, frame, sessionManager2, config3, params, mode, formType, templateSchema);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return textResult({ error: true, code: "SUBMIT_ERROR", message: msg });
@@ -22432,100 +22432,6 @@ async function submitTravelRequest(page, frame, sessionManager2, config3, params
       formType: "travel_request",
       subject,
       message: docId ? `Travel request ${mode === "draft" ? "draft saved" : "submitted"} (doc_id: ${docId})` : `Travel request ${mode} completed`
-    }
-  });
-}
-async function submitBudgetTransfer(page, frame, sessionManager2, config3, params, mode) {
-  const userInfo = sessionManager2.getUserInfo();
-  const transferType = params.transfer_type || "rnd";
-  const fromBudget = params.from_budget_code || "";
-  const toBudget = params.to_budget_code || "";
-  const amount = params.transfer_amount || params.amount || 0;
-  const reason = params.reason || params.purpose || "Budget reallocation";
-  const title = params.title || `Budget Transfer: ${fromBudget} -> ${toBudget}`;
-  if (amount !== void 0 && amount !== 0 && (typeof amount !== "number" || amount <= 0 || !Number.isFinite(amount))) {
-    return textResult({
-      error: true,
-      code: "INVALID_AMOUNT",
-      message: "Transfer amount must be a positive number"
-    });
-  }
-  const subject = `[Budget Transfer] ${title}`;
-  const budgetTypeValue = transferType === "rnd" ? "02" : "01";
-  const cascadeSchema = {
-    subject: { type: "text", dom_name: "subject", required: true },
-    budget_type: { type: "select", dom_name: "budget_type" }
-  };
-  await genericFillForm(frame, cascadeSchema, { subject, budget_type: budgetTypeValue });
-  await page.waitForTimeout(1e3);
-  const fieldSchema = {
-    from_budget: {
-      type: "text",
-      dom_name: null,
-      dom_selectors: [
-        'select[name="budget_code"]',
-        'select[name="from_budget_code"]',
-        'select[name="budget_code_from"]',
-        'input[name="from_budget"]',
-        'input[name="budget_code_from"]'
-      ]
-    },
-    to_budget: {
-      type: "text",
-      dom_name: null,
-      dom_selectors: [
-        'select[name="to_budget_code"]',
-        'select[name="budget_code_to"]',
-        'input[name="to_budget"]',
-        'input[name="budget_code_to"]'
-      ]
-    },
-    amount: {
-      type: "text",
-      dom_name: null,
-      dom_selectors: [
-        'input[name="amount"]',
-        'input[name="transfer_amount"]',
-        'input[name="item_amount[]"]',
-        'input[name="total_amt"]'
-      ]
-    },
-    reason: {
-      type: "text",
-      dom_name: null,
-      dom_selectors: [
-        'textarea[name="reason"]',
-        'textarea[name="p_reason"]',
-        'textarea[name="contents1"]',
-        'input[name="sub_subject"]'
-      ]
-    }
-  };
-  await genericFillForm(frame, fieldSchema, {
-    from_budget: fromBudget || void 0,
-    to_budget: toBudget || void 0,
-    amount: amount || void 0,
-    reason
-  });
-  if (params.attachment_path) {
-    const fileInput = frame.locator('input[name="doc_attach_file[]"]').first();
-    await fileInput.setInputFiles(params.attachment_path);
-    await page.waitForTimeout(1e3);
-  }
-  await page.waitForTimeout(1e3);
-  await setFormMode(frame, mode);
-  const docId = await submitForm(page, frame, "check_form_request");
-  return textResult({
-    error: false,
-    data: {
-      success: true,
-      docId,
-      mode,
-      formType: "budget_transfer",
-      subject,
-      transferType,
-      message: docId ? `Budget transfer ${mode === "draft" ? "draft saved" : "submitted"} (doc_id: ${docId})` : `Budget transfer ${mode} completed`,
-      note: "Field selectors are best-effort. After first use, verify the form was filled correctly via screenshot tool and report any missing fields."
     }
   });
 }
