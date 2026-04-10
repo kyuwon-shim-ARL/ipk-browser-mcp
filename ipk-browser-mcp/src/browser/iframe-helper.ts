@@ -11,6 +11,27 @@ export function getMainFrame(page: Page): Frame | null {
   return page.frame("main_menu");
 }
 
+/** Retry interval for stale frame re-detection */
+const FRAME_RETRY_MS = 500;
+
+/**
+ * Per-form ready selectors — each form has a distinct field that only appears
+ * once the form JS has fully initialised.
+ * expense is handled separately (two-step sequential wait).
+ */
+const FORM_READY_SELECTORS: Partial<Record<FormType, string>> = {
+  leave: 'select[name="leave_kind[]"]',
+  travel_request: 'input[name="subject"]',
+  travel: 'input[name="subject"]',
+  seminar: 'input[name="subject"]',
+};
+const FORM_READY_DEFAULT = 'input[name="subject"]';
+
+function isFrameStale(frameUrl: string, baseUrl: string): boolean {
+  const hostname = new URL(baseUrl).hostname;
+  return !frameUrl || frameUrl === "about:blank" || !frameUrl.includes(hostname);
+}
+
 /** Navigate within the main_menu iframe to a form */
 export async function navigateToForm(
   page: Page,
@@ -20,17 +41,37 @@ export async function navigateToForm(
   const formCode = FORM_CODES[formType];
   if (!formCode) return null;
 
-  const url = `${config.baseUrl}/Document/document_write.php?approve_type=${formCode}`;
+  const formUrl = `${config.baseUrl}/Document/document_write.php?approve_type=${formCode}`;
   const frame = getMainFrame(page);
 
   if (!frame) return null;
 
-  await frame.goto(url, { timeout: config.navTimeoutMs });
+  await frame.goto(formUrl, { timeout: config.navTimeoutMs });
   await frame.waitForLoadState("load");
-  // Wait for form elements to be interactive
-  await frame.waitForSelector("form input, form textarea, form select", { timeout: 5000 }).catch(() => null);
-  // Allow dynamic form elements (e.g. leave_kind[] select) to fully render
-  await page.waitForTimeout(1500);
+
+  // Validate frame URL — retry up to 2 times if stale
+  let frameUrl = frame.url();
+  let retries = 0;
+  while (isFrameStale(frameUrl, config.baseUrl) && retries < 2) {
+    await new Promise((r) => setTimeout(r, FRAME_RETRY_MS));
+    frameUrl = frame.url();
+    retries++;
+  }
+  if (isFrameStale(frameUrl, config.baseUrl)) {
+    throw new Error(
+      `FRAME_NOT_FOUND: stale after 2 retries. lastUrl=${frameUrl}, target=${formUrl}`
+    );
+  }
+
+  // Wait for form-specific ready selector (no fixed timeout)
+  if (formType === "expense") {
+    // account_code dropdown activates only after subject onChange — must wait sequentially
+    await frame.waitForSelector('input[name="subject"]', { timeout: 8000 });
+    await frame.waitForSelector('select[name="account_code"]', { timeout: 8000 }).catch(() => null);
+  } else {
+    const readySelector = FORM_READY_SELECTORS[formType] ?? FORM_READY_DEFAULT;
+    await frame.waitForSelector(readySelector, { timeout: 8000 }).catch(() => null);
+  }
 
   return frame;
 }
