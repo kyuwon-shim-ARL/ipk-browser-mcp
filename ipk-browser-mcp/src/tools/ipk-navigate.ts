@@ -45,7 +45,15 @@ export async function handleIpkNavigate(
       });
     }
 
-    const frameUrl = frame.url();
+    let frameUrl = frame.url();
+    if (!frameUrl.includes("gw.ip-korea.org")) {
+      try {
+        frameUrl = await frame.evaluate(() => location.href);
+      } catch (e) {
+        console.warn("[ipk_navigate] frame.evaluate fallback failed:", e);
+        // keep original frame.url()
+      }
+    }
     const title = await frame.title();
 
     return textResult({

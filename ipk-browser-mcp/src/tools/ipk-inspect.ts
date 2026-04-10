@@ -1,6 +1,9 @@
 import { z } from "zod";
 import * as fs from "fs";
 import * as path from "path";
+import { fileURLToPath } from "url";
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 import { SessionManager } from "../browser/session.js";
 import { Config } from "../types.js";
 import { navigateInFrame } from "../browser/iframe-helper.js";
