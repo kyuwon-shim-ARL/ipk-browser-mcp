@@ -23310,8 +23310,9 @@ function statusToPriority(status) {
 }
 async function fetchByType(sessionManager2, config3, urlType, maxItems) {
   const page = sessionManager2.getPage();
+  const origin = new URL(config3.baseUrl).origin;
   await page.goto(
-    `${config3.baseUrl}/Document/document_list.php?type=${urlType}`,
+    `${origin}/Document/document_list.php?type=${urlType}`,
     { waitUntil: "domcontentloaded", timeout: config3.navTimeoutMs }
   );
   const results = await page.evaluate(
@@ -23340,7 +23341,7 @@ async function fetchByType(sessionManager2, config3, urlType, maxItems) {
     },
     { maxItems, urlType }
   );
-  await page.goto(`${config3.baseUrl}/main.php`, { waitUntil: "domcontentloaded", timeout: config3.navTimeoutMs });
+  await page.goto(config3.baseUrl, { waitUntil: "domcontentloaded", timeout: config3.navTimeoutMs });
   return results;
 }
 async function handleIpkFetchApprovals(sessionManager2, config3, params) {

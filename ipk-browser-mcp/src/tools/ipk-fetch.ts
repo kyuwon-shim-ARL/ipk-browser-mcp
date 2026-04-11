@@ -51,8 +51,10 @@ async function fetchByType(
   const page = sessionManager.getPage()!;
   // Use page.goto() (full-page navigation) — frame.goto() is unreliable in MCP context
   // because the server detects the nested-frame request and returns the frameset instead.
+  // Use URL origin to strip any /main.php path that IPK_BASE_URL may include.
+  const origin = new URL(config.baseUrl).origin;
   await page.goto(
-    `${config.baseUrl}/Document/document_list.php?type=${urlType}`,
+    `${origin}/Document/document_list.php?type=${urlType}`,
     { waitUntil: "domcontentloaded", timeout: config.navTimeoutMs }
   );
 
@@ -93,7 +95,7 @@ async function fetchByType(
   );
 
   // Restore frameset so subsequent MCP tools that rely on main_menu frame still work
-  await page.goto(`${config.baseUrl}/main.php`, { waitUntil: "domcontentloaded", timeout: config.navTimeoutMs });
+  await page.goto(config.baseUrl, { waitUntil: "domcontentloaded", timeout: config.navTimeoutMs });
 
   return results;
 }
