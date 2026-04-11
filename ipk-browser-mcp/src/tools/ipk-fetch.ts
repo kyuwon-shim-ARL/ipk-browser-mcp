@@ -49,24 +49,23 @@ async function fetchByType(
   maxItems: number
 ): Promise<ApprovalItem[]> {
   const page = sessionManager.getPage()!;
-  const frame = await navigateInFrame(
-    page,
-    `/Document/document_list.php?type=${urlType}`,
-    config
+  // Use page.goto() (full-page navigation) — frame.goto() is unreliable in MCP context
+  // because the server detects the nested-frame request and returns the frameset instead.
+  await page.goto(
+    `${config.baseUrl}/Document/document_list.php?type=${urlType}`,
+    { waitUntil: "domcontentloaded", timeout: config.navTimeoutMs }
   );
 
-  if (!frame) return [];
-
-  return frame.evaluate(
+  const results = await page.evaluate(
     (args: { maxItems: number; urlType: string }) => {
       // Find rows via doc_id links — works regardless of table class or tbody presence.
       // Row structure: [0]=docNum [1]=title [2]=dept [3]=author [4]=status [5]=date
       const links = document.querySelectorAll("a[href*='doc_id=']") as NodeListOf<HTMLAnchorElement>;
-      const results: any[] = [];
+      const out: any[] = [];
       const seen = new Set<string>();
 
       for (const link of links) {
-        if (results.length >= args.maxItems) break;
+        if (out.length >= args.maxItems) break;
 
         const m = (link.getAttribute("href") || "").match(/doc_id=([^&]+)/);
         if (!m) continue;
@@ -85,13 +84,18 @@ async function fetchByType(
         const status = cells[4]?.textContent?.trim() || args.urlType;
         const date = cells[5]?.textContent?.trim() || cells[cells.length - 1]?.textContent?.trim() || "";
 
-        results.push({ docId, title, status, date, author, formType: "unknown" });
+        out.push({ docId, title, status, date, author, formType: "unknown" });
       }
 
-      return results;
+      return out;
     },
     { maxItems, urlType }
   );
+
+  // Restore frameset so subsequent MCP tools that rely on main_menu frame still work
+  await page.goto(`${config.baseUrl}/main.php`, { waitUntil: "domcontentloaded", timeout: config.navTimeoutMs });
+
+  return results;
 }
 
 export async function handleIpkFetchApprovals(
