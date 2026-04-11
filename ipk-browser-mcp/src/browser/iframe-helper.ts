@@ -27,9 +27,11 @@ const FORM_READY_SELECTORS: Partial<Record<FormType, string>> = {
 };
 const FORM_READY_DEFAULT = 'input[name="subject"]';
 
-function isFrameStale(frameUrl: string, baseUrl: string): boolean {
-  const hostname = new URL(baseUrl).hostname;
-  return !frameUrl || frameUrl === "about:blank" || !frameUrl.includes(hostname);
+function isFrameStale(frameUrl: string): boolean {
+  // Only treat genuinely unloaded frames as stale.
+  // Note: Playwright reports frame.url() as "<parent>/path" for <frame> elements
+  // inside a <frameset> — that is a Playwright reporting quirk, not actual staleness.
+  return !frameUrl || frameUrl === "about:blank";
 }
 
 /** Navigate within the main_menu iframe to a form */
@@ -46,22 +48,7 @@ export async function navigateToForm(
 
   if (!frame) return null;
 
-  await frame.goto(formUrl, { timeout: config.navTimeoutMs });
-  await frame.waitForLoadState("load");
-
-  // Validate frame URL — retry up to 2 times if stale
-  let frameUrl = frame.url();
-  let retries = 0;
-  while (isFrameStale(frameUrl, config.baseUrl) && retries < 2) {
-    await new Promise((r) => setTimeout(r, FRAME_RETRY_MS));
-    frameUrl = frame.url();
-    retries++;
-  }
-  if (isFrameStale(frameUrl, config.baseUrl)) {
-    throw new Error(
-      `FRAME_NOT_FOUND: stale after 2 retries. lastUrl=${frameUrl}, target=${formUrl}`
-    );
-  }
+  await frame.goto(formUrl, { waitUntil: "domcontentloaded", timeout: config.navTimeoutMs });
 
   // Wait for form-specific ready selector (no fixed timeout)
   if (formType === "expense") {
@@ -98,8 +85,7 @@ export async function navigateInFrame(
     fullUrl = `${config.baseUrl}${url.startsWith("/") ? "" : "/"}${url}`;
   }
 
-  await frame.goto(fullUrl, { timeout: config.navTimeoutMs });
-  await frame.waitForLoadState("load");
+  await frame.goto(fullUrl, { waitUntil: "domcontentloaded", timeout: config.navTimeoutMs });
 
   return frame;
 }

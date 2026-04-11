@@ -21313,20 +21313,24 @@ var SessionManager = class _SessionManager {
       const browser = await this.ensureBrowser();
       const storagePath = this.getStorageStatePath(username);
       let context;
+      const userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
       if (fs.existsSync(storagePath)) {
         try {
           context = await browser.newContext({
             viewport: { width: 1920, height: 1080 },
+            userAgent,
             storageState: storagePath
           });
         } catch {
           context = await browser.newContext({
-            viewport: { width: 1920, height: 1080 }
+            viewport: { width: 1920, height: 1080 },
+            userAgent
           });
         }
       } else {
         context = await browser.newContext({
-          viewport: { width: 1920, height: 1080 }
+          viewport: { width: 1920, height: 1080 },
+          userAgent
         });
       }
       const page = await context.newPage();
@@ -21478,16 +21482,27 @@ import * as fs3 from "fs";
 function getMainFrame(page) {
   return page.frame("main_menu");
 }
+var FORM_READY_SELECTORS = {
+  leave: 'select[name="leave_kind[]"]',
+  travel_request: 'input[name="subject"]',
+  travel: 'input[name="subject"]',
+  seminar: 'input[name="subject"]'
+};
+var FORM_READY_DEFAULT = 'input[name="subject"]';
 async function navigateToForm(page, formType, config3) {
   const formCode = FORM_CODES[formType];
   if (!formCode) return null;
-  const url = `${config3.baseUrl}/Document/document_write.php?approve_type=${formCode}`;
+  const formUrl = `${config3.baseUrl}/Document/document_write.php?approve_type=${formCode}`;
   const frame = getMainFrame(page);
   if (!frame) return null;
-  await frame.goto(url, { timeout: config3.navTimeoutMs });
-  await frame.waitForLoadState("load");
-  await frame.waitForSelector("form input, form textarea, form select", { timeout: 5e3 }).catch(() => null);
-  await page.waitForTimeout(1500);
+  await frame.goto(formUrl, { waitUntil: "domcontentloaded", timeout: config3.navTimeoutMs });
+  if (formType === "expense") {
+    await frame.waitForSelector('input[name="subject"]', { timeout: 8e3 });
+    await frame.waitForSelector('select[name="account_code"]', { timeout: 8e3 }).catch(() => null);
+  } else {
+    const readySelector = FORM_READY_SELECTORS[formType] ?? FORM_READY_DEFAULT;
+    await frame.waitForSelector(readySelector, { timeout: 8e3 }).catch(() => null);
+  }
   return frame;
 }
 async function navigateInFrame(page, url, config3) {
@@ -21504,8 +21519,7 @@ async function navigateInFrame(page, url, config3) {
   } else {
     fullUrl = `${config3.baseUrl}${url.startsWith("/") ? "" : "/"}${url}`;
   }
-  await frame.goto(fullUrl, { timeout: config3.navTimeoutMs });
-  await frame.waitForLoadState("load");
+  await frame.goto(fullUrl, { waitUntil: "domcontentloaded", timeout: config3.navTimeoutMs });
   return frame;
 }
 async function setFieldValue(frame, selector, value) {
@@ -21637,6 +21651,7 @@ async function submitForm(page, frame, method = "check_form_request") {
 
 // src/tools/ipk-submit.ts
 import * as path2 from "path";
+import { fileURLToPath } from "url";
 
 // src/form-registry.ts
 var FORM_REGISTRY = {
@@ -21656,6 +21671,8 @@ var FORM_REGISTRY = {
 };
 
 // src/tools/ipk-submit.ts
+var __filename = fileURLToPath(import.meta.url);
+var __dirname = path2.dirname(__filename);
 async function executePostActions(frame, actions) {
   for (const act of actions) {
     if (act.action === "wait_selector" && act.target) {
@@ -23271,72 +23288,94 @@ var ipkFetchApprovalsSchema = {
   limit: external_exports.number().default(20).describe("Max number of items to return")
 };
 var ipkFetchApprovalsDescription = "Fetch approval/document list from IPK groupware. Returns structured JSON with document IDs, titles, status, and dates.";
+var STATUS_URL_MAP = {
+  pending: "progress",
+  approved: "approved",
+  rejected: "rejected",
+  draft: "draft"
+};
+var ALL_STATUS_TYPES = ["approved", "rejected", "draft", "progress"];
+var DEDUP_PRIORITY = {
+  approved: 3,
+  rejected: 2,
+  draft: 1,
+  progress: 0
+};
+function statusToPriority(status) {
+  const s = status.toLowerCase();
+  for (const [key, pri] of Object.entries(DEDUP_PRIORITY)) {
+    if (s.includes(key)) return pri;
+  }
+  return -1;
+}
+async function fetchByType(sessionManager2, config3, urlType, maxItems) {
+  const page = sessionManager2.getPage();
+  const frame = await navigateInFrame(
+    page,
+    `/Document/document_list.php?type=${urlType}`,
+    config3
+  );
+  if (!frame) return [];
+  return frame.evaluate(
+    (args) => {
+      const links = document.querySelectorAll("a[href*='doc_id=']");
+      const results = [];
+      const seen = /* @__PURE__ */ new Set();
+      for (const link of links) {
+        if (results.length >= args.maxItems) break;
+        const m = (link.getAttribute("href") || "").match(/doc_id=([^&]+)/);
+        if (!m) continue;
+        const docId = m[1];
+        if (seen.has(docId)) continue;
+        seen.add(docId);
+        const row = link.closest("tr");
+        if (!row) continue;
+        const cells = row.querySelectorAll("td");
+        if (cells.length < 4) continue;
+        const title = link.textContent?.trim() || "";
+        const author = cells[3]?.textContent?.trim() || "";
+        const status = cells[4]?.textContent?.trim() || args.urlType;
+        const date3 = cells[5]?.textContent?.trim() || cells[cells.length - 1]?.textContent?.trim() || "";
+        results.push({ docId, title, status, date: date3, author, formType: "unknown" });
+      }
+      return results;
+    },
+    { maxItems, urlType }
+  );
+}
 async function handleIpkFetchApprovals(sessionManager2, config3, params) {
   if (!sessionManager2.isLoggedIn()) {
     return textResult({ error: true, code: "NOT_LOGGED_IN", message: "Call ipk_login first" });
   }
-  const page = sessionManager2.getPage();
   const limit = params.limit || 20;
+  const statusParam = params.status || "all";
   try {
-    const frame = await navigateInFrame(
-      page,
-      "/Document/document_list.php?mtype=user&stype=write",
-      config3
-    );
-    if (!frame) {
-      return textResult({ error: true, code: "NAVIGATION_FAILED", message: "Failed to navigate to document list" });
+    let rawItems = [];
+    if (statusParam === "all") {
+      for (const urlType of ALL_STATUS_TYPES) {
+        const items = await fetchByType(sessionManager2, config3, urlType, limit);
+        rawItems.push(...items);
+      }
+    } else {
+      const urlType = STATUS_URL_MAP[statusParam] ?? statusParam;
+      rawItems = await fetchByType(sessionManager2, config3, urlType, limit);
     }
-    const items = await frame.evaluate(
-      (maxItems) => {
-        const rows = document.querySelectorAll("table.list_table tbody tr, table.tbl_list tbody tr");
-        const results = [];
-        for (const row of rows) {
-          if (results.length >= maxItems) break;
-          const cells = row.querySelectorAll("td");
-          if (cells.length < 4) continue;
-          const linkEl = row.querySelector("a[href*='doc_id=']");
-          if (!linkEl) continue;
-          const href = linkEl.getAttribute("href") || "";
-          const docIdMatch = href.match(/doc_id=([^&]+)/);
-          const docId = docIdMatch ? docIdMatch[1] : "";
-          results.push({
-            docId,
-            title: linkEl.textContent?.trim() || "",
-            status: cells[cells.length - 1]?.textContent?.trim() || "unknown",
-            date: cells[1]?.textContent?.trim() || "",
-            author: cells[2]?.textContent?.trim() || "",
-            formType: "unknown"
-          });
-        }
-        return results;
-      },
-      limit
-    );
-    let filtered = items;
-    if (params.status && params.status !== "all") {
-      const statusMap = {
-        pending: ["\uC9C4\uD589", "pending", "\uB300\uAE30"],
-        approved: ["\uC644\uB8CC", "approved", "\uC2B9\uC778"],
-        rejected: ["\uBC18\uB824", "rejected"],
-        draft: ["\uC784\uC2DC", "draft"]
-      };
-      const keywords = statusMap[params.status] || [];
-      filtered = items.filter(
-        (item) => keywords.some((kw) => item.status.toLowerCase().includes(kw))
-      );
+    const dedupMap = /* @__PURE__ */ new Map();
+    for (const item of rawItems) {
+      const pri = statusToPriority(item.status);
+      const existing = dedupMap.get(item.docId);
+      if (!existing || pri > existing._pri) {
+        dedupMap.set(item.docId, { ...item, _pri: pri });
+      }
     }
-    const masked = filtered.map((item) => ({
-      ...item,
-      author: item.author
-      // Author is the current user, no need to mask own name
-    }));
+    const deduped = [...dedupMap.values()].sort((a, b) => b._pri - a._pri).slice(0, limit).map(({ _pri: _p, ...item }) => item);
     return textResult({
       error: false,
       data: {
-        count: masked.length,
-        totalFound: items.length,
-        filter: { status: params.status || "all" },
-        items: masked
+        count: deduped.length,
+        totalFound: rawItems.length,
+        filter: { status: statusParam },
+        items: deduped
       }
     });
   } catch (err) {
@@ -23367,7 +23406,14 @@ async function handleIpkNavigate(sessionManager2, config3, params) {
         message: "Failed to navigate. main_menu frame not found."
       });
     }
-    const frameUrl = frame.url();
+    let frameUrl = frame.url();
+    if (!frameUrl.includes("gw.ip-korea.org")) {
+      try {
+        frameUrl = await frame.evaluate(() => location.href);
+      } catch (e) {
+        console.warn("[ipk_navigate] frame.evaluate fallback failed:", e);
+      }
+    }
     const title = await frame.title();
     return textResult({
       error: false,
@@ -23595,6 +23641,9 @@ function cleanupExpiredScreenshots(config3) {
 // src/tools/ipk-inspect.ts
 import * as fs5 from "fs";
 import * as path4 from "path";
+import { fileURLToPath as fileURLToPath2 } from "url";
+var __filename2 = fileURLToPath2(import.meta.url);
+var __dirname2 = path4.dirname(__filename2);
 var ipkInspectFormSchema = {
   form_code: external_exports.string().describe("Form code to inspect, e.g. AppFrm-054"),
   compare_template: external_exports.boolean().default(true).describe("Cross-verify against form_templates JSON")
@@ -23646,7 +23695,7 @@ async function handleIpkInspectForm(sessionManager2, config3, params) {
       elements: domElements
     };
     if (compareTemplate) {
-      const projectRoot = path4.resolve(__dirname, "..", "..");
+      const projectRoot = path4.resolve(__dirname2, "..", "..");
       const templatePath = path4.join(projectRoot, "form_templates", `${formCode}.json`);
       try {
         const raw = fs5.readFileSync(templatePath, "utf-8");
