@@ -73,20 +73,28 @@ export class SessionManager {
       const storagePath = this.getStorageStatePath(username);
       let context: BrowserContext;
 
+      // Use a real Chrome user agent — some servers detect "HeadlessChrome" as a bot
+      // and return the frameset (main.php) instead of the requested page.
+      const userAgent =
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
+
       if (fs.existsSync(storagePath)) {
         try {
           context = await browser.newContext({
             viewport: { width: 1920, height: 1080 },
+            userAgent,
             storageState: storagePath,
           });
         } catch {
           context = await browser.newContext({
             viewport: { width: 1920, height: 1080 },
+            userAgent,
           });
         }
       } else {
         context = await browser.newContext({
           viewport: { width: 1920, height: 1080 },
+          userAgent,
         });
       }
 

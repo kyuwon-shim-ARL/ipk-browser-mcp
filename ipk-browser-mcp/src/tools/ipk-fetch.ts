@@ -59,68 +59,33 @@ async function fetchByType(
 
   return frame.evaluate(
     (args: { maxItems: number; urlType: string }) => {
-      const rows = document.querySelectorAll(
-        "table.list_table tbody tr, table.tbl_list tbody tr, table tbody tr"
-      );
+      // Find rows via doc_id links — works regardless of table class or tbody presence.
+      // Row structure: [0]=docNum [1]=title [2]=dept [3]=author [4]=status [5]=date
+      const links = document.querySelectorAll("a[href*='doc_id=']") as NodeListOf<HTMLAnchorElement>;
       const results: any[] = [];
+      const seen = new Set<string>();
 
-      for (const row of rows) {
+      for (const link of links) {
         if (results.length >= args.maxItems) break;
 
+        const m = (link.getAttribute("href") || "").match(/doc_id=([^&]+)/);
+        if (!m) continue;
+        const docId = m[1];
+        if (seen.has(docId)) continue;
+        seen.add(docId);
+
+        const row = link.closest("tr");
+        if (!row) continue;
         const cells = row.querySelectorAll("td");
-        if (cells.length < 3) continue;
+        if (cells.length < 4) continue;
 
-        let docId = "";
+        const title = link.textContent?.trim() || "";
+        // cells: [0]=docNum [1]=title [2]=dept [3]=author [4]=status [5]=date
+        const author = cells[3]?.textContent?.trim() || "";
+        const status = cells[4]?.textContent?.trim() || args.urlType;
+        const date = cells[5]?.textContent?.trim() || cells[cells.length - 1]?.textContent?.trim() || "";
 
-        // Primary: href-based doc_id
-        const linkEl = row.querySelector("a[href*='doc_id=']") as HTMLAnchorElement | null;
-        if (linkEl) {
-          const m = (linkEl.getAttribute("href") || "").match(/doc_id=([^&]+)/);
-          if (m) docId = m[1];
-        }
-
-        // Fallback: onclick attribute on any element in the row (scope: row only)
-        if (!docId) {
-          const onclickEl = row.querySelector("[onclick]") as HTMLElement | null;
-          const onclickAttr = onclickEl
-            ? onclickEl.getAttribute("onclick") || ""
-            : (row as HTMLElement).getAttribute("onclick") || "";
-
-          if (onclickAttr) {
-            // 1차: doc_id= pattern
-            const m1 = onclickAttr.match(/['"]?doc_id['"]?\s*[=,]\s*['"]?(\d+)/i);
-            if (m1) {
-              docId = m1[1];
-            } else {
-              // 2차: first quoted 5+ digit number in onclick string only
-              const m2 = onclickAttr.match(/['"](\d{5,})['"]/);
-              if (m2) {
-                docId = m2[1];
-              } else {
-                // Both failed — skip this row
-                console.warn("[ipk_fetch] Could not extract doc_id from onclick:", onclickAttr.slice(0, 100));
-                continue;
-              }
-            }
-          } else {
-            continue; // no href and no onclick — not a document row
-          }
-        }
-
-        const titleEl = linkEl || (row.querySelector("a") as HTMLAnchorElement | null);
-        const title = titleEl?.textContent?.trim() || "";
-        const date = cells[1]?.textContent?.trim() || "";
-        const author = cells[2]?.textContent?.trim() || "";
-        const statusText = cells[cells.length - 1]?.textContent?.trim() || args.urlType;
-
-        results.push({
-          docId,
-          title,
-          status: statusText || args.urlType,
-          date,
-          author,
-          formType: "unknown",
-        });
+        results.push({ docId, title, status, date, author, formType: "unknown" });
       }
 
       return results;
