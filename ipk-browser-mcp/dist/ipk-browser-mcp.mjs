@@ -23310,19 +23310,17 @@ function statusToPriority(status) {
 }
 async function fetchByType(sessionManager2, config3, urlType, maxItems) {
   const page = sessionManager2.getPage();
-  const frame = await navigateInFrame(
-    page,
-    `/Document/document_list.php?type=${urlType}`,
-    config3
+  await page.goto(
+    `${config3.baseUrl}/Document/document_list.php?type=${urlType}`,
+    { waitUntil: "domcontentloaded", timeout: config3.navTimeoutMs }
   );
-  if (!frame) return [];
-  return frame.evaluate(
+  const results = await page.evaluate(
     (args) => {
       const links = document.querySelectorAll("a[href*='doc_id=']");
-      const results = [];
+      const out = [];
       const seen = /* @__PURE__ */ new Set();
       for (const link of links) {
-        if (results.length >= args.maxItems) break;
+        if (out.length >= args.maxItems) break;
         const m = (link.getAttribute("href") || "").match(/doc_id=([^&]+)/);
         if (!m) continue;
         const docId = m[1];
@@ -23336,12 +23334,14 @@ async function fetchByType(sessionManager2, config3, urlType, maxItems) {
         const author = cells[3]?.textContent?.trim() || "";
         const status = cells[4]?.textContent?.trim() || args.urlType;
         const date3 = cells[5]?.textContent?.trim() || cells[cells.length - 1]?.textContent?.trim() || "";
-        results.push({ docId, title, status, date: date3, author, formType: "unknown" });
+        out.push({ docId, title, status, date: date3, author, formType: "unknown" });
       }
-      return results;
+      return out;
     },
     { maxItems, urlType }
   );
+  await page.goto(`${config3.baseUrl}/main.php`, { waitUntil: "domcontentloaded", timeout: config3.navTimeoutMs });
+  return results;
 }
 async function handleIpkFetchApprovals(sessionManager2, config3, params) {
   if (!sessionManager2.isLoggedIn()) {
