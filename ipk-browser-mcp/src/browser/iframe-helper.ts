@@ -34,7 +34,7 @@ function isFrameStale(frameUrl: string): boolean {
   return !frameUrl || frameUrl === "about:blank";
 }
 
-/** Navigate within the main_menu iframe to a form */
+/** Navigate to a form using full page navigation to bypass bot detection on frame.goto() */
 export async function navigateToForm(
   page: Page,
   formType: FormType,
@@ -43,16 +43,19 @@ export async function navigateToForm(
   const formCode = FORM_CODES[formType];
   if (!formCode) return null;
 
-  const formUrl = `${config.baseUrl}/Document/document_write.php?approve_type=${formCode}`;
-  const frame = getMainFrame(page);
+  // Use origin to strip any /main.php path that IPK_BASE_URL may include.
+  // Use page.goto() instead of frame.goto() — server returns frameset HTML for
+  // nested-frame requests (bot detection), causing form fields to be absent.
+  const origin = new URL(config.baseUrl).origin;
+  const formUrl = `${origin}/Document/document_write.php?approve_type=${formCode}`;
 
-  if (!frame) return null;
+  await page.goto(formUrl, { waitUntil: "domcontentloaded", timeout: config.navTimeoutMs });
 
-  await frame.goto(formUrl, { waitUntil: "domcontentloaded", timeout: config.navTimeoutMs });
+  // After page.goto(), use the main frame (not main_menu child frame)
+  const frame = page.mainFrame();
 
-  // Wait for form-specific ready selector (no fixed timeout)
+  // Wait for form-specific ready selector
   if (formType === "expense") {
-    // account_code dropdown activates only after subject onChange — must wait sequentially
     await frame.waitForSelector('input[name="subject"]', { timeout: 8000 });
     await frame.waitForSelector('select[name="account_code"]', { timeout: 8000 }).catch(() => null);
   } else {
@@ -72,17 +75,19 @@ export async function navigateInFrame(
   const frame = getMainFrame(page);
   if (!frame) return null;
 
+  // Extract origin to avoid baseUrl including /main.php path
+  const origin = new URL(config.baseUrl).origin;
+
   // Ensure URL is within the groupware domain
   let fullUrl: string;
   if (url.startsWith("http")) {
     const parsed = new URL(url);
-    const base = new URL(config.baseUrl);
-    if (parsed.hostname !== base.hostname) {
-      throw new Error(`Navigation restricted to groupware domain (${base.hostname}). Rejected: ${parsed.hostname}`);
+    if (parsed.hostname !== new URL(config.baseUrl).hostname) {
+      throw new Error(`Navigation restricted to groupware domain (${new URL(config.baseUrl).hostname}). Rejected: ${parsed.hostname}`);
     }
     fullUrl = url;
   } else {
-    fullUrl = `${config.baseUrl}${url.startsWith("/") ? "" : "/"}${url}`;
+    fullUrl = `${origin}${url.startsWith("/") ? "" : "/"}${url}`;
   }
 
   await frame.goto(fullUrl, { waitUntil: "domcontentloaded", timeout: config.navTimeoutMs });

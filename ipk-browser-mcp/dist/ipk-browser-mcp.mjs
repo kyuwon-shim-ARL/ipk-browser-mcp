@@ -21492,10 +21492,10 @@ var FORM_READY_DEFAULT = 'input[name="subject"]';
 async function navigateToForm(page, formType, config3) {
   const formCode = FORM_CODES[formType];
   if (!formCode) return null;
-  const formUrl = `${config3.baseUrl}/Document/document_write.php?approve_type=${formCode}`;
-  const frame = getMainFrame(page);
-  if (!frame) return null;
-  await frame.goto(formUrl, { waitUntil: "domcontentloaded", timeout: config3.navTimeoutMs });
+  const origin = new URL(config3.baseUrl).origin;
+  const formUrl = `${origin}/Document/document_write.php?approve_type=${formCode}`;
+  await page.goto(formUrl, { waitUntil: "domcontentloaded", timeout: config3.navTimeoutMs });
+  const frame = page.mainFrame();
   if (formType === "expense") {
     await frame.waitForSelector('input[name="subject"]', { timeout: 8e3 });
     await frame.waitForSelector('select[name="account_code"]', { timeout: 8e3 }).catch(() => null);
@@ -21508,16 +21508,16 @@ async function navigateToForm(page, formType, config3) {
 async function navigateInFrame(page, url, config3) {
   const frame = getMainFrame(page);
   if (!frame) return null;
+  const origin = new URL(config3.baseUrl).origin;
   let fullUrl;
   if (url.startsWith("http")) {
     const parsed = new URL(url);
-    const base = new URL(config3.baseUrl);
-    if (parsed.hostname !== base.hostname) {
-      throw new Error(`Navigation restricted to groupware domain (${base.hostname}). Rejected: ${parsed.hostname}`);
+    if (parsed.hostname !== new URL(config3.baseUrl).hostname) {
+      throw new Error(`Navigation restricted to groupware domain (${new URL(config3.baseUrl).hostname}). Rejected: ${parsed.hostname}`);
     }
     fullUrl = url;
   } else {
-    fullUrl = `${config3.baseUrl}${url.startsWith("/") ? "" : "/"}${url}`;
+    fullUrl = `${origin}${url.startsWith("/") ? "" : "/"}${url}`;
   }
   await frame.goto(fullUrl, { waitUntil: "domcontentloaded", timeout: config3.navTimeoutMs });
   return frame;
