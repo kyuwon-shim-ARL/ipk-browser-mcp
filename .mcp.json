@@ -2,7 +2,7 @@
   "mcpServers": {
     "ipk-browser": {
       "command": "node",
-      "args": ["/home/kyuwon/projects/ipk-browser-mcp/ipk-browser-mcp/dist/ipk-browser-mcp.mjs"],
+      "args": ["${CLAUDE_PLUGIN_ROOT}/ipk-browser-mcp/dist/ipk-browser-mcp.mjs"],
       "env": {}
     }
   }

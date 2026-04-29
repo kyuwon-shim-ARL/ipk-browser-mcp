@@ -6,37 +6,61 @@ Automates form submissions (leave, expense, travel, etc.) on the IPK groupware s
 
 ## Quick Start
 
-### 1. Install Plugin
+### 1. Install Plugin (paste these into Claude Code)
 
-Install from Claude Code marketplace or clone:
+Copy and paste these two commands directly into your Claude Code prompt:
 
-```bash
-git clone https://github.com/kyuwon-shim-ARL/ipk-browser-mcp.git
+```
+/plugin marketplace add kyuwon-shim-ARL/ipk-browser-mcp
+/plugin install ipk-browser-mcp@ipk-browser-mcp
 ```
 
-### 2. Setup Credentials
+The first command registers this repo as a self-marketplace; the second installs the plugin from it.
 
-Run in a **separate terminal** (not inside Claude Code):
+### 2. Configure Credentials (in a regular terminal, NOT in Claude Code)
+
+> ⚠️ **Important:** Run this in a regular terminal — never inside Claude Code — so your password is never sent to the model API.
 
 ```bash
-bash scripts/setup.sh
+bash ~/.claude/plugins/cache/ipk-browser-mcp/ipk-browser-mcp/*/scripts/setup.sh
 ```
 
-This prompts for your IPK groupware ID/password and saves to `~/.config/ipk-browser-mcp/.env` (chmod 600).
+This prompts for your IPK groupware ID/password (input is hidden via `read -s`) and saves them to `~/.config/ipk-browser-mcp/.env` with `chmod 600`. Credentials never leave your machine.
 
 ### 3. Restart Claude Code
 
-The plugin auto-installs Playwright on first session start via the `SessionStart` hook.
+On next start, the plugin's `SessionStart` hook auto-installs Playwright Chromium (≈ 30 seconds, one-time).
 
 ### 4. Use
 
 Ask Claude naturally:
 
 ```
+"내일 연차 신청 초안 만들어줘"
+"3월 26일 COEX 학회 출장 신청서 작성해줘"
+"법인카드 회식비 50000원 카드경비 등록해줘"
 "Submit annual leave for tomorrow"
-"File an expense report for overtime meal, 15000 won"
-"Draft a travel request for March 26"
 ```
+
+Or invoke the conversational `/문서작성` skill for guided form filling.
+
+## Updating the Plugin
+
+When a new version is published, run these in Claude Code:
+
+```
+/plugin marketplace update ipk-browser-mcp
+/plugin update ipk-browser-mcp@ipk-browser-mcp
+```
+
+Then restart Claude Code so the new MCP server bundle and hook are loaded.
+
+## Requirements
+
+- Claude Code with `/plugin` support
+- Node.js ≥ 20 (Playwright dependency)
+- IPK groupware account (only useful for IP Korea employees — `gw.ip-korea.org`)
+- Linux or macOS (Windows untested)
 
 ## Supported Forms
 
