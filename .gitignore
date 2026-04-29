@@ -19,6 +19,9 @@ node_modules/
 /dist/
 !ipk-browser-mcp/dist/
 
+# Sourcemaps - dev-only (set DEV=true when building to generate)
+ipk-browser-mcp/dist/*.mjs.map
+
 # OMC state (session-specific, not project data)
 .omc/
 .history.json

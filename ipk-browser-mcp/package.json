@@ -1,6 +1,6 @@
 {
   "name": "ipk-browser-mcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "IPK Groupware browser automation MCP server for Claude Code",
   "type": "module",
   "main": "dist/ipk-browser-mcp.mjs",

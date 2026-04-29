@@ -9,7 +9,7 @@ await build({
   format: "esm",
   outfile: "dist/ipk-browser-mcp.mjs",
   external: ["playwright"],
-  sourcemap: true,
+  sourcemap: process.env.DEV === "true",
   minify: false,
   banner: {
     js: "import { createRequire } from 'module'; const require = createRequire(import.meta.url);",
