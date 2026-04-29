@@ -1,0 +1,19 @@
+{
+  "name": "ipk-browser-mcp",
+  "owner": {
+    "name": "Kyuwon Shim",
+    "email": "kyuwon.shim@ip-korea.org",
+    "url": "https://github.com/kyuwon-shim-ARL"
+  },
+  "plugins": [
+    {
+      "name": "ipk-browser-mcp",
+      "source": ".",
+      "description": "IPK Groupware browser automation MCP plugin (Playwright-based form submission for leave, expense, travel, etc.)",
+      "version": "0.1.0",
+      "keywords": ["ipk", "groupware", "browser", "automation", "mcp", "playwright"],
+      "license": "MIT",
+      "homepage": "https://github.com/kyuwon-shim-ARL/ipk-browser-mcp"
+    }
+  ]
+}
