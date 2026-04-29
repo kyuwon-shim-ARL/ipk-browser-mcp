@@ -23783,4 +23783,3 @@ server.tool("ipk_inspect_form", ipkInspectFormDescription, ipkInspectFormSchema,
 });
 var transport = new StdioServerTransport();
 await server.connect(transport);
-//# sourceMappingURL=ipk-browser-mcp.mjs.map
