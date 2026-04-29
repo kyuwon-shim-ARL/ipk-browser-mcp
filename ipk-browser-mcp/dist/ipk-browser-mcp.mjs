@@ -23758,7 +23758,7 @@ var sessionManager = new SessionManager(config2);
 cleanupExpiredScreenshots(config2);
 var server = new McpServer({
   name: "ipk-browser",
-  version: "0.1.0"
+  version: "0.1.2"
 });
 server.tool("ipk_login", ipkLoginDescription, ipkLoginSchema, async (params) => {
   return handleIpkLogin(sessionManager, params);

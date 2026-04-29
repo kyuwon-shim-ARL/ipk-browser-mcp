@@ -10,7 +10,7 @@
       "name": "ipk-browser-mcp",
       "source": ".",
       "description": "IPK Groupware browser automation MCP plugin (Playwright-based form submission for leave, expense, travel, etc.)",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "keywords": ["ipk", "groupware", "browser", "automation", "mcp", "playwright"],
       "license": "MIT",
       "homepage": "https://github.com/kyuwon-shim-ARL/ipk-browser-mcp"

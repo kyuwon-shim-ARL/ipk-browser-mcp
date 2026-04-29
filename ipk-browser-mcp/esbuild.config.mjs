@@ -1,5 +1,7 @@
 import { build } from "esbuild";
-import { copyFileSync, existsSync, mkdirSync } from "fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync } from "fs";
+
+const pkg = JSON.parse(readFileSync("package.json", "utf-8"));
 
 await build({
   entryPoints: ["src/index.ts"],
@@ -11,6 +13,9 @@ await build({
   external: ["playwright"],
   sourcemap: process.env.DEV === "true",
   minify: false,
+  define: {
+    __PACKAGE_VERSION__: JSON.stringify(pkg.version),
+  },
   banner: {
     js: "import { createRequire } from 'module'; const require = createRequire(import.meta.url);",
   },
