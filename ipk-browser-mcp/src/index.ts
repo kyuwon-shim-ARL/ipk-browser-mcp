@@ -13,6 +13,8 @@ import { ipkGetContentSchema, ipkGetContentDescription, handleIpkGetContent } fr
 import { screenshotSchema, screenshotDescription, handleScreenshot, cleanupExpiredScreenshots } from "./tools/screenshot.js";
 import { ipkInspectFormSchema, ipkInspectFormDescription, handleIpkInspectForm } from "./tools/ipk-inspect.js";
 
+declare const __PACKAGE_VERSION__: string;
+
 const config = loadConfig();
 const sessionManager = new SessionManager(config);
 
@@ -21,7 +23,7 @@ cleanupExpiredScreenshots(config);
 
 const server = new McpServer({
   name: "ipk-browser",
-  version: "0.1.0",
+  version: __PACKAGE_VERSION__,
 });
 
 // Tool 1: ipk_login
