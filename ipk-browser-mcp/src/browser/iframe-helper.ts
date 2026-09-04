@@ -107,19 +107,32 @@ export async function setFieldValue(
   // Wait for element to appear in DOM before attempting to set value
   await frame.waitForSelector(selector, { timeout: 5000 }).catch(() => null);
 
-  return frame.evaluate(
+  // NOTE on readOnly: many fields this form expects to be filled are readOnly by design
+  // (begin_date[]/end_date[] are datepicker-backed, item_amount[]/total_amt are recomputed
+  // by the form's own JS). Writing those is how the form is meant to be driven, so readOnly
+  // is deliberately not treated as a barrier here. `disabled` is different: the browser
+  // omits disabled controls from the submitted payload, so writing one produces a value the
+  // page shows but the server never receives.
+  const outcome = await frame.evaluate(
     (args: { sel: string; val: string }) => {
       const el = document.querySelector(args.sel) as HTMLInputElement | HTMLTextAreaElement | null;
-      if (el) {
-        el.value = args.val;
-        el.dispatchEvent(new Event('input', { bubbles: true }));
-        el.dispatchEvent(new Event('change', { bubbles: true }));
-        return true;
-      }
-      return false;
+      if (!el) return "not_found" as const;
+      if ((el as HTMLInputElement).disabled) return "disabled" as const;
+      el.value = args.val;
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+      return "ok" as const;
     },
     { sel: selector, val: value }
   );
+
+  if (outcome === "disabled") {
+    throw new Error(
+      `FIELD_DISABLED: '${selector}' is disabled; the browser would not submit a value ` +
+        `written to it. Enable it through the form's own controls instead.`
+    );
+  }
+  return outcome === "ok";
 }
 
 /**

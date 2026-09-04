@@ -21567,19 +21567,24 @@ async function navigateInFrame(page, url, config3) {
 }
 async function setFieldValue(frame, selector, value) {
   await frame.waitForSelector(selector, { timeout: 5e3 }).catch(() => null);
-  return frame.evaluate(
+  const outcome = await frame.evaluate(
     (args) => {
       const el = document.querySelector(args.sel);
-      if (el) {
-        el.value = args.val;
-        el.dispatchEvent(new Event("input", { bubbles: true }));
-        el.dispatchEvent(new Event("change", { bubbles: true }));
-        return true;
-      }
-      return false;
+      if (!el) return "not_found";
+      if (el.disabled) return "disabled";
+      el.value = args.val;
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+      el.dispatchEvent(new Event("change", { bubbles: true }));
+      return "ok";
     },
     { sel: selector, val: value }
   );
+  if (outcome === "disabled") {
+    throw new Error(
+      `FIELD_DISABLED: '${selector}' is disabled; the browser would not submit a value written to it. Enable it through the form's own controls instead.`
+    );
+  }
+  return outcome === "ok";
 }
 async function setSelectValue(frame, selector, value) {
   const el = await frame.waitForSelector(selector, { timeout: 5e3 }).catch(() => null);
@@ -21878,51 +21883,80 @@ async function attachFile(frame, filePath) {
   const fileInput = frame.locator('input[name="doc_attach_file[]"]').first();
   await fileInput.setInputFiles(filePath);
 }
-async function selectExistingOption(frame, selector, value, fieldName) {
-  const outcome = await frame.evaluate(
-    (args) => {
-      const el = document.querySelector(args.selector);
-      if (!el) return { status: "no_element", options: [] };
-      const options = Array.from(el.options).map((o) => o.value);
-      if (!options.includes(args.value)) {
-        return { status: "no_option", options };
-      }
-      el.value = args.value;
-      el.dispatchEvent(new Event("change", { bubbles: true }));
-      return { status: "ok", options };
-    },
-    { selector, value }
-  );
-  if (outcome.status === "no_element") {
+async function selectExistingOption(frame, selector, value, fieldName, timeoutMs = 5e3) {
+  const deadline = Date.now() + timeoutMs;
+  let last = { status: "no_element", options: [] };
+  for (; ; ) {
+    last = await frame.evaluate(
+      (args) => {
+        const el = document.querySelector(args.selector);
+        if (!el) return { status: "no_element", options: [] };
+        const enabled = Array.from(el.options).filter((o) => !o.disabled);
+        const options = enabled.map((o) => o.value);
+        if (!options.includes(args.value)) {
+          return { status: "no_option", options: Array.from(el.options).map((o) => o.value) };
+        }
+        el.value = args.value;
+        el.dispatchEvent(new Event("change", { bubbles: true }));
+        if (el.value !== args.value) return { status: "reverted", options };
+        return { status: "ok", options };
+      },
+      { selector, value }
+    );
+    if (last.status === "ok") return;
+    if (last.status === "reverted") {
+      throw new Error(
+        `OPTION_REJECTED: the form reset '${fieldName}' after selecting '${value}'. It is probably not valid together with the other values on this form.`
+      );
+    }
+    if (Date.now() >= deadline) break;
+    await new Promise((r) => setTimeout(r, 250));
+  }
+  if (last.status === "no_element") {
     throw new Error(`FIELD_NOT_FOUND: Required field '${fieldName}' not found (selector: ${selector})`);
   }
-  if (outcome.status === "no_option") {
-    throw new Error(
-      `INVALID_OPTION: '${value}' is not an option the form offers for '${fieldName}'. Allowed: ${outcome.options.join(", ") || "(none)"}`
-    );
-  }
+  throw new Error(
+    `INVALID_OPTION: '${value}' is not an option the form offers for '${fieldName}' (waited ${timeoutMs}ms in case the form populates it). Allowed: ${last.options.join(", ") || "(none)"}`
+  );
 }
 async function assertTotalMatchesItems(frame) {
   const check2 = await frame.evaluate(() => {
-    const num = (v) => Number(String(v ?? "").replace(/[^0-9.-]/g, "")) || 0;
+    const unparsable = [];
+    const num = (raw, label) => {
+      const text = String(raw ?? "").trim();
+      if (text === "") return 0;
+      const cleaned = text.replace(/[,\s\u00a0]/g, "");
+      if (!/^-?\d+(\.\d+)?$/.test(cleaned)) {
+        unparsable.push(`${label}='${text}'`);
+        return 0;
+      }
+      return Number(cleaned);
+    };
     const totalEl = document.getElementsByName("total_amt")[0];
     if (!totalEl) return null;
     const items = Array.from(
       document.querySelectorAll('input[name="item_amount[]"]')
     );
-    if (items.length === 0) return null;
-    const sum = items.reduce((acc, el) => acc + num(el.value), 0);
+    const filled = items.filter((el) => String(el.value ?? "").trim() !== "");
+    if (filled.length === 0) return null;
+    const sum = filled.reduce((acc, el, i) => acc + num(el.value, `item_amount[${i}]`), 0);
     const vats = Array.from(
       document.querySelectorAll('input[name="item_amount_vat[]"]')
     );
-    const vatSum = vats.reduce((acc, el) => acc + num(el.value), 0);
-    return { total: num(totalEl.value), sum, vatSum };
+    const vatSum = vats.reduce((acc, el, i) => acc + num(el.value, `item_amount_vat[${i}]`), 0);
+    return { total: num(totalEl.value, "total_amt"), sum, vatSum, unparsable };
   });
   if (!check2) return;
-  const withVat = check2.sum + check2.vatSum;
-  if (check2.total !== check2.sum && check2.total !== withVat) {
+  if (check2.unparsable.length > 0) {
     throw new Error(
-      `TOTAL_MISMATCH: total_amt=${check2.total} but line items sum to ${check2.sum} (${withVat} incl. VAT). Refusing to submit a document that disagrees with itself.`
+      `TOTAL_UNVERIFIABLE: cannot read amount(s) ${check2.unparsable.join(", ")} as numbers, so the total cannot be checked against the line items.`
+    );
+  }
+  const withVat = check2.sum + check2.vatSum;
+  const ok = check2.vatSum > 0 ? check2.total === withVat : check2.total === check2.sum;
+  if (!ok) {
+    throw new Error(
+      `TOTAL_MISMATCH: total_amt=${check2.total} but line items sum to ${check2.sum}` + (check2.vatSum > 0 ? ` (+VAT ${check2.vatSum} = ${withVat})` : "") + `. Refusing to submit a document that disagrees with itself.`
     );
   }
 }
@@ -22215,24 +22249,35 @@ async function submitLeave(page, frame, sessionManager2, config3, params, mode) 
     await popup.waitForTimeout(1e3);
     const selected = await popup.evaluate(
       (name) => {
-        const rows = document.querySelectorAll("tr");
-        for (const row of rows) {
+        const norm = (v) => v.normalize("NFKC").replace(/\s+/g, " ").trim().toLocaleLowerCase();
+        const wanted = norm(name);
+        const matches = [];
+        document.querySelectorAll("tr").forEach((row) => {
           const cells = row.querySelectorAll("td");
-          if (cells.length >= 4) {
-            const userName = cells[3]?.textContent?.trim() || "";
-            if (userName === name) {
-              const radio = row.querySelector('input[type="radio"]');
-              if (radio) {
-                radio.click();
-                return { found: true, name: userName };
-              }
-            }
+          if (cells.length < 4) return;
+          const userName = cells[3]?.textContent?.trim() || "";
+          if (userName && norm(userName) === wanted) {
+            matches.push({ row, label: row.textContent?.replace(/\s+/g, " ").trim() || userName });
           }
+        });
+        if (matches.length === 0) return { found: false, ambiguous: false, candidates: [] };
+        if (matches.length > 1) {
+          return { found: false, ambiguous: true, candidates: matches.map((m) => m.label).slice(0, 10) };
         }
-        return { found: false };
+        const radio = matches[0].row.querySelector('input[type="radio"]');
+        if (!radio) return { found: false, ambiguous: false, candidates: [] };
+        radio.click();
+        return { found: true, ambiguous: false, candidates: [] };
       },
       substituteName
     );
+    if (selected.ambiguous) {
+      await popup.click('a:has-text("[Close]")').catch(() => {
+      });
+      throw new Error(
+        `SUBSTITUTE_AMBIGUOUS: '${substituteName}' matches ${selected.candidates.length} people in the groupware user list. Refusing to guess. Candidates: ${selected.candidates.join(" | ")}`
+      );
+    }
     if (selected.found) {
       await popup.click('a:has-text("[Ok]")');
       await page.waitForTimeout(1e3);
@@ -22255,7 +22300,7 @@ async function submitLeave(page, frame, sessionManager2, config3, params, mode) 
       );
     }
   } catch (err) {
-    if (err instanceof Error && err.message.startsWith("SUBSTITUTE_NOT_FOUND")) {
+    if (err instanceof Error && (err.message.startsWith("SUBSTITUTE_NOT_FOUND") || err.message.startsWith("SUBSTITUTE_AMBIGUOUS"))) {
       throw err;
     }
     const detail = err instanceof Error ? err.message : String(err);
@@ -22620,12 +22665,21 @@ async function submitCardExpense(page, frame, sessionManager2, config3, params, 
   await frame.evaluate(
     (args) => {
       const totalEl = document.getElementsByName("total_amt")[0];
-      if (totalEl) totalEl.value = args.total;
+      if (totalEl) {
+        totalEl.value = args.total;
+        totalEl.dispatchEvent(new Event("input", { bubbles: true }));
+        totalEl.dispatchEvent(new Event("change", { bubbles: true }));
+      }
       const ralEl = document.querySelector('input[name="item_amount_ral[]"]');
-      if (ralEl) ralEl.value = args.ral;
+      if (ralEl) {
+        ralEl.value = args.ral;
+        ralEl.dispatchEvent(new Event("input", { bubbles: true }));
+        ralEl.dispatchEvent(new Event("change", { bubbles: true }));
+      }
     },
     { total: String(amount), ral: String(amount) }
   );
+  await assertTotalMatchesItems(frame);
   if (params.attachment_path) {
     await attachFile(frame, params.attachment_path);
     await page.waitForTimeout(1e3);

@@ -28,7 +28,7 @@ function createMockPage(): Page {
 describe("setFieldValue", () => {
   it("returns true when element is found and value is set", async () => {
     const frame = createMockFrame({
-      evaluate: vi.fn().mockResolvedValue(true),
+      evaluate: vi.fn().mockResolvedValue("ok"),
     });
     const result = await setFieldValue(frame, 'input[name="subject"]', "Test Subject");
     expect(result).toBe(true);
@@ -39,7 +39,7 @@ describe("setFieldValue", () => {
   it("returns false when element is not found in DOM", async () => {
     const frame = createMockFrame({
       waitForSelector: vi.fn().mockRejectedValue(new Error("timeout")),
-      evaluate: vi.fn().mockResolvedValue(false),
+      evaluate: vi.fn().mockResolvedValue("not_found"),
     });
     const result = await setFieldValue(frame, 'input[name="missing"]', "value");
     expect(result).toBe(false);
@@ -47,13 +47,24 @@ describe("setFieldValue", () => {
 
   it("handles empty value string", async () => {
     const frame = createMockFrame({
-      evaluate: vi.fn().mockResolvedValue(true),
+      evaluate: vi.fn().mockResolvedValue("ok"),
     });
     const result = await setFieldValue(frame, 'input[name="field"]', "");
     expect(result).toBe(true);
     // Verify evaluate was called with the empty value
     const callArgs = (frame.evaluate as ReturnType<typeof vi.fn>).mock.calls[0];
     expect(callArgs[1]).toEqual({ sel: 'input[name="field"]', val: "" });
+  });
+
+  it("throws rather than writing to a disabled control", async () => {
+    // A disabled control is omitted from the submitted payload, so a value written to it
+    // would appear on screen and never reach the server.
+    const frame = createMockFrame({
+      evaluate: vi.fn().mockResolvedValue("disabled"),
+    });
+    await expect(setFieldValue(frame, 'select[name="food_ex_cnt"]', "3")).rejects.toThrow(
+      /FIELD_DISABLED/
+    );
   });
 });
 

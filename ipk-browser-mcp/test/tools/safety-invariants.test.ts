@@ -52,6 +52,37 @@ describe("safety invariants", () => {
     expect(src).toContain("TOTAL_MISMATCH");
   });
 
+  it("substitute matching normalises names and refuses namesakes", () => {
+    const src = read("src/tools/ipk-submit.ts");
+    expect(src).toContain("SUBSTITUTE_AMBIGUOUS");
+    expect(src).toContain('normalize("NFKC")');
+    expect(src).toContain("toLocaleLowerCase");
+  });
+
+  it("option selection waits for dynamically populated lists and confirms the choice stuck", () => {
+    // end_time[] is empty until start_time[] fires change, so an immediate check would
+    // reject a valid value on a freshly loaded form.
+    const src = read("src/tools/ipk-submit.ts");
+    expect(src).toContain("OPTION_REJECTED");
+    expect(src).toMatch(/timeoutMs\s*=\s*\d+/);
+    expect(src).toContain("o.disabled");
+  });
+
+  it("unreadable amounts fail instead of silently counting as zero", () => {
+    const src = read("src/tools/ipk-submit.ts");
+    expect(src).toContain("TOTAL_UNVERIFIABLE");
+  });
+
+  it("both total-writing paths assert against line items", () => {
+    const src = read("src/tools/ipk-submit.ts");
+    expect(src.match(/await assertTotalMatchesItems\(frame\);/g)?.length).toBe(2);
+  });
+
+  it("disabled controls are never written", () => {
+    const src = read("src/browser/iframe-helper.ts");
+    expect(src).toContain("FIELD_DISABLED");
+  });
+
   it("shutdown is bounded and login is verified beyond the URL", () => {
     const src = read("src/browser/session.ts");
     expect(src).toContain("SHUTDOWN_TIMEOUT_MS");

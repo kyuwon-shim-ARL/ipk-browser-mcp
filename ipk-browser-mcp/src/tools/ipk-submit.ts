@@ -305,39 +305,61 @@ async function attachFile(frame: any, filePath: string): Promise<void> {
 
 /**
  * Select a value in a <select> only if the form already offers it.
- * Throws with the allowed options otherwise. Never creates, removes or rewrites options -
- * a value the form never offered is a value the server never agreed to accept.
+ * Never creates, removes or rewrites options - a value the form never offered is a value
+ * the server never agreed to accept.
+ *
+ * Some option lists are populated by the form's own JS in response to an earlier field
+ * (end_time[] is empty until start_time[] changes), so the option is polled for rather
+ * than demanded immediately.
  */
 async function selectExistingOption(
   frame: any,
   selector: string,
   value: string,
-  fieldName: string
+  fieldName: string,
+  timeoutMs = 5000
 ): Promise<void> {
-  const outcome = await frame.evaluate(
-    (args: { selector: string; value: string }) => {
-      const el = document.querySelector(args.selector) as HTMLSelectElement | null;
-      if (!el) return { status: "no_element" as const, options: [] as string[] };
-      const options = Array.from(el.options).map((o) => o.value);
-      if (!options.includes(args.value)) {
-        return { status: "no_option" as const, options };
-      }
-      el.value = args.value;
-      el.dispatchEvent(new Event("change", { bubbles: true }));
-      return { status: "ok" as const, options };
-    },
-    { selector, value }
-  );
+  const deadline = Date.now() + timeoutMs;
+  let last: { status: string; options: string[] } = { status: "no_element", options: [] };
 
-  if (outcome.status === "no_element") {
+  for (;;) {
+    last = await frame.evaluate(
+      (args: { selector: string; value: string }) => {
+        const el = document.querySelector(args.selector) as HTMLSelectElement | null;
+        if (!el) return { status: "no_element", options: [] as string[] };
+        const enabled = Array.from(el.options).filter((o) => !o.disabled);
+        const options = enabled.map((o) => o.value);
+        if (!options.includes(args.value)) {
+          return { status: "no_option", options: Array.from(el.options).map((o) => o.value) };
+        }
+        el.value = args.value;
+        el.dispatchEvent(new Event("change", { bubbles: true }));
+        // The form's own handler may reject or rewrite the choice; confirm it stuck.
+        if (el.value !== args.value) return { status: "reverted", options };
+        return { status: "ok", options };
+      },
+      { selector, value }
+    );
+
+    if (last.status === "ok") return;
+    if (last.status === "reverted") {
+      throw new Error(
+        `OPTION_REJECTED: the form reset '${fieldName}' after selecting '${value}'. ` +
+          `It is probably not valid together with the other values on this form.`
+      );
+    }
+    if (Date.now() >= deadline) break;
+    await new Promise((r) => setTimeout(r, 250));
+  }
+
+  if (last.status === "no_element") {
     throw new Error(`FIELD_NOT_FOUND: Required field '${fieldName}' not found (selector: ${selector})`);
   }
-  if (outcome.status === "no_option") {
-    throw new Error(
-      `INVALID_OPTION: '${value}' is not an option the form offers for '${fieldName}'. ` +
-        `Allowed: ${outcome.options.join(", ") || "(none)"}`
-    );
-  }
+  throw new Error(
+    `INVALID_OPTION: '${value}' is not an option the form offers for '${fieldName}' ` +
+      `(waited ${timeoutMs}ms in case the form populates it). ` +
+      `Allowed: ${last.options.join(", ") || "(none)"}`
+  );
 }
 
 /**
@@ -347,27 +369,48 @@ async function selectExistingOption(
  */
 async function assertTotalMatchesItems(frame: any): Promise<void> {
   const check = await frame.evaluate(() => {
-    const num = (v: string | null | undefined) => Number(String(v ?? "").replace(/[^0-9.-]/g, "")) || 0;
+    const unparsable: string[] = [];
+    // Blank means "not filled in", which is 0. Anything else that is not a number is a
+    // value we cannot reason about, and silently coercing it to 0 would hide a mismatch.
+    const num = (raw: string | null | undefined, label: string): number => {
+      const text = String(raw ?? "").trim();
+      if (text === "") return 0;
+      const cleaned = text.replace(/[,\s\u00a0]/g, "");
+      if (!/^-?\d+(\.\d+)?$/.test(cleaned)) {
+        unparsable.push(`${label}='${text}'`);
+        return 0;
+      }
+      return Number(cleaned);
+    };
     const totalEl = document.getElementsByName("total_amt")[0] as HTMLInputElement | undefined;
     if (!totalEl) return null;
     const items = Array.from(
       document.querySelectorAll('input[name="item_amount[]"]')
     ) as HTMLInputElement[];
-    if (items.length === 0) return null;
-    const sum = items.reduce((acc, el) => acc + num(el.value), 0);
+    const filled = items.filter((el) => String(el.value ?? "").trim() !== "");
+    if (filled.length === 0) return null;
+    const sum = filled.reduce((acc, el, i) => acc + num(el.value, `item_amount[${i}]`), 0);
     const vats = Array.from(
       document.querySelectorAll('input[name="item_amount_vat[]"]')
     ) as HTMLInputElement[];
-    const vatSum = vats.reduce((acc, el) => acc + num(el.value), 0);
-    return { total: num(totalEl.value), sum, vatSum };
+    const vatSum = vats.reduce((acc, el, i) => acc + num(el.value, `item_amount_vat[${i}]`), 0);
+    return { total: num(totalEl.value, "total_amt"), sum, vatSum, unparsable };
   });
 
   if (!check) return; // form has no comparable line items - nothing to assert
-  const withVat = check.sum + check.vatSum;
-  if (check.total !== check.sum && check.total !== withVat) {
+  if (check.unparsable.length > 0) {
     throw new Error(
-      `TOTAL_MISMATCH: total_amt=${check.total} but line items sum to ${check.sum} ` +
-        `(${withVat} incl. VAT). Refusing to submit a document that disagrees with itself.`
+      `TOTAL_UNVERIFIABLE: cannot read amount(s) ${check.unparsable.join(", ")} as numbers, ` +
+        `so the total cannot be checked against the line items.`
+    );
+  }
+  const withVat = check.sum + check.vatSum;
+  const ok = check.vatSum > 0 ? check.total === withVat : check.total === check.sum;
+  if (!ok) {
+    throw new Error(
+      `TOTAL_MISMATCH: total_amt=${check.total} but line items sum to ${check.sum}` +
+        (check.vatSum > 0 ? ` (+VAT ${check.vatSum} = ${withVat})` : "") +
+        `. Refusing to submit a document that disagrees with itself.`
     );
   }
 }
@@ -763,27 +806,43 @@ async function submitLeave(
     await popup.waitForSelector("tr", { timeout: 5000 }).catch(() => null);
     await popup.waitForTimeout(1000);
 
-    // Select substitute by name - PARAMETERIZED
+    // Select substitute by name - PARAMETERIZED.
+    // Matching is normalised (NFKC, case, collapsed whitespace) so a cosmetic difference
+    // does not fail a real person; an ambiguous match is refused rather than guessed,
+    // because picking the first namesake silently designates the wrong colleague.
     const selected = await popup.evaluate(
       (name: string) => {
-        const rows = document.querySelectorAll("tr");
-        for (const row of rows) {
+        const norm = (v: string) =>
+          v.normalize("NFKC").replace(/\s+/g, " ").trim().toLocaleLowerCase();
+        const wanted = norm(name);
+        const matches: { row: Element; label: string }[] = [];
+        document.querySelectorAll("tr").forEach((row) => {
           const cells = row.querySelectorAll("td");
-          if (cells.length >= 4) {
-            const userName = cells[3]?.textContent?.trim() || "";
-            if (userName === name) {
-              const radio = row.querySelector('input[type="radio"]') as HTMLInputElement;
-              if (radio) {
-                radio.click();
-                return { found: true, name: userName };
-              }
-            }
+          if (cells.length < 4) return;
+          const userName = cells[3]?.textContent?.trim() || "";
+          if (userName && norm(userName) === wanted) {
+            matches.push({ row, label: row.textContent?.replace(/\s+/g, " ").trim() || userName });
           }
+        });
+        if (matches.length === 0) return { found: false, ambiguous: false, candidates: [] as string[] };
+        if (matches.length > 1) {
+          return { found: false, ambiguous: true, candidates: matches.map((m) => m.label).slice(0, 10) };
         }
-        return { found: false };
+        const radio = matches[0].row.querySelector('input[type="radio"]') as HTMLInputElement | null;
+        if (!radio) return { found: false, ambiguous: false, candidates: [] as string[] };
+        radio.click();
+        return { found: true, ambiguous: false, candidates: [] as string[] };
       },
       substituteName
     );
+
+    if (selected.ambiguous) {
+      await popup.click('a:has-text("[Close]")').catch(() => {});
+      throw new Error(
+        `SUBSTITUTE_AMBIGUOUS: '${substituteName}' matches ${selected.candidates.length} people ` +
+          `in the groupware user list. Refusing to guess. Candidates: ${selected.candidates.join(" | ")}`
+      );
+    }
 
     if (selected.found) {
       await popup.click('a:has-text("[Ok]")');
@@ -810,7 +869,10 @@ async function submitLeave(
       );
     }
   } catch (err) {
-    if (err instanceof Error && err.message.startsWith("SUBSTITUTE_NOT_FOUND")) {
+    if (
+      err instanceof Error &&
+      (err.message.startsWith("SUBSTITUTE_NOT_FOUND") || err.message.startsWith("SUBSTITUTE_AMBIGUOUS"))
+    ) {
       throw err;
     }
     const detail = err instanceof Error ? err.message : String(err);
@@ -1386,16 +1448,25 @@ async function submitCardExpense(
     ov_place: venue,
   });
 
-  // Set totals via evaluate (uses getElementsByName — not in generic schema)
+  // total_amt is a form-computed (readonly) field; write it, then hold it to the line items.
   await frame.evaluate(
     (args: { total: string; ral: string }) => {
       const totalEl = document.getElementsByName("total_amt")[0] as HTMLInputElement;
-      if (totalEl) totalEl.value = args.total;
+      if (totalEl) {
+        totalEl.value = args.total;
+        totalEl.dispatchEvent(new Event("input", { bubbles: true }));
+        totalEl.dispatchEvent(new Event("change", { bubbles: true }));
+      }
       const ralEl = document.querySelector('input[name="item_amount_ral[]"]') as HTMLInputElement;
-      if (ralEl) ralEl.value = args.ral;
+      if (ralEl) {
+        ralEl.value = args.ral;
+        ralEl.dispatchEvent(new Event("input", { bubbles: true }));
+        ralEl.dispatchEvent(new Event("change", { bubbles: true }));
+      }
     },
     { total: String(amount), ral: String(amount) }
   );
+  await assertTotalMatchesItems(frame);
 
   // Handle attachment
   if (params.attachment_path) {
