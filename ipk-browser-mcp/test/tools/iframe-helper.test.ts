@@ -56,13 +56,13 @@ describe("setFieldValue", () => {
     expect(callArgs[1]).toEqual({ sel: 'input[name="field"]', val: "" });
   });
 
-  it("throws rather than writing to a disabled control", async () => {
+  it("throws rather than writing to a disabled input", async () => {
     // A disabled control is omitted from the submitted payload, so a value written to it
     // would appear on screen and never reach the server.
     const frame = createMockFrame({
       evaluate: vi.fn().mockResolvedValue("disabled"),
     });
-    await expect(setFieldValue(frame, 'select[name="food_ex_cnt"]', "3")).rejects.toThrow(
+    await expect(setFieldValue(frame, 'input[name="whatever"]', "3")).rejects.toThrow(
       /FIELD_DISABLED/
     );
   });
@@ -74,7 +74,7 @@ describe("setSelectValue", () => {
   it("returns true when select element exists", async () => {
     const frame = createMockFrame({
       waitForSelector: vi.fn().mockResolvedValue({}), // element found
-      evaluate: vi.fn().mockResolvedValue(true),
+      evaluate: vi.fn().mockResolvedValue("ok"),
     });
     const result = await setSelectValue(frame, 'select[name="budget_type"]', "01");
     expect(result).toBe(true);
@@ -88,8 +88,20 @@ describe("setSelectValue", () => {
     expect(result).toBe(false);
   });
 
+  it("throws rather than writing to a disabled select", async () => {
+    // food_ex_cnt on the travel form ships disabled; writing it would show a value the
+    // server never receives.
+    const frame = createMockFrame({
+      waitForSelector: vi.fn().mockResolvedValue({}),
+      evaluate: vi.fn().mockResolvedValue("disabled"),
+    });
+    await expect(setSelectValue(frame, 'select[name="food_ex_cnt"]', "3")).rejects.toThrow(
+      /FIELD_DISABLED/
+    );
+  });
+
   it("dispatches change event via evaluate", async () => {
-    const evaluateFn = vi.fn().mockResolvedValue(true);
+    const evaluateFn = vi.fn().mockResolvedValue("ok");
     const frame = createMockFrame({
       waitForSelector: vi.fn().mockResolvedValue({}),
       evaluate: evaluateFn,
@@ -113,7 +125,7 @@ describe("executeAjaxCascade", () => {
   it("completes all steps in sequence", async () => {
     const frame = createMockFrame({
       waitForSelector: vi.fn().mockResolvedValue({}),
-      evaluate: vi.fn().mockResolvedValue(true),
+      evaluate: vi.fn().mockResolvedValue("ok"),
     });
 
     const steps: CascadeStep[] = [
@@ -139,7 +151,7 @@ describe("executeAjaxCascade", () => {
         }
         return {};
       }),
-      evaluate: vi.fn().mockResolvedValue(true),
+      evaluate: vi.fn().mockResolvedValue("ok"),
     });
 
     const steps: CascadeStep[] = [
@@ -160,7 +172,7 @@ describe("executeAjaxCascade", () => {
         }
         return {}; // setSelectValue's waitForSelector succeeds
       }),
-      evaluate: vi.fn().mockResolvedValue(true),
+      evaluate: vi.fn().mockResolvedValue("ok"),
     });
 
     const steps: CascadeStep[] = [
@@ -198,7 +210,7 @@ describe("executeAjaxCascade", () => {
   it("handles selector not found for a step", async () => {
     const frame = createMockFrame({
       waitForSelector: vi.fn().mockResolvedValue(null), // setSelectValue sees null → returns false
-      evaluate: vi.fn().mockResolvedValue(true),
+      evaluate: vi.fn().mockResolvedValue("ok"),
     });
 
     const steps: CascadeStep[] = [
