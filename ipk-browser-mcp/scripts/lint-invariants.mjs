@@ -24,24 +24,29 @@ const RULES = [
   {
     name: "no-readonly-bypass",
     why: "readOnly marks a field the form computes or validates. Clearing it writes values the form never agreed to.",
-    find: /\.readOnly\s*=\s*false/g,
+    // covers el.readOnly=false, el["readOnly"]=false, removeAttribute('readonly'),
+    // toggleAttribute('readonly', false) and Object.assign(el, { readOnly: false }).
+    find: /\.readOnly\s*=\s*false|\[\s*["'`]readOnly["'`]\s*\]\s*=\s*false|removeAttribute\(\s*["'`]readonly["'`]|toggleAttribute\(\s*["'`]readonly["'`]\s*,\s*false|readOnly\s*:\s*false/gi,
   },
   {
     name: "no-disabled-bypass",
-    why: "Same as readOnly: re-enabling a disabled control submits a value the form withheld.",
-    find: /\.disabled\s*=\s*false/g,
+    why: "A disabled control is omitted from the submitted payload; re-enabling one submits a value the form withheld.",
+    find: /\.disabled\s*=\s*false|\[\s*["'`]disabled["'`]\s*\]\s*=\s*false|removeAttribute\(\s*["'`]disabled["'`]|toggleAttribute\(\s*["'`]disabled["'`]\s*,\s*false|disabled\s*:\s*false/gi,
   },
   {
     name: "no-option-list-rewrite",
-    why: "Wiping a <select>'s options lets an arbitrary value reach an approval document. Use selectExistingOption().",
-    find: /(select|El|Element)\w*\.(textContent|innerHTML)\s*=\s*["'`]{2}/gi,
+    why: "Emptying a <select> lets an arbitrary value reach an approval document. Use selectExistingOption().",
+    // textContent/innerHTML = "" on any identifier, replaceChildren(), options.length = 0
+    find: /\w+\.(textContent|innerHTML)\s*=\s*(["'`]{2}|null)|\.replaceChildren\(\s*\)|\.options\.length\s*=\s*0/g,
   },
   {
     name: "no-option-fabrication",
-    why: "createElement('option') builds a choice the server never offered. Use selectExistingOption().",
-    find: /createElement\(\s*["'`]option["'`]\s*\)/g,
+    why: "Building a choice the server never offered. Use selectExistingOption().",
+    // createElement('option') in any case, new Option(...), select.add(...)
+    find: /createElement\(\s*["'`]option["'`]\s*\)|new\s+Option\s*\(|\.add\(\s*new\s+Option/gi,
   },
 ];
+
 
 let failures = 0;
 
@@ -59,8 +64,9 @@ for (const rule of RULES) {
 // setInputFiles must be funnelled through the two audited helpers, so that
 // validateAttachmentPath cannot be bypassed by a new upload site.
 const UPLOAD_ALLOWLIST = new Set(["src/tools/ipk-submit.ts", "src/internal/primitives/attachment.ts"]);
+const UPLOAD_CALL = /setInputFiles\s*\(|\[\s*["'`]setInputFiles["'`]\s*\]\s*\(/g;
 for (const file of files) {
-  const hits = [...file.text.matchAll(/\.setInputFiles\(/g)];
+  const hits = [...file.text.matchAll(UPLOAD_CALL)];
   if (hits.length === 0) continue;
   const r = rel(file.path);
   if (!UPLOAD_ALLOWLIST.has(r)) {
@@ -72,17 +78,20 @@ for (const file of files) {
   }
 }
 
-// Form-type branching must stay out of ipk-submit.ts (DR-006 Phase 4: schema-driven, not
-// per-form if/else). Previously an npm-script grep whose `grep -c ... || echo 0` printed
-// "0\n0" on a clean tree, so the gate reported FAIL precisely when it should have passed.
+// The one call inside ipk-submit.ts must live in attachFile(), the function that validates.
 {
-  const target = files.find((f) => rel(f.path) === "src/tools/ipk-submit.ts");
-  const branchRe = /form_type\s*[=!]==|formType\s*[=!]==|switch\s*\([^)]*form_?[Tt]ype/g;
-  const hits = target ? [...target.text.matchAll(branchRe)] : [];
-  for (const m of hits) {
-    const line = target.text.slice(0, m.index).split("\n").length;
-    console.error(`FAIL no-form-type-branches: src/tools/ipk-submit.ts:${line}  ${m[0].trim()}`);
-    failures++;
+  const submit = files.find((f) => rel(f.path) === "src/tools/ipk-submit.ts");
+  if (submit) {
+    const fnStart = submit.text.indexOf("async function attachFile(");
+    const callAt = submit.text.search(UPLOAD_CALL);
+    const fnEnd = fnStart >= 0 ? submit.text.indexOf("\n}", fnStart) : -1;
+    if (fnStart < 0 || callAt < fnStart || callAt > fnEnd) {
+      console.error("FAIL upload-inside-attachFile: setInputFiles is not inside attachFile() in src/tools/ipk-submit.ts.");
+      failures++;
+    } else if (!submit.text.slice(fnStart, callAt).includes("validateAttachmentPath(")) {
+      console.error("FAIL upload-inside-attachFile: attachFile() uploads without calling validateAttachmentPath() first.");
+      failures++;
+    }
   }
 }
 
@@ -90,4 +99,4 @@ if (failures > 0) {
   console.error(`\n${failures} safety invariant violation(s).`);
   process.exit(1);
 }
-console.log(`PASS: ${RULES.length + 2} safety invariants hold across ${files.length} files.`);
+console.log(`PASS: ${RULES.length + 4} safety invariants hold across ${files.length} files.`);
