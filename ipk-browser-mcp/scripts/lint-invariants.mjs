@@ -78,6 +78,17 @@ for (const file of files) {
   }
 }
 
+// Every file allowed to call setInputFiles must validate the path first.
+{
+  const prim = files.find((f) => rel(f.path) === "src/internal/primitives/attachment.ts");
+  if (prim && !prim.text.includes("validateAttachmentPath(")) {
+    console.error(
+      "FAIL upload-validated: src/internal/primitives/attachment.ts uploads without validateAttachmentPath()."
+    );
+    failures++;
+  }
+}
+
 // The one call inside ipk-submit.ts must live in attachFile(), the function that validates.
 {
   const submit = files.find((f) => rel(f.path) === "src/tools/ipk-submit.ts");
@@ -95,8 +106,22 @@ for (const file of files) {
   }
 }
 
+// Form-type branching must stay out of ipk-submit.ts (DR-006 Phase 4: schema-driven, not
+// per-form if/else). This rule previously lived in an npm script whose
+// `grep -c ... || echo 0` emitted "0\n0" on a clean tree, so the gate reported FAIL
+// exactly when it should have passed.
+{
+  const target = files.find((f) => rel(f.path) === "src/tools/ipk-submit.ts");
+  const branchRe = /form_type\s*[=!]==|formType\s*[=!]==|switch\s*\([^)]*form_?[Tt]ype/g;
+  for (const m of target ? [...target.text.matchAll(branchRe)] : []) {
+    const line = target.text.slice(0, m.index).split("\n").length;
+    console.error(`FAIL no-form-type-branches: src/tools/ipk-submit.ts:${line}  ${m[0].trim()}`);
+    failures++;
+  }
+}
+
 if (failures > 0) {
   console.error(`\n${failures} safety invariant violation(s).`);
   process.exit(1);
 }
-console.log(`PASS: ${RULES.length + 4} safety invariants hold across ${files.length} files.`);
+console.log(`PASS: ${RULES.length + 6} safety invariants hold across ${files.length} files.`);

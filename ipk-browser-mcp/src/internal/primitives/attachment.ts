@@ -1,4 +1,5 @@
 import * as fs from "fs";
+import { validateAttachmentPath } from "../../security/attachment-path.js";
 import type { FrameLike } from "../../types.js";
 
 /**
@@ -43,9 +44,15 @@ export async function attachFiles(
 ): Promise<AttachResult> {
   const result: AttachResult = { attached: 0, skipped: [] };
 
-  // Pre-filter missing files
+  // Pre-filter: every path must pass the upload allowlist here, not only at the call
+  // sites. A future caller that forgets would otherwise upload an arbitrary local file.
   const valid: string[] = [];
   for (const p of filePaths) {
+    const pathErr = validateAttachmentPath(p);
+    if (pathErr) {
+      result.skipped.push({ path: p, reason: pathErr });
+      continue;
+    }
     if (!fs.existsSync(p)) {
       result.skipped.push({ path: p, reason: "file not found on local fs" });
     } else {

@@ -148,18 +148,25 @@ export async function setSelectValue(
   const el = await frame.waitForSelector(selector, { timeout: 5000 }).catch(() => null);
   if (!el) return false;
 
-  return frame.evaluate(
+  const outcome = await frame.evaluate(
     (args: { sel: string; val: string }) => {
       const el = document.querySelector(args.sel) as HTMLSelectElement | null;
-      if (el) {
-        el.value = args.val;
-        el.dispatchEvent(new Event("change", { bubbles: true }));
-        return true;
-      }
-      return false;
+      if (!el) return "not_found" as const;
+      if (el.disabled) return "disabled" as const;
+      el.value = args.val;
+      el.dispatchEvent(new Event("change", { bubbles: true }));
+      return "ok" as const;
     },
     { sel: selector, val: value }
   );
+
+  if (outcome === "disabled") {
+    throw new Error(
+      `FIELD_DISABLED: '${selector}' is disabled; the browser would not submit a value ` +
+        `written to it. Enable it through the form's own controls instead.`
+    );
+  }
+  return outcome === "ok";
 }
 
 /**
