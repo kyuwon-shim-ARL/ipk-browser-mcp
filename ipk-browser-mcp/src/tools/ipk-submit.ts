@@ -289,6 +289,89 @@ function validateAttachmentPath(filePath: string): string | null {
   return null;
 }
 
+/**
+ * The ONLY place allowed to call setInputFiles.
+ * Every upload path must go through here so validateAttachmentPath can never be bypassed.
+ * Enforced by `npm run lint:attachments`.
+ */
+async function attachFile(frame: any, filePath: string): Promise<void> {
+  const err = validateAttachmentPath(filePath);
+  if (err) {
+    throw new Error(`INVALID_ATTACHMENT: ${err}`);
+  }
+  const fileInput = frame.locator('input[name="doc_attach_file[]"]').first();
+  await fileInput.setInputFiles(filePath);
+}
+
+/**
+ * Select a value in a <select> only if the form already offers it.
+ * Throws with the allowed options otherwise. Never creates, removes or rewrites options -
+ * a value the form never offered is a value the server never agreed to accept.
+ */
+async function selectExistingOption(
+  frame: any,
+  selector: string,
+  value: string,
+  fieldName: string
+): Promise<void> {
+  const outcome = await frame.evaluate(
+    (args: { selector: string; value: string }) => {
+      const el = document.querySelector(args.selector) as HTMLSelectElement | null;
+      if (!el) return { status: "no_element" as const, options: [] as string[] };
+      const options = Array.from(el.options).map((o) => o.value);
+      if (!options.includes(args.value)) {
+        return { status: "no_option" as const, options };
+      }
+      el.value = args.value;
+      el.dispatchEvent(new Event("change", { bubbles: true }));
+      return { status: "ok" as const, options };
+    },
+    { selector, value }
+  );
+
+  if (outcome.status === "no_element") {
+    throw new Error(`FIELD_NOT_FOUND: Required field '${fieldName}' not found (selector: ${selector})`);
+  }
+  if (outcome.status === "no_option") {
+    throw new Error(
+      `INVALID_OPTION: '${value}' is not an option the form offers for '${fieldName}'. ` +
+        `Allowed: ${outcome.options.join(", ") || "(none)"}`
+    );
+  }
+}
+
+/**
+ * Runtime invariant: the total field must equal the sum of the line-item amounts.
+ * Catches the case where a total is written directly and the form's own arithmetic
+ * (or a later recompute) disagrees with it.
+ */
+async function assertTotalMatchesItems(frame: any): Promise<void> {
+  const check = await frame.evaluate(() => {
+    const num = (v: string | null | undefined) => Number(String(v ?? "").replace(/[^0-9.-]/g, "")) || 0;
+    const totalEl = document.getElementsByName("total_amt")[0] as HTMLInputElement | undefined;
+    if (!totalEl) return null;
+    const items = Array.from(
+      document.querySelectorAll('input[name="item_amount[]"]')
+    ) as HTMLInputElement[];
+    if (items.length === 0) return null;
+    const sum = items.reduce((acc, el) => acc + num(el.value), 0);
+    const vats = Array.from(
+      document.querySelectorAll('input[name="item_amount_vat[]"]')
+    ) as HTMLInputElement[];
+    const vatSum = vats.reduce((acc, el) => acc + num(el.value), 0);
+    return { total: num(totalEl.value), sum, vatSum };
+  });
+
+  if (!check) return; // form has no comparable line items - nothing to assert
+  const withVat = check.sum + check.vatSum;
+  if (check.total !== check.sum && check.total !== withVat) {
+    throw new Error(
+      `TOTAL_MISMATCH: total_amt=${check.total} but line items sum to ${check.sum} ` +
+        `(${withVat} incl. VAT). Refusing to submit a document that disagrees with itself.`
+    );
+  }
+}
+
 export const ipkSubmitFormSchema = {
   form_type: z.enum([
     "leave", "expense", "working", "travel", "travel_request", "budget_transfer",
@@ -491,7 +574,14 @@ export async function handleIpkSubmitForm(
   params: Record<string, any>
 ) {
   if (!sessionManager.isLoggedIn()) {
-    return textResult({ error: true, code: "NOT_LOGGED_IN", message: "Call ipk_login first" });
+    return textResult({
+      error: true,
+      code: "NOT_LOGGED_IN",
+      message:
+        sessionManager.getLoginState() === "expired"
+          ? "Browser session expired after 30 minutes idle (the MCP connection is fine). Call ipk_login again."
+          : "Call ipk_login first",
+    });
   }
 
   const page = sessionManager.getPage()!;
@@ -614,7 +704,11 @@ async function submitLeave(
     warnings.push(`${leaveName} requires attachment (${ATTACHMENT_REQUIRED_LEAVES[leaveCode]}). Add it manually after draft save.`);
   }
   if (substituteName === "N/A") {
-    warnings.push("Substitute person not configured. Set IPK_SUBSTITUTE_NAME env var or pass substitute_name parameter.");
+    throw new Error(
+      "SUBSTITUTE_REQUIRED: no substitute person configured. " +
+        "Set IPK_SUBSTITUTE_NAME or pass substitute_name. " +
+        "'N/A' is not a real person and must not reach an approval document."
+    );
   }
 
   // Use genericFillForm for standard fields
@@ -640,47 +734,23 @@ async function submitLeave(
     emergency_telephone: process.env.IPK_EMERGENCY_TELEPHONE || "N/A",
   });
 
-  // Hourly leave: set time dropdowns via evaluate (not in generic schema — custom DOM manipulation)
+  // Hourly leave: pick an existing option in the time dropdowns.
+  // Never rebuild the option list: the server only accepts values the form offered,
+  // and wiping them lets an arbitrary value reach an approval document.
   if (isHourly) {
-    await frame.evaluate(
-      (st: string) => {
-        const startEl = document.querySelector('select[name="start_time[]"]') as HTMLSelectElement;
-        if (startEl && st) {
-          const opt = document.createElement("option");
-          opt.value = st;
-          opt.textContent = st;
-          startEl.textContent = "";
-          startEl.appendChild(opt);
-          startEl.value = st;
-          startEl.dispatchEvent(new Event("change", { bubbles: true }));
-        }
-      },
-      params.start_time
-    );
+    await selectExistingOption(frame, 'select[name="start_time[]"]', String(params.start_time), "start_time");
     await page.waitForTimeout(500);
-
-    await frame.evaluate(
-      (et: string) => {
-        const endEl = document.querySelector('select[name="end_time[]"]') as HTMLSelectElement;
-        if (endEl && et) {
-          const opt = document.createElement("option");
-          opt.value = et;
-          opt.textContent = et;
-          endEl.textContent = "";
-          endEl.appendChild(opt);
-          endEl.value = et;
-          endEl.dispatchEvent(new Event("change", { bubbles: true }));
-        }
-      },
-      params.end_time
-    );
+    await selectExistingOption(frame, 'select[name="end_time[]"]', String(params.end_time), "end_time");
     await page.waitForTimeout(500);
   }
 
   // Set subject last to avoid being overwritten by change events
   await setRequiredField(frame, 'input[name="subject"]', subject, "subject");
 
-  // Handle substitute selection via popup
+  // Handle substitute selection via popup.
+  // The popup is the only source of a *real* substitute identity (payroll no, position,
+  // contact). There is deliberately no fallback that types those fields directly:
+  // fabricated identity data in an approval document cannot be retracted once approved.
   try {
     const [popup] = await Promise.all([
       page.waitForEvent("popup", { timeout: 10000 }),
@@ -719,19 +789,40 @@ async function submitLeave(
       await popup.click('a:has-text("[Ok]")');
       await page.waitForTimeout(1000);
     } else {
-      await popup.click('a:has-text("[Close]")');
-      // Fallback: directly set substitute fields
-      await setFallbackSubstitute(frame, substituteName);
+      const available = await popup
+        .evaluate(() => {
+          const names: string[] = [];
+          document.querySelectorAll("tr").forEach((row) => {
+            const cells = row.querySelectorAll("td");
+            if (cells.length >= 4) {
+              const n = cells[3]?.textContent?.trim();
+              if (n) names.push(n);
+            }
+          });
+          return names;
+        })
+        .catch(() => [] as string[]);
+      await popup.click('a:has-text("[Close]")').catch(() => {});
+      throw new Error(
+        `SUBSTITUTE_NOT_FOUND: '${substituteName}' is not in the groupware user list. ` +
+          `Pass substitute_name exactly as it appears there. ` +
+          `Available: ${available.slice(0, 40).join(", ") || "(could not read list)"}`
+      );
     }
-  } catch {
-    // Fallback: directly set substitute fields
-    await setFallbackSubstitute(frame, substituteName);
+  } catch (err) {
+    if (err instanceof Error && err.message.startsWith("SUBSTITUTE_NOT_FOUND")) {
+      throw err;
+    }
+    const detail = err instanceof Error ? err.message : String(err);
+    throw new Error(
+      `SUBSTITUTE_POPUP_FAILED: could not open or read the substitute picker (${detail}). ` +
+        `Refusing to type substitute fields directly - payroll/position/contact would be fabricated.`
+    );
   }
 
   // Handle attachment if provided
   if (params.attachment_path) {
-    const fileInput = frame.locator('input[name="doc_attach_file[]"]').first();
-    await fileInput.setInputFiles(params.attachment_path);
+    await attachFile(frame, params.attachment_path);
     await page.waitForTimeout(1000);
   }
 
@@ -823,21 +914,31 @@ async function submitExpense(
     ov_purpose: purpose,
   });
 
-  // Set totals via evaluate (uses getElementsByName — not in generic schema)
+  // Set totals, then verify the written total against the sum of the line items.
+  // The form may or may not recompute this field; either way a total that disagrees
+  // with its own line items must not be submitted.
   await frame.evaluate(
     (args: { total: string; ral: string }) => {
       const totalEl = document.getElementsByName("total_amt")[0] as HTMLInputElement;
-      if (totalEl) totalEl.value = args.total;
+      if (totalEl) {
+        totalEl.value = args.total;
+        totalEl.dispatchEvent(new Event("input", { bubbles: true }));
+        totalEl.dispatchEvent(new Event("change", { bubbles: true }));
+      }
       const ralEl = document.querySelector('input[name="item_amount_ral[]"]') as HTMLInputElement;
-      if (ralEl) ralEl.value = args.ral;
+      if (ralEl) {
+        ralEl.value = args.ral;
+        ralEl.dispatchEvent(new Event("input", { bubbles: true }));
+        ralEl.dispatchEvent(new Event("change", { bubbles: true }));
+      }
     },
     { total: String(amount), ral: String(amount) }
   );
+  await assertTotalMatchesItems(frame);
 
   // Handle attachment if provided
   if (params.attachment_path) {
-    const fileInput = frame.locator('input[name="doc_attach_file[]"]').first();
-    await fileInput.setInputFiles(params.attachment_path);
+    await attachFile(frame, params.attachment_path);
     await page.waitForTimeout(1000);
   }
 
@@ -999,8 +1100,7 @@ async function submitTravel(
 
   // Handle attachment if provided
   if (params.attachment_path) {
-    const fileInput = frame.locator('input[name="doc_attach_file[]"]').first();
-    await fileInput.setInputFiles(params.attachment_path);
+    await attachFile(frame, params.attachment_path);
     await page.waitForTimeout(1000);
   }
 
@@ -1082,8 +1182,7 @@ async function submitTravelRequest(
 
   // Handle attachment if provided
   if (params.attachment_path) {
-    const fileInput = frame.locator('input[name="doc_attach_file[]"]').first();
-    await fileInput.setInputFiles(params.attachment_path);
+    await attachFile(frame, params.attachment_path);
     await page.waitForTimeout(1000);
   }
 
@@ -1183,8 +1282,7 @@ async function submitBudgetTransfer(
 
   // Handle attachment if provided
   if (params.attachment_path) {
-    const fileInput = frame.locator('input[name="doc_attach_file[]"]').first();
-    await fileInput.setInputFiles(params.attachment_path);
+    await attachFile(frame, params.attachment_path);
     await page.waitForTimeout(1000);
   }
 
@@ -1301,8 +1399,7 @@ async function submitCardExpense(
 
   // Handle attachment
   if (params.attachment_path) {
-    const fileInput = frame.locator('input[name="doc_attach_file[]"]').first();
-    await fileInput.setInputFiles(params.attachment_path);
+    await attachFile(frame, params.attachment_path);
     await page.waitForTimeout(1000);
   }
 
@@ -1480,6 +1577,14 @@ async function submitCardExpenseRD(
       code: "ATTACHMENT_REQUIRED",
       message: "card_expense_rd requires at least one attachment_path or attachment_paths[]. The form alerts 'Please attach at least one file.' on submit.",
     });
+  }
+  // Validate every path before any upload. attachmentHelper.attachFiles only checks
+  // existence, so the allowlist must be enforced here or attachment_paths[] bypasses it.
+  for (const fp of filePaths) {
+    const pathErr = validateAttachmentPath(fp);
+    if (pathErr) {
+      return textResult({ error: true, code: "INVALID_ATTACHMENT", message: `${fp}: ${pathErr}` });
+    }
   }
   // Set file_attach_cnt = N then upload N files into doc_attach_file[]
   const attachResult = await attachmentHelper.attachFiles(frame, filePaths);
@@ -1717,8 +1822,7 @@ async function submitTravelSettlement(
 
   // Step 6: Handle attachment
   if (params.attachment_path) {
-    const fileInput = frame.locator('input[name="doc_attach_file[]"]').first();
-    await fileInput.setInputFiles(params.attachment_path);
+    await attachFile(frame, params.attachment_path);
     await page.waitForTimeout(1000);
   }
 
@@ -1944,8 +2048,7 @@ async function submitSeminar(
 
   // Handle attachment
   if (params.attachment_path) {
-    const fileInput = frame.locator('input[name="doc_attach_file[]"]').first();
-    await fileInput.setInputFiles(params.attachment_path);
+    await attachFile(frame, params.attachment_path);
     await page.waitForTimeout(1000);
   }
 
@@ -2128,8 +2231,7 @@ async function submitOverseasTravel(
 
   // Handle attachment
   if (params.attachment_path) {
-    const fileInput = frame.locator('input[name="doc_attach_file[]"]').first();
-    await fileInput.setInputFiles(params.attachment_path);
+    await attachFile(frame, params.attachment_path);
     await page.waitForTimeout(1000);
   }
 
@@ -2184,8 +2286,7 @@ async function submitGeneric(
     if (validationError) {
       return textResult({ error: true, code: "INVALID_ATTACHMENT", message: validationError });
     }
-    const fileInput = frame.locator('input[name="doc_attach_file[]"]').first();
-    await fileInput.setInputFiles(params.attachment_path);
+    await attachFile(frame, params.attachment_path);
     await page.waitForTimeout(1000);
   }
 
@@ -2206,34 +2307,6 @@ async function submitGeneric(
       note: "Filled via generic template handler. Verify form completeness via screenshot.",
     },
   });
-}
-
-/** Set substitute fields directly (fallback when popup fails) */
-async function setFallbackSubstitute(frame: any, name: string): Promise<void> {
-  // Use parameterized evaluate to set readonly fields
-  await frame.evaluate(
-    (args: { name: string; payroll: string; position: string; contact: string }) => {
-      const fields: [string, string][] = [
-        ["substitute_name", args.name],
-        ["substitute_payroll", args.payroll],
-        ["substitute_position", args.position],
-        ["substitute_contact", args.contact],
-      ];
-      for (const [fieldName, value] of fields) {
-        const el = document.querySelector(`input[name="${fieldName}"]`) as HTMLInputElement;
-        if (el) {
-          el.readOnly = false;
-          el.value = value;
-        }
-      }
-    },
-    {
-      name,
-      payroll: process.env.IPK_SUBSTITUTE_PAYROLL || "N/A",
-      position: process.env.IPK_SUBSTITUTE_POSITION || "Researcher",
-      contact: process.env.IPK_SUBSTITUTE_CONTACT || "N/A",
-    }
-  );
 }
 
 function todayStr(): string {

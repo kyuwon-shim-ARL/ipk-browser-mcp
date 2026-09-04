@@ -21257,7 +21257,9 @@ function loadConfig() {
     username: env("IPK_USERNAME"),
     password: env("IPK_PASSWORD"),
     headless: env("BROWSER_HEADLESS") !== "false",
-    screenshotDir: env("SCREENSHOT_DIR", "/tmp/ipk-mcp-screenshots"),
+    // Per-user path, not a fixed /tmp name: screenshots contain groupware content, and a
+    // shared host would otherwise let one user read another's (and pre-create the dir).
+    screenshotDir: env("SCREENSHOT_DIR", `${process.env.HOME}/.cache/ipk-mcp/screenshots`),
     screenshotTtlMinutes: parseInt(env("SCREENSHOT_TTL_MINUTES", "60"), 10),
     navTimeoutMs: parseInt(env("NAV_TIMEOUT_MS", "30000"), 10),
     storageStateDir: env("STORAGE_STATE_DIR", `${process.env.HOME}/.config/ipk-mcp/profiles`)
@@ -21268,14 +21270,38 @@ function loadConfig() {
 import { chromium } from "playwright";
 import * as fs from "fs";
 import * as path from "path";
+async function hasAuthMarker(page) {
+  try {
+    return await page.evaluate(() => {
+      const frames = [document, ...Array.from(document.querySelectorAll("frame, iframe")).map((f) => {
+        try {
+          return f.contentDocument;
+        } catch {
+          return null;
+        }
+      }).filter((d) => !!d)];
+      for (const doc of frames) {
+        if (doc.querySelector('input[type="password"], input[name="Password"]')) continue;
+        const text = doc.body?.innerText || "";
+        if (/Welcome,|Logout|로그아웃/i.test(text)) return true;
+        if (doc.querySelector('a[href*="logout"], a[href*="Logout"]')) return true;
+      }
+      return false;
+    });
+  } catch {
+    return false;
+  }
+}
 var SessionManager = class _SessionManager {
   static SESSION_TTL_MS = 30 * 60 * 1e3;
   // 30 minutes
+  static SHUTDOWN_TIMEOUT_MS = 3e3;
   browser = null;
   session = null;
   config;
   shutdownRegistered = false;
   loginInProgress = false;
+  shuttingDown = false;
   constructor(config3) {
     this.config = config3;
     this.registerShutdown();
@@ -21284,8 +21310,16 @@ var SessionManager = class _SessionManager {
     if (this.shutdownRegistered) return;
     this.shutdownRegistered = true;
     const cleanup = async () => {
-      await this.destroy();
-      process.exit(0);
+      if (this.shuttingDown) return;
+      this.shuttingDown = true;
+      const timedOut = /* @__PURE__ */ Symbol("timeout");
+      const result = await Promise.race([
+        this.destroy().then(() => "ok"),
+        new Promise(
+          (resolve3) => setTimeout(() => resolve3(timedOut), _SessionManager.SHUTDOWN_TIMEOUT_MS).unref()
+        )
+      ]);
+      process.exit(result === timedOut ? 1 : 0);
     };
     process.on("SIGTERM", cleanup);
     process.on("SIGINT", cleanup);
@@ -21352,7 +21386,7 @@ var SessionManager = class _SessionManager {
           await page.waitForTimeout(1e3);
         }
       }
-      const loggedIn = page.url().includes("main.php");
+      const loggedIn = page.url().includes("main.php") && await hasAuthMarker(page);
       if (!loggedIn) {
         await context.close();
         return makeError("LOGIN_FAILED", "Login failed - check credentials");
@@ -21401,6 +21435,15 @@ var SessionManager = class _SessionManager {
     const page = this.getPage();
     if (!page) return null;
     return page.frame("main_menu");
+  }
+  /**
+   * Distinguishes "never logged in" from "session expired" so tools can tell the caller
+   * which one happened. A 30-minute idle expiry otherwise reads as a dropped connection.
+   */
+  getLoginState() {
+    if (!this.session?.loggedIn) return "none";
+    if (Date.now() - this.session.lastActivity > _SessionManager.SESSION_TTL_MS) return "expired";
+    return "active";
   }
   isLoggedIn() {
     if (!this.session?.loggedIn) return false;
@@ -21827,6 +21870,62 @@ function validateAttachmentPath(filePath) {
   }
   return null;
 }
+async function attachFile(frame, filePath) {
+  const err = validateAttachmentPath(filePath);
+  if (err) {
+    throw new Error(`INVALID_ATTACHMENT: ${err}`);
+  }
+  const fileInput = frame.locator('input[name="doc_attach_file[]"]').first();
+  await fileInput.setInputFiles(filePath);
+}
+async function selectExistingOption(frame, selector, value, fieldName) {
+  const outcome = await frame.evaluate(
+    (args) => {
+      const el = document.querySelector(args.selector);
+      if (!el) return { status: "no_element", options: [] };
+      const options = Array.from(el.options).map((o) => o.value);
+      if (!options.includes(args.value)) {
+        return { status: "no_option", options };
+      }
+      el.value = args.value;
+      el.dispatchEvent(new Event("change", { bubbles: true }));
+      return { status: "ok", options };
+    },
+    { selector, value }
+  );
+  if (outcome.status === "no_element") {
+    throw new Error(`FIELD_NOT_FOUND: Required field '${fieldName}' not found (selector: ${selector})`);
+  }
+  if (outcome.status === "no_option") {
+    throw new Error(
+      `INVALID_OPTION: '${value}' is not an option the form offers for '${fieldName}'. Allowed: ${outcome.options.join(", ") || "(none)"}`
+    );
+  }
+}
+async function assertTotalMatchesItems(frame) {
+  const check2 = await frame.evaluate(() => {
+    const num = (v) => Number(String(v ?? "").replace(/[^0-9.-]/g, "")) || 0;
+    const totalEl = document.getElementsByName("total_amt")[0];
+    if (!totalEl) return null;
+    const items = Array.from(
+      document.querySelectorAll('input[name="item_amount[]"]')
+    );
+    if (items.length === 0) return null;
+    const sum = items.reduce((acc, el) => acc + num(el.value), 0);
+    const vats = Array.from(
+      document.querySelectorAll('input[name="item_amount_vat[]"]')
+    );
+    const vatSum = vats.reduce((acc, el) => acc + num(el.value), 0);
+    return { total: num(totalEl.value), sum, vatSum };
+  });
+  if (!check2) return;
+  const withVat = check2.sum + check2.vatSum;
+  if (check2.total !== check2.sum && check2.total !== withVat) {
+    throw new Error(
+      `TOTAL_MISMATCH: total_amt=${check2.total} but line items sum to ${check2.sum} (${withVat} incl. VAT). Refusing to submit a document that disagrees with itself.`
+    );
+  }
+}
 var ipkSubmitFormSchema = {
   form_type: external_exports.enum([
     "leave",
@@ -21977,7 +22076,11 @@ var FORM_HANDLERS = {
 };
 async function handleIpkSubmitForm(sessionManager2, config3, params) {
   if (!sessionManager2.isLoggedIn()) {
-    return textResult({ error: true, code: "NOT_LOGGED_IN", message: "Call ipk_login first" });
+    return textResult({
+      error: true,
+      code: "NOT_LOGGED_IN",
+      message: sessionManager2.getLoginState() === "expired" ? "Browser session expired after 30 minutes idle (the MCP connection is fine). Call ipk_login again." : "Call ipk_login first"
+    });
   }
   const page = sessionManager2.getPage();
   const formType = params.form_type;
@@ -22069,7 +22172,9 @@ async function submitLeave(page, frame, sessionManager2, config3, params, mode) 
     warnings.push(`${leaveName} requires attachment (${ATTACHMENT_REQUIRED_LEAVES[leaveCode]}). Add it manually after draft save.`);
   }
   if (substituteName === "N/A") {
-    warnings.push("Substitute person not configured. Set IPK_SUBSTITUTE_NAME env var or pass substitute_name parameter.");
+    throw new Error(
+      "SUBSTITUTE_REQUIRED: no substitute person configured. Set IPK_SUBSTITUTE_NAME or pass substitute_name. 'N/A' is not a real person and must not reach an approval document."
+    );
   }
   const fieldSchema = {
     leave_kind: { type: "select", dom_name: "leave_kind[]", required: true },
@@ -22092,37 +22197,9 @@ async function submitLeave(page, frame, sessionManager2, config3, params, mode) 
     emergency_telephone: process.env.IPK_EMERGENCY_TELEPHONE || "N/A"
   });
   if (isHourly) {
-    await frame.evaluate(
-      (st) => {
-        const startEl = document.querySelector('select[name="start_time[]"]');
-        if (startEl && st) {
-          const opt = document.createElement("option");
-          opt.value = st;
-          opt.textContent = st;
-          startEl.textContent = "";
-          startEl.appendChild(opt);
-          startEl.value = st;
-          startEl.dispatchEvent(new Event("change", { bubbles: true }));
-        }
-      },
-      params.start_time
-    );
+    await selectExistingOption(frame, 'select[name="start_time[]"]', String(params.start_time), "start_time");
     await page.waitForTimeout(500);
-    await frame.evaluate(
-      (et) => {
-        const endEl = document.querySelector('select[name="end_time[]"]');
-        if (endEl && et) {
-          const opt = document.createElement("option");
-          opt.value = et;
-          opt.textContent = et;
-          endEl.textContent = "";
-          endEl.appendChild(opt);
-          endEl.value = et;
-          endEl.dispatchEvent(new Event("change", { bubbles: true }));
-        }
-      },
-      params.end_time
-    );
+    await selectExistingOption(frame, 'select[name="end_time[]"]', String(params.end_time), "end_time");
     await page.waitForTimeout(500);
   }
   await setRequiredField(frame, 'input[name="subject"]', subject, "subject");
@@ -22160,15 +22237,34 @@ async function submitLeave(page, frame, sessionManager2, config3, params, mode) 
       await popup.click('a:has-text("[Ok]")');
       await page.waitForTimeout(1e3);
     } else {
-      await popup.click('a:has-text("[Close]")');
-      await setFallbackSubstitute(frame, substituteName);
+      const available = await popup.evaluate(() => {
+        const names = [];
+        document.querySelectorAll("tr").forEach((row) => {
+          const cells = row.querySelectorAll("td");
+          if (cells.length >= 4) {
+            const n = cells[3]?.textContent?.trim();
+            if (n) names.push(n);
+          }
+        });
+        return names;
+      }).catch(() => []);
+      await popup.click('a:has-text("[Close]")').catch(() => {
+      });
+      throw new Error(
+        `SUBSTITUTE_NOT_FOUND: '${substituteName}' is not in the groupware user list. Pass substitute_name exactly as it appears there. Available: ${available.slice(0, 40).join(", ") || "(could not read list)"}`
+      );
     }
-  } catch {
-    await setFallbackSubstitute(frame, substituteName);
+  } catch (err) {
+    if (err instanceof Error && err.message.startsWith("SUBSTITUTE_NOT_FOUND")) {
+      throw err;
+    }
+    const detail = err instanceof Error ? err.message : String(err);
+    throw new Error(
+      `SUBSTITUTE_POPUP_FAILED: could not open or read the substitute picker (${detail}). Refusing to type substitute fields directly - payroll/position/contact would be fabricated.`
+    );
   }
   if (params.attachment_path) {
-    const fileInput = frame.locator('input[name="doc_attach_file[]"]').first();
-    await fileInput.setInputFiles(params.attachment_path);
+    await attachFile(frame, params.attachment_path);
     await page.waitForTimeout(1e3);
   }
   await page.waitForTimeout(1e3);
@@ -22242,15 +22338,23 @@ async function submitExpense(page, frame, sessionManager2, config3, params, mode
   await frame.evaluate(
     (args) => {
       const totalEl = document.getElementsByName("total_amt")[0];
-      if (totalEl) totalEl.value = args.total;
+      if (totalEl) {
+        totalEl.value = args.total;
+        totalEl.dispatchEvent(new Event("input", { bubbles: true }));
+        totalEl.dispatchEvent(new Event("change", { bubbles: true }));
+      }
       const ralEl = document.querySelector('input[name="item_amount_ral[]"]');
-      if (ralEl) ralEl.value = args.ral;
+      if (ralEl) {
+        ralEl.value = args.ral;
+        ralEl.dispatchEvent(new Event("input", { bubbles: true }));
+        ralEl.dispatchEvent(new Event("change", { bubbles: true }));
+      }
     },
     { total: String(amount), ral: String(amount) }
   );
+  await assertTotalMatchesItems(frame);
   if (params.attachment_path) {
-    const fileInput = frame.locator('input[name="doc_attach_file[]"]').first();
-    await fileInput.setInputFiles(params.attachment_path);
+    await attachFile(frame, params.attachment_path);
     await page.waitForTimeout(1e3);
   }
   await page.waitForTimeout(1e3);
@@ -22372,8 +22476,7 @@ async function submitTravel(page, frame, sessionManager2, config3, params, mode)
     conclusion_field: params.destination ? `${purpose} at ${destination}` : `Travel for ${purpose}`
   });
   if (params.attachment_path) {
-    const fileInput = frame.locator('input[name="doc_attach_file[]"]').first();
-    await fileInput.setInputFiles(params.attachment_path);
+    await attachFile(frame, params.attachment_path);
     await page.waitForTimeout(1e3);
   }
   await page.waitForTimeout(1e3);
@@ -22433,8 +22536,7 @@ async function submitTravelRequest(page, frame, sessionManager2, config3, params
     discuss_field: params.details || ""
   });
   if (params.attachment_path) {
-    const fileInput = frame.locator('input[name="doc_attach_file[]"]').first();
-    await fileInput.setInputFiles(params.attachment_path);
+    await attachFile(frame, params.attachment_path);
     await page.waitForTimeout(1e3);
   }
   await page.waitForTimeout(1e3);
@@ -22525,8 +22627,7 @@ async function submitCardExpense(page, frame, sessionManager2, config3, params, 
     { total: String(amount), ral: String(amount) }
   );
   if (params.attachment_path) {
-    const fileInput = frame.locator('input[name="doc_attach_file[]"]').first();
-    await fileInput.setInputFiles(params.attachment_path);
+    await attachFile(frame, params.attachment_path);
     await page.waitForTimeout(1e3);
   }
   await page.waitForTimeout(1e3);
@@ -22660,6 +22761,12 @@ async function submitCardExpenseRD(page, frame, _sessionManager, config3, params
       code: "ATTACHMENT_REQUIRED",
       message: "card_expense_rd requires at least one attachment_path or attachment_paths[]. The form alerts 'Please attach at least one file.' on submit."
     });
+  }
+  for (const fp of filePaths) {
+    const pathErr = validateAttachmentPath(fp);
+    if (pathErr) {
+      return textResult({ error: true, code: "INVALID_ATTACHMENT", message: `${fp}: ${pathErr}` });
+    }
   }
   const attachResult = await attachmentHelper.attachFiles(frame, filePaths);
   await page.waitForTimeout(500);
@@ -22841,8 +22948,7 @@ async function submitTravelSettlement(page, frame, sessionManager2, config3, par
     food_fee_total: foodExpense ? String(foodExpense) : ""
   });
   if (params.attachment_path) {
-    const fileInput = frame.locator('input[name="doc_attach_file[]"]').first();
-    await fileInput.setInputFiles(params.attachment_path);
+    await attachFile(frame, params.attachment_path);
     await page.waitForTimeout(1e3);
   }
   await page.waitForTimeout(1e3);
@@ -23029,8 +23135,7 @@ async function submitSeminar(page, frame, sessionManager2, config3, params, mode
   ];
   await genericFillForm(frame, fieldSchema, userData, hooks);
   if (params.attachment_path) {
-    const fileInput = frame.locator('input[name="doc_attach_file[]"]').first();
-    await fileInput.setInputFiles(params.attachment_path);
+    await attachFile(frame, params.attachment_path);
     await page.waitForTimeout(1e3);
   }
   await page.waitForTimeout(1e3);
@@ -23188,8 +23293,7 @@ async function submitOverseasTravel(page, frame, sessionManager2, config3, param
     await page.waitForTimeout(1500);
   }
   if (params.attachment_path) {
-    const fileInput = frame.locator('input[name="doc_attach_file[]"]').first();
-    await fileInput.setInputFiles(params.attachment_path);
+    await attachFile(frame, params.attachment_path);
     await page.waitForTimeout(1e3);
   }
   await page.waitForTimeout(1e3);
@@ -23223,8 +23327,7 @@ async function submitGeneric(page, frame, sessionManager2, config3, params, mode
     if (validationError) {
       return textResult({ error: true, code: "INVALID_ATTACHMENT", message: validationError });
     }
-    const fileInput = frame.locator('input[name="doc_attach_file[]"]').first();
-    await fileInput.setInputFiles(params.attachment_path);
+    await attachFile(frame, params.attachment_path);
     await page.waitForTimeout(1e3);
   }
   await page.waitForTimeout(1e3);
@@ -23241,31 +23344,6 @@ async function submitGeneric(page, frame, sessionManager2, config3, params, mode
       note: "Filled via generic template handler. Verify form completeness via screenshot."
     }
   });
-}
-async function setFallbackSubstitute(frame, name) {
-  await frame.evaluate(
-    (args) => {
-      const fields = [
-        ["substitute_name", args.name],
-        ["substitute_payroll", args.payroll],
-        ["substitute_position", args.position],
-        ["substitute_contact", args.contact]
-      ];
-      for (const [fieldName, value] of fields) {
-        const el = document.querySelector(`input[name="${fieldName}"]`);
-        if (el) {
-          el.readOnly = false;
-          el.value = value;
-        }
-      }
-    },
-    {
-      name,
-      payroll: process.env.IPK_SUBSTITUTE_PAYROLL || "N/A",
-      position: process.env.IPK_SUBSTITUTE_POSITION || "Researcher",
-      contact: process.env.IPK_SUBSTITUTE_CONTACT || "N/A"
-    }
-  );
 }
 function todayStr() {
   return (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
@@ -23346,7 +23424,11 @@ async function fetchByType(sessionManager2, config3, urlType, maxItems) {
 }
 async function handleIpkFetchApprovals(sessionManager2, config3, params) {
   if (!sessionManager2.isLoggedIn()) {
-    return textResult({ error: true, code: "NOT_LOGGED_IN", message: "Call ipk_login first" });
+    return textResult({
+      error: true,
+      code: "NOT_LOGGED_IN",
+      message: sessionManager2.getLoginState() === "expired" ? "Browser session expired after 30 minutes idle (the MCP connection is fine). Call ipk_login again." : "Call ipk_login first"
+    });
   }
   const limit = params.limit || 20;
   const statusParam = params.status || "all";
@@ -23395,7 +23477,11 @@ var ipkNavigateSchema = {
 var ipkNavigateDescription = "Navigate within the IPK groupware main_menu iframe. Accepts full URLs or relative paths. Content is rendered inside the groupware iframe structure.";
 async function handleIpkNavigate(sessionManager2, config3, params) {
   if (!sessionManager2.isLoggedIn()) {
-    return textResult({ error: true, code: "NOT_LOGGED_IN", message: "Call ipk_login first" });
+    return textResult({
+      error: true,
+      code: "NOT_LOGGED_IN",
+      message: sessionManager2.getLoginState() === "expired" ? "Browser session expired after 30 minutes idle (the MCP connection is fine). Call ipk_login again." : "Call ipk_login first"
+    });
   }
   const page = sessionManager2.getPage();
   try {
@@ -23514,7 +23600,11 @@ var ipkGetContentSchema = {
 var ipkGetContentDescription = "Extract text content from the current page or main_menu iframe in IPK groupware. Returns structured text, sanitized and truncated. Use include_forms=true to see form fields.";
 async function handleIpkGetContent(sessionManager2, config3, params) {
   if (!sessionManager2.isLoggedIn()) {
-    return textResult({ error: true, code: "NOT_LOGGED_IN", message: "Call ipk_login first" });
+    return textResult({
+      error: true,
+      code: "NOT_LOGGED_IN",
+      message: sessionManager2.getLoginState() === "expired" ? "Browser session expired after 30 minutes idle (the MCP connection is fine). Call ipk_login again." : "Call ipk_login first"
+    });
   }
   const page = sessionManager2.getPage();
   const maxChars = params.max_chars || 2e3;
@@ -23590,7 +23680,7 @@ async function handleScreenshot(sessionManager2, config3, params) {
   }
   const page = sessionManager2.getPage();
   try {
-    fs4.mkdirSync(config3.screenshotDir, { recursive: true });
+    fs4.mkdirSync(config3.screenshotDir, { recursive: true, mode: 448 });
     const timestamp = (/* @__PURE__ */ new Date()).toISOString().replace(/[:.]/g, "-");
     const filename = params.filename || `ipk-${timestamp}.png`;
     const filepath = path3.join(config3.screenshotDir, filename);
@@ -23652,7 +23742,11 @@ var ipkInspectFormSchema = {
 var ipkInspectFormDescription = "Inspect a groupware form's DOM elements and cross-verify against form templates. Use to discover actual field names, types, and options for any form.";
 async function handleIpkInspectForm(sessionManager2, config3, params) {
   if (!sessionManager2.isLoggedIn()) {
-    return textResult({ error: true, code: "NOT_LOGGED_IN", message: "Call ipk_login first" });
+    return textResult({
+      error: true,
+      code: "NOT_LOGGED_IN",
+      message: sessionManager2.getLoginState() === "expired" ? "Browser session expired after 30 minutes idle (the MCP connection is fine). Call ipk_login again." : "Call ipk_login first"
+    });
   }
   const page = sessionManager2.getPage();
   const formCode = params.form_code;
