@@ -78,9 +78,19 @@ describe("safety invariants", () => {
     expect(src.match(/await assertTotalMatchesItems\(frame\);/g)?.length).toBe(2);
   });
 
-  it("disabled controls are never written", () => {
+  it("disabled controls are never written, on both the input and select paths", () => {
     const src = read("src/browser/iframe-helper.ts");
-    expect(src).toContain("FIELD_DISABLED");
+    expect(src.match(/FIELD_DISABLED/g)?.length).toBe(2);
+  });
+
+  it("the multi-file upload primitive validates paths itself", () => {
+    const src = read("src/internal/primitives/attachment.ts");
+    expect(src).toContain("validateAttachmentPath(");
+  });
+
+  it("form-type branching stays out of ipk-submit.ts", () => {
+    const lint = read("scripts/lint-invariants.mjs");
+    expect(lint).toContain("no-form-type-branches");
   });
 
   it("shutdown is bounded and login is verified beyond the URL", () => {

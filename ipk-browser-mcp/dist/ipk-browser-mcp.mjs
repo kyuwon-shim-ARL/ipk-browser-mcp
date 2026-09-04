@@ -6794,16 +6794,53 @@ var require_dist = __commonJS({
         throw new Error(`Unknown format "${name}"`);
       return f;
     };
-    function addFormats(ajv, list, fs6, exportName) {
+    function addFormats(ajv, list, fs7, exportName) {
       var _a;
       var _b;
       (_a = (_b = ajv.opts.code).formats) !== null && _a !== void 0 ? _a : _b.formats = (0, codegen_1._)`require("ajv-formats/dist/formats").${exportName}`;
       for (const f of list)
-        ajv.addFormat(f, fs6[f]);
+        ajv.addFormat(f, fs7[f]);
     }
     module.exports = exports = formatsPlugin;
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.default = formatsPlugin;
+  }
+});
+
+// src/security/attachment-path.ts
+import * as fs2 from "fs";
+function validateAttachmentPath(filePath) {
+  if (filePath.includes("..")) {
+    return "Attachment path contains path traversal (..)";
+  }
+  let resolved;
+  try {
+    resolved = fs2.realpathSync(filePath);
+  } catch {
+    return `Attachment path does not exist or is not accessible: ${filePath}`;
+  }
+  if (/\/\./.test(resolved)) {
+    return "Attachment path points to a hidden file/directory";
+  }
+  if (resolved.startsWith("/etc") || resolved.startsWith("/proc") || resolved.startsWith("/sys")) {
+    return "Attachment path points to a system directory";
+  }
+  const inAllowed = ALLOWED_ATTACHMENT_DIRS.some((dir) => resolved.startsWith(dir));
+  if (!inAllowed) {
+    return `Attachment must be in one of: ${ALLOWED_ATTACHMENT_DIRS.join(", ")}`;
+  }
+  return null;
+}
+var ALLOWED_ATTACHMENT_DIRS;
+var init_attachment_path = __esm({
+  "src/security/attachment-path.ts"() {
+    "use strict";
+    ALLOWED_ATTACHMENT_DIRS = [
+      "/tmp",
+      `${process.env.HOME}/Downloads`,
+      `${process.env.HOME}/Documents`,
+      `${process.env.HOME}/Desktop`
+    ];
   }
 });
 
@@ -6813,12 +6850,17 @@ __export(attachment_exports, {
   attachFiles: () => attachFiles,
   clearAllAttachments: () => clearAllAttachments
 });
-import * as fs2 from "fs";
+import * as fs3 from "fs";
 async function attachFiles(ctx, filePaths) {
   const result = { attached: 0, skipped: [] };
   const valid = [];
   for (const p of filePaths) {
-    if (!fs2.existsSync(p)) {
+    const pathErr = validateAttachmentPath(p);
+    if (pathErr) {
+      result.skipped.push({ path: p, reason: pathErr });
+      continue;
+    }
+    if (!fs3.existsSync(p)) {
       result.skipped.push({ path: p, reason: "file not found on local fs" });
     } else {
       valid.push(p);
@@ -6894,6 +6936,7 @@ async function clearAllAttachments(ctx, opts = {}) {
 var init_attachment = __esm({
   "src/internal/primitives/attachment.ts"() {
     "use strict";
+    init_attachment_path();
   }
 });
 
@@ -21519,7 +21562,8 @@ async function handleIpkLogin(sessionManager2, params) {
 }
 
 // src/tools/ipk-submit.ts
-import * as fs3 from "fs";
+import * as fs4 from "fs";
+init_attachment_path();
 
 // src/browser/iframe-helper.ts
 function getMainFrame(page) {
@@ -21589,18 +21633,23 @@ async function setFieldValue(frame, selector, value) {
 async function setSelectValue(frame, selector, value) {
   const el = await frame.waitForSelector(selector, { timeout: 5e3 }).catch(() => null);
   if (!el) return false;
-  return frame.evaluate(
+  const outcome = await frame.evaluate(
     (args) => {
       const el2 = document.querySelector(args.sel);
-      if (el2) {
-        el2.value = args.val;
-        el2.dispatchEvent(new Event("change", { bubbles: true }));
-        return true;
-      }
-      return false;
+      if (!el2) return "not_found";
+      if (el2.disabled) return "disabled";
+      el2.value = args.val;
+      el2.dispatchEvent(new Event("change", { bubbles: true }));
+      return "ok";
     },
     { sel: selector, val: value }
   );
+  if (outcome === "disabled") {
+    throw new Error(
+      `FIELD_DISABLED: '${selector}' is disabled; the browser would not submit a value written to it. Enable it through the form's own controls instead.`
+    );
+  }
+  return outcome === "ok";
 }
 async function setRequiredField(frame, selector, value, fieldName) {
   const ok = await setFieldValue(frame, selector, value);
@@ -21840,40 +21889,12 @@ function loadTemplateFieldSchema(formType) {
   const projectRoot = path2.resolve(__dirname, "..", "..");
   const templatePath = path2.join(projectRoot, "form_templates", registry2.templateFile);
   try {
-    const raw = fs3.readFileSync(templatePath, "utf-8");
+    const raw = fs4.readFileSync(templatePath, "utf-8");
     const template = JSON.parse(raw);
     return template.field_schema || null;
   } catch {
     return null;
   }
-}
-var ALLOWED_ATTACHMENT_DIRS = [
-  "/tmp",
-  `${process.env.HOME}/Downloads`,
-  `${process.env.HOME}/Documents`,
-  `${process.env.HOME}/Desktop`
-];
-function validateAttachmentPath(filePath) {
-  if (filePath.includes("..")) {
-    return "Attachment path contains path traversal (..)";
-  }
-  let resolved;
-  try {
-    resolved = fs3.realpathSync(filePath);
-  } catch {
-    return `Attachment path does not exist or is not accessible: ${filePath}`;
-  }
-  if (/\/\./.test(resolved)) {
-    return "Attachment path points to a hidden file/directory";
-  }
-  if (resolved.startsWith("/etc") || resolved.startsWith("/proc") || resolved.startsWith("/sys")) {
-    return "Attachment path points to a system directory";
-  }
-  const inAllowed = ALLOWED_ATTACHMENT_DIRS.some((dir) => resolved.startsWith(dir));
-  if (!inAllowed) {
-    return `Attachment must be in one of: ${ALLOWED_ATTACHMENT_DIRS.join(", ")}`;
-  }
-  return null;
 }
 async function attachFile(frame, filePath) {
   const err = validateAttachmentPath(filePath);
@@ -23721,7 +23742,7 @@ async function handleIpkGetContent(sessionManager2, config3, params) {
 }
 
 // src/tools/screenshot.ts
-import * as fs4 from "fs";
+import * as fs5 from "fs";
 import * as path3 from "path";
 var screenshotSchema = {
   filename: external_exports.string().optional().describe("Custom filename (without path). Default: auto-generated timestamp."),
@@ -23734,7 +23755,7 @@ async function handleScreenshot(sessionManager2, config3, params) {
   }
   const page = sessionManager2.getPage();
   try {
-    fs4.mkdirSync(config3.screenshotDir, { recursive: true, mode: 448 });
+    fs5.mkdirSync(config3.screenshotDir, { recursive: true, mode: 448 });
     const timestamp = (/* @__PURE__ */ new Date()).toISOString().replace(/[:.]/g, "-");
     const filename = params.filename || `ipk-${timestamp}.png`;
     const filepath = path3.join(config3.screenshotDir, filename);
@@ -23745,8 +23766,8 @@ async function handleScreenshot(sessionManager2, config3, params) {
     const ttlMs = config3.screenshotTtlMinutes * 60 * 1e3;
     setTimeout(() => {
       try {
-        if (fs4.existsSync(filepath)) {
-          fs4.unlinkSync(filepath);
+        if (fs5.existsSync(filepath)) {
+          fs5.unlinkSync(filepath);
         }
       } catch {
       }
@@ -23767,16 +23788,16 @@ async function handleScreenshot(sessionManager2, config3, params) {
 }
 function cleanupExpiredScreenshots(config3) {
   try {
-    if (!fs4.existsSync(config3.screenshotDir)) return;
+    if (!fs5.existsSync(config3.screenshotDir)) return;
     const now = Date.now();
     const ttlMs = config3.screenshotTtlMinutes * 60 * 1e3;
-    const files = fs4.readdirSync(config3.screenshotDir);
+    const files = fs5.readdirSync(config3.screenshotDir);
     for (const file of files) {
       if (!file.endsWith(".png")) continue;
       const filepath = path3.join(config3.screenshotDir, file);
-      const stat = fs4.statSync(filepath);
+      const stat = fs5.statSync(filepath);
       if (now - stat.mtimeMs > ttlMs) {
-        fs4.unlinkSync(filepath);
+        fs5.unlinkSync(filepath);
       }
     }
   } catch {
@@ -23784,7 +23805,7 @@ function cleanupExpiredScreenshots(config3) {
 }
 
 // src/tools/ipk-inspect.ts
-import * as fs5 from "fs";
+import * as fs6 from "fs";
 import * as path4 from "path";
 import { fileURLToPath as fileURLToPath2 } from "url";
 var __filename2 = fileURLToPath2(import.meta.url);
@@ -23847,7 +23868,7 @@ async function handleIpkInspectForm(sessionManager2, config3, params) {
       const projectRoot = path4.resolve(__dirname2, "..", "..");
       const templatePath = path4.join(projectRoot, "form_templates", `${formCode}.json`);
       try {
-        const raw = fs5.readFileSync(templatePath, "utf-8");
+        const raw = fs6.readFileSync(templatePath, "utf-8");
         const template = JSON.parse(raw);
         const fieldSchema = template.field_schema || {};
         const templateKeys = new Set(Object.keys(fieldSchema));
