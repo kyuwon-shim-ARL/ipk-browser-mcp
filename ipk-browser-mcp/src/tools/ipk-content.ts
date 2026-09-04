@@ -25,7 +25,14 @@ export async function handleIpkGetContent(
   params: { max_chars?: number; include_forms?: boolean; frame?: string }
 ) {
   if (!sessionManager.isLoggedIn()) {
-    return textResult({ error: true, code: "NOT_LOGGED_IN", message: "Call ipk_login first" });
+    return textResult({
+      error: true,
+      code: "NOT_LOGGED_IN",
+      message:
+        sessionManager.getLoginState() === "expired"
+          ? "Browser session expired after 30 minutes idle (the MCP connection is fine). Call ipk_login again."
+          : "Call ipk_login first",
+    });
   }
 
   const page = sessionManager.getPage()!;

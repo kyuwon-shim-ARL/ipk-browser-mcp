@@ -230,7 +230,9 @@ export function loadConfig(): Config {
     username: env("IPK_USERNAME"),
     password: env("IPK_PASSWORD"),
     headless: env("BROWSER_HEADLESS") !== "false",
-    screenshotDir: env("SCREENSHOT_DIR", "/tmp/ipk-mcp-screenshots"),
+    // Per-user path, not a fixed /tmp name: screenshots contain groupware content, and a
+    // shared host would otherwise let one user read another's (and pre-create the dir).
+    screenshotDir: env("SCREENSHOT_DIR", `${process.env.HOME}/.cache/ipk-mcp/screenshots`),
     screenshotTtlMinutes: parseInt(env("SCREENSHOT_TTL_MINUTES", "60"), 10),
     navTimeoutMs: parseInt(env("NAV_TIMEOUT_MS", "30000"), 10),
     storageStateDir: env("STORAGE_STATE_DIR", `${process.env.HOME}/.config/ipk-mcp/profiles`),
