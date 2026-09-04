@@ -106,7 +106,14 @@ export async function handleIpkFetchApprovals(
   params: { status?: string; limit?: number }
 ) {
   if (!sessionManager.isLoggedIn()) {
-    return textResult({ error: true, code: "NOT_LOGGED_IN", message: "Call ipk_login first" });
+    return textResult({
+      error: true,
+      code: "NOT_LOGGED_IN",
+      message:
+        sessionManager.getLoginState() === "expired"
+          ? "Browser session expired after 30 minutes idle (the MCP connection is fine). Call ipk_login again."
+          : "Call ipk_login first",
+    });
   }
 
   const limit = params.limit || 20;

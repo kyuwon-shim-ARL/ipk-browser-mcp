@@ -27,7 +27,7 @@ export async function handleScreenshot(
 
   try {
     // Ensure screenshot directory exists
-    fs.mkdirSync(config.screenshotDir, { recursive: true });
+    fs.mkdirSync(config.screenshotDir, { recursive: true, mode: 0o700 });
 
     const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
     const filename = params.filename || `ipk-${timestamp}.png`;
