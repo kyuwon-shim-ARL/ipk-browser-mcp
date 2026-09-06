@@ -9,7 +9,8 @@ from pathlib import Path
 from typing import Any
 
 # Project root relative paths
-PROJECT_ROOT = Path(__file__).parent
+# This file lives in dev/, so the repo root is one level up from it.
+PROJECT_ROOT = Path(__file__).parent.parent
 FORM_REGISTRY_PATH = PROJECT_ROOT / "ipk-browser-mcp" / "src" / "form-registry.json"
 FORM_TEMPLATES_DIR = PROJECT_ROOT / "form_templates"
 TRAVELER_PROFILES_PATH = PROJECT_ROOT / "analysis_results" / "traveler_profiles.json"

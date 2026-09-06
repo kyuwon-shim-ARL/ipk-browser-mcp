@@ -12,7 +12,7 @@ import { fileURLToPath } from "url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = resolve(__dirname, "..", "..");
-const BRIDGE_SCRIPT = resolve(PROJECT_ROOT, "bridge.py");
+const BRIDGE_SCRIPT = resolve(PROJECT_ROOT, "dev", "bridge.py");
 
 const MAX_QUEUE = 10;
 const RPC_TIMEOUT_MS = 30_000;
