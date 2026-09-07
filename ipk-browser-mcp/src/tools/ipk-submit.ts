@@ -3,6 +3,7 @@ import * as fs from "fs";
 import { SessionManager } from "../browser/session.js";
 import { textResult } from "../util.js";
 import { validateAttachmentPath } from "../security/attachment-path.js";
+import { audit, beginRun } from "../internal/audit.js";
 import {
   navigateToForm,
   setFieldValue,
@@ -262,10 +263,12 @@ function loadTemplateFieldSchema(formType: string): Record<string, TemplateField
 async function attachFile(frame: any, filePath: string): Promise<void> {
   const err = validateAttachmentPath(filePath);
   if (err) {
+    audit({ action: "refusal", code: "INVALID_ATTACHMENT", validated: false, ok: false });
     throw new Error(`INVALID_ATTACHMENT: ${err}`);
   }
   const fileInput = frame.locator('input[name="doc_attach_file[]"]').first();
   await fileInput.setInputFiles(filePath);
+  audit({ action: "upload", validated: true, ok: true });
 }
 
 /**
@@ -306,8 +309,12 @@ async function selectExistingOption(
       { selector, value }
     );
 
-    if (last.status === "ok") return;
+    if (last.status === "ok") {
+      audit({ action: "option_select", field: fieldName, fromOfferedOptions: true, ok: true });
+      return;
+    }
     if (last.status === "reverted") {
+      audit({ action: "refusal", field: fieldName, code: "OPTION_REJECTED", ok: false });
       throw new Error(
         `OPTION_REJECTED: the form reset '${fieldName}' after selecting '${value}'. ` +
           `It is probably not valid together with the other values on this form.`
@@ -318,8 +325,10 @@ async function selectExistingOption(
   }
 
   if (last.status === "no_element") {
+    audit({ action: "refusal", field: fieldName, code: "FIELD_NOT_FOUND", ok: false });
     throw new Error(`FIELD_NOT_FOUND: Required field '${fieldName}' not found (selector: ${selector})`);
   }
+  audit({ action: "refusal", field: fieldName, code: "INVALID_OPTION", fromOfferedOptions: false, ok: false });
   throw new Error(
     `INVALID_OPTION: '${value}' is not an option the form offers for '${fieldName}' ` +
       `(waited ${timeoutMs}ms in case the form populates it). ` +
@@ -581,6 +590,17 @@ export async function handleIpkSubmitForm(
   config: Config,
   params: Record<string, any>
 ) {
+  // One benchmark run per submit attempt: the audit events between here and the return
+  // are what M1 (first-pass success) and M5 (effort) are computed from.
+  beginRun();
+  audit({
+    action: "navigate",
+    field: String(params.form_type ?? "unknown"),
+    mode: params.draft_only === false ? "request" : "draft",
+    confirmed: params.confirm_submit === true,
+    ok: true,
+  });
+
   if (!sessionManager.isLoggedIn()) {
     return textResult({
       error: true,
@@ -777,8 +797,11 @@ async function submitLeave(
     // because picking the first namesake silently designates the wrong colleague.
     const selected = await popup.evaluate(
       (name: string) => {
+        // Also fold "." and "_" to a space: config and callers routinely hold the login id
+        // ("guinam.wee") where the picker shows the display name ("Guinam Wee"). Refusing
+        // that would reject a real colleague. Genuine ambiguity is still caught below.
         const norm = (v: string) =>
-          v.normalize("NFKC").replace(/\s+/g, " ").trim().toLocaleLowerCase();
+          v.normalize("NFKC").replace(/[._]+/g, " ").replace(/\s+/g, " ").trim().toLocaleLowerCase();
         const wanted = norm(name);
         const matches: { row: Element; label: string }[] = [];
         document.querySelectorAll("tr").forEach((row) => {

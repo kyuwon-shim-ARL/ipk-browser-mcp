@@ -80,7 +80,21 @@ describe("safety invariants", () => {
 
   it("disabled controls are never written, on both the input and select paths", () => {
     const src = read("src/browser/iframe-helper.ts");
-    expect(src.match(/FIELD_DISABLED/g)?.length).toBe(2);
+    // Count the throw sites, not every mention: the audit calls name the code too.
+    expect(src.match(/throw new Error\(\s*`FIELD_DISABLED/g)?.length).toBe(2);
+  });
+
+  it("every mutation and refusal is recorded in the audit log", () => {
+    // The audit trail is the evidence behind M5/M6; an unaudited mutation is invisible
+    // to the benchmark and would let a regression score clean.
+    const helper = read("src/browser/iframe-helper.ts");
+    const submit = read("src/tools/ipk-submit.ts");
+    for (const action of ["field_write", "option_select", "submit"]) {
+      expect(helper).toContain(`action: "${action}"`);
+    }
+    expect(submit).toContain('action: "upload"');
+    expect(submit).toContain('action: "refusal"');
+    expect(submit).toContain("beginRun()");
   });
 
   it("the multi-file upload primitive validates paths itself", () => {

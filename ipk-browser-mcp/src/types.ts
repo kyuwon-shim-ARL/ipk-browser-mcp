@@ -220,7 +220,23 @@ function env(key: string, fallback: string = ""): string {
   return process.env[key] || loadDotenv()[key] || fallback;
 }
 
+/**
+ * Copy every .env key into process.env.
+ *
+ * loadConfig() only maps the handful of keys Config declares, but form code reads others
+ * (IPK_SUBSTITUTE_NAME, IPK_EMERGENCY_*) straight off process.env. Without this, those
+ * settings are silently absent for a server launched without an env block - which is how
+ * Claude Code launches it - and the form falls back to placeholder values.
+ * Existing process.env entries win, so an explicit env block still overrides the file.
+ */
+function hydrateEnv(): void {
+  for (const [k, v] of Object.entries(loadDotenv())) {
+    if (process.env[k] === undefined) process.env[k] = v;
+  }
+}
+
 export function loadConfig(): Config {
+  hydrateEnv();
   // Ensure consistent timezone for date calculations (daily_expense, nights inference)
   if (!process.env.TZ) {
     process.env.TZ = "Asia/Seoul";
