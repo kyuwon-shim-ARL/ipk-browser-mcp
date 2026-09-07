@@ -32,7 +32,11 @@ describe("setFieldValue", () => {
     });
     const result = await setFieldValue(frame, 'input[name="subject"]', "Test Subject");
     expect(result).toBe(true);
-    expect(frame.waitForSelector).toHaveBeenCalledWith('input[name="subject"]', { timeout: 5000 });
+    // Waits for attachment, not visibility: forms here hide fields that are still submitted.
+    expect(frame.waitForSelector).toHaveBeenCalledWith('input[name="subject"]', {
+      state: "attached",
+      timeout: 5000,
+    });
     expect(frame.evaluate).toHaveBeenCalled();
   });
 

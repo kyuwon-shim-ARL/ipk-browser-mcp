@@ -1,4 +1,5 @@
 import { Page, Frame } from "playwright";
+import { audit } from "../internal/audit.js";
 import { Config, FORM_CODES, FormType } from "../types.js";
 
 /**
@@ -104,8 +105,10 @@ export async function setFieldValue(
   selector: string,
   value: string
 ): Promise<boolean> {
-  // Wait for element to appear in DOM before attempting to set value
-  await frame.waitForSelector(selector, { timeout: 5000 }).catch(() => null);
+  // Wait for the element to exist, not to be visible. Forms here hide fields that are
+  // still part of the submitted payload - using_type[] on the leave form is display:none
+  // but required - and Playwright's default "visible" state times out on those.
+  await frame.waitForSelector(selector, { state: "attached", timeout: 5000 }).catch(() => null);
 
   // NOTE on readOnly: many fields this form expects to be filled are readOnly by design
   // (begin_date[]/end_date[] are datepicker-backed, item_amount[]/total_amt are recomputed
@@ -118,21 +121,24 @@ export async function setFieldValue(
       const el = document.querySelector(args.sel) as HTMLInputElement | HTMLTextAreaElement | null;
       if (!el) return "not_found" as const;
       if ((el as HTMLInputElement).disabled) return "disabled" as const;
+      const hidden = el.getBoundingClientRect().width === 0 && el.getBoundingClientRect().height === 0;
       el.value = args.val;
       el.dispatchEvent(new Event('input', { bubbles: true }));
       el.dispatchEvent(new Event('change', { bubbles: true }));
-      return "ok" as const;
+      return hidden ? ("ok_hidden" as const) : ("ok" as const);
     },
     { sel: selector, val: value }
   );
 
   if (outcome === "disabled") {
+    audit({ action: "refusal", field: selector, code: "FIELD_DISABLED", ok: false });
     throw new Error(
       `FIELD_DISABLED: '${selector}' is disabled; the browser would not submit a value ` +
         `written to it. Enable it through the form's own controls instead.`
     );
   }
-  return outcome === "ok";
+  audit({ action: "field_write", field: selector, hidden: outcome === "ok_hidden", ok: outcome !== "not_found" });
+  return outcome !== "not_found";
 }
 
 /**
@@ -144,8 +150,8 @@ export async function setSelectValue(
   selector: string,
   value: string
 ): Promise<boolean> {
-  // Wait for element to appear in DOM before attempting to set value
-  const el = await frame.waitForSelector(selector, { timeout: 5000 }).catch(() => null);
+  // See setFieldValue: wait for attachment, not visibility.
+  const el = await frame.waitForSelector(selector, { state: "attached", timeout: 5000 }).catch(() => null);
   if (!el) return false;
 
   const outcome = await frame.evaluate(
@@ -153,20 +159,23 @@ export async function setSelectValue(
       const el = document.querySelector(args.sel) as HTMLSelectElement | null;
       if (!el) return "not_found" as const;
       if (el.disabled) return "disabled" as const;
+      const hidden = el.getBoundingClientRect().width === 0 && el.getBoundingClientRect().height === 0;
       el.value = args.val;
       el.dispatchEvent(new Event("change", { bubbles: true }));
-      return "ok" as const;
+      return hidden ? ("ok_hidden" as const) : ("ok" as const);
     },
     { sel: selector, val: value }
   );
 
   if (outcome === "disabled") {
+    audit({ action: "refusal", field: selector, code: "FIELD_DISABLED", ok: false });
     throw new Error(
       `FIELD_DISABLED: '${selector}' is disabled; the browser would not submit a value ` +
         `written to it. Enable it through the form's own controls instead.`
     );
   }
-  return outcome === "ok";
+  audit({ action: "option_select", field: selector, fromOfferedOptions: true, hidden: outcome === "ok_hidden", ok: outcome !== "not_found" });
+  return outcome !== "not_found";
 }
 
 /**
@@ -287,6 +296,7 @@ export async function setFormMode(
     },
     mode
   );
+  audit({ action: "submit", mode, ok: true });
 }
 
 /**
@@ -298,6 +308,16 @@ export async function submitForm(
   frame: Frame,
   method: "check_form_request" | "form_submit" = "check_form_request"
 ): Promise<string | null> {
+  // The form reports validation failures through alert(), which Playwright dismisses
+  // automatically - so without this the caller only learns that "something" was wrong and
+  // has to go look at the form by hand. Capture the text and put it in the error instead.
+  const dialogs: string[] = [];
+  const onDialog = (d: import("playwright").Dialog) => {
+    dialogs.push(d.message().replace(/\s+/g, " ").trim());
+    d.accept().catch(() => {});
+  };
+  page.on("dialog", onDialog);
+  try {
   // Execute the submission
   if (method === "check_form_request") {
     await Promise.all([
@@ -332,9 +352,16 @@ export async function submitForm(
 
   // If still on document_write.php, submission likely failed
   if (frameUrl.includes("document_write.php")) {
-    throw new Error("SUBMIT_FAILED: Form submission did not redirect. The form may have validation errors.");
+    throw new Error(
+      dialogs.length
+        ? `SUBMIT_REJECTED: the form refused the submission - ${dialogs.join(" / ")}`
+        : "SUBMIT_FAILED: Form submission did not redirect and the form gave no message."
+    );
   }
 
   return null;
+  } finally {
+    page.off("dialog", onDialog);
+  }
 }
 
