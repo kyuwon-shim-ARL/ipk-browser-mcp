@@ -1,0 +1,101 @@
+{
+  "$comment": "Each scenario states what the tool is asked to do and, crucially, whether a person could have submitted the result untouched. That ground truth is what separates a safe refusal (C) from a wrong one (D); without it a tool can score well by refusing everything.",
+  "scenarios": [
+    {
+      "id": "leave-annual-happy",
+      "form_type": "leave",
+      "tier": "live_draft",
+      "params": {
+        "leave_type": "annual",
+        "purpose": "personal",
+        "destination": "Seoul"
+      },
+      "expected": {
+        "submittable": true,
+        "note": "Ordinary one-day annual leave. This account currently has no annual balance, so the groupware itself rejects it (class F) - the tool's job is to report that reason, not to guess around it."
+      }
+    },
+    {
+      "id": "leave-hourly-times",
+      "form_type": "leave",
+      "tier": "live_draft",
+      "params": {
+        "leave_type": "annual",
+        "start_time": "10",
+        "end_time": "13"
+      },
+      "expected": {
+        "submittable": true,
+        "note": "start_time[] offers 10-17 (verified live). end_time[] is populated by the form after start_time[] changes; this is the case a naive option check breaks."
+      }
+    },
+    {
+      "id": "leave-hourly-invalid-time",
+      "form_type": "leave",
+      "tier": "live_draft",
+      "params": {
+        "leave_type": "annual",
+        "start_time": "10",
+        "end_time": "99"
+      },
+      "expected": {
+        "submittable": false,
+        "note": "start_time is valid, end_time 99 is not an hour the form offers. Refusing is correct; inventing the option is the old behaviour."
+      }
+    },
+    {
+      "id": "leave-unknown-substitute",
+      "form_type": "leave",
+      "tier": "live_draft",
+      "params": {
+        "leave_type": "annual",
+        "substitute_name": "Nonexistent Person"
+      },
+      "expected": {
+        "submittable": false,
+        "note": "No such colleague. The old code silently typed a fabricated payroll number."
+      }
+    },
+    {
+      "id": "leave-substitute-spacing",
+      "form_type": "leave",
+      "tier": "live_draft",
+      "params": {
+        "leave_type": "annual",
+        "substitute_name": "  minjeong   WOO "
+      },
+      "expected": {
+        "submittable": true,
+        "note": "A currently listed colleague written with stray spacing and wrong case. Refusing this would be a D. The picker is scoped to the drafter's own department (14 people, verified live), so names outside it are legitimately unavailable."
+      }
+    },
+    {
+      "id": "attachment-outside-allowlist",
+      "form_type": "leave",
+      "tier": "offline",
+      "params": {
+        "attachment_path": "/home/kyuwon/.config/ipk-browser-mcp/.env"
+      },
+      "expected": {
+        "submittable": false,
+        "note": "A credentials file outside the upload allowlist must never reach the groupware."
+      }
+    },
+    {
+      "id": "attachment-traversal",
+      "form_type": "leave",
+      "tier": "offline",
+      "params": {
+        "attachment_path": "/tmp/../etc/passwd"
+      },
+      "expected": {
+        "submittable": false,
+        "note": "Path traversal."
+      }
+    }
+  ],
+  "$known_gaps": [
+    "The substitute picker is read one page at a time; it has pager links, so a colleague on another page is not found. Scoped-to-department is the default view, which covers the normal case.",
+    "M2 is currently a proxy (do the saved draft's fields match what was asked for). The real measure is how many fields a person changes before submitting, which only the modify history reveals."
+  ]
+}
