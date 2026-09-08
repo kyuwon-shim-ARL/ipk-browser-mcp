@@ -114,13 +114,32 @@ async function main() {
           .filter((l) => l && l !== "[ Down ]")
           .map((l) => l.replace(/\s*\[ Down \]\s*$/, ""));
       });
+      // Two different things land in this section and they mean opposite things:
+      //   "Name (id) - 2026-04-20 14:44:33"  an actual edit to the document
+      //   "Additional document | receipt.pdf" paperwork attached later (a transfer receipt
+      //                                       only exists after payment)
+      // Counting the second as a correction inflates the rate for exactly the forms that
+      // need receipts, which is how travel_settlement first read as 84.6%.
+      const entries = hist || [];
+      const edits = entries.filter((l) => /\(\S+\)\s*-\s*\d{4}-\d{2}-\d{2}/.test(l));
+      const times = edits
+        .map((l) => (l.match(/(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})/) || [])[1])
+        .filter(Boolean)
+        .map((t) => Date.parse(t.replace(" ", "T")))
+        .sort((a, b) => a - b);
+      // Edits minutes apart are one person reworking the same draft, not separate reviews.
+      const reworkBursts = times.filter((t, i) => i > 0 && t - times[i - 1] < 30 * 60 * 1000).length;
+
       records.push({
         formType,
         appFrmCode: code,
         docNo: d.docNo,
         date: d.date,
-        modifiedBy: hist || [],
-        touched: (hist || []).length > 0,
+        modifiedBy: entries,
+        edits: edits.length,
+        attachmentsAdded: entries.length - edits.length,
+        reworkBursts,
+        touched: edits.length > 0,
       });
     }
   }
@@ -133,19 +152,31 @@ async function main() {
 
   const byForm = {};
   for (const r of records) {
-    byForm[r.formType] ??= { n: 0, touched: 0 };
-    byForm[r.formType].n++;
-    if (r.touched) byForm[r.formType].touched++;
+    byForm[r.formType] ??= { n: 0, edited: 0, rework: 0, attachOnly: 0 };
+    const b = byForm[r.formType];
+    b.n++;
+    if (r.edits > 0) b.edited++;
+    if (r.reworkBursts > 0) b.rework++;
+    if (r.edits === 0 && r.attachmentsAdded > 0) b.attachOnly++;
   }
-  console.log("\nform            docs  human-corrected  rate");
-  console.log("-".repeat(48));
-  let tn = 0, tt = 0;
-  for (const [f, s] of Object.entries(byForm).sort((a, b) => b[1].n - a[1].n)) {
-    tn += s.n; tt += s.touched;
-    console.log(`${f.padEnd(16)}${String(s.n).padStart(4)}${String(s.touched).padStart(17)}  ${((s.touched / s.n) * 100).toFixed(1)}%`);
+  const hdr = "form              docs   edited   rework   attach-only";
+  console.log("\n" + hdr);
+  console.log("-".repeat(hdr.length));
+  const row = (name, b) =>
+    `${name.padEnd(16)}${String(b.n).padStart(6)}` +
+    `${(b.edited + " (" + ((b.edited / b.n) * 100).toFixed(0) + "%)").padStart(10)}` +
+    `${(b.rework + " (" + ((b.rework / b.n) * 100).toFixed(0) + "%)").padStart(10)}` +
+    `${String(b.attachOnly).padStart(11)}`;
+  const tot = { n: 0, edited: 0, rework: 0, attachOnly: 0 };
+  for (const [f, b] of Object.entries(byForm).sort((a, b2) => b2[1].n - a[1].n)) {
+    for (const k of Object.keys(tot)) tot[k] += b[k];
+    console.log(row(f, b));
   }
-  console.log("-".repeat(48));
-  console.log(`${"TOTAL".padEnd(16)}${String(tn).padStart(4)}${String(tt).padStart(17)}  ${tn ? ((tt / tn) * 100).toFixed(1) : "0.0"}%`);
+  console.log("-".repeat(hdr.length));
+  console.log(row("TOTAL", tot));
+  console.log("\nedited      = a person changed the document after it was drafted");
+  console.log("rework      = two or more of those edits inside 30 minutes (one person fixing their own draft)");
+  console.log("attach-only = no edits, only paperwork added later (a receipt); not a correction");
   console.log(`\nwritten: ${outPath}`);
 }
 
