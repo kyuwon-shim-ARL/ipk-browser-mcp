@@ -46,6 +46,11 @@ export function classify(run) {
 
   if (succeeded) {
     if (result.fabricated?.length) return "E";
+    // Success with nothing to point at. A run that reports "ok" and cannot name the
+    // document it made is indistinguishable from one that made nothing.
+    if (!result.docId) return "E";
+    // The scenario says a person could not have submitted this, and the tool submitted it.
+    if (expected.submittable === false) return "E";
     if (humanEdits == null) return "UNKNOWN_EDITS";
     if (humanEdits === 0 && (result.retries ?? 0) === 0) return "A";
     return "B";

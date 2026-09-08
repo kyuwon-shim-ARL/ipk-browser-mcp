@@ -159,6 +159,13 @@ export async function setSelectValue(
       const el = document.querySelector(args.sel) as HTMLSelectElement | null;
       if (!el) return "not_found" as const;
       if (el.disabled) return "disabled" as const;
+      // A <select> only accepts what it offers. Assigning anything else leaves the value
+      // unchanged and the write silently does nothing - the form then rejects the whole
+      // submission with a message about a field the caller never knew failed.
+      const offered = Array.from(el.options).map((o) => o.value);
+      if (args.val !== "" && !offered.includes(args.val)) {
+        return { status: "no_option" as const, offered };
+      }
       const hidden = el.getBoundingClientRect().width === 0 && el.getBoundingClientRect().height === 0;
       el.value = args.val;
       el.dispatchEvent(new Event("change", { bubbles: true }));
@@ -172,6 +179,13 @@ export async function setSelectValue(
     throw new Error(
       `FIELD_DISABLED: '${selector}' is disabled; the browser would not submit a value ` +
         `written to it. Enable it through the form's own controls instead.`
+    );
+  }
+  if (typeof outcome === "object" && outcome.status === "no_option") {
+    audit({ action: "refusal", field: selector, code: "INVALID_OPTION", fromOfferedOptions: false, ok: false });
+    throw new Error(
+      `INVALID_OPTION: '${value}' is not an option '${selector}' offers. ` +
+        `Allowed: ${outcome.offered.filter(Boolean).join(", ") || "(none yet - the form may fill this from another field first)"}`
     );
   }
   audit({ action: "option_select", field: selector, fromOfferedOptions: true, hidden: outcome === "ok_hidden", ok: outcome !== "not_found" });
@@ -359,7 +373,15 @@ export async function submitForm(
     );
   }
 
-  return null;
+  // Neither a document view nor the form we started from: the submission went somewhere
+  // we cannot verify. Reporting success here would claim a document exists without a
+  // document id to show for it.
+  throw new Error(
+    `SUBMIT_UNVERIFIED: after submitting, the page is at ${frameUrl || "(unknown)"} and no ` +
+      `document id came back. The document may or may not have been created - check the ` +
+      `drafts list before retrying.` +
+      (dialogs.length ? ` The form said: ${dialogs.join(" / ")}` : "")
+  );
   } finally {
     page.off("dialog", onDialog);
   }

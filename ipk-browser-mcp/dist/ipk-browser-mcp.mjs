@@ -21446,9 +21446,11 @@ var SessionManager = class _SessionManager {
       if (this.session) {
         await this.session.context.close();
       }
+      const rawName = process.env.IPK_USER_NAME || username;
+      const displayName = /\s/.test(rawName) ? rawName : rawName.split(/[._]+/).filter(Boolean).map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(" ");
       const userInfo = {
         username,
-        name: process.env.IPK_USER_NAME || username.replace(".", " "),
+        name: displayName,
         dept: process.env.IPK_USER_DEPT || ""
       };
       this.session = {
@@ -21669,6 +21671,10 @@ async function setSelectValue(frame, selector, value) {
       const el2 = document.querySelector(args.sel);
       if (!el2) return "not_found";
       if (el2.disabled) return "disabled";
+      const offered = Array.from(el2.options).map((o) => o.value);
+      if (args.val !== "" && !offered.includes(args.val)) {
+        return { status: "no_option", offered };
+      }
       const hidden = el2.getBoundingClientRect().width === 0 && el2.getBoundingClientRect().height === 0;
       el2.value = args.val;
       el2.dispatchEvent(new Event("change", { bubbles: true }));
@@ -21680,6 +21686,12 @@ async function setSelectValue(frame, selector, value) {
     audit({ action: "refusal", field: selector, code: "FIELD_DISABLED", ok: false });
     throw new Error(
       `FIELD_DISABLED: '${selector}' is disabled; the browser would not submit a value written to it. Enable it through the form's own controls instead.`
+    );
+  }
+  if (typeof outcome === "object" && outcome.status === "no_option") {
+    audit({ action: "refusal", field: selector, code: "INVALID_OPTION", fromOfferedOptions: false, ok: false });
+    throw new Error(
+      `INVALID_OPTION: '${value}' is not an option '${selector}' offers. Allowed: ${outcome.offered.filter(Boolean).join(", ") || "(none yet - the form may fill this from another field first)"}`
     );
   }
   audit({ action: "option_select", field: selector, fromOfferedOptions: true, hidden: outcome === "ok_hidden", ok: outcome !== "not_found" });
@@ -21746,7 +21758,9 @@ async function submitForm(page, frame, method = "check_form_request") {
         dialogs.length ? `SUBMIT_REJECTED: the form refused the submission - ${dialogs.join(" / ")}` : "SUBMIT_FAILED: Form submission did not redirect and the form gave no message."
       );
     }
-    return null;
+    throw new Error(
+      `SUBMIT_UNVERIFIED: after submitting, the page is at ${frameUrl || "(unknown)"} and no document id came back. The document may or may not have been created - check the drafts list before retrying.` + (dialogs.length ? ` The form said: ${dialogs.join(" / ")}` : "")
+    );
   } finally {
     page.off("dialog", onDialog);
   }
@@ -22193,18 +22207,21 @@ async function handleIpkSubmitForm(sessionManager2, config3, params) {
           return textResult({ error: true, code: "MISSING_CARD_RECEIPT_REF", message: validErr });
         }
       }
-      const mainFrame = page.frame("main_menu");
-      if (!mainFrame) {
-        return textResult({ error: true, code: "FRAME_NOT_FOUND", message: "main_menu frame not found" });
-      }
       const url = navConfig.customUrl(params, config3);
-      await mainFrame.goto(url, { timeout: config3.navTimeoutMs });
-      await mainFrame.waitForLoadState("load");
       const waitSel = navConfig.waitSelector ?? "form input, form select";
-      await mainFrame.waitForSelector(waitSel, { timeout: 5e3 }).catch(() => null);
+      const mainFrame = page.frame("main_menu");
+      if (mainFrame) {
+        await mainFrame.goto(url, { timeout: config3.navTimeoutMs });
+        await mainFrame.waitForLoadState("load");
+        await mainFrame.waitForSelector(waitSel, { state: "attached", timeout: 5e3 }).catch(() => null);
+        frame = mainFrame;
+      } else {
+        await page.goto(url, { waitUntil: "domcontentloaded", timeout: config3.navTimeoutMs });
+        frame = page.mainFrame();
+        await frame.waitForSelector(waitSel, { state: "attached", timeout: 5e3 }).catch(() => null);
+      }
       sessionManager2.touchActivity();
       await page.waitForTimeout(navConfig.waitMs ?? 2e3);
-      frame = mainFrame;
     } else {
       frame = await navigateToForm(page, formType, config3);
       if (!frame) {
@@ -22511,6 +22528,13 @@ async function submitWorking(page, frame, sessionManager2, config3, params, mode
 }
 async function submitTravel(page, frame, sessionManager2, config3, params, mode) {
   const userInfo = sessionManager2.getUserInfo();
+  const parentRef = params.pdoc_id || params.approved_doc_ref || "";
+  if (!parentRef) {
+    throw new Error(
+      "PARENT_DOC_REQUIRED: travel needs the approved travel request it reports on. Pass pdoc_id. The form will accept a report without one, which is why this is checked here."
+    );
+  }
+  await selectExistingOption(frame, 'select[name="pdoc_id"]', String(parentRef), "pdoc_id");
   const title = params.title || "Business Travel";
   const destination = params.destination || "";
   const startDate = params.start_date || todayStr();
@@ -22520,7 +22544,7 @@ async function submitTravel(page, frame, sessionManager2, config3, params, mode)
   const organization = params.organization || destination;
   const attendees = params.attendees || userInfo.name;
   const reportDate = todayStr();
-  const reportPost = process.env.IPK_USER_POSITION || "Researcher";
+  const reportPost = process.env.IPK_USER_POSITION || "";
   const reportLeader = process.env.IPK_GROUP_LEADER || "";
   const userDept = userInfo.dept || process.env.IPK_USER_DEPT || "";
   const travelSchema = {
@@ -22530,8 +22554,8 @@ async function submitTravel(page, frame, sessionManager2, config3, params, mode)
     report_post: { type: "text", dom_name: "report_post", dom_selector: '.validate[name="report_post"]' },
     report_group: { type: "text", dom_name: "report_group", dom_selector: '.validate[name="report_group"]' },
     report_leader: { type: "text", dom_name: "report_leader", dom_selector: '.validate[name="report_leader"]' },
-    start_day: { type: "date", dom_name: "start_day", required: true, dom_selector: '.validate[name="start_day"]' },
-    end_day: { type: "date", dom_name: "end_day", required: true, dom_selector: '.validate[name="end_day"]' },
+    start_date: { type: "date", dom_name: "start_date", required: true, dom_selector: '[name="start_date"]' },
+    end_date: { type: "date", dom_name: "end_date", required: true, dom_selector: '[name="end_date"]' },
     report_dest: { type: "text", dom_name: "report_dest", required: true, dom_selector: '.validate[name="report_dest"]' },
     purpose_field: { type: "text", dom_name: "purpose_field", required: true, dom_selector: '.validate[name="purpose_field"]' },
     date_field: { type: "text", dom_name: "date_field", dom_selector: '.validate[name="date_field"]' },
@@ -22550,8 +22574,8 @@ async function submitTravel(page, frame, sessionManager2, config3, params, mode)
     report_post: reportPost,
     report_group: userDept,
     report_leader: reportLeader,
-    start_day: startDate,
-    end_day: endDate,
+    start_date: startDate,
+    end_date: endDate,
     report_dest: destination,
     purpose_field: purpose,
     date_field: schedule,
@@ -22603,25 +22627,26 @@ async function submitTravelRequest(page, frame, sessionManager2, config3, params
   await page.waitForTimeout(1e3);
   const fieldSchema = {
     budget_code: { type: "select", dom_name: "budget_code", required: true },
-    start_day: { type: "date", dom_name: "start_day", required: true, dom_selector: '.validate[name="start_day"]' },
-    end_day: { type: "date", dom_name: "end_day", required: true, dom_selector: '.validate[name="end_day"]' },
-    report_dest: { type: "text", dom_name: "report_dest", required: true, dom_selector: '.validate[name="report_dest"]' },
-    purpose_field: { type: "text", dom_name: "purpose_field", required: true, dom_selector: '.validate[name="purpose_field"]' },
-    org_field: { type: "text", dom_name: "org_field", dom_selectors: ['.validate[name="org_field"]', 'input[name="organization"]'] },
-    person_field: { type: "text", dom_name: "person_field", dom_selectors: ['.validate[name="person_field"]', 'input[name="attendees"]'] },
-    date_field: { type: "text", dom_name: "date_field", dom_selector: '.validate[name="date_field"]' },
-    discuss_field: { type: "text", dom_name: "discuss_field", dom_selectors: ['textarea[name="contents1"]', '.validate[name="discuss_field"]'] }
+    start_date: { type: "date", dom_name: "start_date", required: true, dom_selector: '[name="start_date"]' },
+    end_date: { type: "date", dom_name: "end_date", required: true, dom_selector: '[name="end_date"]' },
+    // These are the travel *request* form's own fields (form_templates/AppFrm-023.json,
+    // captured from 108 documents). The schema previously carried report_dest /
+    // purpose_field / org_field / person_field / date_field / discuss_field, which belong
+    // to the travel *report* (AppFrm-076) and do not exist here - so every one of them
+    // silently did nothing, and the submission failed on the first required one.
+    travel_dest: { type: "text", dom_name: "travel_dest[]", required: true, dom_selector: '[name="travel_dest[]"]' },
+    purpose: { type: "text", dom_name: "purpose", required: true, dom_selector: '[name="purpose"]' },
+    start_tm: { type: "select", dom_name: "start_tm" },
+    end_tm: { type: "select", dom_name: "end_tm" }
   };
   await genericFillForm(frame, fieldSchema, {
     budget_code: budgetCode,
-    start_day: startDate,
-    end_day: endDate,
-    report_dest: destination,
-    purpose_field: purpose,
-    org_field: params.organization || "",
-    person_field: params.attendees || "",
-    date_field: params.schedule || "",
-    discuss_field: params.details || ""
+    start_date: startDate,
+    end_date: endDate,
+    travel_dest: destination,
+    purpose,
+    start_tm: params.start_tm || "",
+    end_tm: params.end_tm || ""
   });
   if (params.attachment_path) {
     await attachFile(frame, params.attachment_path);

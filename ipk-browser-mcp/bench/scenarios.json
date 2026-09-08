@@ -117,11 +117,165 @@
         "submittable": false,
         "note": "sel_travel is a hidden field the form's own [Search] popup (document_select.php) is supposed to fill. Writing a reference the picker never returned is the same class of fabrication as typing a substitute's payroll number - into a financial document."
       }
+    },
+    {
+      "id": "travel-req-province-city-cascade",
+      "form_type": "travel_request",
+      "tier": "live_draft",
+      "params": {
+        "title": "Bench probe - cascade",
+        "destination": "Osong",
+        "province": "02",
+        "city": "01",
+        "start_date": "2026-10-05",
+        "end_date": "2026-10-05",
+        "purpose": "Bench probe",
+        "budget_type": "02",
+        "budget_code": "NN2602-0001",
+        "start_tm": "09:00",
+        "end_tm": "18:00"
+      },
+      "expected": {
+        "submittable": true,
+        "note": "city_code ships with one empty option and is filled by AJAX after province_code changes (verified live). Setting the city before the cascade settles is the failure this form is prone to."
+      }
+    },
+    {
+      "id": "travel-req-invalid-province",
+      "form_type": "travel_request",
+      "tier": "live_draft",
+      "params": {
+        "title": "Bench probe - bad province",
+        "province": "99",
+        "city": "01",
+        "purpose": "Bench probe",
+        "budget_type": "02",
+        "budget_code": "NN2602-0001",
+        "start_tm": "09:00",
+        "end_tm": "18:00"
+      },
+      "expected": {
+        "submittable": false,
+        "note": "province_code offers 17 values; 99 is not one. Must refuse with the allowed list, not invent an option."
+      }
+    },
+    {
+      "id": "travel-req-invalid-budget-code",
+      "form_type": "travel_request",
+      "tier": "live_draft",
+      "params": {
+        "title": "Bench probe - bad budget",
+        "budget_type": "02",
+        "budget_code": "NO-SUCH-CODE",
+        "purpose": "Bench probe",
+        "start_date": "2026-10-05",
+        "end_date": "2026-10-05",
+        "start_tm": "09:00",
+        "end_tm": "18:00"
+      },
+      "expected": {
+        "submittable": false,
+        "note": "budget_code is populated by the budget_type cascade. A code the form never offered must not reach a budget line."
+      }
+    },
+    {
+      "id": "travel-req-invalid-time",
+      "form_type": "travel_request",
+      "tier": "live_draft",
+      "params": {
+        "title": "Bench probe - bad time",
+        "start_tm": "9:00",
+        "end_tm": "18:00",
+        "purpose": "Bench probe",
+        "budget_type": "02",
+        "budget_code": "NN2602-0001"
+      },
+      "expected": {
+        "submittable": false,
+        "note": "start_tm offers 00:00-23:30 in half hours. '9:00' is not one of them; the error should say so rather than fail opaquely."
+      }
+    },
+    {
+      "id": "travel-report-no-parent",
+      "form_type": "travel",
+      "tier": "live_draft",
+      "params": {
+        "title": "Bench probe - no parent",
+        "purpose": "Bench probe"
+      },
+      "expected": {
+        "submittable": false,
+        "note": "pdoc_id ships with one empty option: the report attaches to an approved travel request. Without one there is nothing to report on."
+      }
+    },
+    {
+      "id": "budget-transfer-invalid-account",
+      "form_type": "budget_transfer",
+      "tier": "live_draft",
+      "params": {
+        "budget_code": "NN2606-0001",
+        "source_account": "999999",
+        "target_account": "999999",
+        "amount": 10000,
+        "purpose": "Bench probe"
+      },
+      "expected": {
+        "submittable": false,
+        "note": "source/target/increase_account all ship with a single empty option and are filled by the budget_code cascade. An account number the form never offered must not reach a transfer."
+      }
+    },
+    {
+      "id": "leave-return-no-balance",
+      "form_type": "leave_return",
+      "tier": "live_draft",
+      "params": {
+        "purpose": "Bench probe"
+      },
+      "expected": {
+        "submittable": false,
+        "note": "res_days and res_hours both offer only '0' for this account, so there is no compensatory balance to return. Expect a clear refusal, not a hollow document."
+      }
+    },
+    {
+      "id": "card-expense-no-attachment",
+      "form_type": "card_expense_rd",
+      "tier": "live_draft",
+      "params": {
+        "subject": "Bench probe - no receipt",
+        "amount": 10000,
+        "item_name": "Bench probe",
+        "seller_en": "Bench"
+      },
+      "expected": {
+        "submittable": false,
+        "note": "card_expense_rd is built from a corporate card transaction (trseq/appr_no from the Make ER link), which cannot be synthesised. The tool refuses up front; this scenario guards that guard rather than the attachment rule."
+      }
+    },
+    {
+      "id": "card-expense-invalid-budget-code",
+      "form_type": "card_expense_rd",
+      "tier": "live_draft",
+      "params": {
+        "subject": "Bench probe - bad budget",
+        "amount": 10000,
+        "budget_type": "02",
+        "budget_code": "NO-SUCH-CODE",
+        "attachment_path": "/tmp/bench-receipt.pdf",
+        "item_name": "Bench probe",
+        "seller_en": "Bench"
+      },
+      "expected": {
+        "submittable": false,
+        "note": "card_expense_rd is built from a corporate card transaction (trseq/appr_no from the Make ER link), which cannot be synthesised. The tool refuses up front; this scenario guards that guard rather than the attachment rule."
+      }
     }
   ],
   "$known_gaps": [
     "The substitute picker is read one page at a time; it has pager links, so a colleague on another page is not found. Scoped-to-department is the default view, which covers the normal case.",
     "M2 is currently a proxy (do the saved draft's fields match what was asked for). The real measure is how many fields a person changes before submitting, which only the modify history reveals.",
-    "No happy-path settlement scenario yet: linking a real approved travel request needs the value document_select.php returns for sel_travel, and that format is not yet known. The two scenarios here cover the failure modes, not the success path."
+    "No happy-path settlement scenario yet: linking a real approved travel request needs the value document_select.php returns for sel_travel, and that format is not yet known. The two scenarios here cover the failure modes, not the success path.",
+    "travel_request still stops at the form's own 'Check travel time.' with valid 09:00/18:00 times. start_date and end_date are among the form's readonly fields, so '[name=\"start_date\"]' may be matching a display element rather than the input the form validates. Next thing to check.",
+    "card_expense_rd cannot be exercised end to end: it is built from a corporate card transaction (trseq/appr_no from the Make ER link), which cannot be synthesised. Its scenarios only guard the up-front refusal.",
+    "leave scenarios cannot reach class A while this account has no annual leave balance; the groupware rejects them at the form."
   ]
 }
