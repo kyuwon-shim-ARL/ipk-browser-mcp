@@ -1,12 +1,26 @@
 {
-  "minedAt": "2026-09-07T02:51:42.911Z",
+  "minedAt": "2026-09-08T05:31:02.000Z",
   "records": [
+    {
+      "formType": "leave",
+      "appFrmCode": "AppFrm-073",
+      "docNo": "ARL-260907-08",
+      "date": "2026-09-07",
+      "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
+      "touched": false
+    },
     {
       "formType": "leave",
       "appFrmCode": "AppFrm-073",
       "docNo": "ARL-260904-01",
       "date": "2026-09-03",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -17,6 +31,9 @@
       "modifiedBy": [
         "Yeonji Kim (yeonji.kim_01) - 2026-09-01 11:14:58 (기안 연결)"
       ],
+      "edits": 1,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": true
     },
     {
@@ -25,6 +42,9 @@
       "docNo": "ARL-260902-03",
       "date": "2026-09-01",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -33,6 +53,9 @@
       "docNo": "ARL-260708-03",
       "date": "2026-07-07",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -41,6 +64,9 @@
       "docNo": "ARL-260706-07",
       "date": "2026-07-06",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -49,6 +75,9 @@
       "docNo": "ARL-260702-01",
       "date": "2026-07-01",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -57,6 +86,9 @@
       "docNo": "ARL-260630-01",
       "date": "2026-06-29",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -65,6 +97,9 @@
       "docNo": "ARL-260624-02",
       "date": "2026-06-23",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -73,6 +108,9 @@
       "docNo": "ARL-260623-02",
       "date": "2026-06-22",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -81,6 +119,9 @@
       "docNo": "ARL-260616-01",
       "date": "2026-06-15",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -89,6 +130,9 @@
       "docNo": "ARL-260612-05",
       "date": "2026-06-12",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -99,6 +143,9 @@
       "modifiedBy": [
         "Kyuwon Shim (kyuwon.shim) - 2026-06-11 16:52:01"
       ],
+      "edits": 1,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": true
     },
     {
@@ -107,6 +154,9 @@
       "docNo": "ARL-260611-03",
       "date": "2026-06-10",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -115,6 +165,9 @@
       "docNo": "ARL-260609-03",
       "date": "2026-06-08",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -123,6 +176,9 @@
       "docNo": "ARL-260602-04",
       "date": "2026-06-01",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -131,6 +187,9 @@
       "docNo": "ARL-260529-03",
       "date": "2026-05-28",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -139,6 +198,9 @@
       "docNo": "ARL-260526-03",
       "date": "2026-05-22",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -147,6 +209,9 @@
       "docNo": "ARL-260522-02",
       "date": "2026-05-21",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -155,6 +220,9 @@
       "docNo": "ARL-260521-02",
       "date": "2026-05-20",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -163,6 +231,9 @@
       "docNo": "ARL-260519-01",
       "date": "2026-05-18",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -171,6 +242,9 @@
       "docNo": "ARL-260515-03",
       "date": "2026-05-14",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -179,6 +253,9 @@
       "docNo": "ARL-260514-04",
       "date": "2026-05-13",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -187,6 +264,9 @@
       "docNo": "ARL-260513-02",
       "date": "2026-05-12",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -195,6 +275,9 @@
       "docNo": "ARL-260512-02",
       "date": "2026-05-11",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -203,6 +286,9 @@
       "docNo": "ARL-260511-04",
       "date": "2026-05-08",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -211,6 +297,9 @@
       "docNo": "ARL-260506-02",
       "date": "2026-05-04",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -219,6 +308,9 @@
       "docNo": "ARL-260427-09",
       "date": "2026-04-27",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -227,6 +319,9 @@
       "docNo": "ARL-260424-03",
       "date": "2026-04-23",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -235,6 +330,9 @@
       "docNo": "ARL-260421-01",
       "date": "2026-04-20",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -243,6 +341,9 @@
       "docNo": "ARL-260420-01",
       "date": "2026-04-17",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -254,6 +355,9 @@
         "Kyuwon Shim (kyuwon.shim) - 2026-04-15 20:24:56",
         "Kyuwon Shim (kyuwon.shim) - 2026-04-15 17:14:05"
       ],
+      "edits": 2,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": true
     },
     {
@@ -262,6 +366,9 @@
       "docNo": "ARL-260414-01",
       "date": "2026-04-13",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -270,6 +377,9 @@
       "docNo": "ARL-260410-01",
       "date": "2026-04-09",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -278,6 +388,9 @@
       "docNo": "ARL-260408-01",
       "date": "2026-04-07",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -288,6 +401,9 @@
       "modifiedBy": [
         "Kyuwon Shim (kyuwon.shim) - 2026-04-06 22:56:29"
       ],
+      "edits": 1,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": true
     },
     {
@@ -296,6 +412,9 @@
       "docNo": "ARL-260401-02",
       "date": "2026-03-31",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -304,6 +423,9 @@
       "docNo": "ARL-260331-06",
       "date": "2026-03-30",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -312,6 +434,9 @@
       "docNo": "ARL-260325-03",
       "date": "2026-03-25",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -320,6 +445,9 @@
       "docNo": "ARL-260324-17",
       "date": "2026-03-24",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -328,6 +456,9 @@
       "docNo": "ARL-260324-01",
       "date": "2026-03-23",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -336,6 +467,9 @@
       "docNo": "ARL-260323-01",
       "date": "2026-03-20",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -344,6 +478,9 @@
       "docNo": "ARL-260320-03",
       "date": "2026-03-19",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -352,6 +489,9 @@
       "docNo": "ARL-260319-02",
       "date": "2026-03-18",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -360,6 +500,9 @@
       "docNo": "ARL-260318-03",
       "date": "2026-03-17",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -368,6 +511,9 @@
       "docNo": "ARL-260317-01",
       "date": "2026-03-16",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -376,6 +522,9 @@
       "docNo": "ARL-260316-01",
       "date": "2026-03-13",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -384,6 +533,9 @@
       "docNo": "ARL-260312-08",
       "date": "2026-03-12",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -392,6 +544,9 @@
       "docNo": "ARL-260312-01",
       "date": "2026-03-11",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -400,6 +555,9 @@
       "docNo": "ARL-260310-09",
       "date": "2026-03-10",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -408,6 +566,9 @@
       "docNo": "ARL-260309-06",
       "date": "2026-03-09",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -416,6 +577,9 @@
       "docNo": "ARL-260306-01",
       "date": "2026-03-05",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -424,6 +588,9 @@
       "docNo": "ARL-260305-05",
       "date": "2026-03-04",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -432,6 +599,9 @@
       "docNo": "ARL-260305-04",
       "date": "2026-03-04",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -440,6 +610,9 @@
       "docNo": "ARL-260305-03",
       "date": "2026-03-04",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -448,6 +621,9 @@
       "docNo": "ARL-260226-11",
       "date": "2026-02-26",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -456,6 +632,9 @@
       "docNo": "ARL-260225-02",
       "date": "2026-02-24",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -464,6 +643,9 @@
       "docNo": "ARL-260224-01",
       "date": "2026-02-23",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -472,6 +654,9 @@
       "docNo": "ARL-260220-02",
       "date": "2026-02-19",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -480,6 +665,9 @@
       "docNo": "ARL-260213-01",
       "date": "2026-02-12",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -488,6 +676,9 @@
       "docNo": "ARL-260212-01",
       "date": "2026-02-11",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -496,6 +687,9 @@
       "docNo": "ARL-260211-02",
       "date": "2026-02-10",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -504,6 +698,9 @@
       "docNo": "ARL-260210-01",
       "date": "2026-02-09",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -512,6 +709,9 @@
       "docNo": "ARL-260207-01",
       "date": "2026-02-06",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -520,6 +720,9 @@
       "docNo": "ARL-260206-03",
       "date": "2026-02-05",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -528,6 +731,9 @@
       "docNo": "ARL-260204-07",
       "date": "2026-02-04",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -536,6 +742,9 @@
       "docNo": "ARL-260203-02",
       "date": "2026-02-02",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -544,6 +753,9 @@
       "docNo": "ARL-260130-05",
       "date": "2026-01-30",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -552,6 +764,9 @@
       "docNo": "ARL-260129-06",
       "date": "2026-01-29",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -560,6 +775,9 @@
       "docNo": "ARL-260128-06",
       "date": "2026-01-28",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -568,6 +786,9 @@
       "docNo": "ARL-260127-05",
       "date": "2026-01-23",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -576,6 +797,9 @@
       "docNo": "ARL-260126-06",
       "date": "2026-01-26",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -584,6 +808,9 @@
       "docNo": "ARL-260126-03",
       "date": "2026-01-23",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -592,6 +819,9 @@
       "docNo": "ARL-260121-02",
       "date": "2026-01-20",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -600,6 +830,9 @@
       "docNo": "ARL-260119-20",
       "date": "2026-01-19",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -608,6 +841,9 @@
       "docNo": "ARL-260114-01",
       "date": "2026-01-13",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -616,6 +852,9 @@
       "docNo": "ARL-260112-02",
       "date": "2026-01-12",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -624,6 +863,9 @@
       "docNo": "ARL-260108-10",
       "date": "2026-01-08",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -632,6 +874,9 @@
       "docNo": "ARL-260107-02",
       "date": "2026-01-06",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -640,6 +885,9 @@
       "docNo": "ARL-260105-04",
       "date": "2026-01-05",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -648,6 +896,9 @@
       "docNo": "ARL-251231-04",
       "date": "2025-12-30",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -656,6 +907,9 @@
       "docNo": "ARL-251226-09",
       "date": "2025-12-26",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -664,6 +918,9 @@
       "docNo": "ARL-251224-17",
       "date": "2025-12-24",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -672,6 +929,9 @@
       "docNo": "ARL-251223-04",
       "date": "2025-12-22",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -680,6 +940,9 @@
       "docNo": "ARL-251222-01",
       "date": "2025-12-19",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -688,6 +951,9 @@
       "docNo": "ARL-251217-03",
       "date": "2025-12-15",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -696,6 +962,9 @@
       "docNo": "ARL-251212-02",
       "date": "2025-12-11",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -704,6 +973,9 @@
       "docNo": "ARL-251211-01",
       "date": "2025-12-10",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -712,6 +984,9 @@
       "docNo": "ARL-251210-03",
       "date": "2025-12-09",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -720,6 +995,9 @@
       "docNo": "ARL-251205-01",
       "date": "2025-12-04",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -728,6 +1006,9 @@
       "docNo": "ARL-251204-01",
       "date": "2025-12-03",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -736,6 +1017,9 @@
       "docNo": "ARL-251201-25",
       "date": "2025-12-01",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -744,6 +1028,9 @@
       "docNo": "ARL-251201-03",
       "date": "2025-11-27",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -752,6 +1039,9 @@
       "docNo": "ARL-251125-02",
       "date": "2025-11-21",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -760,6 +1050,9 @@
       "docNo": "ARL-251120-05",
       "date": "2025-11-20",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -768,6 +1061,9 @@
       "docNo": "ARL-251117-03",
       "date": "2025-11-17",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -776,6 +1072,9 @@
       "docNo": "ARL-251114-01",
       "date": "2025-11-14",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -784,6 +1083,9 @@
       "docNo": "ARL-251113-07",
       "date": "2025-11-13",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -792,6 +1094,9 @@
       "docNo": "ARL-251111-03",
       "date": "2025-11-10",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -800,6 +1105,9 @@
       "docNo": "ARL-251111-02",
       "date": "2025-11-10",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -808,6 +1116,9 @@
       "docNo": "ARL-251106-02",
       "date": "2025-11-04",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -816,6 +1127,9 @@
       "docNo": "ARL-251103-05",
       "date": "2025-11-03",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -824,6 +1138,9 @@
       "docNo": "ARL-251029-07",
       "date": "2025-10-29",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -832,6 +1149,9 @@
       "docNo": "ARL-251024-03",
       "date": "2025-10-24",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -840,6 +1160,9 @@
       "docNo": "ARL-251014-05",
       "date": "2025-10-13",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -848,6 +1171,9 @@
       "docNo": "ARL-250822-01",
       "date": "2025-08-21",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -856,6 +1182,9 @@
       "docNo": "ARL-250819-04",
       "date": "2025-08-18",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -864,6 +1193,9 @@
       "docNo": "ARL-250811-11",
       "date": "2025-08-11",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -872,6 +1204,9 @@
       "docNo": "ARL-250723-04",
       "date": "2025-07-22",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -880,6 +1215,9 @@
       "docNo": "ARL-250718-01",
       "date": "2025-07-18",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -890,6 +1228,9 @@
       "modifiedBy": [
         "Kyuwon Shim (kyuwon.shim) - 2026-02-03 13:45:47"
       ],
+      "edits": 1,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": true
     },
     {
@@ -900,6 +1241,9 @@
       "modifiedBy": [
         "Kyuwon Shim (kyuwon.shim) - 2026-07-01 15:28:40"
       ],
+      "edits": 1,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": true
     },
     {
@@ -908,6 +1252,9 @@
       "docNo": "ARL-260616-03",
       "date": "2026-06-15",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -918,6 +1265,9 @@
       "modifiedBy": [
         "Kyuwon Shim (kyuwon.shim) - 2026-05-14 11:23:15"
       ],
+      "edits": 1,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": true
     },
     {
@@ -928,6 +1278,9 @@
       "modifiedBy": [
         "Kyuwon Shim (kyuwon.shim) - 2026-05-01 23:06:31"
       ],
+      "edits": 1,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": true
     },
     {
@@ -946,6 +1299,9 @@
         "Kyuwon Shim (kyuwon.shim) - 2026-04-20 10:31:51",
         "Kyuwon Shim (kyuwon.shim) - 2026-04-20 10:25:39"
       ],
+      "edits": 9,
+      "attachmentsAdded": 0,
+      "reworkBursts": 6,
       "touched": true
     },
     {
@@ -957,6 +1313,9 @@
         "Kyuwon Shim (kyuwon.shim) - 2026-03-20 22:52:50",
         "Kyuwon Shim (kyuwon.shim) - 2026-03-20 22:51:58"
       ],
+      "edits": 2,
+      "attachmentsAdded": 0,
+      "reworkBursts": 1,
       "touched": true
     },
     {
@@ -968,6 +1327,9 @@
         "Kyuwon Shim (kyuwon.shim) - 2026-01-27 16:02:44",
         "Kyuwon Shim (kyuwon.shim) - 2026-01-27 15:55:57"
       ],
+      "edits": 2,
+      "attachmentsAdded": 0,
+      "reworkBursts": 1,
       "touched": true
     },
     {
@@ -978,6 +1340,9 @@
       "modifiedBy": [
         "Kyuwon Shim (kyuwon.shim) - 2025-12-05 09:56:53"
       ],
+      "edits": 1,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": true
     },
     {
@@ -986,6 +1351,9 @@
       "docNo": "ARL-251205-09",
       "date": "2025-12-04",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -999,6 +1367,9 @@
         "Additional document",
         "&Transfer Receipt\tHFSP_acomodation_매출전표.pdf [150358Bytes] [Delete]"
       ],
+      "edits": 2,
+      "attachmentsAdded": 2,
+      "reworkBursts": 0,
       "touched": true
     },
     {
@@ -1009,6 +1380,9 @@
       "modifiedBy": [
         "Kyuwon Shim (kyuwon.shim) - 2025-10-22 09:27:09"
       ],
+      "edits": 1,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": true
     },
     {
@@ -1017,6 +1391,9 @@
       "docNo": "ARL-250918-09",
       "date": "2025-09-12",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -1025,6 +1402,9 @@
       "docNo": "ARL-250708-10",
       "date": "2025-07-07",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -1033,6 +1413,9 @@
       "docNo": "ARL-250618-04",
       "date": "2025-06-16",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -1041,6 +1424,9 @@
       "docNo": "ARL-260128-01",
       "date": "2026-01-27",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -1049,6 +1435,9 @@
       "docNo": "ARL-260106-08",
       "date": "2026-01-05",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -1057,6 +1446,9 @@
       "docNo": "ARL-260106-04",
       "date": "2026-01-05",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -1065,6 +1457,9 @@
       "docNo": "ARL-251024-06",
       "date": "2025-10-24",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -1073,6 +1468,9 @@
       "docNo": "ARL-260707-04",
       "date": "2026-07-06",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -1095,6 +1493,9 @@
         "Additional document",
         "&Transfer Receipt\t26001495.pdf [101580Bytes] [Delete]"
       ],
+      "edits": 11,
+      "attachmentsAdded": 2,
+      "reworkBursts": 8,
       "touched": true
     },
     {
@@ -1107,7 +1508,10 @@
         "&Transfer Receipt\t입금확인증_KMB2026_숙박비초과분_심규원.pdf [559726Bytes] [Delete]",
         "26001760.pdf [101008Bytes] [Delete]"
       ],
-      "touched": true
+      "edits": 0,
+      "attachmentsAdded": 3,
+      "reworkBursts": 0,
+      "touched": false
     },
     {
       "formType": "travel_settlement",
@@ -1118,7 +1522,10 @@
         "Additional document",
         "&Transfer Receipt\t26002452.pdf [101584Bytes] [Delete]"
       ],
-      "touched": true
+      "edits": 0,
+      "attachmentsAdded": 2,
+      "reworkBursts": 0,
+      "touched": false
     },
     {
       "formType": "travel_settlement",
@@ -1126,6 +1533,9 @@
       "docNo": "ARL-260518-18",
       "date": "2026-05-18",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -1136,6 +1546,9 @@
       "modifiedBy": [
         "Kyuwon Shim (kyuwon.shim) - 2026-03-30 23:10:41"
       ],
+      "edits": 1,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": true
     },
     {
@@ -1147,7 +1560,10 @@
         "Additional document",
         "&Transfer Receipt\t25004908.pdf [101558Bytes] [Delete]"
       ],
-      "touched": true
+      "edits": 0,
+      "attachmentsAdded": 2,
+      "reworkBursts": 0,
+      "touched": false
     },
     {
       "formType": "travel_settlement",
@@ -1158,7 +1574,10 @@
         "Additional document",
         "&Transfer Receipt\t25004909.pdf [101559Bytes] [Delete]"
       ],
-      "touched": true
+      "edits": 0,
+      "attachmentsAdded": 2,
+      "reworkBursts": 0,
+      "touched": false
     },
     {
       "formType": "travel_settlement",
@@ -1174,6 +1593,9 @@
         "25004268.pdf [130231Bytes] [Delete]",
         "자리등급.png [164935Bytes] [Delete]"
       ],
+      "edits": 2,
+      "attachmentsAdded": 5,
+      "reworkBursts": 0,
       "touched": true
     },
     {
@@ -1186,6 +1608,9 @@
         "Additional document",
         "&Transfer Receipt\t25004088.pdf [101415Bytes] [Delete]"
       ],
+      "edits": 1,
+      "attachmentsAdded": 2,
+      "reworkBursts": 0,
       "touched": true
     },
     {
@@ -1197,7 +1622,10 @@
         "Additional document",
         "&Transfer Receipt\t25003461.pdf [101411Bytes] [Delete]"
       ],
-      "touched": true
+      "edits": 0,
+      "attachmentsAdded": 2,
+      "reworkBursts": 0,
+      "touched": false
     },
     {
       "formType": "travel_settlement",
@@ -1208,7 +1636,10 @@
         "Additional document",
         "&Transfer Receipt\t25002352.pdf [118696Bytes] [Delete]"
       ],
-      "touched": true
+      "edits": 0,
+      "attachmentsAdded": 2,
+      "reworkBursts": 0,
+      "touched": false
     },
     {
       "formType": "travel_settlement",
@@ -1219,7 +1650,10 @@
         "Additional document",
         "&Transfer Receipt\t25002027.pdf [118434Bytes] [Delete]"
       ],
-      "touched": true
+      "edits": 0,
+      "attachmentsAdded": 2,
+      "reworkBursts": 0,
+      "touched": false
     },
     {
       "formType": "leave_return",
@@ -1227,6 +1661,9 @@
       "docNo": "ARL-260126-05",
       "date": "2026-01-23",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -1235,6 +1672,9 @@
       "docNo": "ARL-260106-01",
       "date": "2026-01-05",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -1243,6 +1683,9 @@
       "docNo": "ARL-250722-07",
       "date": "2025-07-21",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -1251,6 +1694,9 @@
       "docNo": "ARL-260721-08",
       "date": "2026-07-20",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -1259,6 +1705,9 @@
       "docNo": "ARL-260710-05",
       "date": "2026-07-09",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -1267,6 +1716,9 @@
       "docNo": "ARL-260529-05",
       "date": "2026-05-27",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -1280,7 +1732,10 @@
         "KMB2026_membership_receipt.pdf [197018Bytes] [Delete]",
         "KMB2026_registration_invoice_signed.pdf [315038Bytes] [Delete]"
       ],
-      "touched": true
+      "edits": 0,
+      "attachmentsAdded": 4,
+      "reworkBursts": 0,
+      "touched": false
     },
     {
       "formType": "card_expense_rd",
@@ -1290,6 +1745,9 @@
       "modifiedBy": [
         "Kyuwon Shim (kyuwon.shim) - 2026-05-06 14:33:50"
       ],
+      "edits": 1,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": true
     },
     {
@@ -1304,6 +1762,9 @@
         "Kyuwon Shim (kyuwon.shim) - 2026-04-28 14:37:46",
         "Kyuwon Shim (kyuwon.shim) - 2026-04-28 14:17:25"
       ],
+      "edits": 5,
+      "attachmentsAdded": 0,
+      "reworkBursts": 2,
       "touched": true
     },
     {
@@ -1312,6 +1773,9 @@
       "docNo": "ARL-260423-01",
       "date": "2026-04-22",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -1320,6 +1784,9 @@
       "docNo": "ARL-260422-10",
       "date": "2026-04-17",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -1333,6 +1800,9 @@
         "Kyuwon Shim (kyuwon.shim) - 2026-04-20 14:43:48",
         "Kyuwon Shim (kyuwon.shim) - 2026-04-20 14:43:07"
       ],
+      "edits": 4,
+      "attachmentsAdded": 0,
+      "reworkBursts": 3,
       "touched": true
     },
     {
@@ -1345,6 +1815,9 @@
         "Kyuwon Shim (kyuwon.shim) - 2026-04-13 14:52:08",
         "Kyuwon Shim (kyuwon.shim) - 2026-04-13 13:35:25"
       ],
+      "edits": 3,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": true
     },
     {
@@ -1358,6 +1831,9 @@
         "Kyuwon Shim (kyuwon.shim) - 2026-04-07 15:41:53",
         "Kyuwon Shim (kyuwon.shim) - 2026-04-07 15:28:18"
       ],
+      "edits": 4,
+      "attachmentsAdded": 0,
+      "reworkBursts": 2,
       "touched": true
     },
     {
@@ -1373,6 +1849,9 @@
         "Kyuwon Shim (kyuwon.shim) - 2026-04-07 15:29:21",
         "Kyuwon Shim (kyuwon.shim) - 2026-04-07 15:26:14"
       ],
+      "edits": 6,
+      "attachmentsAdded": 0,
+      "reworkBursts": 4,
       "touched": true
     },
     {
@@ -1381,6 +1860,9 @@
       "docNo": "ARL-260406-21",
       "date": "2026-03-30",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -1391,6 +1873,9 @@
       "modifiedBy": [
         "Kyuwon Shim (kyuwon.shim) - 2026-03-27 10:46:29"
       ],
+      "edits": 1,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": true
     },
     {
@@ -1399,6 +1884,9 @@
       "docNo": "ARL-260327-02",
       "date": "2026-03-27",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -1409,6 +1897,9 @@
       "modifiedBy": [
         "Kyuwon Shim (kyuwon.shim) - 2026-02-10 10:07:26"
       ],
+      "edits": 1,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": true
     },
     {
@@ -1417,6 +1908,9 @@
       "docNo": "ARL-260211-07",
       "date": "2026-02-10",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -1429,7 +1923,10 @@
         "&Transfer Receipt\t2026_KMB_winter_-_accomodation_숙박예약확인.pdf [348224Bytes] [Delete]",
         "2026_KMB_winter_-_accomodation_숙박내역서.pdf [92999Bytes] [Delete]"
       ],
-      "touched": true
+      "edits": 0,
+      "attachmentsAdded": 3,
+      "reworkBursts": 0,
+      "touched": false
     },
     {
       "formType": "card_expense_rd",
@@ -1437,6 +1934,9 @@
       "docNo": "ARL-260108-07",
       "date": "2026-01-07",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -1445,6 +1945,9 @@
       "docNo": "ARL-260108-05",
       "date": "2026-01-05",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -1456,7 +1959,10 @@
         "Additional document",
         "&Transfer Receipt\tApplication_for_Working_on_2025-12-17,_Kyuwon_Shim.pdf [277604Bytes] [Delete]"
       ],
-      "touched": true
+      "edits": 0,
+      "attachmentsAdded": 2,
+      "reworkBursts": 0,
+      "touched": false
     },
     {
       "formType": "card_expense_rd",
@@ -1468,6 +1974,9 @@
         "Additional document",
         "&Transfer Receipt\tApplication_for_Working_on_2025-12-02,_Kyuwon_Shim.pdf [277904Bytes] [Delete]"
       ],
+      "edits": 1,
+      "attachmentsAdded": 2,
+      "reworkBursts": 0,
       "touched": true
     },
     {
@@ -1476,6 +1985,9 @@
       "docNo": "ARL-251126-05",
       "date": "2025-11-25",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -1487,7 +1999,10 @@
         "Additional document",
         "&Transfer Receipt\t251022_overtime_meal_매출전표.pdf [52054Bytes] [Delete]"
       ],
-      "touched": true
+      "edits": 0,
+      "attachmentsAdded": 2,
+      "reworkBursts": 0,
+      "touched": false
     },
     {
       "formType": "card_expense_rd",
@@ -1495,6 +2010,9 @@
       "docNo": "ARL-251030-08",
       "date": "2025-10-29",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -1503,6 +2021,9 @@
       "docNo": "ARL-251024-09",
       "date": "2025-10-24",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -1513,6 +2034,9 @@
       "modifiedBy": [
         "Kyuwon Shim (kyuwon.shim) - 2025-08-25 14:56:48"
       ],
+      "edits": 1,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": true
     },
     {
@@ -1521,6 +2045,9 @@
       "docNo": "ARL-250827-03",
       "date": "2025-08-25",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -1529,6 +2056,9 @@
       "docNo": "ARL-250827-02",
       "date": "2025-08-25",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -1537,6 +2067,9 @@
       "docNo": "ARL-250822-02",
       "date": "2025-08-20",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     },
     {
@@ -1548,7 +2081,10 @@
         "Additional document",
         "&Transfer Receipt\t2025_MSK_프로그램.pdf [533652Bytes] [Delete]"
       ],
-      "touched": true
+      "edits": 0,
+      "attachmentsAdded": 2,
+      "reworkBursts": 0,
+      "touched": false
     },
     {
       "formType": "card_expense_rd",
@@ -1561,6 +2097,9 @@
         "Additional document",
         "&Transfer Receipt\tInvoice-1A4AVGGR-0001-서명추가.pdf [139107Bytes] [Delete]"
       ],
+      "edits": 2,
+      "attachmentsAdded": 2,
+      "reworkBursts": 1,
       "touched": true
     },
     {
@@ -1573,6 +2112,9 @@
         "Additional document",
         "&Transfer Receipt\t25002751.pdf [100070Bytes] [Delete]"
       ],
+      "edits": 1,
+      "attachmentsAdded": 2,
+      "reworkBursts": 0,
       "touched": true
     },
     {
@@ -1581,6 +2123,9 @@
       "docNo": "ARL-250729-06",
       "date": "2025-07-28",
       "modifiedBy": [],
+      "edits": 0,
+      "attachmentsAdded": 0,
+      "reworkBursts": 0,
       "touched": false
     }
   ]

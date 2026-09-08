@@ -12,7 +12,6 @@ import {
   setRequiredSelect,
   setFormMode,
   submitForm,
-  executeAjaxCascade,
 } from "../browser/iframe-helper.js";
 import type { CascadeStep } from "../browser/iframe-helper.js";
 import {
@@ -1746,6 +1745,18 @@ async function submitTravelSettlement(
   const subject = params.title || `[Settlement] ${purpose}`;
   const approvedDocRef = params.approved_doc_ref || params.sel_travel || "";
 
+  // A settlement settles an approved travel request. A bare AppFrm-054 carries almost no
+  // fields - start_date, end_date, purpose and the province/city cascade only appear once
+  // the parent is linked - so without one there is nothing to settle and anything produced
+  // is a hollow document that the form then refuses without saying why.
+  if (!approvedDocRef) {
+    throw new Error(
+      "PARENT_DOC_REQUIRED: travel_settlement needs the approved travel request it settles. " +
+        "Pass approved_doc_ref. Without it the form exposes no date, purpose or budget fields " +
+        "and the submission is rejected with no message."
+    );
+  }
+
   // Step 1: Set sel_travel hidden field to link the approved travel request
   let autoPopulated = false;
   if (approvedDocRef) {
@@ -1759,97 +1770,35 @@ async function submitTravelSettlement(
       },
       approvedDocRef
     );
-    // Wait to see if groupware JS auto-populates fields
-    await page.waitForTimeout(2000);
-
-    // Check if auto-populate worked by verifying at least one parent-doc field is filled
-    autoPopulated = await frame.evaluate(() => {
-      const startDate = document.querySelector('input[name="start_date"]') as HTMLInputElement | null;
-      const province = document.querySelector('select[name="province"]') as HTMLSelectElement | null;
-      return !!(
-        (startDate && startDate.value && startDate.value !== "") ||
-        (province && province.value && province.value !== "" && province.value !== "0")
-      );
-    });
+    // Poll rather than sleep once: linking the parent is a server round-trip, and a fixed
+    // 2s wait turns a slow-but-valid reference into a refusal.
+    const deadline = Date.now() + 8000;
+    while (Date.now() < deadline) {
+      autoPopulated = await frame.evaluate(() => {
+        const startDate = document.querySelector('input[name="start_date"]') as HTMLInputElement | null;
+        const province = document.querySelector('select[name="province"]') as HTMLSelectElement | null;
+        return !!(
+          (startDate && startDate.value && startDate.value !== "") ||
+          (province && province.value && province.value !== "" && province.value !== "0")
+        );
+      });
+      if (autoPopulated) break;
+      await page.waitForTimeout(400);
+    }
   }
 
-  // Step 2: If auto-populate didn't work, manually set parent-doc fields + run cascade
+  // sel_travel is a hidden field the form's own [Search] popup (document_select.php) fills.
+  // If the form did not populate itself from the reference we wrote, the form did not accept
+  // it - the document either does not exist, is not ours, or is not settleable. Carrying on
+  // would put an unverified reference on a financial document, which is the same fabrication
+  // as typing a substitute's payroll number.
   if (!autoPopulated) {
-    const startDate = params.start_date || todayStr();
-    const endDate = params.end_date || startDate;
-
-    // Set date and text fields via genericFillForm
-    const manualSchema: Record<string, TemplateFieldSchema> = {
-      start_date:       { type: "date", dom_name: "start_date" },
-      end_date:         { type: "date", dom_name: "end_date" },
-      purpose_category: { type: "select", dom_name: "purpose_category" },
-      purpose:          { type: "textarea", dom_name: "purpose" },
-      destination:      { type: "text", dom_name: "destination" },
-    };
-
-    await genericFillForm(frame, manualSchema, {
-      start_date: startDate,
-      end_date: endDate,
-      purpose_category: params.purpose_category || "",
-      purpose: params.purpose || "",
-      destination: params.destination || "",
-    });
-
-    // Run AJAX cascade: province -> city -> transport_mode -> budget_type -> budget_code -> item_no
-    const province = params.province || "";
-    const city = params.city || "";
-    const transportMode = params.transport_mode || "Other Public Transporation";
-    const budgetType = params.budget_type || "02"; // IPK is R&D institute, "02" (R&D) is correct default
-
-    if (province) {
-      const cascadeSteps: CascadeStep[] = [
-        {
-          field: "province",
-          value: province,
-          waitSelector: "select[name='city'] option:nth-child(2)",
-          timeoutMs: 3000,
-        },
-        {
-          field: "city",
-          value: city,
-          waitSelector: "select[name='transport_mode'] option:nth-child(2)",
-          timeoutMs: 3000,
-        },
-        {
-          field: "transport_mode",
-          value: transportMode,
-          timeoutMs: 1500,
-        },
-        {
-          field: "budget_type",
-          value: budgetType,
-          waitSelector: "select[name='budget_code'] option:nth-child(2)",
-          timeoutMs: 3000,
-        },
-      ];
-
-      // Add budget_code step if provided
-      if (params.budget_code) {
-        cascadeSteps.push({
-          field: "budget_code",
-          value: params.budget_code,
-          waitSelector: "select[name='item_no'] option:nth-child(2)",
-          timeoutMs: 3000,
-          condition: "budget_type",
-        });
-      }
-      // Add item_no step if provided
-      if (params.item_no) {
-        cascadeSteps.push({
-          field: "item_no",
-          value: params.item_no,
-          timeoutMs: 1500,
-          condition: "budget_code",
-        });
-      }
-
-      await executeAjaxCascade(page, frame, cascadeSteps);
-    }
+    audit({ action: "refusal", field: "sel_travel", code: "PARENT_DOC_NOT_ACCEPTED", ok: false });
+    throw new Error(
+      `PARENT_DOC_NOT_ACCEPTED: the form did not load anything from '${approvedDocRef}'. ` +
+        "Check the document number of the approved travel request, or pick it through the " +
+        "form's [Search] button. Refusing to submit a settlement whose parent is unverified."
+    );
   }
 
   // Step 3: Set subject, budget control, and expense amounts via genericFillForm
@@ -1890,12 +1839,6 @@ async function submitTravelSettlement(
   const docId = await submitForm(page, frame, "check_form_request");
 
   const warnings: string[] = [];
-  if (!approvedDocRef) {
-    warnings.push("No approved_doc_ref (sel_travel) provided — parent document fields may be incomplete.");
-  }
-  if (!autoPopulated && approvedDocRef) {
-    warnings.push("sel_travel auto-populate did not work — used manual cascade fallback.");
-  }
   if (params.transport_mode?.includes("Own Vehicle") && !params.attachment_path) {
     warnings.push("Own vehicle travel requires 거리.pdf (Naver Maps screenshot) attachment.");
   }
