@@ -191,9 +191,20 @@ export class SessionManager {
         await this.session.context.close();
       }
 
+      // IPK_USER_NAME is routinely set to the login id ("kyuwon.shim"), and this name goes
+      // into document subjects and reports. Turn an id-shaped value into the display form
+      // rather than signing a document "kyuwon.shim".
+      const rawName = process.env.IPK_USER_NAME || username;
+      const displayName = /\s/.test(rawName)
+        ? rawName
+        : rawName
+            .split(/[._]+/)
+            .filter(Boolean)
+            .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+            .join(" ");
       const userInfo = {
         username,
-        name: process.env.IPK_USER_NAME || username.replace(".", " "),
+        name: displayName,
         dept: process.env.IPK_USER_DEPT || "",
       };
 
