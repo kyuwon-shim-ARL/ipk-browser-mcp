@@ -123,14 +123,18 @@ async function main() {
         arguments: { form_type: sc.form_type, draft_only: true, ...sc.params },
       });
       const p = payload(res);
-      if (p && p.error) {
-        const serverRejected = /SUBMIT_REJECTED|SUBMIT_FAILED/.test(String(p.message || ""));
-        result = { status: "refused", code: p.code, message: p.message, serverRejected };
-      } else if (p && p.doc_id) {
-        result = { status: "ok", docId: p.doc_id };
-        createdDocs.push({ id: p.doc_id, scenario: sc.id });
+      // Handlers are not consistent about shape: errors come back flat, successes sometimes
+      // under `data`, and the id is `docId` in some handlers and `doc_id` in others.
+      const body = p && p.data ? { ...p, ...p.data } : p;
+      const docId = body?.docId ?? body?.doc_id ?? null;
+      if (body && body.error) {
+        const serverRejected = /SUBMIT_REJECTED|SUBMIT_FAILED|SUBMIT_UNVERIFIED/.test(String(body.message || ""));
+        result = { status: "refused", code: body.code, message: body.message, serverRejected };
+      } else if (docId) {
+        result = { status: "ok", docId };
+        createdDocs.push({ id: docId, scenario: sc.id });
       } else {
-        result = { status: "ok", docId: null, note: p?.message };
+        result = { status: "ok", docId: null, note: body?.message };
       }
     } catch (e) {
       result = { status: "error", message: String(e.message || e) };
