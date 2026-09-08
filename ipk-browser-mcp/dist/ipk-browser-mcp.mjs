@@ -21697,48 +21697,6 @@ async function setRequiredSelect(frame, selector, value, fieldName) {
     throw new Error(`FIELD_NOT_FOUND: Required select '${fieldName}' not found (selector: ${selector})`);
   }
 }
-async function executeAjaxCascade(page, frame, steps) {
-  const errors = [];
-  let completed = 0;
-  for (const step of steps) {
-    if (step.condition) {
-      const conditionMet = await frame.evaluate(
-        (sel) => {
-          const el = document.querySelector(`select[name="${sel}"]`);
-          return el ? el.value !== "" && el.value !== "0" : false;
-        },
-        step.condition
-      );
-      if (!conditionMet) {
-        continue;
-      }
-    }
-    const selector = `select[name="${step.field}"]`;
-    const ok = await setSelectValue(frame, selector, step.value);
-    if (!ok) {
-      errors.push(`SELECTOR_NOT_FOUND: select[name="${step.field}"]`);
-      continue;
-    }
-    const timeout = step.timeoutMs || 3e3;
-    if (step.waitSelector) {
-      try {
-        await frame.waitForSelector(step.waitSelector, { timeout });
-      } catch {
-        await page.waitForTimeout(500);
-        try {
-          await frame.waitForSelector(step.waitSelector, { timeout: timeout / 2 });
-        } catch {
-          errors.push(`CASCADE_TIMEOUT: ${step.field} \u2192 waited for "${step.waitSelector}" (${timeout}ms)`);
-          continue;
-        }
-      }
-    } else {
-      await page.waitForTimeout(Math.min(timeout, 2e3));
-    }
-    completed++;
-  }
-  return { completed, total: steps.length, errors };
-}
 async function setFormMode(frame, mode) {
   await frame.evaluate(
     (m) => {
@@ -22977,6 +22935,11 @@ async function submitTravelSettlement(page, frame, sessionManager2, config3, par
   const purpose = params.purpose || "Business travel";
   const subject = params.title || `[Settlement] ${purpose}`;
   const approvedDocRef = params.approved_doc_ref || params.sel_travel || "";
+  if (!approvedDocRef) {
+    throw new Error(
+      "PARENT_DOC_REQUIRED: travel_settlement needs the approved travel request it settles. Pass approved_doc_ref. Without it the form exposes no date, purpose or budget fields and the submission is rejected with no message."
+    );
+  }
   let autoPopulated = false;
   if (approvedDocRef) {
     await frame.evaluate(
@@ -22989,79 +22952,22 @@ async function submitTravelSettlement(page, frame, sessionManager2, config3, par
       },
       approvedDocRef
     );
-    await page.waitForTimeout(2e3);
-    autoPopulated = await frame.evaluate(() => {
-      const startDate2 = document.querySelector('input[name="start_date"]');
-      const province = document.querySelector('select[name="province"]');
-      return !!(startDate2 && startDate2.value && startDate2.value !== "" || province && province.value && province.value !== "" && province.value !== "0");
-    });
+    const deadline = Date.now() + 8e3;
+    while (Date.now() < deadline) {
+      autoPopulated = await frame.evaluate(() => {
+        const startDate2 = document.querySelector('input[name="start_date"]');
+        const province = document.querySelector('select[name="province"]');
+        return !!(startDate2 && startDate2.value && startDate2.value !== "" || province && province.value && province.value !== "" && province.value !== "0");
+      });
+      if (autoPopulated) break;
+      await page.waitForTimeout(400);
+    }
   }
   if (!autoPopulated) {
-    const startDate2 = params.start_date || todayStr();
-    const endDate2 = params.end_date || startDate2;
-    const manualSchema = {
-      start_date: { type: "date", dom_name: "start_date" },
-      end_date: { type: "date", dom_name: "end_date" },
-      purpose_category: { type: "select", dom_name: "purpose_category" },
-      purpose: { type: "textarea", dom_name: "purpose" },
-      destination: { type: "text", dom_name: "destination" }
-    };
-    await genericFillForm(frame, manualSchema, {
-      start_date: startDate2,
-      end_date: endDate2,
-      purpose_category: params.purpose_category || "",
-      purpose: params.purpose || "",
-      destination: params.destination || ""
-    });
-    const province = params.province || "";
-    const city = params.city || "";
-    const transportMode = params.transport_mode || "Other Public Transporation";
-    const budgetType = params.budget_type || "02";
-    if (province) {
-      const cascadeSteps = [
-        {
-          field: "province",
-          value: province,
-          waitSelector: "select[name='city'] option:nth-child(2)",
-          timeoutMs: 3e3
-        },
-        {
-          field: "city",
-          value: city,
-          waitSelector: "select[name='transport_mode'] option:nth-child(2)",
-          timeoutMs: 3e3
-        },
-        {
-          field: "transport_mode",
-          value: transportMode,
-          timeoutMs: 1500
-        },
-        {
-          field: "budget_type",
-          value: budgetType,
-          waitSelector: "select[name='budget_code'] option:nth-child(2)",
-          timeoutMs: 3e3
-        }
-      ];
-      if (params.budget_code) {
-        cascadeSteps.push({
-          field: "budget_code",
-          value: params.budget_code,
-          waitSelector: "select[name='item_no'] option:nth-child(2)",
-          timeoutMs: 3e3,
-          condition: "budget_type"
-        });
-      }
-      if (params.item_no) {
-        cascadeSteps.push({
-          field: "item_no",
-          value: params.item_no,
-          timeoutMs: 1500,
-          condition: "budget_code"
-        });
-      }
-      await executeAjaxCascade(page, frame, cascadeSteps);
-    }
+    audit({ action: "refusal", field: "sel_travel", code: "PARENT_DOC_NOT_ACCEPTED", ok: false });
+    throw new Error(
+      `PARENT_DOC_NOT_ACCEPTED: the form did not load anything from '${approvedDocRef}'. Check the document number of the approved travel request, or pick it through the form's [Search] button. Refusing to submit a settlement whose parent is unverified.`
+    );
   }
   const startDate = params.start_date || todayStr();
   const endDate = params.end_date || startDate;
@@ -23094,12 +23000,6 @@ async function submitTravelSettlement(page, frame, sessionManager2, config3, par
   await setFormMode(frame, mode);
   const docId = await submitForm(page, frame, "check_form_request");
   const warnings = [];
-  if (!approvedDocRef) {
-    warnings.push("No approved_doc_ref (sel_travel) provided \u2014 parent document fields may be incomplete.");
-  }
-  if (!autoPopulated && approvedDocRef) {
-    warnings.push("sel_travel auto-populate did not work \u2014 used manual cascade fallback.");
-  }
   if (params.transport_mode?.includes("Own Vehicle") && !params.attachment_path) {
     warnings.push("Own vehicle travel requires \uAC70\uB9AC.pdf (Naver Maps screenshot) attachment.");
   }
