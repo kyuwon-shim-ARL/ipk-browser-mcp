@@ -1,0 +1,444 @@
+[
+  {
+    "docNo": "ARL-260422-12",
+    "formType": "travel_request",
+    "versions": 9,
+    "removed": [
+      "( 1 ) ( 3 ) ( 4 )",
+      "Kyuwon Shim [Sign] [Sign]",
+      "Kyuwon Shim Soojin Jang Sung KeyJang",
+      "[Sign] [Sign]",
+      "Team Member Team Head (A)",
+      "Budget Control No []",
+      "Food Expense 27000 1 0 27,000 27,000",
+      "Food Expense 27000 1 0 27,000 27,000",
+      "Total 0 57,000 57,000",
+      "R&D- 2022GARDPFFS_SoojinJang(ARL) [FS2214-0000] [FS2214-0001] - Domestic Business Travel[410201]",
+      "(Period :2022-01-01~2028-08-18)",
+      "NoConference/Seminar Programfile"
+    ],
+    "added": [
+      "Document No ARL-260422-12",
+      "Payment Date to be determined",
+      "( 1 ) ( 2 ) ( 4 )",
+      "Kyuwon Shim Soojin Jang Soojin Jang",
+      "2026-04-20 2026-04-21 2026-04-21",
+      "Soojin Jang",
+      "Suhyun Park Sang-Sun Shin",
+      "2026-04-21 2026-04-22",
+      "Budget Control No [26001495]",
+      "Food Expense 27000 1 0 0 0",
+      "Food Expense 27000 1 0 0 0",
+      "Total 0 30,000 30,000",
+      "R&D- 2026Mid-career ResearchProgram_2nd_SoojinJang_이월금 [EZ:NN2606-0000] [NN2606-0002] - Domestic Business Travel[410201]",
+      "(Period :2026-03-01~2027-02-28)",
+      "260424_ai_co-scientist_challange_korea__프로그램_일정.png (103145byte)",
+      "260424_ai_co-scientist_challange_korea_사전등록_완료.png [470604Bytes]",
+      "260424_ai_co-scientist_challange_korea_행사개요.png [1152499Bytes]",
+      "260424_ai_co-scientist_challange_korea_허가.pdf [400240Bytes]",
+      "260424_ai_co-scientist_challange_korea_공문.pdf was deleted byKyuwon Shim (2026-04-20 13:24)",
+      "260424_ai_co-scientist_challange_korea_행사개요.png was deleted byKyuwon Shim (2026-04-20 13:24)",
+      "260424_ai_co-scientist_challange_korea__프로그램_일정.png was deleted byKyuwon Shim (2026-04-20 13:24)",
+      "260424_ai_co-scientist_challange_korea_사전등록_완료.png was deleted byKyuwon Shim (2026-04-20 13:25)",
+      "260424_ai_co-scientist_challange_korea__프로그램_일정.png was deleted byKyuwon Shim (2026-04-20 13:49)",
+      "260424_ai_co-scientist_challange_korea_행사개요.png was deleted byKyuwon Shim (2026-04-20 13:49)",
+      "260424_ai_co-scientist_challange_korea_사전등록_완료.png was deleted byKyuwon Shim (2026-04-20 13:49)",
+      "Kyuwon Shim (Antibacterial Resistance Lab - Team Member) 2026-04-20 13:25:14",
+      "[No opinion]",
+      "Soojin Jang (Antibacterial Resistance Lab - Team Head (R)) 2026-04-21 07:15:58",
+      "[No opinion]",
+      "Soojin Jang (Antibacterial Resistance Lab - Team Head (R)) 2026-04-21 07:15:58",
+      "[No opinion]",
+      "Sung KeyJang (CEO- CEO) 2026-04-21 07:15:58",
+      "[No opinion]",
+      "Suhyun Park (Budget Planning &Finance - Team Member) 2026-04-21 09:06:01",
+      "[No opinion]",
+      "Sang-Sun Shin (Budget Planning &Finance - Team Head (A)) 2026-04-22 14:38:50",
+      "[No opinion]",
+      "Kyuwon Shim (kyuwon.shim) - 2026-04-29 11:33:48",
+      "Kyuwon Shim (kyuwon.shim) - 2026-04-29 11:28:07",
+      "Kyuwon Shim (kyuwon.shim) - 2026-04-20 13:31:16",
+      "Kyuwon Shim (kyuwon.shim) - 2026-04-20 13:15:16",
+      "Kyuwon Shim (kyuwon.shim) - 2026-04-20 10:43:55",
+      "Kyuwon Shim (kyuwon.shim) - 2026-04-20 10:36:03",
+      "Kyuwon Shim (kyuwon.shim) - 2026-04-20 10:31:51",
+      "Kyuwon Shim (kyuwon.shim) - 2026-04-20 10:25:39"
+    ],
+    "kinds": {
+      "text": 26,
+      "amount": 4,
+      "budget code": 2,
+      "date or time": 25
+    }
+  },
+  {
+    "docNo": "ARL-260324-16",
+    "formType": "travel_request",
+    "versions": 2,
+    "removed": [
+      "Subject [Request] GARDPFFSQ1 Sample Collection for Microbial Surveillance",
+      "Institute Credit Card No",
+      "NoConference/Seminar Programfile",
+      "Document ModifyHistory"
+    ],
+    "added": [
+      "Subject [Request] GARDP2026 Q1 Sample Collection for Microbial Surveillance",
+      "Institute Credit Card No 4518-4445-1265-8391",
+      "2603_RAPID_travel_request_and_approval.pdf (181708byte)",
+      "2603_RAPID_travel_request_and_approval.pdf [181708Bytes]",
+      "Document ModifyHistory Kyuwon Shim (kyuwon.shim) - 2026-03-20 22:51:58"
+    ],
+    "kinds": {
+      "text": 8,
+      "date or time": 1
+    }
+  },
+  {
+    "docNo": "ARL-260127-07",
+    "formType": "travel_request",
+    "versions": 2,
+    "removed": [
+      "Document ModifyHistory"
+    ],
+    "added": [
+      "Document ModifyHistory Kyuwon Shim (kyuwon.shim) - 2026-01-27 15:55:57"
+    ],
+    "kinds": {
+      "text": 1,
+      "date or time": 1
+    }
+  },
+  {
+    "docNo": "ARL-251103-04",
+    "formType": "travel_request",
+    "versions": 2,
+    "removed": [
+      "APerson in Charg",
+      "Team Head (R) CEO",
+      "[Sign] [ Sign ] [ Sign ]",
+      "Accommodation 100000 2 112,646 200,000 312,646",
+      "Total 146,446 371,000 517,446",
+      "Total 146,446 371,000 517,446",
+      "Document ModifyHistory"
+    ],
+    "added": [
+      "APerson in Charge Team Head (R) CEO",
+      "[ Sign ] [ Sign ]",
+      "Accommodation 100000 2 112,646 0 112,646",
+      "Total 146,446 171,000 317,446",
+      "Total 146,446 171,000 317,446",
+      "========================Historyof ReturntoRequester ==========================",
+      "SoojinJang(Antibacterial Resistance Lab- TeamHead(R)) 2025-10-30 22:03:14",
+      "[No opinion]",
+      "SoojinJang(Antibacterial Resistance Lab- TeamHead(R)) 2025-10-30 22:03:14",
+      "[No opinion]",
+      "SungKeyJang(CEO- CEO) 2025-10-30 22:03:14",
+      "[No opinion]",
+      "SuhyunPark (Budget Planning& Finance - TeamMember) 2025-10-31 09:40:36",
+      "요청자에 의한 리턴",
+      "================================================================",
+      "Kyuwon Shim (Antibacterial Resistance Lab - Team Member)",
+      "[No opinion]",
+      "Document ModifyHistory Kyuwon Shim (kyuwon.shim) - 2025-10-30 13:40:22"
+    ],
+    "kinds": {
+      "text": 14,
+      "amount": 6,
+      "date or time": 5
+    }
+  },
+  {
+    "docNo": "ARL-260701-07",
+    "formType": "travel_settlement",
+    "versions": 11,
+    "removed": [
+      "ToBe Approved 2026-05-06 Urgent / Confidential",
+      "Drafter Antibacterial Resistance Lab - Team Member - Kyuwon Shim (00565) Date 2026-04-29",
+      "Daily Expense 30,000 0 20,000 20,000 0",
+      "FoodExpense 27,000 0 0 0 0",
+      "FoodExpense 27,000 0 0 0 0",
+      "Total Sum 57,000 0 20,000 20,000 0",
+      "AttachApprovedDocument [ARL-260422-12] [Request] Participation in 2026 AI Co-Scientist Challenge Korea Conference"
+    ],
+    "added": [
+      "ToBe Approved 2026-07-08 Urgent / Confidential",
+      "Drafter Antibacterial Resistance Lab - Team Member - Kyuwon Shim (00565) Date 2026-07-01",
+      "Daily Expense 30,000 0 20,000 20,000 10,000",
+      "FoodExpense 0 0 0 0 0",
+      "FoodExpense 0 0 0 0 0",
+      "Total Sum 30,000 0 20,000 20,000 10,000",
+      "AttachApprovedDocument [] [Request] Participation in 2026 AI Co-Scientist Challenge Korea Conference",
+      "Kyuwon Shim (kyuwon.shim) - 2026-05-01 22:45:46",
+      "Kyuwon Shim (kyuwon.shim) - 2026-04-29 11:59:26",
+      "Kyuwon Shim (kyuwon.shim) - 2026-04-29 11:57:03",
+      "Kyuwon Shim (kyuwon.shim) - 2026-04-29 11:53:03",
+      "Kyuwon Shim (kyuwon.shim) - 2026-04-29 11:36:10",
+      "Kyuwon Shim (kyuwon.shim) - 2026-04-29 11:34:29",
+      "Kyuwon Shim (kyuwon.shim) - 2026-04-29 11:17:44",
+      "Kyuwon Shim (kyuwon.shim) - 2026-04-29 11:17:19",
+      "Kyuwon Shim (kyuwon.shim) - 2026-04-29 11:11:46",
+      "Kyuwon Shim (kyuwon.shim) - 2026-04-29 10:55:01"
+    ],
+    "kinds": {
+      "date or time": 14,
+      "amount": 6,
+      "text": 4
+    }
+  },
+  {
+    "docNo": "ARL-251201-18",
+    "formType": "travel_settlement",
+    "versions": 2,
+    "removed": [
+      "ToBe Approved 2025-11-19 Urgent / Confidential",
+      "Drafter Antibacterial Resistance Lab - Team Member - Kyuwon Shim (00565) Date 2025-11-12",
+      "Transport Fee 33,800 33,800 0 33,800 0 Appr No01928109, 01928155",
+      "Document ModifyHistory"
+    ],
+    "added": [
+      "ToBe Approved 2025-11-26 Urgent / Confidential",
+      "Drafter Antibacterial Resistance Lab - Team Member - Kyuwon Shim (00565) Date 2025-11-19",
+      "Transport Fee 33,800 33,800 0 33,800 0",
+      "Appr No05156008, 46645117(CancelledAppr",
+      "No01928109, 01928155)",
+      "Document ModifyHistory Kyuwon Shim (kyuwon.shim) - 2025-11-12 16:19:47"
+    ],
+    "kinds": {
+      "date or time": 5,
+      "amount": 2,
+      "text": 3
+    }
+  },
+  {
+    "docNo": "ARL-260504-01",
+    "formType": "card_expense_rd",
+    "versions": 5,
+    "removed": [
+      "APerson in Charge Team Head (R) CEO",
+      "[ Sign ] [ Sign ]",
+      "Subject [Card] ARL RunPod GPU Compute Credits - 2026-04-21 (KRW301,860)",
+      "RunPodGPUComputeCredits (",
+      "2026-04-21)",
+      "1 274,41927,441 301,860N/N26001629-01 RUNPOD.IO -",
+      "Notes",
+      "Opinionof approval Kyuwon Shim (Antibacterial Resistance Lab - Team Member) 2026-04-28 14:15:00",
+      "[No opinion]"
+    ],
+    "added": [
+      "APerson in Charg",
+      "Team Head (R) CEO",
+      "[Sign] [ Sign ] [ Sign ]",
+      "Subject [Card] ARL RunPod GPU Compute Credits",
+      "RunPodGPUComputeCredits 1 274,41927,441 301,860N/N26001629-01 RUNPOD.IO -",
+      "Notes TorunGPUdemandingmodels suchas molecular embbedingandreinforcement learning, virtual screening",
+      "Opinionof approval",
+      "Kyuwon Shim (kyuwon.shim) - 2026-04-28 15:25:27",
+      "Kyuwon Shim (kyuwon.shim) - 2026-04-28 14:44:40",
+      "Kyuwon Shim (kyuwon.shim) - 2026-04-28 14:37:46",
+      "Kyuwon Shim (kyuwon.shim) - 2026-04-28 14:37:46",
+      "Kyuwon Shim (kyuwon.shim) - 2026-04-28 14:17:25"
+    ],
+    "kinds": {
+      "text": 11,
+      "amount": 3,
+      "date or time": 7
+    }
+  },
+  {
+    "docNo": "ARL-260421-07",
+    "formType": "card_expense_rd",
+    "versions": 4,
+    "removed": [
+      "( 1 ) ( 3 ) ( 4 )",
+      "Kyuwon Shim [Sign] [Sign]",
+      "[EZ:NN2606-0000] [NN2606-0001] 2026Mid-career ResearchProgram_2",
+      "nd_SoojinJang",
+      "Cate No Account Code Description",
+      "2026-04-",
+      "ISBN978-0123695",
+      "208",
+      "[420374]",
+      "ITSoftware(ITSubscription)",
+      "OvertimeMeal Support viaBae",
+      "min(2026-04-14, 17:20-20:20)",
+      "1 13,546",
+      "14,900",
+      "-01",
+      "주식회사 우아한형",
+      "File Attachment List"
+    ],
+    "added": [
+      "Payment Date to be determined",
+      "( 1 ) ( 2 ) ( 4 )",
+      "[Sign] [ Sign ] [ Sign ]",
+      "[EZ:NN2606-0000] [NN2606-0002] 2026Mid-career ResearchProgram_2",
+      "nd_SoojinJang_이월금",
+      "Account Code Attendees",
+      "Amount",
+      "excl. VA",
+      "Total Amoun",
+      "Control No Payee/Vendor",
+      "2026-04-1",
+      "none",
+      "[412103]",
+      "OvertimeMeals",
+      "OvertimeMeal 1 13,546",
+      "14,900N/N",
+      "26001512-0",
+      "주식회사 우아한형제",
+      "Date/Time 2026-04-1417:22~2026-04-1420:06",
+      "Attendees KyuwonShim,,",
+      "Purpose of Overtime work Establishingaharness for claudecodetomangemetagenomics-basedmicrobial surveillancepipelinefor urbanenvironments.",
+      "File Attachment List 260414_meal_CC_sales_slip.pdf [6018670Bytes]",
+      "[ARL-260419-04] Application for Working on 2026-04-14, Kyuwon Shim",
+      "Kyuwon Shim (kyuwon.shim) - 2026-04-20 14:44:33",
+      "Kyuwon Shim (kyuwon.shim) - 2026-04-20 14:43:48",
+      "Kyuwon Shim (kyuwon.shim) - 2026-04-20 14:43:07"
+    ],
+    "kinds": {
+      "text": 29,
+      "budget code": 2,
+      "account code": 2,
+      "date or time": 6,
+      "amount": 4
+    }
+  },
+  {
+    "docNo": "ARL-260415-08",
+    "formType": "card_expense_rd",
+    "versions": 3,
+    "removed": [
+      "Payment Date to be determined",
+      "[Sign] [Sign]",
+      "Team Member Team Head (A)",
+      "Document ModifyHistory",
+      "Additional document",
+      "& Transfer receipt",
+      "260404_Runpod_CC_sales_slip.pdf [177205Bytes]",
+      "260404_Runpod_daily_usage.png [252959Bytes]",
+      "260404_Runpod-invoice.pdf [123911Bytes]",
+      "Nofileselected",
+      "Choose File",
+      "Nofileselected",
+      "Choose File",
+      "Nofileselected",
+      "Choose File"
+    ],
+    "added": [
+      "Payment Date 2026-05-15",
+      "Budget Planning &",
+      "Finance",
+      "Suhyun Park Team Head (A)",
+      "Suhyun Park (Budget Planning &Finance - Team Member) 2026-04-13 14:58:47",
+      "Kyuwon Shim (ARL - Team Member) 2026-04-13 14:19:12",
+      "확인 결과 과제는 제대로 선택된게 맞았습니다. 다만 서류가 잘못 첨부되어있었어서 첨부파일 3건 모두 다시 올려드립니다.",
+      "Suhyun Park (BPF- Team Member) 2026-04-13 14:32:20",
+      "첨부 다시 부탁드립니다.",
+      "Kyuwon Shim (ARL - Team Member) 2026-04-13 14:54:07",
+      "260409 발생한 100$ 결제 건으로 서류 업데이트.",
+      "Document ModifyHistory Kyuwon Shim (kyuwon.shim) - 2026-04-13 14:52:08",
+      "Kyuwon Shim (kyuwon.shim) - 2026-04-13 13:35:25"
+    ],
+    "kinds": {
+      "text": 21,
+      "date or time": 7
+    }
+  },
+  {
+    "docNo": "ARL-260409-10",
+    "formType": "card_expense_rd",
+    "versions": 4,
+    "removed": [
+      "( 1 ) ( 3 ) ( 4 )",
+      "APerson in Charg",
+      "Team Head (R) CEO",
+      "Kyuwon Shim [Sign] [Sign]",
+      "Subject [ARL] RunPod GPU Compute Credits - 2026.04.04 (USD 100 / KRW153,995)",
+      "Cate No Account Code Description",
+      "excl. VA",
+      "VAT",
+      "Control N",
+      "Payee/Vendo",
+      "2026-04-0",
+      "ISBN978-01236952",
+      "RunPodGPUComputeCredits 1 139,996",
+      "13,99",
+      "153,995",
+      "-01",
+      "RUNPOD.I",
+      "Notes",
+      "Opinionof approval"
+    ],
+    "added": [
+      "Payment Date to be determined",
+      "( 1 ) ( 2 ) ( 4 )",
+      "APerson in Charge Team Head (R) CEO",
+      "[ Sign ] [ Sign ]",
+      "Subject RunPod GPU Compute Credits",
+      "Cate No Account Code Description Qty",
+      "excl. VAT",
+      "VAT Total Amount P/C Control No Payee/Vendor PGM",
+      "1 2026-04-04 none",
+      "RunPodGPUComputeCredits 1 139,99613,999 153,995N/N26001278-01 RUNPOD.IO -",
+      "Notes credit for cloudGPUservicefor antibiotics development &ImagebasedMoA Classifeir",
+      "Opinionof approval Kyuwon Shim (Antibacterial Resistance Lab - Team Member) 2026-04-07 15:28:19",
+      "[No opinion]",
+      "Kyuwon Shim (kyuwon.shim) - 2026-04-07 16:21:38",
+      "Kyuwon Shim (kyuwon.shim) - 2026-04-07 15:41:53",
+      "Kyuwon Shim (kyuwon.shim) - 2026-04-07 15:28:18"
+    ],
+    "kinds": {
+      "text": 26,
+      "amount": 4,
+      "date or time": 5
+    }
+  },
+  {
+    "docNo": "ARL-260409-09",
+    "formType": "card_expense_rd",
+    "versions": 6,
+    "removed": [
+      "( 1 ) ( 3 ) ( 4 )",
+      "APerson in Charg",
+      "Team Head (R) CEO",
+      "Kyuwon Shim [Sign] [Sign]",
+      "Subject [ARL] Google Cloud (Gemini API) usage fee - 2026.03 (KRW2,211)",
+      "Cate No Account Code Description",
+      "excl. VA",
+      "Total Amoun",
+      "Control N",
+      "2026-04-0",
+      "ISBN978-01236952",
+      "1 2,010 201 2,211N/N -01",
+      "구글클라우",
+      "Notes",
+      "Opinionof approval"
+    ],
+    "added": [
+      "Payment Date to be determined",
+      "( 1 ) ( 2 ) ( 4 )",
+      "APerson in Charge Team Head (R) CEO",
+      "[ Sign ] [ Sign ]",
+      "Subject Google Cloud (Gemini API) usage fee",
+      "Cate No Account Code Description Qty",
+      "excl. VAT",
+      "VAT Total Amount P/C Control No Payee/Vendor PGM",
+      "1 2026-04-02 none",
+      "1 2,010 201 2,211N/N26001277-01 구글클라우드 -",
+      "Notes Scientific figuregenerationusingPaperBananabasedongoogle's NanoBananaAPI",
+      "Opinionof approval Kyuwon Shim (Antibacterial Resistance Lab - Team Member) 2026-04-07 15:29:27",
+      "[No opinion]",
+      "Kyuwon Shim (kyuwon.shim) - 2026-04-07 16:21:19",
+      "Kyuwon Shim (kyuwon.shim) - 2026-04-07 15:41:35",
+      "Kyuwon Shim (kyuwon.shim) - 2026-04-07 15:37:56",
+      "Kyuwon Shim (kyuwon.shim) - 2026-04-07 15:29:21",
+      "Kyuwon Shim (kyuwon.shim) - 2026-04-07 15:26:14",
+      "Kyuwon Shim (kyuwon.shim) - 2026-04-07 15:26:14"
+    ],
+    "kinds": {
+      "text": 23,
+      "amount": 3,
+      "date or time": 8
+    }
+  }
+]

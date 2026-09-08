@@ -9,11 +9,13 @@
     "dev": "node --watch dist/ipk-browser-mcp.mjs",
     "start": "node dist/ipk-browser-mcp.mjs",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
+    "test": "npm run lint:invariants && vitest run",
     "test:watch": "vitest",
     "lint:security": "grep -rn 'evaluate(`' src/ && echo 'FAIL: template literal in evaluate' && exit 1 || echo 'PASS: no template literals in evaluate'",
     "lint:imports": "! (grep -rn --include='*.ts' 'internal/primitives' src/ | grep -v '^src/internal/' | grep -v '^src/tools/') || (echo 'FAIL: src/internal/** imported from outside src/tools/**' && exit 1)",
-    "lint:branches": "[ $(grep -cE 'form_type[[:space:]]*[=!]==|formType[[:space:]]*[=!]==|switch.*form_type|switch.*formType' src/tools/ipk-submit.ts 2>/dev/null || echo 0) -eq 0 ] && echo 'PASS: no form-type branches in ipk-submit.ts' || (echo 'FAIL: form-type branches found in ipk-submit.ts' && exit 1)"
+    "lint:branches": "npm run lint:invariants",
+    "lint:invariants": "node scripts/lint-invariants.mjs",
+    "lint": "npm run lint:security && npm run lint:imports && npm run lint:invariants"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.1",

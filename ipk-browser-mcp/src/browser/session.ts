@@ -18,13 +18,45 @@ interface SessionState {
  * - Auth persistence via storageState
  * - Graceful shutdown on SIGTERM/SIGINT
  */
+/**
+ * Verify the page is actually authenticated, not just sitting on main.php.
+ * The groupware frameset renders the logged-in user's identity ("Welcome, <name>")
+ * and a logout control; an unauthenticated response has a password input instead.
+ */
+async function hasAuthMarker(page: Page): Promise<boolean> {
+  try {
+    return await page.evaluate(() => {
+      const frames = [document, ...Array.from(document.querySelectorAll("frame, iframe"))
+        .map((f) => {
+          try {
+            return (f as HTMLIFrameElement).contentDocument;
+          } catch {
+            return null;
+          }
+        })
+        .filter((d): d is Document => !!d)];
+      for (const doc of frames) {
+        if (doc.querySelector('input[type="password"], input[name="Password"]')) continue;
+        const text = doc.body?.innerText || "";
+        if (/Welcome,|Logout|로그아웃/i.test(text)) return true;
+        if (doc.querySelector('a[href*="logout"], a[href*="Logout"]')) return true;
+      }
+      return false;
+    });
+  } catch {
+    return false;
+  }
+}
+
 export class SessionManager {
   private static SESSION_TTL_MS = 30 * 60 * 1000; // 30 minutes
+  private static SHUTDOWN_TIMEOUT_MS = 3000;
   private browser: Browser | null = null;
   private session: SessionState | null = null;
   private config: Config;
   private shutdownRegistered = false;
   private loginInProgress = false;
+  private shuttingDown = false;
 
   constructor(config: Config) {
     this.config = config;
@@ -35,9 +67,20 @@ export class SessionManager {
     if (this.shutdownRegistered) return;
     this.shutdownRegistered = true;
 
+    // The signal handler replaces Node's default terminate behaviour, so it must be
+    // bounded: if a close() hangs, an unbounded await here makes SIGINT/SIGTERM fail
+    // and forces the caller to SIGKILL (which leaks the Chromium child process).
     const cleanup = async () => {
-      await this.destroy();
-      process.exit(0);
+      if (this.shuttingDown) return;
+      this.shuttingDown = true;
+      const timedOut = Symbol("timeout");
+      const result = await Promise.race([
+        this.destroy().then(() => "ok" as const),
+        new Promise<typeof timedOut>((resolve) =>
+          setTimeout(() => resolve(timedOut), SessionManager.SHUTDOWN_TIMEOUT_MS).unref()
+        ),
+      ]);
+      process.exit(result === timedOut ? 1 : 0);
     };
     process.on("SIGTERM", cleanup);
     process.on("SIGINT", cleanup);
@@ -129,7 +172,9 @@ export class SessionManager {
         }
       }
 
-      const loggedIn = page.url().includes("main.php");
+      // URL alone is a false positive: the goto() above lands on main.php whether or not
+      // the credentials were accepted. Require an authenticated marker in the page too.
+      const loggedIn = page.url().includes("main.php") && (await hasAuthMarker(page));
 
       if (!loggedIn) {
         await context.close();
@@ -146,9 +191,20 @@ export class SessionManager {
         await this.session.context.close();
       }
 
+      // IPK_USER_NAME is routinely set to the login id ("kyuwon.shim"), and this name goes
+      // into document subjects and reports. Turn an id-shaped value into the display form
+      // rather than signing a document "kyuwon.shim".
+      const rawName = process.env.IPK_USER_NAME || username;
+      const displayName = /\s/.test(rawName)
+        ? rawName
+        : rawName
+            .split(/[._]+/)
+            .filter(Boolean)
+            .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+            .join(" ");
       const userInfo = {
         username,
-        name: process.env.IPK_USER_NAME || username.replace(".", " "),
+        name: displayName,
         dept: process.env.IPK_USER_DEPT || "",
       };
 
@@ -189,6 +245,16 @@ export class SessionManager {
     const page = this.getPage();
     if (!page) return null;
     return page.frame("main_menu");
+  }
+
+  /**
+   * Distinguishes "never logged in" from "session expired" so tools can tell the caller
+   * which one happened. A 30-minute idle expiry otherwise reads as a dropped connection.
+   */
+  getLoginState(): "none" | "expired" | "active" {
+    if (!this.session?.loggedIn) return "none";
+    if (Date.now() - this.session.lastActivity > SessionManager.SESSION_TTL_MS) return "expired";
+    return "active";
   }
 
   isLoggedIn(): boolean {

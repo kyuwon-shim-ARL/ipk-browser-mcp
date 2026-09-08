@@ -2989,7 +2989,7 @@ var require_compile = __commonJS({
       const schOrFunc = root.refs[ref];
       if (schOrFunc)
         return schOrFunc;
-      let _sch = resolve3.call(this, root, ref);
+      let _sch = resolve4.call(this, root, ref);
       if (_sch === void 0) {
         const schema = (_a = root.localRefs) === null || _a === void 0 ? void 0 : _a[ref];
         const { schemaId } = this.opts;
@@ -3016,7 +3016,7 @@ var require_compile = __commonJS({
     function sameSchemaEnv(s1, s2) {
       return s1.schema === s2.schema && s1.root === s2.root && s1.baseId === s2.baseId;
     }
-    function resolve3(root, ref) {
+    function resolve4(root, ref) {
       let sch;
       while (typeof (sch = this.refs[ref]) == "string")
         ref = sch;
@@ -3231,8 +3231,8 @@ var require_utils = __commonJS({
       }
       return ind;
     }
-    function removeDotSegments(path5) {
-      let input = path5;
+    function removeDotSegments(path6) {
+      let input = path6;
       const output = [];
       let nextSlash = -1;
       let len = 0;
@@ -3431,8 +3431,8 @@ var require_schemes = __commonJS({
         wsComponent.secure = void 0;
       }
       if (wsComponent.resourceName) {
-        const [path5, query] = wsComponent.resourceName.split("?");
-        wsComponent.path = path5 && path5 !== "/" ? path5 : void 0;
+        const [path6, query] = wsComponent.resourceName.split("?");
+        wsComponent.path = path6 && path6 !== "/" ? path6 : void 0;
         wsComponent.query = query;
         wsComponent.resourceName = void 0;
       }
@@ -3591,7 +3591,7 @@ var require_fast_uri = __commonJS({
       }
       return uri;
     }
-    function resolve3(baseURI, relativeURI, options) {
+    function resolve4(baseURI, relativeURI, options) {
       const schemelessOptions = options ? Object.assign({ scheme: "null" }, options) : { scheme: "null" };
       const resolved = resolveComponent(parse3(baseURI, schemelessOptions), parse3(relativeURI, schemelessOptions), schemelessOptions, true);
       schemelessOptions.skipEscape = true;
@@ -3818,7 +3818,7 @@ var require_fast_uri = __commonJS({
     var fastUri = {
       SCHEMES,
       normalize,
-      resolve: resolve3,
+      resolve: resolve4,
       resolveComponent,
       equal,
       serialize,
@@ -6794,16 +6794,53 @@ var require_dist = __commonJS({
         throw new Error(`Unknown format "${name}"`);
       return f;
     };
-    function addFormats(ajv, list, fs6, exportName) {
+    function addFormats(ajv, list, fs8, exportName) {
       var _a;
       var _b;
       (_a = (_b = ajv.opts.code).formats) !== null && _a !== void 0 ? _a : _b.formats = (0, codegen_1._)`require("ajv-formats/dist/formats").${exportName}`;
       for (const f of list)
-        ajv.addFormat(f, fs6[f]);
+        ajv.addFormat(f, fs8[f]);
     }
     module.exports = exports = formatsPlugin;
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.default = formatsPlugin;
+  }
+});
+
+// src/security/attachment-path.ts
+import * as fs2 from "fs";
+function validateAttachmentPath(filePath) {
+  if (filePath.includes("..")) {
+    return "Attachment path contains path traversal (..)";
+  }
+  let resolved;
+  try {
+    resolved = fs2.realpathSync(filePath);
+  } catch {
+    return `Attachment path does not exist or is not accessible: ${filePath}`;
+  }
+  if (/\/\./.test(resolved)) {
+    return "Attachment path points to a hidden file/directory";
+  }
+  if (resolved.startsWith("/etc") || resolved.startsWith("/proc") || resolved.startsWith("/sys")) {
+    return "Attachment path points to a system directory";
+  }
+  const inAllowed = ALLOWED_ATTACHMENT_DIRS.some((dir) => resolved.startsWith(dir));
+  if (!inAllowed) {
+    return `Attachment must be in one of: ${ALLOWED_ATTACHMENT_DIRS.join(", ")}`;
+  }
+  return null;
+}
+var ALLOWED_ATTACHMENT_DIRS;
+var init_attachment_path = __esm({
+  "src/security/attachment-path.ts"() {
+    "use strict";
+    ALLOWED_ATTACHMENT_DIRS = [
+      "/tmp",
+      `${process.env.HOME}/Downloads`,
+      `${process.env.HOME}/Documents`,
+      `${process.env.HOME}/Desktop`
+    ];
   }
 });
 
@@ -6813,12 +6850,17 @@ __export(attachment_exports, {
   attachFiles: () => attachFiles,
   clearAllAttachments: () => clearAllAttachments
 });
-import * as fs2 from "fs";
+import * as fs4 from "fs";
 async function attachFiles(ctx, filePaths) {
   const result = { attached: 0, skipped: [] };
   const valid = [];
   for (const p of filePaths) {
-    if (!fs2.existsSync(p)) {
+    const pathErr = validateAttachmentPath(p);
+    if (pathErr) {
+      result.skipped.push({ path: p, reason: pathErr });
+      continue;
+    }
+    if (!fs4.existsSync(p)) {
       result.skipped.push({ path: p, reason: "file not found on local fs" });
     } else {
       valid.push(p);
@@ -6894,6 +6936,7 @@ async function clearAllAttachments(ctx, opts = {}) {
 var init_attachment = __esm({
   "src/internal/primitives/attachment.ts"() {
     "use strict";
+    init_attachment_path();
   }
 });
 
@@ -7445,8 +7488,8 @@ function getErrorMap() {
 
 // node_modules/zod/v3/helpers/parseUtil.js
 var makeIssue = (params) => {
-  const { data, path: path5, errorMaps, issueData } = params;
-  const fullPath = [...path5, ...issueData.path || []];
+  const { data, path: path6, errorMaps, issueData } = params;
+  const fullPath = [...path6, ...issueData.path || []];
   const fullIssue = {
     ...issueData,
     path: fullPath
@@ -7562,11 +7605,11 @@ var errorUtil;
 
 // node_modules/zod/v3/types.js
 var ParseInputLazyPath = class {
-  constructor(parent, value, path5, key) {
+  constructor(parent, value, path6, key) {
     this._cachedPath = [];
     this.parent = parent;
     this.data = value;
-    this._path = path5;
+    this._path = path6;
     this._key = key;
   }
   get path() {
@@ -11203,10 +11246,10 @@ function assignProp(target, prop, value) {
     configurable: true
   });
 }
-function getElementAtPath(obj, path5) {
-  if (!path5)
+function getElementAtPath(obj, path6) {
+  if (!path6)
     return obj;
-  return path5.reduce((acc, key) => acc?.[key], obj);
+  return path6.reduce((acc, key) => acc?.[key], obj);
 }
 function promiseAllObject(promisesObj) {
   const keys = Object.keys(promisesObj);
@@ -11526,11 +11569,11 @@ function aborted(x, startIndex = 0) {
   }
   return false;
 }
-function prefixIssues(path5, issues) {
+function prefixIssues(path6, issues) {
   return issues.map((iss) => {
     var _a;
     (_a = iss).path ?? (_a.path = []);
-    iss.path.unshift(path5);
+    iss.path.unshift(path6);
     return iss;
   });
 }
@@ -19039,7 +19082,7 @@ var Protocol = class {
           return;
         }
         const pollInterval = task2.pollInterval ?? this._options?.defaultTaskPollInterval ?? 1e3;
-        await new Promise((resolve3) => setTimeout(resolve3, pollInterval));
+        await new Promise((resolve4) => setTimeout(resolve4, pollInterval));
         options?.signal?.throwIfAborted();
       }
     } catch (error2) {
@@ -19056,7 +19099,7 @@ var Protocol = class {
    */
   request(request, resultSchema, options) {
     const { relatedRequestId, resumptionToken, onresumptiontoken, task, relatedTask } = options ?? {};
-    return new Promise((resolve3, reject) => {
+    return new Promise((resolve4, reject) => {
       const earlyReject = (error2) => {
         reject(error2);
       };
@@ -19134,7 +19177,7 @@ var Protocol = class {
           if (!parseResult.success) {
             reject(parseResult.error);
           } else {
-            resolve3(parseResult.data);
+            resolve4(parseResult.data);
           }
         } catch (error2) {
           reject(error2);
@@ -19395,12 +19438,12 @@ var Protocol = class {
       }
     } catch {
     }
-    return new Promise((resolve3, reject) => {
+    return new Promise((resolve4, reject) => {
       if (signal.aborted) {
         reject(new McpError(ErrorCode.InvalidRequest, "Request cancelled"));
         return;
       }
-      const timeoutId = setTimeout(resolve3, interval);
+      const timeoutId = setTimeout(resolve4, interval);
       signal.addEventListener("abort", () => {
         clearTimeout(timeoutId);
         reject(new McpError(ErrorCode.InvalidRequest, "Request cancelled"));
@@ -20500,7 +20543,7 @@ var McpServer = class {
     let task = createTaskResult.task;
     const pollInterval = task.pollInterval ?? 5e3;
     while (task.status !== "completed" && task.status !== "failed" && task.status !== "cancelled") {
-      await new Promise((resolve3) => setTimeout(resolve3, pollInterval));
+      await new Promise((resolve4) => setTimeout(resolve4, pollInterval));
       const updatedTask = await extra.taskStore.getTask(taskId);
       if (!updatedTask) {
         throw new McpError(ErrorCode.InternalError, `Task ${taskId} not found during polling`);
@@ -21143,12 +21186,12 @@ var StdioServerTransport = class {
     this.onclose?.();
   }
   send(message) {
-    return new Promise((resolve3) => {
+    return new Promise((resolve4) => {
       const json = serializeMessage(message);
       if (this._stdout.write(json)) {
-        resolve3();
+        resolve4();
       } else {
-        this._stdout.once("drain", resolve3);
+        this._stdout.once("drain", resolve4);
       }
     });
   }
@@ -21225,8 +21268,8 @@ var CONFIG_DIR = `${process.env.HOME}/.config/ipk-browser-mcp`;
 var ENV_FILE = `${CONFIG_DIR}/.env`;
 function loadDotenv() {
   try {
-    const { readFileSync: readFileSync3 } = __require("fs");
-    const content = readFileSync3(ENV_FILE, "utf-8");
+    const { readFileSync: readFileSync4 } = __require("fs");
+    const content = readFileSync4(ENV_FILE, "utf-8");
     const vars = {};
     for (const line of content.split("\n")) {
       const trimmed = line.trim();
@@ -21248,7 +21291,13 @@ function loadDotenv() {
 function env(key, fallback = "") {
   return process.env[key] || loadDotenv()[key] || fallback;
 }
+function hydrateEnv() {
+  for (const [k, v] of Object.entries(loadDotenv())) {
+    if (process.env[k] === void 0) process.env[k] = v;
+  }
+}
 function loadConfig() {
+  hydrateEnv();
   if (!process.env.TZ) {
     process.env.TZ = "Asia/Seoul";
   }
@@ -21257,7 +21306,9 @@ function loadConfig() {
     username: env("IPK_USERNAME"),
     password: env("IPK_PASSWORD"),
     headless: env("BROWSER_HEADLESS") !== "false",
-    screenshotDir: env("SCREENSHOT_DIR", "/tmp/ipk-mcp-screenshots"),
+    // Per-user path, not a fixed /tmp name: screenshots contain groupware content, and a
+    // shared host would otherwise let one user read another's (and pre-create the dir).
+    screenshotDir: env("SCREENSHOT_DIR", `${process.env.HOME}/.cache/ipk-mcp/screenshots`),
     screenshotTtlMinutes: parseInt(env("SCREENSHOT_TTL_MINUTES", "60"), 10),
     navTimeoutMs: parseInt(env("NAV_TIMEOUT_MS", "30000"), 10),
     storageStateDir: env("STORAGE_STATE_DIR", `${process.env.HOME}/.config/ipk-mcp/profiles`)
@@ -21268,14 +21319,38 @@ function loadConfig() {
 import { chromium } from "playwright";
 import * as fs from "fs";
 import * as path from "path";
+async function hasAuthMarker(page) {
+  try {
+    return await page.evaluate(() => {
+      const frames = [document, ...Array.from(document.querySelectorAll("frame, iframe")).map((f) => {
+        try {
+          return f.contentDocument;
+        } catch {
+          return null;
+        }
+      }).filter((d) => !!d)];
+      for (const doc of frames) {
+        if (doc.querySelector('input[type="password"], input[name="Password"]')) continue;
+        const text = doc.body?.innerText || "";
+        if (/Welcome,|Logout|로그아웃/i.test(text)) return true;
+        if (doc.querySelector('a[href*="logout"], a[href*="Logout"]')) return true;
+      }
+      return false;
+    });
+  } catch {
+    return false;
+  }
+}
 var SessionManager = class _SessionManager {
   static SESSION_TTL_MS = 30 * 60 * 1e3;
   // 30 minutes
+  static SHUTDOWN_TIMEOUT_MS = 3e3;
   browser = null;
   session = null;
   config;
   shutdownRegistered = false;
   loginInProgress = false;
+  shuttingDown = false;
   constructor(config3) {
     this.config = config3;
     this.registerShutdown();
@@ -21284,8 +21359,16 @@ var SessionManager = class _SessionManager {
     if (this.shutdownRegistered) return;
     this.shutdownRegistered = true;
     const cleanup = async () => {
-      await this.destroy();
-      process.exit(0);
+      if (this.shuttingDown) return;
+      this.shuttingDown = true;
+      const timedOut = /* @__PURE__ */ Symbol("timeout");
+      const result = await Promise.race([
+        this.destroy().then(() => "ok"),
+        new Promise(
+          (resolve4) => setTimeout(() => resolve4(timedOut), _SessionManager.SHUTDOWN_TIMEOUT_MS).unref()
+        )
+      ]);
+      process.exit(result === timedOut ? 1 : 0);
     };
     process.on("SIGTERM", cleanup);
     process.on("SIGINT", cleanup);
@@ -21352,7 +21435,7 @@ var SessionManager = class _SessionManager {
           await page.waitForTimeout(1e3);
         }
       }
-      const loggedIn = page.url().includes("main.php");
+      const loggedIn = page.url().includes("main.php") && await hasAuthMarker(page);
       if (!loggedIn) {
         await context.close();
         return makeError("LOGIN_FAILED", "Login failed - check credentials");
@@ -21363,9 +21446,11 @@ var SessionManager = class _SessionManager {
       if (this.session) {
         await this.session.context.close();
       }
+      const rawName = process.env.IPK_USER_NAME || username;
+      const displayName = /\s/.test(rawName) ? rawName : rawName.split(/[._]+/).filter(Boolean).map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(" ");
       const userInfo = {
         username,
-        name: process.env.IPK_USER_NAME || username.replace(".", " "),
+        name: displayName,
         dept: process.env.IPK_USER_DEPT || ""
       };
       this.session = {
@@ -21401,6 +21486,15 @@ var SessionManager = class _SessionManager {
     const page = this.getPage();
     if (!page) return null;
     return page.frame("main_menu");
+  }
+  /**
+   * Distinguishes "never logged in" from "session expired" so tools can tell the caller
+   * which one happened. A 30-minute idle expiry otherwise reads as a dropped connection.
+   */
+  getLoginState() {
+    if (!this.session?.loggedIn) return "none";
+    if (Date.now() - this.session.lastActivity > _SessionManager.SESSION_TTL_MS) return "expired";
+    return "active";
   }
   isLoggedIn() {
     if (!this.session?.loggedIn) return false;
@@ -21476,7 +21570,30 @@ async function handleIpkLogin(sessionManager2, params) {
 }
 
 // src/tools/ipk-submit.ts
+import * as fs5 from "fs";
+init_attachment_path();
+
+// src/internal/audit.ts
 import * as fs3 from "fs";
+import * as path2 from "path";
+var LOG_PATH = path2.resolve(
+  process.env.IPK_AUDIT_DIR || path2.join(process.env.HOME || "/tmp", ".cache", "ipk-mcp"),
+  "audit.jsonl"
+);
+var runId = `run-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+var enabled = process.env.IPK_AUDIT !== "0";
+function beginRun(id) {
+  runId = id || `run-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  return runId;
+}
+function audit(event) {
+  if (!enabled) return;
+  try {
+    fs3.mkdirSync(path2.dirname(LOG_PATH), { recursive: true, mode: 448 });
+    fs3.appendFileSync(LOG_PATH, JSON.stringify({ ts: (/* @__PURE__ */ new Date()).toISOString(), runId, ...event }) + "\n", "utf8");
+  } catch {
+  }
+}
 
 // src/browser/iframe-helper.ts
 function getMainFrame(page) {
@@ -21523,36 +21640,62 @@ async function navigateInFrame(page, url, config3) {
   return frame;
 }
 async function setFieldValue(frame, selector, value) {
-  await frame.waitForSelector(selector, { timeout: 5e3 }).catch(() => null);
-  return frame.evaluate(
+  await frame.waitForSelector(selector, { state: "attached", timeout: 5e3 }).catch(() => null);
+  const outcome = await frame.evaluate(
     (args) => {
       const el = document.querySelector(args.sel);
-      if (el) {
-        el.value = args.val;
-        el.dispatchEvent(new Event("input", { bubbles: true }));
-        el.dispatchEvent(new Event("change", { bubbles: true }));
-        return true;
-      }
-      return false;
+      if (!el) return "not_found";
+      if (el.disabled) return "disabled";
+      const hidden = el.getBoundingClientRect().width === 0 && el.getBoundingClientRect().height === 0;
+      el.value = args.val;
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+      el.dispatchEvent(new Event("change", { bubbles: true }));
+      return hidden ? "ok_hidden" : "ok";
     },
     { sel: selector, val: value }
   );
+  if (outcome === "disabled") {
+    audit({ action: "refusal", field: selector, code: "FIELD_DISABLED", ok: false });
+    throw new Error(
+      `FIELD_DISABLED: '${selector}' is disabled; the browser would not submit a value written to it. Enable it through the form's own controls instead.`
+    );
+  }
+  audit({ action: "field_write", field: selector, hidden: outcome === "ok_hidden", ok: outcome !== "not_found" });
+  return outcome !== "not_found";
 }
 async function setSelectValue(frame, selector, value) {
-  const el = await frame.waitForSelector(selector, { timeout: 5e3 }).catch(() => null);
+  const el = await frame.waitForSelector(selector, { state: "attached", timeout: 5e3 }).catch(() => null);
   if (!el) return false;
-  return frame.evaluate(
+  const outcome = await frame.evaluate(
     (args) => {
       const el2 = document.querySelector(args.sel);
-      if (el2) {
-        el2.value = args.val;
-        el2.dispatchEvent(new Event("change", { bubbles: true }));
-        return true;
+      if (!el2) return "not_found";
+      if (el2.disabled) return "disabled";
+      const offered = Array.from(el2.options).map((o) => o.value);
+      if (args.val !== "" && !offered.includes(args.val)) {
+        return { status: "no_option", offered };
       }
-      return false;
+      const hidden = el2.getBoundingClientRect().width === 0 && el2.getBoundingClientRect().height === 0;
+      el2.value = args.val;
+      el2.dispatchEvent(new Event("change", { bubbles: true }));
+      return hidden ? "ok_hidden" : "ok";
     },
     { sel: selector, val: value }
   );
+  if (outcome === "disabled") {
+    audit({ action: "refusal", field: selector, code: "FIELD_DISABLED", ok: false });
+    throw new Error(
+      `FIELD_DISABLED: '${selector}' is disabled; the browser would not submit a value written to it. Enable it through the form's own controls instead.`
+    );
+  }
+  if (typeof outcome === "object" && outcome.status === "no_option") {
+    audit({ action: "refusal", field: selector, code: "INVALID_OPTION", fromOfferedOptions: false, ok: false });
+    throw new Error(
+      `INVALID_OPTION: '${value}' is not an option '${selector}' offers. Allowed: ${outcome.offered.filter(Boolean).join(", ") || "(none yet - the form may fill this from another field first)"}`
+    );
+  }
+  audit({ action: "option_select", field: selector, fromOfferedOptions: true, hidden: outcome === "ok_hidden", ok: outcome !== "not_found" });
+  return outcome !== "not_found";
 }
 async function setRequiredField(frame, selector, value, fieldName) {
   const ok = await setFieldValue(frame, selector, value);
@@ -21566,48 +21709,6 @@ async function setRequiredSelect(frame, selector, value, fieldName) {
     throw new Error(`FIELD_NOT_FOUND: Required select '${fieldName}' not found (selector: ${selector})`);
   }
 }
-async function executeAjaxCascade(page, frame, steps) {
-  const errors = [];
-  let completed = 0;
-  for (const step of steps) {
-    if (step.condition) {
-      const conditionMet = await frame.evaluate(
-        (sel) => {
-          const el = document.querySelector(`select[name="${sel}"]`);
-          return el ? el.value !== "" && el.value !== "0" : false;
-        },
-        step.condition
-      );
-      if (!conditionMet) {
-        continue;
-      }
-    }
-    const selector = `select[name="${step.field}"]`;
-    const ok = await setSelectValue(frame, selector, step.value);
-    if (!ok) {
-      errors.push(`SELECTOR_NOT_FOUND: select[name="${step.field}"]`);
-      continue;
-    }
-    const timeout = step.timeoutMs || 3e3;
-    if (step.waitSelector) {
-      try {
-        await frame.waitForSelector(step.waitSelector, { timeout });
-      } catch {
-        await page.waitForTimeout(500);
-        try {
-          await frame.waitForSelector(step.waitSelector, { timeout: timeout / 2 });
-        } catch {
-          errors.push(`CASCADE_TIMEOUT: ${step.field} \u2192 waited for "${step.waitSelector}" (${timeout}ms)`);
-          continue;
-        }
-      }
-    } else {
-      await page.waitForTimeout(Math.min(timeout, 2e3));
-    }
-    completed++;
-  }
-  return { completed, total: steps.length, errors };
-}
 async function setFormMode(frame, mode) {
   await frame.evaluate(
     (m) => {
@@ -21616,41 +21717,57 @@ async function setFormMode(frame, mode) {
     },
     mode
   );
+  audit({ action: "submit", mode, ok: true });
 }
 async function submitForm(page, frame, method = "check_form_request") {
-  if (method === "check_form_request") {
-    await Promise.all([
-      page.waitForNavigation({ timeout: 15e3, waitUntil: "load" }).catch(() => null),
-      frame.evaluate(() => {
-        window.Check_Form_Request("insert");
-      })
-    ]);
-  } else {
-    await Promise.all([
-      page.waitForNavigation({ timeout: 2e4, waitUntil: "load" }).catch(() => null),
-      frame.evaluate(() => {
-        document.form1.submit();
-      })
-    ]);
-  }
+  const dialogs = [];
+  const onDialog = (d) => {
+    dialogs.push(d.message().replace(/\s+/g, " ").trim());
+    d.accept().catch(() => {
+    });
+  };
+  page.on("dialog", onDialog);
   try {
-    await frame.waitForURL("**/document_view.php**", { timeout: 1e4 });
-  } catch {
-    await page.waitForTimeout(3e3);
+    if (method === "check_form_request") {
+      await Promise.all([
+        page.waitForNavigation({ timeout: 15e3, waitUntil: "load" }).catch(() => null),
+        frame.evaluate(() => {
+          window.Check_Form_Request("insert");
+        })
+      ]);
+    } else {
+      await Promise.all([
+        page.waitForNavigation({ timeout: 2e4, waitUntil: "load" }).catch(() => null),
+        frame.evaluate(() => {
+          document.form1.submit();
+        })
+      ]);
+    }
+    try {
+      await frame.waitForURL("**/document_view.php**", { timeout: 1e4 });
+    } catch {
+      await page.waitForTimeout(3e3);
+    }
+    const frameUrl = frame.url();
+    if (frameUrl.includes("document_view.php") && frameUrl.includes("doc_id=")) {
+      const match = frameUrl.match(/doc_id=([^&]+)/);
+      return match ? match[1] : null;
+    }
+    if (frameUrl.includes("document_write.php")) {
+      throw new Error(
+        dialogs.length ? `SUBMIT_REJECTED: the form refused the submission - ${dialogs.join(" / ")}` : "SUBMIT_FAILED: Form submission did not redirect and the form gave no message."
+      );
+    }
+    throw new Error(
+      `SUBMIT_UNVERIFIED: after submitting, the page is at ${frameUrl || "(unknown)"} and no document id came back. The document may or may not have been created - check the drafts list before retrying.` + (dialogs.length ? ` The form said: ${dialogs.join(" / ")}` : "")
+    );
+  } finally {
+    page.off("dialog", onDialog);
   }
-  const frameUrl = frame.url();
-  if (frameUrl.includes("document_view.php") && frameUrl.includes("doc_id=")) {
-    const match = frameUrl.match(/doc_id=([^&]+)/);
-    return match ? match[1] : null;
-  }
-  if (frameUrl.includes("document_write.php")) {
-    throw new Error("SUBMIT_FAILED: Form submission did not redirect. The form may have validation errors.");
-  }
-  return null;
 }
 
 // src/tools/ipk-submit.ts
-import * as path2 from "path";
+import * as path3 from "path";
 import { fileURLToPath } from "url";
 
 // src/form-registry.ts
@@ -21672,7 +21789,7 @@ var FORM_REGISTRY = {
 
 // src/tools/ipk-submit.ts
 var __filename = fileURLToPath(import.meta.url);
-var __dirname = path2.dirname(__filename);
+var __dirname = path3.dirname(__filename);
 async function executePostActions(frame, actions) {
   for (const act of actions) {
     if (act.action === "wait_selector" && act.target) {
@@ -21789,43 +21906,108 @@ async function genericFillForm(frame, fieldSchema, userData, hooks, opts) {
 function loadTemplateFieldSchema(formType) {
   const registry2 = FORM_REGISTRY[formType];
   if (!registry2) return null;
-  const projectRoot = path2.resolve(__dirname, "..", "..");
-  const templatePath = path2.join(projectRoot, "form_templates", registry2.templateFile);
+  const projectRoot = path3.resolve(__dirname, "..", "..");
+  const templatePath = path3.join(projectRoot, "form_templates", registry2.templateFile);
   try {
-    const raw = fs3.readFileSync(templatePath, "utf-8");
+    const raw = fs5.readFileSync(templatePath, "utf-8");
     const template = JSON.parse(raw);
     return template.field_schema || null;
   } catch {
     return null;
   }
 }
-var ALLOWED_ATTACHMENT_DIRS = [
-  "/tmp",
-  `${process.env.HOME}/Downloads`,
-  `${process.env.HOME}/Documents`,
-  `${process.env.HOME}/Desktop`
-];
-function validateAttachmentPath(filePath) {
-  if (filePath.includes("..")) {
-    return "Attachment path contains path traversal (..)";
+async function attachFile(frame, filePath) {
+  const err = validateAttachmentPath(filePath);
+  if (err) {
+    audit({ action: "refusal", code: "INVALID_ATTACHMENT", validated: false, ok: false });
+    throw new Error(`INVALID_ATTACHMENT: ${err}`);
   }
-  let resolved;
-  try {
-    resolved = fs3.realpathSync(filePath);
-  } catch {
-    return `Attachment path does not exist or is not accessible: ${filePath}`;
+  const fileInput = frame.locator('input[name="doc_attach_file[]"]').first();
+  await fileInput.setInputFiles(filePath);
+  audit({ action: "upload", validated: true, ok: true });
+}
+async function selectExistingOption(frame, selector, value, fieldName, timeoutMs = 5e3) {
+  const deadline = Date.now() + timeoutMs;
+  let last = { status: "no_element", options: [] };
+  for (; ; ) {
+    last = await frame.evaluate(
+      (args) => {
+        const el = document.querySelector(args.selector);
+        if (!el) return { status: "no_element", options: [] };
+        const enabled2 = Array.from(el.options).filter((o) => !o.disabled);
+        const options = enabled2.map((o) => o.value);
+        if (!options.includes(args.value)) {
+          return { status: "no_option", options: Array.from(el.options).map((o) => o.value) };
+        }
+        el.value = args.value;
+        el.dispatchEvent(new Event("change", { bubbles: true }));
+        if (el.value !== args.value) return { status: "reverted", options };
+        return { status: "ok", options };
+      },
+      { selector, value }
+    );
+    if (last.status === "ok") {
+      audit({ action: "option_select", field: fieldName, fromOfferedOptions: true, ok: true });
+      return;
+    }
+    if (last.status === "reverted") {
+      audit({ action: "refusal", field: fieldName, code: "OPTION_REJECTED", ok: false });
+      throw new Error(
+        `OPTION_REJECTED: the form reset '${fieldName}' after selecting '${value}'. It is probably not valid together with the other values on this form.`
+      );
+    }
+    if (Date.now() >= deadline) break;
+    await new Promise((r) => setTimeout(r, 250));
   }
-  if (/\/\./.test(resolved)) {
-    return "Attachment path points to a hidden file/directory";
+  if (last.status === "no_element") {
+    audit({ action: "refusal", field: fieldName, code: "FIELD_NOT_FOUND", ok: false });
+    throw new Error(`FIELD_NOT_FOUND: Required field '${fieldName}' not found (selector: ${selector})`);
   }
-  if (resolved.startsWith("/etc") || resolved.startsWith("/proc") || resolved.startsWith("/sys")) {
-    return "Attachment path points to a system directory";
+  audit({ action: "refusal", field: fieldName, code: "INVALID_OPTION", fromOfferedOptions: false, ok: false });
+  throw new Error(
+    `INVALID_OPTION: '${value}' is not an option the form offers for '${fieldName}' (waited ${timeoutMs}ms in case the form populates it). Allowed: ${last.options.join(", ") || "(none)"}`
+  );
+}
+async function assertTotalMatchesItems(frame) {
+  const check2 = await frame.evaluate(() => {
+    const unparsable = [];
+    const num = (raw, label) => {
+      const text = String(raw ?? "").trim();
+      if (text === "") return 0;
+      const cleaned = text.replace(/[,\s\u00a0]/g, "");
+      if (!/^-?\d+(\.\d+)?$/.test(cleaned)) {
+        unparsable.push(`${label}='${text}'`);
+        return 0;
+      }
+      return Number(cleaned);
+    };
+    const totalEl = document.getElementsByName("total_amt")[0];
+    if (!totalEl) return null;
+    const items = Array.from(
+      document.querySelectorAll('input[name="item_amount[]"]')
+    );
+    const filled = items.filter((el) => String(el.value ?? "").trim() !== "");
+    if (filled.length === 0) return null;
+    const sum = filled.reduce((acc, el, i) => acc + num(el.value, `item_amount[${i}]`), 0);
+    const vats = Array.from(
+      document.querySelectorAll('input[name="item_amount_vat[]"]')
+    );
+    const vatSum = vats.reduce((acc, el, i) => acc + num(el.value, `item_amount_vat[${i}]`), 0);
+    return { total: num(totalEl.value, "total_amt"), sum, vatSum, unparsable };
+  });
+  if (!check2) return;
+  if (check2.unparsable.length > 0) {
+    throw new Error(
+      `TOTAL_UNVERIFIABLE: cannot read amount(s) ${check2.unparsable.join(", ")} as numbers, so the total cannot be checked against the line items.`
+    );
   }
-  const inAllowed = ALLOWED_ATTACHMENT_DIRS.some((dir) => resolved.startsWith(dir));
-  if (!inAllowed) {
-    return `Attachment must be in one of: ${ALLOWED_ATTACHMENT_DIRS.join(", ")}`;
+  const withVat = check2.sum + check2.vatSum;
+  const ok = check2.vatSum > 0 ? check2.total === withVat : check2.total === check2.sum;
+  if (!ok) {
+    throw new Error(
+      `TOTAL_MISMATCH: total_amt=${check2.total} but line items sum to ${check2.sum}` + (check2.vatSum > 0 ? ` (+VAT ${check2.vatSum} = ${withVat})` : "") + `. Refusing to submit a document that disagrees with itself.`
+    );
   }
-  return null;
 }
 var ipkSubmitFormSchema = {
   form_type: external_exports.enum([
@@ -21976,8 +22158,20 @@ var FORM_HANDLERS = {
   overseas_travel: submitOverseasTravel
 };
 async function handleIpkSubmitForm(sessionManager2, config3, params) {
+  beginRun();
+  audit({
+    action: "navigate",
+    field: String(params.form_type ?? "unknown"),
+    mode: params.draft_only === false ? "request" : "draft",
+    confirmed: params.confirm_submit === true,
+    ok: true
+  });
   if (!sessionManager2.isLoggedIn()) {
-    return textResult({ error: true, code: "NOT_LOGGED_IN", message: "Call ipk_login first" });
+    return textResult({
+      error: true,
+      code: "NOT_LOGGED_IN",
+      message: sessionManager2.getLoginState() === "expired" ? "Browser session expired after 30 minutes idle (the MCP connection is fine). Call ipk_login again." : "Call ipk_login first"
+    });
   }
   const page = sessionManager2.getPage();
   const formType = params.form_type;
@@ -22013,18 +22207,21 @@ async function handleIpkSubmitForm(sessionManager2, config3, params) {
           return textResult({ error: true, code: "MISSING_CARD_RECEIPT_REF", message: validErr });
         }
       }
-      const mainFrame = page.frame("main_menu");
-      if (!mainFrame) {
-        return textResult({ error: true, code: "FRAME_NOT_FOUND", message: "main_menu frame not found" });
-      }
       const url = navConfig.customUrl(params, config3);
-      await mainFrame.goto(url, { timeout: config3.navTimeoutMs });
-      await mainFrame.waitForLoadState("load");
       const waitSel = navConfig.waitSelector ?? "form input, form select";
-      await mainFrame.waitForSelector(waitSel, { timeout: 5e3 }).catch(() => null);
+      const mainFrame = page.frame("main_menu");
+      if (mainFrame) {
+        await mainFrame.goto(url, { timeout: config3.navTimeoutMs });
+        await mainFrame.waitForLoadState("load");
+        await mainFrame.waitForSelector(waitSel, { state: "attached", timeout: 5e3 }).catch(() => null);
+        frame = mainFrame;
+      } else {
+        await page.goto(url, { waitUntil: "domcontentloaded", timeout: config3.navTimeoutMs });
+        frame = page.mainFrame();
+        await frame.waitForSelector(waitSel, { state: "attached", timeout: 5e3 }).catch(() => null);
+      }
       sessionManager2.touchActivity();
       await page.waitForTimeout(navConfig.waitMs ?? 2e3);
-      frame = mainFrame;
     } else {
       frame = await navigateToForm(page, formType, config3);
       if (!frame) {
@@ -22069,7 +22266,9 @@ async function submitLeave(page, frame, sessionManager2, config3, params, mode) 
     warnings.push(`${leaveName} requires attachment (${ATTACHMENT_REQUIRED_LEAVES[leaveCode]}). Add it manually after draft save.`);
   }
   if (substituteName === "N/A") {
-    warnings.push("Substitute person not configured. Set IPK_SUBSTITUTE_NAME env var or pass substitute_name parameter.");
+    throw new Error(
+      "SUBSTITUTE_REQUIRED: no substitute person configured. Set IPK_SUBSTITUTE_NAME or pass substitute_name. 'N/A' is not a real person and must not reach an approval document."
+    );
   }
   const fieldSchema = {
     leave_kind: { type: "select", dom_name: "leave_kind[]", required: true },
@@ -22092,37 +22291,9 @@ async function submitLeave(page, frame, sessionManager2, config3, params, mode) 
     emergency_telephone: process.env.IPK_EMERGENCY_TELEPHONE || "N/A"
   });
   if (isHourly) {
-    await frame.evaluate(
-      (st) => {
-        const startEl = document.querySelector('select[name="start_time[]"]');
-        if (startEl && st) {
-          const opt = document.createElement("option");
-          opt.value = st;
-          opt.textContent = st;
-          startEl.textContent = "";
-          startEl.appendChild(opt);
-          startEl.value = st;
-          startEl.dispatchEvent(new Event("change", { bubbles: true }));
-        }
-      },
-      params.start_time
-    );
+    await selectExistingOption(frame, 'select[name="start_time[]"]', String(params.start_time), "start_time");
     await page.waitForTimeout(500);
-    await frame.evaluate(
-      (et) => {
-        const endEl = document.querySelector('select[name="end_time[]"]');
-        if (endEl && et) {
-          const opt = document.createElement("option");
-          opt.value = et;
-          opt.textContent = et;
-          endEl.textContent = "";
-          endEl.appendChild(opt);
-          endEl.value = et;
-          endEl.dispatchEvent(new Event("change", { bubbles: true }));
-        }
-      },
-      params.end_time
-    );
+    await selectExistingOption(frame, 'select[name="end_time[]"]', String(params.end_time), "end_time");
     await page.waitForTimeout(500);
   }
   await setRequiredField(frame, 'input[name="subject"]', subject, "subject");
@@ -22138,37 +22309,67 @@ async function submitLeave(page, frame, sessionManager2, config3, params, mode) 
     await popup.waitForTimeout(1e3);
     const selected = await popup.evaluate(
       (name) => {
-        const rows = document.querySelectorAll("tr");
-        for (const row of rows) {
+        const norm = (v) => v.normalize("NFKC").replace(/[._]+/g, " ").replace(/\s+/g, " ").trim().toLocaleLowerCase();
+        const wanted = norm(name);
+        const matches = [];
+        document.querySelectorAll("tr").forEach((row) => {
           const cells = row.querySelectorAll("td");
-          if (cells.length >= 4) {
-            const userName = cells[3]?.textContent?.trim() || "";
-            if (userName === name) {
-              const radio = row.querySelector('input[type="radio"]');
-              if (radio) {
-                radio.click();
-                return { found: true, name: userName };
-              }
-            }
+          if (cells.length < 4) return;
+          const userName = cells[3]?.textContent?.trim() || "";
+          if (userName && norm(userName) === wanted) {
+            matches.push({ row, label: row.textContent?.replace(/\s+/g, " ").trim() || userName });
           }
+        });
+        if (matches.length === 0) return { found: false, ambiguous: false, candidates: [] };
+        if (matches.length > 1) {
+          return { found: false, ambiguous: true, candidates: matches.map((m) => m.label).slice(0, 10) };
         }
-        return { found: false };
+        const radio = matches[0].row.querySelector('input[type="radio"]');
+        if (!radio) return { found: false, ambiguous: false, candidates: [] };
+        radio.click();
+        return { found: true, ambiguous: false, candidates: [] };
       },
       substituteName
     );
+    if (selected.ambiguous) {
+      await popup.click('a:has-text("[Close]")').catch(() => {
+      });
+      throw new Error(
+        `SUBSTITUTE_AMBIGUOUS: '${substituteName}' matches ${selected.candidates.length} people in the groupware user list. Refusing to guess. Candidates: ${selected.candidates.join(" | ")}`
+      );
+    }
     if (selected.found) {
       await popup.click('a:has-text("[Ok]")');
       await page.waitForTimeout(1e3);
     } else {
-      await popup.click('a:has-text("[Close]")');
-      await setFallbackSubstitute(frame, substituteName);
+      const available = await popup.evaluate(() => {
+        const names = [];
+        document.querySelectorAll("tr").forEach((row) => {
+          const cells = row.querySelectorAll("td");
+          if (cells.length >= 4) {
+            const n = cells[3]?.textContent?.trim();
+            if (n) names.push(n);
+          }
+        });
+        return names;
+      }).catch(() => []);
+      await popup.click('a:has-text("[Close]")').catch(() => {
+      });
+      throw new Error(
+        `SUBSTITUTE_NOT_FOUND: '${substituteName}' is not in the groupware user list. Pass substitute_name exactly as it appears there. Available: ${available.slice(0, 40).join(", ") || "(could not read list)"}`
+      );
     }
-  } catch {
-    await setFallbackSubstitute(frame, substituteName);
+  } catch (err) {
+    if (err instanceof Error && (err.message.startsWith("SUBSTITUTE_NOT_FOUND") || err.message.startsWith("SUBSTITUTE_AMBIGUOUS"))) {
+      throw err;
+    }
+    const detail = err instanceof Error ? err.message : String(err);
+    throw new Error(
+      `SUBSTITUTE_POPUP_FAILED: could not open or read the substitute picker (${detail}). Refusing to type substitute fields directly - payroll/position/contact would be fabricated.`
+    );
   }
   if (params.attachment_path) {
-    const fileInput = frame.locator('input[name="doc_attach_file[]"]').first();
-    await fileInput.setInputFiles(params.attachment_path);
+    await attachFile(frame, params.attachment_path);
     await page.waitForTimeout(1e3);
   }
   await page.waitForTimeout(1e3);
@@ -22242,15 +22443,23 @@ async function submitExpense(page, frame, sessionManager2, config3, params, mode
   await frame.evaluate(
     (args) => {
       const totalEl = document.getElementsByName("total_amt")[0];
-      if (totalEl) totalEl.value = args.total;
+      if (totalEl) {
+        totalEl.value = args.total;
+        totalEl.dispatchEvent(new Event("input", { bubbles: true }));
+        totalEl.dispatchEvent(new Event("change", { bubbles: true }));
+      }
       const ralEl = document.querySelector('input[name="item_amount_ral[]"]');
-      if (ralEl) ralEl.value = args.ral;
+      if (ralEl) {
+        ralEl.value = args.ral;
+        ralEl.dispatchEvent(new Event("input", { bubbles: true }));
+        ralEl.dispatchEvent(new Event("change", { bubbles: true }));
+      }
     },
     { total: String(amount), ral: String(amount) }
   );
+  await assertTotalMatchesItems(frame);
   if (params.attachment_path) {
-    const fileInput = frame.locator('input[name="doc_attach_file[]"]').first();
-    await fileInput.setInputFiles(params.attachment_path);
+    await attachFile(frame, params.attachment_path);
     await page.waitForTimeout(1e3);
   }
   await page.waitForTimeout(1e3);
@@ -22319,6 +22528,13 @@ async function submitWorking(page, frame, sessionManager2, config3, params, mode
 }
 async function submitTravel(page, frame, sessionManager2, config3, params, mode) {
   const userInfo = sessionManager2.getUserInfo();
+  const parentRef = params.pdoc_id || params.approved_doc_ref || "";
+  if (!parentRef) {
+    throw new Error(
+      "PARENT_DOC_REQUIRED: travel needs the approved travel request it reports on. Pass pdoc_id. The form will accept a report without one, which is why this is checked here."
+    );
+  }
+  await selectExistingOption(frame, 'select[name="pdoc_id"]', String(parentRef), "pdoc_id");
   const title = params.title || "Business Travel";
   const destination = params.destination || "";
   const startDate = params.start_date || todayStr();
@@ -22328,7 +22544,7 @@ async function submitTravel(page, frame, sessionManager2, config3, params, mode)
   const organization = params.organization || destination;
   const attendees = params.attendees || userInfo.name;
   const reportDate = todayStr();
-  const reportPost = process.env.IPK_USER_POSITION || "Researcher";
+  const reportPost = process.env.IPK_USER_POSITION || "";
   const reportLeader = process.env.IPK_GROUP_LEADER || "";
   const userDept = userInfo.dept || process.env.IPK_USER_DEPT || "";
   const travelSchema = {
@@ -22338,8 +22554,8 @@ async function submitTravel(page, frame, sessionManager2, config3, params, mode)
     report_post: { type: "text", dom_name: "report_post", dom_selector: '.validate[name="report_post"]' },
     report_group: { type: "text", dom_name: "report_group", dom_selector: '.validate[name="report_group"]' },
     report_leader: { type: "text", dom_name: "report_leader", dom_selector: '.validate[name="report_leader"]' },
-    start_day: { type: "date", dom_name: "start_day", required: true, dom_selector: '.validate[name="start_day"]' },
-    end_day: { type: "date", dom_name: "end_day", required: true, dom_selector: '.validate[name="end_day"]' },
+    start_date: { type: "date", dom_name: "start_date", required: true, dom_selector: '[name="start_date"]' },
+    end_date: { type: "date", dom_name: "end_date", required: true, dom_selector: '[name="end_date"]' },
     report_dest: { type: "text", dom_name: "report_dest", required: true, dom_selector: '.validate[name="report_dest"]' },
     purpose_field: { type: "text", dom_name: "purpose_field", required: true, dom_selector: '.validate[name="purpose_field"]' },
     date_field: { type: "text", dom_name: "date_field", dom_selector: '.validate[name="date_field"]' },
@@ -22358,8 +22574,8 @@ async function submitTravel(page, frame, sessionManager2, config3, params, mode)
     report_post: reportPost,
     report_group: userDept,
     report_leader: reportLeader,
-    start_day: startDate,
-    end_day: endDate,
+    start_date: startDate,
+    end_date: endDate,
     report_dest: destination,
     purpose_field: purpose,
     date_field: schedule,
@@ -22372,8 +22588,7 @@ async function submitTravel(page, frame, sessionManager2, config3, params, mode)
     conclusion_field: params.destination ? `${purpose} at ${destination}` : `Travel for ${purpose}`
   });
   if (params.attachment_path) {
-    const fileInput = frame.locator('input[name="doc_attach_file[]"]').first();
-    await fileInput.setInputFiles(params.attachment_path);
+    await attachFile(frame, params.attachment_path);
     await page.waitForTimeout(1e3);
   }
   await page.waitForTimeout(1e3);
@@ -22412,29 +22627,29 @@ async function submitTravelRequest(page, frame, sessionManager2, config3, params
   await page.waitForTimeout(1e3);
   const fieldSchema = {
     budget_code: { type: "select", dom_name: "budget_code", required: true },
-    start_day: { type: "date", dom_name: "start_day", required: true, dom_selector: '.validate[name="start_day"]' },
-    end_day: { type: "date", dom_name: "end_day", required: true, dom_selector: '.validate[name="end_day"]' },
-    report_dest: { type: "text", dom_name: "report_dest", required: true, dom_selector: '.validate[name="report_dest"]' },
-    purpose_field: { type: "text", dom_name: "purpose_field", required: true, dom_selector: '.validate[name="purpose_field"]' },
-    org_field: { type: "text", dom_name: "org_field", dom_selectors: ['.validate[name="org_field"]', 'input[name="organization"]'] },
-    person_field: { type: "text", dom_name: "person_field", dom_selectors: ['.validate[name="person_field"]', 'input[name="attendees"]'] },
-    date_field: { type: "text", dom_name: "date_field", dom_selector: '.validate[name="date_field"]' },
-    discuss_field: { type: "text", dom_name: "discuss_field", dom_selectors: ['textarea[name="contents1"]', '.validate[name="discuss_field"]'] }
+    start_date: { type: "date", dom_name: "start_date", required: true, dom_selector: '[name="start_date"]' },
+    end_date: { type: "date", dom_name: "end_date", required: true, dom_selector: '[name="end_date"]' },
+    // These are the travel *request* form's own fields (form_templates/AppFrm-023.json,
+    // captured from 108 documents). The schema previously carried report_dest /
+    // purpose_field / org_field / person_field / date_field / discuss_field, which belong
+    // to the travel *report* (AppFrm-076) and do not exist here - so every one of them
+    // silently did nothing, and the submission failed on the first required one.
+    travel_dest: { type: "text", dom_name: "travel_dest[]", required: true, dom_selector: '[name="travel_dest[]"]' },
+    purpose: { type: "text", dom_name: "purpose", required: true, dom_selector: '[name="purpose"]' },
+    start_tm: { type: "select", dom_name: "start_tm" },
+    end_tm: { type: "select", dom_name: "end_tm" }
   };
   await genericFillForm(frame, fieldSchema, {
     budget_code: budgetCode,
-    start_day: startDate,
-    end_day: endDate,
-    report_dest: destination,
-    purpose_field: purpose,
-    org_field: params.organization || "",
-    person_field: params.attendees || "",
-    date_field: params.schedule || "",
-    discuss_field: params.details || ""
+    start_date: startDate,
+    end_date: endDate,
+    travel_dest: destination,
+    purpose,
+    start_tm: params.start_tm || "",
+    end_tm: params.end_tm || ""
   });
   if (params.attachment_path) {
-    const fileInput = frame.locator('input[name="doc_attach_file[]"]').first();
-    await fileInput.setInputFiles(params.attachment_path);
+    await attachFile(frame, params.attachment_path);
     await page.waitForTimeout(1e3);
   }
   await page.waitForTimeout(1e3);
@@ -22518,15 +22733,23 @@ async function submitCardExpense(page, frame, sessionManager2, config3, params, 
   await frame.evaluate(
     (args) => {
       const totalEl = document.getElementsByName("total_amt")[0];
-      if (totalEl) totalEl.value = args.total;
+      if (totalEl) {
+        totalEl.value = args.total;
+        totalEl.dispatchEvent(new Event("input", { bubbles: true }));
+        totalEl.dispatchEvent(new Event("change", { bubbles: true }));
+      }
       const ralEl = document.querySelector('input[name="item_amount_ral[]"]');
-      if (ralEl) ralEl.value = args.ral;
+      if (ralEl) {
+        ralEl.value = args.ral;
+        ralEl.dispatchEvent(new Event("input", { bubbles: true }));
+        ralEl.dispatchEvent(new Event("change", { bubbles: true }));
+      }
     },
     { total: String(amount), ral: String(amount) }
   );
+  await assertTotalMatchesItems(frame);
   if (params.attachment_path) {
-    const fileInput = frame.locator('input[name="doc_attach_file[]"]').first();
-    await fileInput.setInputFiles(params.attachment_path);
+    await attachFile(frame, params.attachment_path);
     await page.waitForTimeout(1e3);
   }
   await page.waitForTimeout(1e3);
@@ -22661,13 +22884,19 @@ async function submitCardExpenseRD(page, frame, _sessionManager, config3, params
       message: "card_expense_rd requires at least one attachment_path or attachment_paths[]. The form alerts 'Please attach at least one file.' on submit."
     });
   }
+  for (const fp of filePaths) {
+    const pathErr = validateAttachmentPath(fp);
+    if (pathErr) {
+      return textResult({ error: true, code: "INVALID_ATTACHMENT", message: `${fp}: ${pathErr}` });
+    }
+  }
   const attachResult = await attachmentHelper.attachFiles(frame, filePaths);
   await page.waitForTimeout(500);
   const popupHolder = {
     docId: null,
     finalUrl: ""
   };
-  const popupPromise = new Promise((resolve3) => {
+  const popupPromise = new Promise((resolve4) => {
     page.once("popup", async (pop) => {
       try {
         await pop.waitForLoadState("networkidle", { timeout: 15e3 });
@@ -22677,10 +22906,10 @@ async function submitCardExpenseRD(page, frame, _sessionManager, config3, params
         await pop.waitForTimeout(4e3);
       } catch {
       } finally {
-        resolve3();
+        resolve4();
       }
     });
-    setTimeout(resolve3, 25e3);
+    setTimeout(resolve4, 25e3);
   });
   try {
     await frame.evaluate((mode1Val) => {
@@ -22731,6 +22960,11 @@ async function submitTravelSettlement(page, frame, sessionManager2, config3, par
   const purpose = params.purpose || "Business travel";
   const subject = params.title || `[Settlement] ${purpose}`;
   const approvedDocRef = params.approved_doc_ref || params.sel_travel || "";
+  if (!approvedDocRef) {
+    throw new Error(
+      "PARENT_DOC_REQUIRED: travel_settlement needs the approved travel request it settles. Pass approved_doc_ref. Without it the form exposes no date, purpose or budget fields and the submission is rejected with no message."
+    );
+  }
   let autoPopulated = false;
   if (approvedDocRef) {
     await frame.evaluate(
@@ -22743,79 +22977,22 @@ async function submitTravelSettlement(page, frame, sessionManager2, config3, par
       },
       approvedDocRef
     );
-    await page.waitForTimeout(2e3);
-    autoPopulated = await frame.evaluate(() => {
-      const startDate2 = document.querySelector('input[name="start_date"]');
-      const province = document.querySelector('select[name="province"]');
-      return !!(startDate2 && startDate2.value && startDate2.value !== "" || province && province.value && province.value !== "" && province.value !== "0");
-    });
+    const deadline = Date.now() + 8e3;
+    while (Date.now() < deadline) {
+      autoPopulated = await frame.evaluate(() => {
+        const startDate2 = document.querySelector('input[name="start_date"]');
+        const province = document.querySelector('select[name="province"]');
+        return !!(startDate2 && startDate2.value && startDate2.value !== "" || province && province.value && province.value !== "" && province.value !== "0");
+      });
+      if (autoPopulated) break;
+      await page.waitForTimeout(400);
+    }
   }
   if (!autoPopulated) {
-    const startDate2 = params.start_date || todayStr();
-    const endDate2 = params.end_date || startDate2;
-    const manualSchema = {
-      start_date: { type: "date", dom_name: "start_date" },
-      end_date: { type: "date", dom_name: "end_date" },
-      purpose_category: { type: "select", dom_name: "purpose_category" },
-      purpose: { type: "textarea", dom_name: "purpose" },
-      destination: { type: "text", dom_name: "destination" }
-    };
-    await genericFillForm(frame, manualSchema, {
-      start_date: startDate2,
-      end_date: endDate2,
-      purpose_category: params.purpose_category || "",
-      purpose: params.purpose || "",
-      destination: params.destination || ""
-    });
-    const province = params.province || "";
-    const city = params.city || "";
-    const transportMode = params.transport_mode || "Other Public Transporation";
-    const budgetType = params.budget_type || "02";
-    if (province) {
-      const cascadeSteps = [
-        {
-          field: "province",
-          value: province,
-          waitSelector: "select[name='city'] option:nth-child(2)",
-          timeoutMs: 3e3
-        },
-        {
-          field: "city",
-          value: city,
-          waitSelector: "select[name='transport_mode'] option:nth-child(2)",
-          timeoutMs: 3e3
-        },
-        {
-          field: "transport_mode",
-          value: transportMode,
-          timeoutMs: 1500
-        },
-        {
-          field: "budget_type",
-          value: budgetType,
-          waitSelector: "select[name='budget_code'] option:nth-child(2)",
-          timeoutMs: 3e3
-        }
-      ];
-      if (params.budget_code) {
-        cascadeSteps.push({
-          field: "budget_code",
-          value: params.budget_code,
-          waitSelector: "select[name='item_no'] option:nth-child(2)",
-          timeoutMs: 3e3,
-          condition: "budget_type"
-        });
-      }
-      if (params.item_no) {
-        cascadeSteps.push({
-          field: "item_no",
-          value: params.item_no,
-          timeoutMs: 1500,
-          condition: "budget_code"
-        });
-      }
-      await executeAjaxCascade(page, frame, cascadeSteps);
-    }
+    audit({ action: "refusal", field: "sel_travel", code: "PARENT_DOC_NOT_ACCEPTED", ok: false });
+    throw new Error(
+      `PARENT_DOC_NOT_ACCEPTED: the form did not load anything from '${approvedDocRef}'. Check the document number of the approved travel request, or pick it through the form's [Search] button. Refusing to submit a settlement whose parent is unverified.`
+    );
   }
   const startDate = params.start_date || todayStr();
   const endDate = params.end_date || startDate;
@@ -22841,20 +23018,13 @@ async function submitTravelSettlement(page, frame, sessionManager2, config3, par
     food_fee_total: foodExpense ? String(foodExpense) : ""
   });
   if (params.attachment_path) {
-    const fileInput = frame.locator('input[name="doc_attach_file[]"]').first();
-    await fileInput.setInputFiles(params.attachment_path);
+    await attachFile(frame, params.attachment_path);
     await page.waitForTimeout(1e3);
   }
   await page.waitForTimeout(1e3);
   await setFormMode(frame, mode);
   const docId = await submitForm(page, frame, "check_form_request");
   const warnings = [];
-  if (!approvedDocRef) {
-    warnings.push("No approved_doc_ref (sel_travel) provided \u2014 parent document fields may be incomplete.");
-  }
-  if (!autoPopulated && approvedDocRef) {
-    warnings.push("sel_travel auto-populate did not work \u2014 used manual cascade fallback.");
-  }
   if (params.transport_mode?.includes("Own Vehicle") && !params.attachment_path) {
     warnings.push("Own vehicle travel requires \uAC70\uB9AC.pdf (Naver Maps screenshot) attachment.");
   }
@@ -23029,8 +23199,7 @@ async function submitSeminar(page, frame, sessionManager2, config3, params, mode
   ];
   await genericFillForm(frame, fieldSchema, userData, hooks);
   if (params.attachment_path) {
-    const fileInput = frame.locator('input[name="doc_attach_file[]"]').first();
-    await fileInput.setInputFiles(params.attachment_path);
+    await attachFile(frame, params.attachment_path);
     await page.waitForTimeout(1e3);
   }
   await page.waitForTimeout(1e3);
@@ -23188,8 +23357,7 @@ async function submitOverseasTravel(page, frame, sessionManager2, config3, param
     await page.waitForTimeout(1500);
   }
   if (params.attachment_path) {
-    const fileInput = frame.locator('input[name="doc_attach_file[]"]').first();
-    await fileInput.setInputFiles(params.attachment_path);
+    await attachFile(frame, params.attachment_path);
     await page.waitForTimeout(1e3);
   }
   await page.waitForTimeout(1e3);
@@ -23223,8 +23391,7 @@ async function submitGeneric(page, frame, sessionManager2, config3, params, mode
     if (validationError) {
       return textResult({ error: true, code: "INVALID_ATTACHMENT", message: validationError });
     }
-    const fileInput = frame.locator('input[name="doc_attach_file[]"]').first();
-    await fileInput.setInputFiles(params.attachment_path);
+    await attachFile(frame, params.attachment_path);
     await page.waitForTimeout(1e3);
   }
   await page.waitForTimeout(1e3);
@@ -23241,31 +23408,6 @@ async function submitGeneric(page, frame, sessionManager2, config3, params, mode
       note: "Filled via generic template handler. Verify form completeness via screenshot."
     }
   });
-}
-async function setFallbackSubstitute(frame, name) {
-  await frame.evaluate(
-    (args) => {
-      const fields = [
-        ["substitute_name", args.name],
-        ["substitute_payroll", args.payroll],
-        ["substitute_position", args.position],
-        ["substitute_contact", args.contact]
-      ];
-      for (const [fieldName, value] of fields) {
-        const el = document.querySelector(`input[name="${fieldName}"]`);
-        if (el) {
-          el.readOnly = false;
-          el.value = value;
-        }
-      }
-    },
-    {
-      name,
-      payroll: process.env.IPK_SUBSTITUTE_PAYROLL || "N/A",
-      position: process.env.IPK_SUBSTITUTE_POSITION || "Researcher",
-      contact: process.env.IPK_SUBSTITUTE_CONTACT || "N/A"
-    }
-  );
 }
 function todayStr() {
   return (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
@@ -23346,7 +23488,11 @@ async function fetchByType(sessionManager2, config3, urlType, maxItems) {
 }
 async function handleIpkFetchApprovals(sessionManager2, config3, params) {
   if (!sessionManager2.isLoggedIn()) {
-    return textResult({ error: true, code: "NOT_LOGGED_IN", message: "Call ipk_login first" });
+    return textResult({
+      error: true,
+      code: "NOT_LOGGED_IN",
+      message: sessionManager2.getLoginState() === "expired" ? "Browser session expired after 30 minutes idle (the MCP connection is fine). Call ipk_login again." : "Call ipk_login first"
+    });
   }
   const limit = params.limit || 20;
   const statusParam = params.status || "all";
@@ -23395,7 +23541,11 @@ var ipkNavigateSchema = {
 var ipkNavigateDescription = "Navigate within the IPK groupware main_menu iframe. Accepts full URLs or relative paths. Content is rendered inside the groupware iframe structure.";
 async function handleIpkNavigate(sessionManager2, config3, params) {
   if (!sessionManager2.isLoggedIn()) {
-    return textResult({ error: true, code: "NOT_LOGGED_IN", message: "Call ipk_login first" });
+    return textResult({
+      error: true,
+      code: "NOT_LOGGED_IN",
+      message: sessionManager2.getLoginState() === "expired" ? "Browser session expired after 30 minutes idle (the MCP connection is fine). Call ipk_login again." : "Call ipk_login first"
+    });
   }
   const page = sessionManager2.getPage();
   try {
@@ -23514,7 +23664,11 @@ var ipkGetContentSchema = {
 var ipkGetContentDescription = "Extract text content from the current page or main_menu iframe in IPK groupware. Returns structured text, sanitized and truncated. Use include_forms=true to see form fields.";
 async function handleIpkGetContent(sessionManager2, config3, params) {
   if (!sessionManager2.isLoggedIn()) {
-    return textResult({ error: true, code: "NOT_LOGGED_IN", message: "Call ipk_login first" });
+    return textResult({
+      error: true,
+      code: "NOT_LOGGED_IN",
+      message: sessionManager2.getLoginState() === "expired" ? "Browser session expired after 30 minutes idle (the MCP connection is fine). Call ipk_login again." : "Call ipk_login first"
+    });
   }
   const page = sessionManager2.getPage();
   const maxChars = params.max_chars || 2e3;
@@ -23577,8 +23731,8 @@ async function handleIpkGetContent(sessionManager2, config3, params) {
 }
 
 // src/tools/screenshot.ts
-import * as fs4 from "fs";
-import * as path3 from "path";
+import * as fs6 from "fs";
+import * as path4 from "path";
 var screenshotSchema = {
   filename: external_exports.string().optional().describe("Custom filename (without path). Default: auto-generated timestamp."),
   full_page: external_exports.boolean().default(false).describe("Capture full page (true) or viewport only (false)")
@@ -23590,10 +23744,10 @@ async function handleScreenshot(sessionManager2, config3, params) {
   }
   const page = sessionManager2.getPage();
   try {
-    fs4.mkdirSync(config3.screenshotDir, { recursive: true });
+    fs6.mkdirSync(config3.screenshotDir, { recursive: true, mode: 448 });
     const timestamp = (/* @__PURE__ */ new Date()).toISOString().replace(/[:.]/g, "-");
     const filename = params.filename || `ipk-${timestamp}.png`;
-    const filepath = path3.join(config3.screenshotDir, filename);
+    const filepath = path4.join(config3.screenshotDir, filename);
     await page.screenshot({
       path: filepath,
       fullPage: params.full_page || false
@@ -23601,8 +23755,8 @@ async function handleScreenshot(sessionManager2, config3, params) {
     const ttlMs = config3.screenshotTtlMinutes * 60 * 1e3;
     setTimeout(() => {
       try {
-        if (fs4.existsSync(filepath)) {
-          fs4.unlinkSync(filepath);
+        if (fs6.existsSync(filepath)) {
+          fs6.unlinkSync(filepath);
         }
       } catch {
       }
@@ -23623,16 +23777,16 @@ async function handleScreenshot(sessionManager2, config3, params) {
 }
 function cleanupExpiredScreenshots(config3) {
   try {
-    if (!fs4.existsSync(config3.screenshotDir)) return;
+    if (!fs6.existsSync(config3.screenshotDir)) return;
     const now = Date.now();
     const ttlMs = config3.screenshotTtlMinutes * 60 * 1e3;
-    const files = fs4.readdirSync(config3.screenshotDir);
+    const files = fs6.readdirSync(config3.screenshotDir);
     for (const file of files) {
       if (!file.endsWith(".png")) continue;
-      const filepath = path3.join(config3.screenshotDir, file);
-      const stat = fs4.statSync(filepath);
+      const filepath = path4.join(config3.screenshotDir, file);
+      const stat = fs6.statSync(filepath);
       if (now - stat.mtimeMs > ttlMs) {
-        fs4.unlinkSync(filepath);
+        fs6.unlinkSync(filepath);
       }
     }
   } catch {
@@ -23640,11 +23794,11 @@ function cleanupExpiredScreenshots(config3) {
 }
 
 // src/tools/ipk-inspect.ts
-import * as fs5 from "fs";
-import * as path4 from "path";
+import * as fs7 from "fs";
+import * as path5 from "path";
 import { fileURLToPath as fileURLToPath2 } from "url";
 var __filename2 = fileURLToPath2(import.meta.url);
-var __dirname2 = path4.dirname(__filename2);
+var __dirname2 = path5.dirname(__filename2);
 var ipkInspectFormSchema = {
   form_code: external_exports.string().describe("Form code to inspect, e.g. AppFrm-054"),
   compare_template: external_exports.boolean().default(true).describe("Cross-verify against form_templates JSON")
@@ -23652,7 +23806,11 @@ var ipkInspectFormSchema = {
 var ipkInspectFormDescription = "Inspect a groupware form's DOM elements and cross-verify against form templates. Use to discover actual field names, types, and options for any form.";
 async function handleIpkInspectForm(sessionManager2, config3, params) {
   if (!sessionManager2.isLoggedIn()) {
-    return textResult({ error: true, code: "NOT_LOGGED_IN", message: "Call ipk_login first" });
+    return textResult({
+      error: true,
+      code: "NOT_LOGGED_IN",
+      message: sessionManager2.getLoginState() === "expired" ? "Browser session expired after 30 minutes idle (the MCP connection is fine). Call ipk_login again." : "Call ipk_login first"
+    });
   }
   const page = sessionManager2.getPage();
   const formCode = params.form_code;
@@ -23696,10 +23854,10 @@ async function handleIpkInspectForm(sessionManager2, config3, params) {
       elements: domElements
     };
     if (compareTemplate) {
-      const projectRoot = path4.resolve(__dirname2, "..", "..");
-      const templatePath = path4.join(projectRoot, "form_templates", `${formCode}.json`);
+      const projectRoot = path5.resolve(__dirname2, "..", "..");
+      const templatePath = path5.join(projectRoot, "form_templates", `${formCode}.json`);
       try {
-        const raw = fs5.readFileSync(templatePath, "utf-8");
+        const raw = fs7.readFileSync(templatePath, "utf-8");
         const template = JSON.parse(raw);
         const fieldSchema = template.field_schema || {};
         const templateKeys = new Set(Object.keys(fieldSchema));

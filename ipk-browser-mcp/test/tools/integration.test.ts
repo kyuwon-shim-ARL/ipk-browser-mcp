@@ -5,7 +5,7 @@ import { fileURLToPath } from "url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = resolve(__dirname, "..", "..", "..");
-const BRIDGE_SCRIPT = resolve(PROJECT_ROOT, "bridge.py");
+const BRIDGE_SCRIPT = resolve(PROJECT_ROOT, "dev", "bridge.py");
 
 /** Check if python3 is available */
 function hasPython(): boolean {

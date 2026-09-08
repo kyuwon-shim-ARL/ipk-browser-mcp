@@ -2,6 +2,8 @@ import { z } from "zod";
 import * as fs from "fs";
 import { SessionManager } from "../browser/session.js";
 import { textResult } from "../util.js";
+import { validateAttachmentPath } from "../security/attachment-path.js";
+import { audit, beginRun } from "../internal/audit.js";
 import {
   navigateToForm,
   setFieldValue,
@@ -10,7 +12,6 @@ import {
   setRequiredSelect,
   setFormMode,
   submitForm,
-  executeAjaxCascade,
 } from "../browser/iframe-helper.js";
 import type { CascadeStep } from "../browser/iframe-helper.js";
 import {
@@ -252,41 +253,139 @@ function loadTemplateFieldSchema(formType: string): Record<string, TemplateField
   }
 }
 
-/** Allowed directories for attachment file uploads. Prevents arbitrary file reads. */
-const ALLOWED_ATTACHMENT_DIRS = [
-  "/tmp",
-  `${process.env.HOME}/Downloads`,
-  `${process.env.HOME}/Documents`,
-  `${process.env.HOME}/Desktop`,
-];
 
-/** Validate that an attachment path is safe to upload. */
-function validateAttachmentPath(filePath: string): string | null {
-  // Block path traversal before resolving
-  if (filePath.includes("..")) {
-    return "Attachment path contains path traversal (..)";
+/**
+ * The ONLY place allowed to call setInputFiles.
+ * Every upload path must go through here so validateAttachmentPath can never be bypassed.
+ * Enforced by `npm run lint:attachments`.
+ */
+async function attachFile(frame: any, filePath: string): Promise<void> {
+  const err = validateAttachmentPath(filePath);
+  if (err) {
+    audit({ action: "refusal", code: "INVALID_ATTACHMENT", validated: false, ok: false });
+    throw new Error(`INVALID_ATTACHMENT: ${err}`);
   }
-  // Resolve symlinks to get the real filesystem path (security: prevents symlink-to-sensitive-file attacks)
-  let resolved: string;
-  try {
-    resolved = fs.realpathSync(filePath);
-  } catch {
-    return `Attachment path does not exist or is not accessible: ${filePath}`;
+  const fileInput = frame.locator('input[name="doc_attach_file[]"]').first();
+  await fileInput.setInputFiles(filePath);
+  audit({ action: "upload", validated: true, ok: true });
+}
+
+/**
+ * Select a value in a <select> only if the form already offers it.
+ * Never creates, removes or rewrites options - a value the form never offered is a value
+ * the server never agreed to accept.
+ *
+ * Some option lists are populated by the form's own JS in response to an earlier field
+ * (end_time[] is empty until start_time[] changes), so the option is polled for rather
+ * than demanded immediately.
+ */
+async function selectExistingOption(
+  frame: any,
+  selector: string,
+  value: string,
+  fieldName: string,
+  timeoutMs = 5000
+): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  let last: { status: string; options: string[] } = { status: "no_element", options: [] };
+
+  for (;;) {
+    last = await frame.evaluate(
+      (args: { selector: string; value: string }) => {
+        const el = document.querySelector(args.selector) as HTMLSelectElement | null;
+        if (!el) return { status: "no_element", options: [] as string[] };
+        const enabled = Array.from(el.options).filter((o) => !o.disabled);
+        const options = enabled.map((o) => o.value);
+        if (!options.includes(args.value)) {
+          return { status: "no_option", options: Array.from(el.options).map((o) => o.value) };
+        }
+        el.value = args.value;
+        el.dispatchEvent(new Event("change", { bubbles: true }));
+        // The form's own handler may reject or rewrite the choice; confirm it stuck.
+        if (el.value !== args.value) return { status: "reverted", options };
+        return { status: "ok", options };
+      },
+      { selector, value }
+    );
+
+    if (last.status === "ok") {
+      audit({ action: "option_select", field: fieldName, fromOfferedOptions: true, ok: true });
+      return;
+    }
+    if (last.status === "reverted") {
+      audit({ action: "refusal", field: fieldName, code: "OPTION_REJECTED", ok: false });
+      throw new Error(
+        `OPTION_REJECTED: the form reset '${fieldName}' after selecting '${value}'. ` +
+          `It is probably not valid together with the other values on this form.`
+      );
+    }
+    if (Date.now() >= deadline) break;
+    await new Promise((r) => setTimeout(r, 250));
   }
-  // Block dotfiles and sensitive directories
-  if (/\/\./.test(resolved)) {
-    return "Attachment path points to a hidden file/directory";
+
+  if (last.status === "no_element") {
+    audit({ action: "refusal", field: fieldName, code: "FIELD_NOT_FOUND", ok: false });
+    throw new Error(`FIELD_NOT_FOUND: Required field '${fieldName}' not found (selector: ${selector})`);
   }
-  // Block system directories
-  if (resolved.startsWith("/etc") || resolved.startsWith("/proc") || resolved.startsWith("/sys")) {
-    return "Attachment path points to a system directory";
+  audit({ action: "refusal", field: fieldName, code: "INVALID_OPTION", fromOfferedOptions: false, ok: false });
+  throw new Error(
+    `INVALID_OPTION: '${value}' is not an option the form offers for '${fieldName}' ` +
+      `(waited ${timeoutMs}ms in case the form populates it). ` +
+      `Allowed: ${last.options.join(", ") || "(none)"}`
+  );
+}
+
+/**
+ * Runtime invariant: the total field must equal the sum of the line-item amounts.
+ * Catches the case where a total is written directly and the form's own arithmetic
+ * (or a later recompute) disagrees with it.
+ */
+async function assertTotalMatchesItems(frame: any): Promise<void> {
+  const check = await frame.evaluate(() => {
+    const unparsable: string[] = [];
+    // Blank means "not filled in", which is 0. Anything else that is not a number is a
+    // value we cannot reason about, and silently coercing it to 0 would hide a mismatch.
+    const num = (raw: string | null | undefined, label: string): number => {
+      const text = String(raw ?? "").trim();
+      if (text === "") return 0;
+      const cleaned = text.replace(/[,\s\u00a0]/g, "");
+      if (!/^-?\d+(\.\d+)?$/.test(cleaned)) {
+        unparsable.push(`${label}='${text}'`);
+        return 0;
+      }
+      return Number(cleaned);
+    };
+    const totalEl = document.getElementsByName("total_amt")[0] as HTMLInputElement | undefined;
+    if (!totalEl) return null;
+    const items = Array.from(
+      document.querySelectorAll('input[name="item_amount[]"]')
+    ) as HTMLInputElement[];
+    const filled = items.filter((el) => String(el.value ?? "").trim() !== "");
+    if (filled.length === 0) return null;
+    const sum = filled.reduce((acc, el, i) => acc + num(el.value, `item_amount[${i}]`), 0);
+    const vats = Array.from(
+      document.querySelectorAll('input[name="item_amount_vat[]"]')
+    ) as HTMLInputElement[];
+    const vatSum = vats.reduce((acc, el, i) => acc + num(el.value, `item_amount_vat[${i}]`), 0);
+    return { total: num(totalEl.value, "total_amt"), sum, vatSum, unparsable };
+  });
+
+  if (!check) return; // form has no comparable line items - nothing to assert
+  if (check.unparsable.length > 0) {
+    throw new Error(
+      `TOTAL_UNVERIFIABLE: cannot read amount(s) ${check.unparsable.join(", ")} as numbers, ` +
+        `so the total cannot be checked against the line items.`
+    );
   }
-  // Must be in an allowed directory (checked against real path, not symlink path)
-  const inAllowed = ALLOWED_ATTACHMENT_DIRS.some((dir) => resolved.startsWith(dir));
-  if (!inAllowed) {
-    return `Attachment must be in one of: ${ALLOWED_ATTACHMENT_DIRS.join(", ")}`;
+  const withVat = check.sum + check.vatSum;
+  const ok = check.vatSum > 0 ? check.total === withVat : check.total === check.sum;
+  if (!ok) {
+    throw new Error(
+      `TOTAL_MISMATCH: total_amt=${check.total} but line items sum to ${check.sum}` +
+        (check.vatSum > 0 ? ` (+VAT ${check.vatSum} = ${withVat})` : "") +
+        `. Refusing to submit a document that disagrees with itself.`
+    );
   }
-  return null;
 }
 
 export const ipkSubmitFormSchema = {
@@ -490,8 +589,26 @@ export async function handleIpkSubmitForm(
   config: Config,
   params: Record<string, any>
 ) {
+  // One benchmark run per submit attempt: the audit events between here and the return
+  // are what M1 (first-pass success) and M5 (effort) are computed from.
+  beginRun();
+  audit({
+    action: "navigate",
+    field: String(params.form_type ?? "unknown"),
+    mode: params.draft_only === false ? "request" : "draft",
+    confirmed: params.confirm_submit === true,
+    ok: true,
+  });
+
   if (!sessionManager.isLoggedIn()) {
-    return textResult({ error: true, code: "NOT_LOGGED_IN", message: "Call ipk_login first" });
+    return textResult({
+      error: true,
+      code: "NOT_LOGGED_IN",
+      message:
+        sessionManager.getLoginState() === "expired"
+          ? "Browser session expired after 30 minutes idle (the MCP connection is fine). Call ipk_login again."
+          : "Call ipk_login first",
+    });
   }
 
   const page = sessionManager.getPage()!;
@@ -540,18 +657,26 @@ export async function handleIpkSubmitForm(
         }
       }
       // Custom URL navigation
-      const mainFrame = page.frame("main_menu");
-      if (!mainFrame) {
-        return textResult({ error: true, code: "FRAME_NOT_FOUND", message: "main_menu frame not found" });
-      }
+      // The main_menu frame only exists while the page is still the frameset. Once any
+      // earlier call has navigated the page to a form, it is gone - so this path used to
+      // work on the first submit after login and fail on every one after it. Fall back to
+      // navigating the page itself, which is what navigateToForm settled on for the same
+      // reason (the server returns the frameset for nested-frame requests).
       const url = navConfig.customUrl!(params, config);
-      await mainFrame.goto(url, { timeout: config.navTimeoutMs });
-      await mainFrame.waitForLoadState("load");
       const waitSel = navConfig.waitSelector ?? "form input, form select";
-      await mainFrame.waitForSelector(waitSel, { timeout: 5000 }).catch(() => null);
+      const mainFrame = page.frame("main_menu");
+      if (mainFrame) {
+        await mainFrame.goto(url, { timeout: config.navTimeoutMs });
+        await mainFrame.waitForLoadState("load");
+        await mainFrame.waitForSelector(waitSel, { state: "attached", timeout: 5000 }).catch(() => null);
+        frame = mainFrame;
+      } else {
+        await page.goto(url, { waitUntil: "domcontentloaded", timeout: config.navTimeoutMs });
+        frame = page.mainFrame();
+        await frame.waitForSelector(waitSel, { state: "attached", timeout: 5000 }).catch(() => null);
+      }
       sessionManager.touchActivity();
       await page.waitForTimeout(navConfig.waitMs ?? 2000);
-      frame = mainFrame;
     } else {
       // Standard navigation
       frame = await navigateToForm(page, formType, config);
@@ -614,7 +739,11 @@ async function submitLeave(
     warnings.push(`${leaveName} requires attachment (${ATTACHMENT_REQUIRED_LEAVES[leaveCode]}). Add it manually after draft save.`);
   }
   if (substituteName === "N/A") {
-    warnings.push("Substitute person not configured. Set IPK_SUBSTITUTE_NAME env var or pass substitute_name parameter.");
+    throw new Error(
+      "SUBSTITUTE_REQUIRED: no substitute person configured. " +
+        "Set IPK_SUBSTITUTE_NAME or pass substitute_name. " +
+        "'N/A' is not a real person and must not reach an approval document."
+    );
   }
 
   // Use genericFillForm for standard fields
@@ -640,47 +769,23 @@ async function submitLeave(
     emergency_telephone: process.env.IPK_EMERGENCY_TELEPHONE || "N/A",
   });
 
-  // Hourly leave: set time dropdowns via evaluate (not in generic schema — custom DOM manipulation)
+  // Hourly leave: pick an existing option in the time dropdowns.
+  // Never rebuild the option list: the server only accepts values the form offered,
+  // and wiping them lets an arbitrary value reach an approval document.
   if (isHourly) {
-    await frame.evaluate(
-      (st: string) => {
-        const startEl = document.querySelector('select[name="start_time[]"]') as HTMLSelectElement;
-        if (startEl && st) {
-          const opt = document.createElement("option");
-          opt.value = st;
-          opt.textContent = st;
-          startEl.textContent = "";
-          startEl.appendChild(opt);
-          startEl.value = st;
-          startEl.dispatchEvent(new Event("change", { bubbles: true }));
-        }
-      },
-      params.start_time
-    );
+    await selectExistingOption(frame, 'select[name="start_time[]"]', String(params.start_time), "start_time");
     await page.waitForTimeout(500);
-
-    await frame.evaluate(
-      (et: string) => {
-        const endEl = document.querySelector('select[name="end_time[]"]') as HTMLSelectElement;
-        if (endEl && et) {
-          const opt = document.createElement("option");
-          opt.value = et;
-          opt.textContent = et;
-          endEl.textContent = "";
-          endEl.appendChild(opt);
-          endEl.value = et;
-          endEl.dispatchEvent(new Event("change", { bubbles: true }));
-        }
-      },
-      params.end_time
-    );
+    await selectExistingOption(frame, 'select[name="end_time[]"]', String(params.end_time), "end_time");
     await page.waitForTimeout(500);
   }
 
   // Set subject last to avoid being overwritten by change events
   await setRequiredField(frame, 'input[name="subject"]', subject, "subject");
 
-  // Handle substitute selection via popup
+  // Handle substitute selection via popup.
+  // The popup is the only source of a *real* substitute identity (payroll no, position,
+  // contact). There is deliberately no fallback that types those fields directly:
+  // fabricated identity data in an approval document cannot be retracted once approved.
   try {
     const [popup] = await Promise.all([
       page.waitForEvent("popup", { timeout: 10000 }),
@@ -693,45 +798,88 @@ async function submitLeave(
     await popup.waitForSelector("tr", { timeout: 5000 }).catch(() => null);
     await popup.waitForTimeout(1000);
 
-    // Select substitute by name - PARAMETERIZED
+    // Select substitute by name - PARAMETERIZED.
+    // Matching is normalised (NFKC, case, collapsed whitespace) so a cosmetic difference
+    // does not fail a real person; an ambiguous match is refused rather than guessed,
+    // because picking the first namesake silently designates the wrong colleague.
     const selected = await popup.evaluate(
       (name: string) => {
-        const rows = document.querySelectorAll("tr");
-        for (const row of rows) {
+        // Also fold "." and "_" to a space: config and callers routinely hold the login id
+        // ("guinam.wee") where the picker shows the display name ("Guinam Wee"). Refusing
+        // that would reject a real colleague. Genuine ambiguity is still caught below.
+        const norm = (v: string) =>
+          v.normalize("NFKC").replace(/[._]+/g, " ").replace(/\s+/g, " ").trim().toLocaleLowerCase();
+        const wanted = norm(name);
+        const matches: { row: Element; label: string }[] = [];
+        document.querySelectorAll("tr").forEach((row) => {
           const cells = row.querySelectorAll("td");
-          if (cells.length >= 4) {
-            const userName = cells[3]?.textContent?.trim() || "";
-            if (userName === name) {
-              const radio = row.querySelector('input[type="radio"]') as HTMLInputElement;
-              if (radio) {
-                radio.click();
-                return { found: true, name: userName };
-              }
-            }
+          if (cells.length < 4) return;
+          const userName = cells[3]?.textContent?.trim() || "";
+          if (userName && norm(userName) === wanted) {
+            matches.push({ row, label: row.textContent?.replace(/\s+/g, " ").trim() || userName });
           }
+        });
+        if (matches.length === 0) return { found: false, ambiguous: false, candidates: [] as string[] };
+        if (matches.length > 1) {
+          return { found: false, ambiguous: true, candidates: matches.map((m) => m.label).slice(0, 10) };
         }
-        return { found: false };
+        const radio = matches[0].row.querySelector('input[type="radio"]') as HTMLInputElement | null;
+        if (!radio) return { found: false, ambiguous: false, candidates: [] as string[] };
+        radio.click();
+        return { found: true, ambiguous: false, candidates: [] as string[] };
       },
       substituteName
     );
+
+    if (selected.ambiguous) {
+      await popup.click('a:has-text("[Close]")').catch(() => {});
+      throw new Error(
+        `SUBSTITUTE_AMBIGUOUS: '${substituteName}' matches ${selected.candidates.length} people ` +
+          `in the groupware user list. Refusing to guess. Candidates: ${selected.candidates.join(" | ")}`
+      );
+    }
 
     if (selected.found) {
       await popup.click('a:has-text("[Ok]")');
       await page.waitForTimeout(1000);
     } else {
-      await popup.click('a:has-text("[Close]")');
-      // Fallback: directly set substitute fields
-      await setFallbackSubstitute(frame, substituteName);
+      const available = await popup
+        .evaluate(() => {
+          const names: string[] = [];
+          document.querySelectorAll("tr").forEach((row) => {
+            const cells = row.querySelectorAll("td");
+            if (cells.length >= 4) {
+              const n = cells[3]?.textContent?.trim();
+              if (n) names.push(n);
+            }
+          });
+          return names;
+        })
+        .catch(() => [] as string[]);
+      await popup.click('a:has-text("[Close]")').catch(() => {});
+      throw new Error(
+        `SUBSTITUTE_NOT_FOUND: '${substituteName}' is not in the groupware user list. ` +
+          `Pass substitute_name exactly as it appears there. ` +
+          `Available: ${available.slice(0, 40).join(", ") || "(could not read list)"}`
+      );
     }
-  } catch {
-    // Fallback: directly set substitute fields
-    await setFallbackSubstitute(frame, substituteName);
+  } catch (err) {
+    if (
+      err instanceof Error &&
+      (err.message.startsWith("SUBSTITUTE_NOT_FOUND") || err.message.startsWith("SUBSTITUTE_AMBIGUOUS"))
+    ) {
+      throw err;
+    }
+    const detail = err instanceof Error ? err.message : String(err);
+    throw new Error(
+      `SUBSTITUTE_POPUP_FAILED: could not open or read the substitute picker (${detail}). ` +
+        `Refusing to type substitute fields directly - payroll/position/contact would be fabricated.`
+    );
   }
 
   // Handle attachment if provided
   if (params.attachment_path) {
-    const fileInput = frame.locator('input[name="doc_attach_file[]"]').first();
-    await fileInput.setInputFiles(params.attachment_path);
+    await attachFile(frame, params.attachment_path);
     await page.waitForTimeout(1000);
   }
 
@@ -823,21 +971,31 @@ async function submitExpense(
     ov_purpose: purpose,
   });
 
-  // Set totals via evaluate (uses getElementsByName — not in generic schema)
+  // Set totals, then verify the written total against the sum of the line items.
+  // The form may or may not recompute this field; either way a total that disagrees
+  // with its own line items must not be submitted.
   await frame.evaluate(
     (args: { total: string; ral: string }) => {
       const totalEl = document.getElementsByName("total_amt")[0] as HTMLInputElement;
-      if (totalEl) totalEl.value = args.total;
+      if (totalEl) {
+        totalEl.value = args.total;
+        totalEl.dispatchEvent(new Event("input", { bubbles: true }));
+        totalEl.dispatchEvent(new Event("change", { bubbles: true }));
+      }
       const ralEl = document.querySelector('input[name="item_amount_ral[]"]') as HTMLInputElement;
-      if (ralEl) ralEl.value = args.ral;
+      if (ralEl) {
+        ralEl.value = args.ral;
+        ralEl.dispatchEvent(new Event("input", { bubbles: true }));
+        ralEl.dispatchEvent(new Event("change", { bubbles: true }));
+      }
     },
     { total: String(amount), ral: String(amount) }
   );
+  await assertTotalMatchesItems(frame);
 
   // Handle attachment if provided
   if (params.attachment_path) {
-    const fileInput = frame.locator('input[name="doc_attach_file[]"]').first();
-    await fileInput.setInputFiles(params.attachment_path);
+    await attachFile(frame, params.attachment_path);
     await page.waitForTimeout(1000);
   }
 
@@ -941,6 +1099,20 @@ async function submitTravel(
   mode: "draft" | "request"
 ) {
   const userInfo = sessionManager.getUserInfo()!;
+
+  // A travel report reports on an approved travel request; pdoc_id is the link. Without it
+  // the report describes no trip, and the groupware accepts it happily - a hollow document
+  // that someone then has to find and delete.
+  const parentRef = params.pdoc_id || params.approved_doc_ref || "";
+  if (!parentRef) {
+    throw new Error(
+      "PARENT_DOC_REQUIRED: travel needs the approved travel request it reports on. " +
+        "Pass pdoc_id. The form will accept a report without one, which is why this is " +
+        "checked here."
+    );
+  }
+  await selectExistingOption(frame, 'select[name="pdoc_id"]', String(parentRef), "pdoc_id");
+
   const title = params.title || "Business Travel";
   const destination = params.destination || "";
   const startDate = params.start_date || todayStr();
@@ -951,7 +1123,9 @@ async function submitTravel(
   const attendees = params.attendees || userInfo.name;
 
   const reportDate = todayStr();
-  const reportPost = process.env.IPK_USER_POSITION || "Researcher";
+  // No default job title: "Researcher" is a guess, and a guessed title on a signed report
+  // is the same class of invention as a guessed payroll number.
+  const reportPost = process.env.IPK_USER_POSITION || "";
   const reportLeader = process.env.IPK_GROUP_LEADER || "";
   const userDept = userInfo.dept || process.env.IPK_USER_DEPT || "";
 
@@ -962,8 +1136,8 @@ async function submitTravel(
     report_post:      { type: "text", dom_name: "report_post", dom_selector: '.validate[name="report_post"]' },
     report_group:     { type: "text", dom_name: "report_group", dom_selector: '.validate[name="report_group"]' },
     report_leader:    { type: "text", dom_name: "report_leader", dom_selector: '.validate[name="report_leader"]' },
-    start_day:        { type: "date", dom_name: "start_day", required: true, dom_selector: '.validate[name="start_day"]' },
-    end_day:          { type: "date", dom_name: "end_day", required: true, dom_selector: '.validate[name="end_day"]' },
+    start_date:       { type: "date", dom_name: "start_date", required: true, dom_selector: '[name="start_date"]' },
+    end_date:         { type: "date", dom_name: "end_date", required: true, dom_selector: '[name="end_date"]' },
     report_dest:      { type: "text", dom_name: "report_dest", required: true, dom_selector: '.validate[name="report_dest"]' },
     purpose_field:    { type: "text", dom_name: "purpose_field", required: true, dom_selector: '.validate[name="purpose_field"]' },
     date_field:       { type: "text", dom_name: "date_field", dom_selector: '.validate[name="date_field"]' },
@@ -983,8 +1157,8 @@ async function submitTravel(
     report_post: reportPost,
     report_group: userDept,
     report_leader: reportLeader,
-    start_day: startDate,
-    end_day: endDate,
+    start_date: startDate,
+    end_date: endDate,
     report_dest: destination,
     purpose_field: purpose,
     date_field: schedule,
@@ -999,8 +1173,7 @@ async function submitTravel(
 
   // Handle attachment if provided
   if (params.attachment_path) {
-    const fileInput = frame.locator('input[name="doc_attach_file[]"]').first();
-    await fileInput.setInputFiles(params.attachment_path);
+    await attachFile(frame, params.attachment_path);
     await page.waitForTimeout(1000);
   }
 
@@ -1058,32 +1231,32 @@ async function submitTravelRequest(
   // Step 2: Set budget_code and travel-specific fields after cascade settles
   const fieldSchema: Record<string, TemplateFieldSchema> = {
     budget_code:   { type: "select", dom_name: "budget_code", required: true },
-    start_day:     { type: "date", dom_name: "start_day", required: true, dom_selector: '.validate[name="start_day"]' },
-    end_day:       { type: "date", dom_name: "end_day", required: true, dom_selector: '.validate[name="end_day"]' },
-    report_dest:   { type: "text", dom_name: "report_dest", required: true, dom_selector: '.validate[name="report_dest"]' },
-    purpose_field: { type: "text", dom_name: "purpose_field", required: true, dom_selector: '.validate[name="purpose_field"]' },
-    org_field:     { type: "text", dom_name: "org_field", dom_selectors: ['.validate[name="org_field"]', 'input[name="organization"]'] },
-    person_field:  { type: "text", dom_name: "person_field", dom_selectors: ['.validate[name="person_field"]', 'input[name="attendees"]'] },
-    date_field:    { type: "text", dom_name: "date_field", dom_selector: '.validate[name="date_field"]' },
-    discuss_field: { type: "text", dom_name: "discuss_field", dom_selectors: ['textarea[name="contents1"]', '.validate[name="discuss_field"]'] },
+    start_date:    { type: "date", dom_name: "start_date", required: true, dom_selector: '[name="start_date"]' },
+    end_date:      { type: "date", dom_name: "end_date", required: true, dom_selector: '[name="end_date"]' },
+    // These are the travel *request* form's own fields (form_templates/AppFrm-023.json,
+    // captured from 108 documents). The schema previously carried report_dest /
+    // purpose_field / org_field / person_field / date_field / discuss_field, which belong
+    // to the travel *report* (AppFrm-076) and do not exist here - so every one of them
+    // silently did nothing, and the submission failed on the first required one.
+    travel_dest:   { type: "text", dom_name: "travel_dest[]", required: true, dom_selector: '[name="travel_dest[]"]' },
+    purpose:       { type: "text", dom_name: "purpose", required: true, dom_selector: '[name="purpose"]' },
+    start_tm:      { type: "select", dom_name: "start_tm" },
+    end_tm:        { type: "select", dom_name: "end_tm" },
   };
 
   await genericFillForm(frame, fieldSchema, {
     budget_code: budgetCode,
-    start_day: startDate,
-    end_day: endDate,
-    report_dest: destination,
-    purpose_field: purpose,
-    org_field: params.organization || "",
-    person_field: params.attendees || "",
-    date_field: params.schedule || "",
-    discuss_field: params.details || "",
+    start_date: startDate,
+    end_date: endDate,
+    travel_dest: destination,
+    purpose,
+    start_tm: params.start_tm || "",
+    end_tm: params.end_tm || "",
   });
 
   // Handle attachment if provided
   if (params.attachment_path) {
-    const fileInput = frame.locator('input[name="doc_attach_file[]"]').first();
-    await fileInput.setInputFiles(params.attachment_path);
+    await attachFile(frame, params.attachment_path);
     await page.waitForTimeout(1000);
   }
 
@@ -1183,8 +1356,7 @@ async function submitBudgetTransfer(
 
   // Handle attachment if provided
   if (params.attachment_path) {
-    const fileInput = frame.locator('input[name="doc_attach_file[]"]').first();
-    await fileInput.setInputFiles(params.attachment_path);
+    await attachFile(frame, params.attachment_path);
     await page.waitForTimeout(1000);
   }
 
@@ -1288,21 +1460,29 @@ async function submitCardExpense(
     ov_place: venue,
   });
 
-  // Set totals via evaluate (uses getElementsByName — not in generic schema)
+  // total_amt is a form-computed (readonly) field; write it, then hold it to the line items.
   await frame.evaluate(
     (args: { total: string; ral: string }) => {
       const totalEl = document.getElementsByName("total_amt")[0] as HTMLInputElement;
-      if (totalEl) totalEl.value = args.total;
+      if (totalEl) {
+        totalEl.value = args.total;
+        totalEl.dispatchEvent(new Event("input", { bubbles: true }));
+        totalEl.dispatchEvent(new Event("change", { bubbles: true }));
+      }
       const ralEl = document.querySelector('input[name="item_amount_ral[]"]') as HTMLInputElement;
-      if (ralEl) ralEl.value = args.ral;
+      if (ralEl) {
+        ralEl.value = args.ral;
+        ralEl.dispatchEvent(new Event("input", { bubbles: true }));
+        ralEl.dispatchEvent(new Event("change", { bubbles: true }));
+      }
     },
     { total: String(amount), ral: String(amount) }
   );
+  await assertTotalMatchesItems(frame);
 
   // Handle attachment
   if (params.attachment_path) {
-    const fileInput = frame.locator('input[name="doc_attach_file[]"]').first();
-    await fileInput.setInputFiles(params.attachment_path);
+    await attachFile(frame, params.attachment_path);
     await page.waitForTimeout(1000);
   }
 
@@ -1481,6 +1661,14 @@ async function submitCardExpenseRD(
       message: "card_expense_rd requires at least one attachment_path or attachment_paths[]. The form alerts 'Please attach at least one file.' on submit.",
     });
   }
+  // Validate every path before any upload. attachmentHelper.attachFiles only checks
+  // existence, so the allowlist must be enforced here or attachment_paths[] bypasses it.
+  for (const fp of filePaths) {
+    const pathErr = validateAttachmentPath(fp);
+    if (pathErr) {
+      return textResult({ error: true, code: "INVALID_ATTACHMENT", message: `${fp}: ${pathErr}` });
+    }
+  }
   // Set file_attach_cnt = N then upload N files into doc_attach_file[]
   const attachResult = await attachmentHelper.attachFiles(frame, filePaths);
   await page.waitForTimeout(500);
@@ -1582,6 +1770,18 @@ async function submitTravelSettlement(
   const subject = params.title || `[Settlement] ${purpose}`;
   const approvedDocRef = params.approved_doc_ref || params.sel_travel || "";
 
+  // A settlement settles an approved travel request. A bare AppFrm-054 carries almost no
+  // fields - start_date, end_date, purpose and the province/city cascade only appear once
+  // the parent is linked - so without one there is nothing to settle and anything produced
+  // is a hollow document that the form then refuses without saying why.
+  if (!approvedDocRef) {
+    throw new Error(
+      "PARENT_DOC_REQUIRED: travel_settlement needs the approved travel request it settles. " +
+        "Pass approved_doc_ref. Without it the form exposes no date, purpose or budget fields " +
+        "and the submission is rejected with no message."
+    );
+  }
+
   // Step 1: Set sel_travel hidden field to link the approved travel request
   let autoPopulated = false;
   if (approvedDocRef) {
@@ -1595,97 +1795,35 @@ async function submitTravelSettlement(
       },
       approvedDocRef
     );
-    // Wait to see if groupware JS auto-populates fields
-    await page.waitForTimeout(2000);
-
-    // Check if auto-populate worked by verifying at least one parent-doc field is filled
-    autoPopulated = await frame.evaluate(() => {
-      const startDate = document.querySelector('input[name="start_date"]') as HTMLInputElement | null;
-      const province = document.querySelector('select[name="province"]') as HTMLSelectElement | null;
-      return !!(
-        (startDate && startDate.value && startDate.value !== "") ||
-        (province && province.value && province.value !== "" && province.value !== "0")
-      );
-    });
+    // Poll rather than sleep once: linking the parent is a server round-trip, and a fixed
+    // 2s wait turns a slow-but-valid reference into a refusal.
+    const deadline = Date.now() + 8000;
+    while (Date.now() < deadline) {
+      autoPopulated = await frame.evaluate(() => {
+        const startDate = document.querySelector('input[name="start_date"]') as HTMLInputElement | null;
+        const province = document.querySelector('select[name="province"]') as HTMLSelectElement | null;
+        return !!(
+          (startDate && startDate.value && startDate.value !== "") ||
+          (province && province.value && province.value !== "" && province.value !== "0")
+        );
+      });
+      if (autoPopulated) break;
+      await page.waitForTimeout(400);
+    }
   }
 
-  // Step 2: If auto-populate didn't work, manually set parent-doc fields + run cascade
+  // sel_travel is a hidden field the form's own [Search] popup (document_select.php) fills.
+  // If the form did not populate itself from the reference we wrote, the form did not accept
+  // it - the document either does not exist, is not ours, or is not settleable. Carrying on
+  // would put an unverified reference on a financial document, which is the same fabrication
+  // as typing a substitute's payroll number.
   if (!autoPopulated) {
-    const startDate = params.start_date || todayStr();
-    const endDate = params.end_date || startDate;
-
-    // Set date and text fields via genericFillForm
-    const manualSchema: Record<string, TemplateFieldSchema> = {
-      start_date:       { type: "date", dom_name: "start_date" },
-      end_date:         { type: "date", dom_name: "end_date" },
-      purpose_category: { type: "select", dom_name: "purpose_category" },
-      purpose:          { type: "textarea", dom_name: "purpose" },
-      destination:      { type: "text", dom_name: "destination" },
-    };
-
-    await genericFillForm(frame, manualSchema, {
-      start_date: startDate,
-      end_date: endDate,
-      purpose_category: params.purpose_category || "",
-      purpose: params.purpose || "",
-      destination: params.destination || "",
-    });
-
-    // Run AJAX cascade: province -> city -> transport_mode -> budget_type -> budget_code -> item_no
-    const province = params.province || "";
-    const city = params.city || "";
-    const transportMode = params.transport_mode || "Other Public Transporation";
-    const budgetType = params.budget_type || "02"; // IPK is R&D institute, "02" (R&D) is correct default
-
-    if (province) {
-      const cascadeSteps: CascadeStep[] = [
-        {
-          field: "province",
-          value: province,
-          waitSelector: "select[name='city'] option:nth-child(2)",
-          timeoutMs: 3000,
-        },
-        {
-          field: "city",
-          value: city,
-          waitSelector: "select[name='transport_mode'] option:nth-child(2)",
-          timeoutMs: 3000,
-        },
-        {
-          field: "transport_mode",
-          value: transportMode,
-          timeoutMs: 1500,
-        },
-        {
-          field: "budget_type",
-          value: budgetType,
-          waitSelector: "select[name='budget_code'] option:nth-child(2)",
-          timeoutMs: 3000,
-        },
-      ];
-
-      // Add budget_code step if provided
-      if (params.budget_code) {
-        cascadeSteps.push({
-          field: "budget_code",
-          value: params.budget_code,
-          waitSelector: "select[name='item_no'] option:nth-child(2)",
-          timeoutMs: 3000,
-          condition: "budget_type",
-        });
-      }
-      // Add item_no step if provided
-      if (params.item_no) {
-        cascadeSteps.push({
-          field: "item_no",
-          value: params.item_no,
-          timeoutMs: 1500,
-          condition: "budget_code",
-        });
-      }
-
-      await executeAjaxCascade(page, frame, cascadeSteps);
-    }
+    audit({ action: "refusal", field: "sel_travel", code: "PARENT_DOC_NOT_ACCEPTED", ok: false });
+    throw new Error(
+      `PARENT_DOC_NOT_ACCEPTED: the form did not load anything from '${approvedDocRef}'. ` +
+        "Check the document number of the approved travel request, or pick it through the " +
+        "form's [Search] button. Refusing to submit a settlement whose parent is unverified."
+    );
   }
 
   // Step 3: Set subject, budget control, and expense amounts via genericFillForm
@@ -1717,8 +1855,7 @@ async function submitTravelSettlement(
 
   // Step 6: Handle attachment
   if (params.attachment_path) {
-    const fileInput = frame.locator('input[name="doc_attach_file[]"]').first();
-    await fileInput.setInputFiles(params.attachment_path);
+    await attachFile(frame, params.attachment_path);
     await page.waitForTimeout(1000);
   }
 
@@ -1727,12 +1864,6 @@ async function submitTravelSettlement(
   const docId = await submitForm(page, frame, "check_form_request");
 
   const warnings: string[] = [];
-  if (!approvedDocRef) {
-    warnings.push("No approved_doc_ref (sel_travel) provided — parent document fields may be incomplete.");
-  }
-  if (!autoPopulated && approvedDocRef) {
-    warnings.push("sel_travel auto-populate did not work — used manual cascade fallback.");
-  }
   if (params.transport_mode?.includes("Own Vehicle") && !params.attachment_path) {
     warnings.push("Own vehicle travel requires 거리.pdf (Naver Maps screenshot) attachment.");
   }
@@ -1944,8 +2075,7 @@ async function submitSeminar(
 
   // Handle attachment
   if (params.attachment_path) {
-    const fileInput = frame.locator('input[name="doc_attach_file[]"]').first();
-    await fileInput.setInputFiles(params.attachment_path);
+    await attachFile(frame, params.attachment_path);
     await page.waitForTimeout(1000);
   }
 
@@ -2128,8 +2258,7 @@ async function submitOverseasTravel(
 
   // Handle attachment
   if (params.attachment_path) {
-    const fileInput = frame.locator('input[name="doc_attach_file[]"]').first();
-    await fileInput.setInputFiles(params.attachment_path);
+    await attachFile(frame, params.attachment_path);
     await page.waitForTimeout(1000);
   }
 
@@ -2184,8 +2313,7 @@ async function submitGeneric(
     if (validationError) {
       return textResult({ error: true, code: "INVALID_ATTACHMENT", message: validationError });
     }
-    const fileInput = frame.locator('input[name="doc_attach_file[]"]').first();
-    await fileInput.setInputFiles(params.attachment_path);
+    await attachFile(frame, params.attachment_path);
     await page.waitForTimeout(1000);
   }
 
@@ -2206,34 +2334,6 @@ async function submitGeneric(
       note: "Filled via generic template handler. Verify form completeness via screenshot.",
     },
   });
-}
-
-/** Set substitute fields directly (fallback when popup fails) */
-async function setFallbackSubstitute(frame: any, name: string): Promise<void> {
-  // Use parameterized evaluate to set readonly fields
-  await frame.evaluate(
-    (args: { name: string; payroll: string; position: string; contact: string }) => {
-      const fields: [string, string][] = [
-        ["substitute_name", args.name],
-        ["substitute_payroll", args.payroll],
-        ["substitute_position", args.position],
-        ["substitute_contact", args.contact],
-      ];
-      for (const [fieldName, value] of fields) {
-        const el = document.querySelector(`input[name="${fieldName}"]`) as HTMLInputElement;
-        if (el) {
-          el.readOnly = false;
-          el.value = value;
-        }
-      }
-    },
-    {
-      name,
-      payroll: process.env.IPK_SUBSTITUTE_PAYROLL || "N/A",
-      position: process.env.IPK_SUBSTITUTE_POSITION || "Researcher",
-      contact: process.env.IPK_SUBSTITUTE_CONTACT || "N/A",
-    }
-  );
 }
 
 function todayStr(): string {

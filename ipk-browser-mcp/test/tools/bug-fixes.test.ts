@@ -24,8 +24,12 @@ function makeMockFrame(overrides: Partial<Record<string, any>> = {}): Frame {
 }
 
 function makeMockPage(frame: Frame | null): Page {
+  // navigateToForm navigates the page itself and then uses page.mainFrame();
+  // the frame.goto()/stale-retry path it used to take no longer exists.
   return {
     frame: vi.fn().mockReturnValue(frame),
+    mainFrame: vi.fn().mockReturnValue(frame),
+    goto: vi.fn().mockResolvedValue(undefined),
     waitForTimeout: vi.fn().mockResolvedValue(undefined),
   } as unknown as Page;
 }
@@ -149,45 +153,38 @@ describe("T1 – ipk_fetch_approvals URL type mapping", () => {
 
 // ── T2: navigateToForm stale frame detection ───────────────────────
 
-describe("T2 – navigateToForm stale frame detection", () => {
+describe("T2 – navigateToForm navigation contract", () => {
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  it("returns frame after 1 stale retry (frame becomes valid on 2nd url() call)", async () => {
+  it("navigates the page (not the child frame) and returns the main frame", async () => {
     const { navigateToForm } = await import("../../src/browser/iframe-helper.js");
 
-    let urlCallCount = 0;
-    const frame = makeMockFrame({
-      url: vi.fn().mockImplementation(() => {
-        urlCallCount++;
-        // First call returns stale; subsequent calls return valid URL
-        return urlCallCount <= 1
-          ? "about:blank"
-          : "https://gw.ip-korea.org/Document/document_write.php?approve_type=AppFrm-054";
-      }),
-    });
+    const frame = makeMockFrame({});
     const page = makeMockPage(frame);
     const config = { baseUrl: "https://gw.ip-korea.org", navTimeoutMs: 10000 } as any;
 
     const result = await navigateToForm(page, "leave", config);
+
     expect(result).toBe(frame);
-    expect(urlCallCount).toBeGreaterThan(1);
+    const gotoUrl = (page.goto as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    expect(gotoUrl).toContain("/Document/document_write.php?approve_type=");
   }, 3000);
 
-  it("throws FRAME_NOT_FOUND after 2 retries with persistently stale frame", async () => {
+  it("strips any path in baseUrl so the form URL uses the origin only", async () => {
     const { navigateToForm } = await import("../../src/browser/iframe-helper.js");
 
-    const frame = makeMockFrame({
-      url: vi.fn().mockReturnValue("about:blank"),
-    });
+    const frame = makeMockFrame({});
     const page = makeMockPage(frame);
-    const config = { baseUrl: "https://gw.ip-korea.org", navTimeoutMs: 10000 } as any;
+    const config = { baseUrl: "https://gw.ip-korea.org/main.php", navTimeoutMs: 10000 } as any;
 
-    await expect(navigateToForm(page, "leave", config)).rejects.toThrow(
-      /FRAME_NOT_FOUND.*stale after 2 retries/
-    );
-  }, 4000);
+    await navigateToForm(page, "leave", config);
+
+    const gotoUrl = (page.goto as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    expect(gotoUrl).not.toContain("main.php");
+    expect(gotoUrl.startsWith("https://gw.ip-korea.org/Document/")).toBe(true);
+  }, 3000);
 
   it("leave form waits for select[name='leave_kind[]'] ready selector", async () => {
     const { navigateToForm } = await import("../../src/browser/iframe-helper.js");
