@@ -22,6 +22,12 @@ const SERVER = path.join(__dirname, "..", "dist", "ipk-browser-mcp.mjs");
 const AUDIT = path.join(process.env.HOME, ".cache", "ipk-mcp", "audit.jsonl");
 const DATA = path.join(__dirname, "data");
 
+/**
+ * Every draft this harness creates carries this in its subject, so cleanup can find them
+ * by what the groupware shows rather than only by ids the runner managed to parse.
+ */
+const BENCH_SUBJECT_PREFIX = "[BENCH]";
+
 const args = process.argv.slice(2);
 const ONLY = (args.includes("--only") ? args[args.indexOf("--only") + 1] : "").split(",").filter(Boolean);
 const KEEP = args.includes("--keep");
@@ -120,7 +126,14 @@ async function main() {
     try {
       const res = await call("tools/call", {
         name: "ipk_submit_form",
-        arguments: { form_type: sc.form_type, draft_only: true, ...sc.params },
+        arguments: {
+          form_type: sc.form_type,
+          draft_only: true,
+          ...sc.params,
+          // Stamp the subject so the sweep can find it even if the response is unreadable.
+          title: `${BENCH_SUBJECT_PREFIX} ${sc.params.title || sc.id}`,
+          subject: `${BENCH_SUBJECT_PREFIX} ${sc.params.subject || sc.id}`,
+        },
       });
       const p = payload(res);
       // Handlers are not consistent about shape: errors come back flat, successes sometimes
@@ -170,35 +183,52 @@ async function main() {
     }
 
     if (!KEEP) {
-      await frame.goto(`${base}/Document/document_list.php?type=drafts`, { timeout: 30000 });
-      await page.waitForTimeout(1500);
+      // Sweep by subject prefix as well as by the ids we tracked. Tracking alone is only as
+      // good as the response parsing: a handler that returned the id under a key the runner
+      // did not read left two real drafts behind, and nothing noticed until they were found
+      // by hand weeks later. The prefix is the thing the groupware itself can see.
       const ids = createdDocs.map((d) => String(d.id));
-      const checked = await frame.evaluate((wanted) => {
-        let n = 0;
-        document.querySelectorAll("tr").forEach((row) => {
-          const a = row.querySelector("a[href*='doc_id=']");
-          if (!a) return;
-          const m = a.getAttribute("href").match(/doc_id=(\d+)/);
-          if (!m || !wanted.includes(m[1])) return;
-          const cb = row.querySelector('input[type="checkbox"]');
-          if (cb) { cb.checked = true; n++; }
-        });
-        return n;
-      }, ids);
-      if (checked > 0) {
+      let swept = 0;
+      for (let round = 0; round < 10; round++) {
+        await frame.goto(`${base}/Document/document_list.php?type=drafts`, { timeout: 30000 });
+        await page.waitForTimeout(1500);
+        const picked = await frame.evaluate(
+          (args) => {
+            const got = [];
+            document.querySelectorAll("tr").forEach((row) => {
+              const a = row.querySelector("a[href*='doc_id=']");
+              const cb = row.querySelector('input[type="checkbox"]');
+              if (!a || !cb) return;
+              const m = a.getAttribute("href").match(/doc_id=(\d+)/);
+              const text = row.innerText || "";
+              const byId = m && args.ids.includes(m[1]);
+              const byPrefix = text.includes(args.prefix);
+              if (byId || byPrefix) { cb.checked = true; got.push(m ? m[1] : "?"); }
+            });
+            return got;
+          },
+          { ids, prefix: BENCH_SUBJECT_PREFIX }
+        );
+        if (picked.length === 0) break;
         await frame.evaluate(() => window.Delete_Doc());
         await page.waitForTimeout(2500);
+        swept += picked.length;
       }
-      const left = await frame.evaluate((wanted) => {
-        let n = 0;
-        document.querySelectorAll("a[href*='doc_id=']").forEach((a) => {
-          const m = a.getAttribute("href").match(/doc_id=(\d+)/);
-          if (m && wanted.includes(m[1])) n++;
-        });
-        return n;
-      }, ids);
-      console.error(`\ncleanup: selected ${checked}/${ids.length}, ${left} still present after delete`);
-      if (left > 0) console.error(`WARNING: drafts left behind: ${ids.join(", ")} - delete them by hand`);
+      const left = await frame.evaluate(
+        (args) => {
+          let n = 0;
+          document.querySelectorAll("tr").forEach((row) => {
+            const a = row.querySelector("a[href*='doc_id=']");
+            if (!a) return;
+            const m = a.getAttribute("href").match(/doc_id=(\d+)/);
+            if ((m && args.ids.includes(m[1])) || (row.innerText || "").includes(args.prefix)) n++;
+          });
+          return n;
+        },
+        { ids, prefix: BENCH_SUBJECT_PREFIX }
+      );
+      console.error(`\ncleanup: deleted ${swept} (tracked ${ids.length}), ${left} still present`);
+      if (left > 0) console.error(`WARNING: bench drafts left behind - delete them by hand`);
     } else {
       console.error(`\n--keep: left ${createdDocs.length} draft(s) in place: ${createdDocs.map((d) => d.id).join(", ")}`);
     }
