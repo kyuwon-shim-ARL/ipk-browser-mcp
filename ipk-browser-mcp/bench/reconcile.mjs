@@ -66,7 +66,11 @@ function snapshots() {
       if ((e.action !== "field_write" && e.action !== "option_select") || e.ok === false) continue;
       const v = String(e.value ?? "").trim();
       if (!v) continue; // a blank we wrote tells us nothing about what a person changed
-      fields[fieldName(e.field)] = v;
+      // A document shows a select's label, not its option value, so keep both and count
+      // the field as intact if either survives. Comparing only the value reported every
+      // select as changed the moment it was written.
+      const label = String(e.label ?? "").trim();
+      fields[fieldName(e.field)] = label && label !== v ? [v, label] : [v];
     }
     out.push({
       runId,
@@ -149,12 +153,12 @@ async function main() {
 
     const survived = [];
     const changed = [];
-    for (const [name, value] of Object.entries(snap.fields)) {
-      const needle = value.replace(/\s+/g, " ").toLowerCase();
-      (text.includes(needle) ? survived : changed).push({ name, value });
+    for (const [name, forms] of Object.entries(snap.fields)) {
+      const kept = forms.some((f) => text.includes(f.replace(/\s+/g, " ").toLowerCase()));
+      (kept ? survived : changed).push({ name, value: forms[0], shownAs: forms[1] });
       perField[name] ??= { written: 0, changed: 0 };
       perField[name].written++;
-      if (!text.includes(needle)) perField[name].changed++;
+      if (!kept) perField[name].changed++;
     }
     results.push({ docId: snap.docId, formType: snap.formType, at: snap.at, gone, survived, changed });
     console.error(

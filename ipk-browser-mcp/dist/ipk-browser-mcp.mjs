@@ -21678,7 +21678,8 @@ async function setSelectValue(frame, selector, value) {
       const hidden = el2.getBoundingClientRect().width === 0 && el2.getBoundingClientRect().height === 0;
       el2.value = args.val;
       el2.dispatchEvent(new Event("change", { bubbles: true }));
-      return hidden ? "ok_hidden" : "ok";
+      const label = el2.options[el2.selectedIndex]?.text?.trim() || "";
+      return { status: hidden ? "ok_hidden" : "ok", label };
     },
     { sel: selector, val: value }
   );
@@ -21688,13 +21689,25 @@ async function setSelectValue(frame, selector, value) {
       `FIELD_DISABLED: '${selector}' is disabled; the browser would not submit a value written to it. Enable it through the form's own controls instead.`
     );
   }
+  if (typeof outcome === "object" && outcome.status !== "no_option") {
+    audit({
+      action: "option_select",
+      field: selector,
+      value,
+      label: outcome.label,
+      fromOfferedOptions: true,
+      hidden: outcome.status === "ok_hidden",
+      ok: true
+    });
+    return true;
+  }
   if (typeof outcome === "object" && outcome.status === "no_option") {
     audit({ action: "refusal", field: selector, code: "INVALID_OPTION", fromOfferedOptions: false, ok: false });
     throw new Error(
       `INVALID_OPTION: '${value}' is not an option '${selector}' offers. Allowed: ${outcome.offered.filter(Boolean).join(", ") || "(none yet - the form may fill this from another field first)"}`
     );
   }
-  audit({ action: "option_select", field: selector, value, fromOfferedOptions: true, hidden: outcome === "ok_hidden", ok: outcome !== "not_found" });
+  audit({ action: "option_select", field: selector, value, fromOfferedOptions: true, ok: outcome !== "not_found" });
   return outcome !== "not_found";
 }
 async function setRequiredField(frame, selector, value, fieldName) {
@@ -21812,12 +21825,53 @@ async function executePostActions(frame, actions) {
     }
   }
 }
+async function verifyIntendedValues(frame, intended) {
+  if (intended.length === 0) return;
+  const reverted = await frame.evaluate((items) => {
+    const out = [];
+    for (const it of items) {
+      const el = document.querySelector(it.selector);
+      if (!el) continue;
+      if (String(el.value) !== it.value) {
+        out.push({ key: it.key, selector: it.selector, want: it.value, got: String(el.value) });
+      }
+    }
+    return out;
+  }, intended);
+  if (reverted.length === 0) return;
+  for (const r of reverted) {
+    audit({ action: "field_write", field: r.selector, value: r.want, ok: true });
+  }
+  await frame.evaluate((items) => {
+    for (const it of items) {
+      const el = document.querySelector(it.selector);
+      if (!el) continue;
+      el.value = it.want;
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+      el.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+  }, reverted.map((r) => ({ selector: r.selector, want: r.want })));
+  const stillWrong = await frame.evaluate((items) => {
+    const out = [];
+    for (const it of items) {
+      const el = document.querySelector(it.selector);
+      if (el && String(el.value) !== it.want) out.push(`${it.key} (wanted '${it.want}', has '${el.value}')`);
+    }
+    return out;
+  }, reverted);
+  if (stillWrong.length > 0) {
+    throw new Error(
+      `FIELD_REVERTED: the form undid ${stillWrong.length} value(s) and would not keep them after being set again: ${stillWrong.join(", ")}. Submitting would file a document that does not hold what was asked for.`
+    );
+  }
+}
 async function genericFillForm(frame, fieldSchema, userData, hooks, opts) {
   if (hooks) {
     for (const hook of hooks) {
       if (hook.trigger === "pre_fill") await hook.fn(frame, null, userData);
     }
   }
+  const intended = [];
   for (const [fieldKey, schema] of Object.entries(fieldSchema)) {
     if (!schema.dom_name) continue;
     const value = userData[fieldKey];
@@ -21892,8 +21946,10 @@ async function genericFillForm(frame, fieldSchema, userData, hooks, opts) {
       } else {
         await setFieldValue(frame, selector, strValue);
       }
+      intended.push({ selector, value: strValue, key: fieldKey });
     }
   }
+  await verifyIntendedValues(frame, intended);
   if (hooks) {
     for (const hook of hooks) {
       if (hook.trigger === "post_fill") await hook.fn(frame, null, userData);
@@ -22273,10 +22329,14 @@ async function submitLeave(page, frame, sessionManager2, config3, params, mode) 
     );
   }
   const fieldSchema = {
+    // Order matters. The form has a delegated change handler on .usrCalendar that rebuilds
+    // the leave row, and it clears using_type[]. Setting the dates last therefore wipes a
+    // using_type set earlier, and the form answers "Please check your leave period. (6)"
+    // with no hint that a field it recomputed is the reason.
     leave_kind: { type: "select", dom_name: "leave_kind[]", required: true },
-    using_type: { type: "select", dom_name: "using_type[]", required: true },
     begin_date: { type: "date", dom_name: "begin_date[]", required: true },
     end_date: { type: "date", dom_name: "end_date[]", required: true },
+    using_type: { type: "select", dom_name: "using_type[]", required: true },
     purpose: { type: "text", dom_name: "purpose", required: false },
     destination: { type: "text", dom_name: "destination", required: false },
     emergency_address: { type: "text", dom_name: "emergency_address", required: false },

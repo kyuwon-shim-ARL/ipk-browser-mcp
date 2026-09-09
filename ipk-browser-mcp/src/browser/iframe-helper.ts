@@ -169,7 +169,8 @@ export async function setSelectValue(
       const hidden = el.getBoundingClientRect().width === 0 && el.getBoundingClientRect().height === 0;
       el.value = args.val;
       el.dispatchEvent(new Event("change", { bubbles: true }));
-      return hidden ? ("ok_hidden" as const) : ("ok" as const);
+      const label = el.options[el.selectedIndex]?.text?.trim() || "";
+      return { status: hidden ? ("ok_hidden" as const) : ("ok" as const), label };
     },
     { sel: selector, val: value }
   );
@@ -181,6 +182,18 @@ export async function setSelectValue(
         `written to it. Enable it through the form's own controls instead.`
     );
   }
+  if (typeof outcome === "object" && outcome.status !== "no_option") {
+    audit({
+      action: "option_select",
+      field: selector,
+      value,
+      label: outcome.label,
+      fromOfferedOptions: true,
+      hidden: outcome.status === "ok_hidden",
+      ok: true,
+    });
+    return true;
+  }
   if (typeof outcome === "object" && outcome.status === "no_option") {
     audit({ action: "refusal", field: selector, code: "INVALID_OPTION", fromOfferedOptions: false, ok: false });
     throw new Error(
@@ -188,7 +201,7 @@ export async function setSelectValue(
         `Allowed: ${outcome.offered.filter(Boolean).join(", ") || "(none yet - the form may fill this from another field first)"}`
     );
   }
-  audit({ action: "option_select", field: selector, value, fromOfferedOptions: true, hidden: outcome === "ok_hidden", ok: outcome !== "not_found" });
+  audit({ action: "option_select", field: selector, value, fromOfferedOptions: true, ok: outcome !== "not_found" });
   return outcome !== "not_found";
 }
 

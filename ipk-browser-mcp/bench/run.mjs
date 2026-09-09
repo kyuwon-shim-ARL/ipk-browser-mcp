@@ -72,6 +72,21 @@ function connect() {
 }
 
 const auditSize = () => { try { return fs.statSync(AUDIT).size; } catch { return 0; } };
+
+/** Document ids the server handed back during this session, straight from the audit log. */
+function auditDocIdsSince(iso) {
+  try {
+    return fs
+      .readFileSync(AUDIT, "utf8")
+      .split("\n")
+      .filter(Boolean)
+      .map((l) => { try { return JSON.parse(l); } catch { return null; } })
+      .filter((e) => e && e.action === "submit" && e.docId && e.ts >= iso)
+      .map((e) => String(e.docId));
+  } catch {
+    return [];
+  }
+}
 function auditSince(offset) {
   try {
     const fd = fs.openSync(AUDIT, "r");
@@ -90,19 +105,46 @@ function payload(res) {
 }
 
 /**
- * Automatic proxy for M2: compare what the scenario asked for against what the saved
- * draft actually shows. It is a proxy, not the real metric - the real one is how many
- * fields a person changes before submitting, which only the modify history reveals.
+ * How many of the values this run wrote are not in the document it produced.
+ *
+ * Straight after a run that is zero: nothing has had a chance to change it. It is the same
+ * comparison bench/reconcile.mjs makes later, so a fresh run and a reconciliation weeks
+ * afterwards measure the same thing - the difference is only who touched the document in
+ * between.
+ *
+ * Selects are matched on the option's label as well as its value, because the document
+ * shows the label. Comparing only the value reported every select as changed on sight.
  */
-async function countMismatches(frame, base, docId, params) {
-  await frame.goto(`${base}/Document/document_view.php?doc_id=${docId}`, { timeout: 30000 });
-  const text = await frame.evaluate(() => document.body.innerText);
+async function countMismatches(frame, base, href, events) {
+  if (!href) return null;
+  await frame.goto(base + href, { timeout: 30000 });
+  const text = (await frame.evaluate(() => document.body.innerText)).replace(/\s+/g, " ").toLowerCase();
+  if (text.length < 500) return null; // document did not render; unknown is not zero
   let bad = 0;
-  for (const key of ["purpose", "destination", "substitute_name"]) {
-    const want = params[key];
-    if (want && !text.toLowerCase().includes(String(want).trim().toLowerCase())) bad++;
+  for (const e of events) {
+    if ((e.action !== "field_write" && e.action !== "option_select") || e.ok === false) continue;
+    const forms = [e.value, e.label].map((v) => String(v ?? "").trim()).filter(Boolean);
+    if (forms.length === 0) continue;
+    if (!forms.some((f) => text.includes(f.replace(/\s+/g, " ").toLowerCase()))) bad++;
   }
   return bad;
+}
+
+/** document_view.php needs the full query string the list page builds, not just a doc_id. */
+async function hrefForDoc(frame, page, base, docId) {
+  for (const type of ["drafts", "approved", "progress"]) {
+    await frame.goto(`${base}/Document/document_list.php?type=${type}`, { timeout: 30000 });
+    await page.waitForTimeout(600);
+    const href = await frame.evaluate((wanted) => {
+      for (const a of document.querySelectorAll("a[href*='doc_id=']")) {
+        const m = a.getAttribute("href").match(/doc_id=(\d+)/);
+        if (m && m[1] === wanted) return a.getAttribute("href");
+      }
+      return null;
+    }, String(docId));
+    if (href) return href;
+  }
+  return null;
 }
 
 async function main() {
@@ -111,6 +153,7 @@ async function main() {
   const all = JSON.parse(fs.readFileSync(path.join(__dirname, "scenarios.json"), "utf8")).scenarios;
   const scenarios = ONLY.length ? all.filter((s) => ONLY.includes(s.id)) : all;
 
+  const startedAt = new Date().toISOString();
   const { call, close } = connect();
   await call("initialize", { protocolVersion: "2024-11-05", capabilities: {}, clientInfo: { name: "bench", version: "1" } });
   const login = payload(await call("tools/call", { name: "ipk_login", arguments: {} }));
@@ -178,8 +221,10 @@ async function main() {
 
     for (const d of createdDocs) {
       const run = runs.find((r) => r.id === d.scenario);
-      const sc = scenarios.find((s) => s.id === d.scenario);
-      try { run.humanEdits = await countMismatches(frame, base, d.id, sc.params); } catch { /* leave null */ }
+      try {
+        const href = await hrefForDoc(frame, page, base, d.id);
+        run.humanEdits = await countMismatches(frame, base, href, run.events);
+      } catch { /* leave null: unknown is not zero */ }
     }
 
     if (!KEEP) {
@@ -187,7 +232,13 @@ async function main() {
       // good as the response parsing: a handler that returned the id under a key the runner
       // did not read left two real drafts behind, and nothing noticed until they were found
       // by hand weeks later. The prefix is the thing the groupware itself can see.
-      const ids = createdDocs.map((d) => String(d.id));
+      // Three independent sources, because each one alone has failed:
+      //   - ids the runner parsed out of the response (missed a handler's camelCase key)
+      //   - the subject prefix (handlers that build their own subject never carry it)
+      //   - document ids the server handed back, recorded inside submitForm
+      // The last is the authoritative one; the other two are cheap and cost nothing.
+      const auditIds = auditDocIdsSince(startedAt);
+      const ids = [...new Set([...createdDocs.map((d) => String(d.id)), ...auditIds])];
       let swept = 0;
       for (let round = 0; round < 10; round++) {
         await frame.goto(`${base}/Document/document_list.php?type=drafts`, { timeout: 30000 });
