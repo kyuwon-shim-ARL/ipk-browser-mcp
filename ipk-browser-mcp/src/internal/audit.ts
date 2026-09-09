@@ -39,6 +39,9 @@ export interface AuditEvent {
   value?: string;
   /** for submit: the document id the groupware assigned, which joins a run to a document */
   docId?: string | null;
+  /** for option_select: the option's visible text. A document shows the label, not the
+   *  option value, so reconciliation has to be able to look for either. */
+  label?: string;
   /** true when the element was readOnly - written by design, but worth counting */
   readOnly?: boolean;
   /** true when the element was in the DOM but not rendered. Hidden fields ARE submitted

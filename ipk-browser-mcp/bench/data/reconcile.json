@@ -1,24 +1,95 @@
 [
   {
-    "docId": "299745",
+    "docId": "299883",
     "formType": "leave",
-    "at": "2026-09-09T04:37:51.025636+00:00",
+    "at": "2026-09-09T06:23:36.601Z",
     "gone": false,
     "survived": [
       {
-        "name": "destination",
-        "value": "101dong, 501ho"
+        "name": "begin_date[]",
+        "value": "2026-09-18"
       },
       {
-        "name": "leave_kind[]",
-        "value": "Compensatory leave"
+        "name": "end_date[]",
+        "value": "2026-09-18"
+      },
+      {
+        "name": "using_type[]",
+        "value": "04"
+      },
+      {
+        "name": "purpose",
+        "value": "Reconcile pipeline check"
+      },
+      {
+        "name": "destination",
+        "value": "Seoul"
+      },
+      {
+        "name": "emergency_address",
+        "value": "101dong, 501ho, 20, Jegi-ro, Dongdaemun-gu, Seoul, Republic of Korea"
+      },
+      {
+        "name": "emergency_telephone",
+        "value": "01051410462"
+      },
+      {
+        "name": "subject",
+        "value": "Compensatory leave, 2026-09-18 10:00~12:00, Seoul, Kyuwon Shim"
       }
     ],
     "changed": [
       {
-        "name": "purpose",
-        "value": "THIS-VALUE-WAS-CHANGED-BY-A-PERSON"
+        "name": "leave_kind[]",
+        "value": "11"
       }
     ]
+  },
+  {
+    "docId": "299884",
+    "formType": "leave",
+    "at": "2026-09-09T06:24:42.933Z",
+    "gone": false,
+    "survived": [
+      {
+        "name": "leave_kind[]",
+        "value": "11",
+        "shownAs": "Compensatory leave"
+      },
+      {
+        "name": "begin_date[]",
+        "value": "2026-09-18"
+      },
+      {
+        "name": "end_date[]",
+        "value": "2026-09-18"
+      },
+      {
+        "name": "using_type[]",
+        "value": "04",
+        "shownAs": "Hours"
+      },
+      {
+        "name": "purpose",
+        "value": "Reconcile pipeline check"
+      },
+      {
+        "name": "destination",
+        "value": "Seoul"
+      },
+      {
+        "name": "emergency_address",
+        "value": "101dong, 501ho, 20, Jegi-ro, Dongdaemun-gu, Seoul, Republic of Korea"
+      },
+      {
+        "name": "emergency_telephone",
+        "value": "01051410462"
+      },
+      {
+        "name": "subject",
+        "value": "Compensatory leave, 2026-09-18 10:00~12:00, Seoul, Kyuwon Shim"
+      }
+    ],
+    "changed": []
   }
 ]
