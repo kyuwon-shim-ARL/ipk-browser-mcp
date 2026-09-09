@@ -21660,7 +21660,7 @@ async function setFieldValue(frame, selector, value) {
       `FIELD_DISABLED: '${selector}' is disabled; the browser would not submit a value written to it. Enable it through the form's own controls instead.`
     );
   }
-  audit({ action: "field_write", field: selector, hidden: outcome === "ok_hidden", ok: outcome !== "not_found" });
+  audit({ action: "field_write", field: selector, value, hidden: outcome === "ok_hidden", ok: outcome !== "not_found" });
   return outcome !== "not_found";
 }
 async function setSelectValue(frame, selector, value) {
@@ -21694,7 +21694,7 @@ async function setSelectValue(frame, selector, value) {
       `INVALID_OPTION: '${value}' is not an option '${selector}' offers. Allowed: ${outcome.offered.filter(Boolean).join(", ") || "(none yet - the form may fill this from another field first)"}`
     );
   }
-  audit({ action: "option_select", field: selector, fromOfferedOptions: true, hidden: outcome === "ok_hidden", ok: outcome !== "not_found" });
+  audit({ action: "option_select", field: selector, value, fromOfferedOptions: true, hidden: outcome === "ok_hidden", ok: outcome !== "not_found" });
   return outcome !== "not_found";
 }
 async function setRequiredField(frame, selector, value, fieldName) {
@@ -21751,7 +21751,9 @@ async function submitForm(page, frame, method = "check_form_request") {
     const frameUrl = frame.url();
     if (frameUrl.includes("document_view.php") && frameUrl.includes("doc_id=")) {
       const match = frameUrl.match(/doc_id=([^&]+)/);
-      return match ? match[1] : null;
+      const docId = match ? match[1] : null;
+      audit({ action: "submit", docId, ok: true });
+      return docId;
     }
     if (frameUrl.includes("document_write.php")) {
       throw new Error(

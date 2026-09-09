@@ -268,6 +268,22 @@
         "submittable": false,
         "note": "card_expense_rd is built from a corporate card transaction (trseq/appr_no from the Make ER link), which cannot be synthesised. The tool refuses up front; this scenario guards that guard rather than the attachment rule."
       }
+    },
+    {
+      "id": "leave-comp-keep",
+      "form_type": "leave",
+      "tier": "live_draft",
+      "params": {
+        "leave_type": "compensatory",
+        "purpose": "Reconcile pipeline check",
+        "destination": "Seoul",
+        "start_date": "2026-09-18",
+        "end_date": "2026-09-18"
+      },
+      "expected": {
+        "submittable": true,
+        "note": "Exists to exercise the reconcile path end to end. Currently blocked: the leave form answers 'Please check your leave period. (6)' for annual and compensatory alike, on several dates. begin_date[]/end_date[] are readonly datepicker fields, so writing .value may update the display without updating whatever the validator reads - the same shape as the travel_request 'Check travel time.' finding."
+      }
     }
   ],
   "$known_gaps": [
@@ -276,6 +292,7 @@
     "No happy-path settlement scenario yet: linking a real approved travel request needs the value document_select.php returns for sel_travel, and that format is not yet known. The two scenarios here cover the failure modes, not the success path.",
     "travel_request still stops at the form's own 'Check travel time.' with valid 09:00/18:00 times. start_date and end_date are among the form's readonly fields, so '[name=\"start_date\"]' may be matching a display element rather than the input the form validates. Next thing to check.",
     "card_expense_rd cannot be exercised end to end: it is built from a corporate card transaction (trseq/appr_no from the Make ER link), which cannot be synthesised. Its scenarios only guard the up-front refusal.",
-    "leave scenarios cannot reach class A while this account has no annual leave balance; the groupware rejects them at the form."
+    "leave scenarios cannot reach class A while this account has no annual leave balance; the groupware rejects them at the form.",
+    "reconcile.mjs is verified against a real document (2 values present, 1 absent, classified correctly) but has not yet run on a document this tool created, because no form currently saves a draft end to end. It starts producing numbers as soon as one does."
   ]
 }

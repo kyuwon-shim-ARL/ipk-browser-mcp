@@ -137,7 +137,7 @@ export async function setFieldValue(
         `written to it. Enable it through the form's own controls instead.`
     );
   }
-  audit({ action: "field_write", field: selector, hidden: outcome === "ok_hidden", ok: outcome !== "not_found" });
+  audit({ action: "field_write", field: selector, value, hidden: outcome === "ok_hidden", ok: outcome !== "not_found" });
   return outcome !== "not_found";
 }
 
@@ -188,7 +188,7 @@ export async function setSelectValue(
         `Allowed: ${outcome.offered.filter(Boolean).join(", ") || "(none yet - the form may fill this from another field first)"}`
     );
   }
-  audit({ action: "option_select", field: selector, fromOfferedOptions: true, hidden: outcome === "ok_hidden", ok: outcome !== "not_found" });
+  audit({ action: "option_select", field: selector, value, fromOfferedOptions: true, hidden: outcome === "ok_hidden", ok: outcome !== "not_found" });
   return outcome !== "not_found";
 }
 
@@ -361,7 +361,11 @@ export async function submitForm(
   const frameUrl = frame.url();
   if (frameUrl.includes("document_view.php") && frameUrl.includes("doc_id=")) {
     const match = frameUrl.match(/doc_id=([^&]+)/);
-    return match ? match[1] : null;
+    const docId = match ? match[1] : null;
+    // Joins this run's field writes to the document they produced, which is what makes a
+    // later reconciliation possible: what we wrote vs what the submitted document holds.
+    audit({ action: "submit", docId, ok: true });
+    return docId;
   }
 
   // If still on document_write.php, submission likely failed
