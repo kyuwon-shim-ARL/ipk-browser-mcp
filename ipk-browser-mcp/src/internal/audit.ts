@@ -1,6 +1,9 @@
 /**
  * Run audit log.
  *
+ * Note this file holds document content (field values), so it is written 0700 under the
+ * user's own cache directory and never leaves the machine.
+ *
  * Every mutation the tool performs on a groupware form is recorded as a structured event,
  * so a run can be scored after the fact: what did it change, did it stay inside what the
  * form offered, and did anything irreversible happen.
@@ -31,6 +34,11 @@ export interface AuditEvent {
   action: AuditAction;
   /** DOM name of the field, where the action targets one */
   field?: string;
+  /** The value written. Recorded so a run can be reconciled against the document later:
+   *  a value that is no longer in the submitted document is one a person changed. */
+  value?: string;
+  /** for submit: the document id the groupware assigned, which joins a run to a document */
+  docId?: string | null;
   /** true when the element was readOnly - written by design, but worth counting */
   readOnly?: boolean;
   /** true when the element was in the DOM but not rendered. Hidden fields ARE submitted
