@@ -21980,8 +21980,28 @@ async function attachFile(frame, filePath) {
     audit({ action: "refusal", code: "INVALID_ATTACHMENT", validated: false, ok: false });
     throw new Error(`INVALID_ATTACHMENT: ${err}`);
   }
-  const fileInput = frame.locator('input[name="doc_attach_file[]"]').first();
+  const target = await frame.evaluate(() => {
+    if (document.querySelector("input.travel_file")) return "input.travel_file";
+    const cnt = document.querySelector('select[name="file_attach_cnt"]');
+    if (cnt && Number(cnt.value) < 1) {
+      cnt.value = "1";
+      cnt.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+    return 'input[name="doc_attach_file[]"]';
+  });
+  await frame.waitForSelector(target, { state: "attached", timeout: 5e3 }).catch(() => null);
+  const fileInput = frame.locator(target).first();
   await fileInput.setInputFiles(filePath);
+  const landed = await frame.evaluate((sel) => {
+    const el = document.querySelector(sel);
+    return !!(el && el.files && el.files.length > 0);
+  }, target);
+  if (!landed) {
+    audit({ action: "refusal", code: "ATTACHMENT_NOT_ACCEPTED", validated: true, ok: false });
+    throw new Error(
+      `ATTACHMENT_NOT_ACCEPTED: the file did not attach to '${target}'. The upload slot may not have been created - check file_attach_cnt on this form.`
+    );
+  }
   audit({ action: "upload", validated: true, ok: true });
 }
 async function selectExistingOption(frame, selector, value, fieldName, timeoutMs = 5e3) {
@@ -22024,6 +22044,40 @@ async function selectExistingOption(frame, selector, value, fieldName, timeoutMs
   audit({ action: "refusal", field: fieldName, code: "INVALID_OPTION", fromOfferedOptions: false, ok: false });
   throw new Error(
     `INVALID_OPTION: '${value}' is not an option the form offers for '${fieldName}' (waited ${timeoutMs}ms in case the form populates it). Allowed: ${last.options.join(", ") || "(none)"}`
+  );
+}
+async function selectRadio(frame, name, value) {
+  const outcome = await frame.evaluate(
+    (args) => {
+      const all = Array.from(
+        document.querySelectorAll(`input[type="radio"][name="${args.name}"]`)
+      );
+      if (all.length === 0) return { status: "no_element", offered: [] };
+      const offered = all.map((r) => r.value);
+      const match = all.find((r) => r.value === args.value);
+      if (!match) return { status: "no_option", offered };
+      match.click();
+      if (!match.checked) {
+        match.checked = true;
+        match.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+      return { status: match.checked ? "ok" : "reverted", offered };
+    },
+    { name, value }
+  );
+  if (outcome.status === "ok") {
+    audit({ action: "option_select", field: name, value, fromOfferedOptions: true, ok: true });
+    return;
+  }
+  audit({ action: "refusal", field: name, code: `RADIO_${outcome.status.toUpperCase()}`, ok: false });
+  if (outcome.status === "no_element") {
+    throw new Error(`FIELD_NOT_FOUND: no radio group named '${name}' on this form`);
+  }
+  if (outcome.status === "reverted") {
+    throw new Error(`OPTION_REJECTED: the form cleared '${name}' after selecting '${value}'.`);
+  }
+  throw new Error(
+    `INVALID_OPTION: '${value}' is not one of the '${name}' choices. Allowed: ${outcome.offered.join(", ")}`
   );
 }
 async function assertTotalMatchesItems(frame) {
@@ -22099,6 +22153,17 @@ var ipkSubmitFormSchema = {
   start_date: external_exports.string().optional().describe("Start date (YYYY-MM-DD)"),
   end_date: external_exports.string().optional().describe("End date (YYYY-MM-DD)"),
   start_time: external_exports.string().optional().describe("Start hour for hourly leave (e.g. '14')"),
+  // Undeclared parameters are dropped before the handler sees them, so a travel request's
+  // times were silently never written and the form answered "Check travel time."
+  start_tm: external_exports.string().optional().describe("travel_request departure time, HH:MM on the half hour (e.g. '08:00')"),
+  bound_code: external_exports.string().optional().describe("travel_request: '19' within metropolitan area, '20' outside it"),
+  purpose_type: external_exports.string().optional().describe("travel_request type of business travel: '1' conference, '2' presentation, '3' technical meeting, '4' training, '5' simple visit"),
+  matrials: external_exports.string().optional().describe("travel_request: 'Y' if research materials leave the institute (then a Public Disclosure Approval file is required), 'N' otherwise. The form defaults to 'Y'."),
+  working_code: external_exports.string().optional().describe("travel_request: '197' within 4 hours, '198' more than 4 hours"),
+  province_code: external_exports.string().optional().describe("travel_request province, e.g. '02' Seoul, '03' Gyeonggi-do"),
+  city_code: external_exports.string().optional().describe("travel_request city; the form fills this from province_code (Seoul is '192')"),
+  travel_type_code: external_exports.string().optional().describe("travel_request transport: '01' institute vehicle, '02' own vehicle, '03' other public transport"),
+  end_tm: external_exports.string().optional().describe("travel_request return time, HH:MM on the half hour (e.g. '16:00')"),
   end_time: external_exports.string().optional().describe("End hour for hourly leave (e.g. '17')"),
   purpose: external_exports.string().optional().describe("Purpose/reason"),
   destination: external_exports.string().optional().describe("Destination"),
@@ -22680,7 +22745,7 @@ async function submitTravelRequest(page, frame, sessionManager2, config3, params
   if (!budgetCode) {
     return textResult({ error: true, code: "MISSING_BUDGET_CODE", message: "budget_code is required. Provide the active fiscal year budget code (e.g. NN2612-0001)." });
   }
-  const subject = `[Request] ${title}`;
+  const subject = /^\[request\]/i.test(title.trim()) ? title.trim() : `[Request] ${title}`;
   const cascadeSchema = {
     subject: { type: "text", dom_name: "subject", required: true },
     budget_type: { type: "select", dom_name: "budget_type", required: true }
@@ -22710,6 +22775,32 @@ async function submitTravelRequest(page, frame, sessionManager2, config3, params
     start_tm: params.start_tm || "",
     end_tm: params.end_tm || ""
   });
+  if (params.purpose_type) {
+    await selectRadio(frame, "purpose_type", String(params.purpose_type));
+  }
+  if (params.matrials) {
+    await selectRadio(frame, "matrials", String(params.matrials));
+  }
+  if (params.bound_code) {
+    await setRequiredSelect(frame, 'select[name="bound_code"]', String(params.bound_code), "bound_code");
+  }
+  if (params.working_code) {
+    await setRequiredSelect(frame, 'select[name="working_code"]', String(params.working_code), "working_code");
+  }
+  if (params.province_code) {
+    await selectExistingOption(frame, 'select[name="province_code"]', String(params.province_code), "province_code");
+    if (params.city_code) {
+      await selectExistingOption(frame, 'select[name="city_code"]', String(params.city_code), "city_code");
+      if (params.travel_type_code) {
+        await selectExistingOption(
+          frame,
+          'select[name="travel_type_code"]',
+          String(params.travel_type_code),
+          "travel_type_code"
+        );
+      }
+    }
+  }
   if (params.attachment_path) {
     await attachFile(frame, params.attachment_path);
     await page.waitForTimeout(1e3);
