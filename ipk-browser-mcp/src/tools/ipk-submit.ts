@@ -107,6 +107,65 @@ async function executePostActions(frame: any, actions: PostAction[]): Promise<vo
  * @param hooks - Optional hooks for pre/post fill or complex evaluate logic
  * @param opts - Optional extended options for new widget types (file_upload, account_lookup)
  */
+/**
+ * Confirm each field still holds what was written, and put back anything the form undid.
+ *
+ * One re-apply, then fail. If a value will not stay after being restored once, something
+ * on the page is actively rejecting it, and submitting would produce a document whose
+ * contents are not the ones that were asked for.
+ */
+async function verifyIntendedValues(
+  frame: any,
+  intended: { selector: string; value: string; key: string }[]
+): Promise<void> {
+  if (intended.length === 0) return;
+
+  type Reverted = { key: string; selector: string; want: string; got: string };
+  const reverted: Reverted[] = await frame.evaluate((items: { selector: string; value: string; key: string }[]) => {
+    const out: { key: string; selector: string; want: string; got: string }[] = [];
+    for (const it of items) {
+      const el = document.querySelector(it.selector) as HTMLInputElement | null;
+      if (!el) continue; // absent fields are already reported by setRequiredField
+      if (String(el.value) !== it.value) {
+        out.push({ key: it.key, selector: it.selector, want: it.value, got: String(el.value) });
+      }
+    }
+    return out;
+  }, intended);
+
+  if (reverted.length === 0) return;
+
+  for (const r of reverted) {
+    audit({ action: "field_write", field: r.selector, value: r.want, ok: true });
+  }
+  await frame.evaluate((items: { selector: string; want: string }[]) => {
+    for (const it of items) {
+      const el = document.querySelector(it.selector) as HTMLInputElement | null;
+      if (!el) continue;
+      el.value = it.want;
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+      el.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+  }, reverted.map((r: Reverted) => ({ selector: r.selector, want: r.want })));
+
+  const stillWrong = await frame.evaluate((items: { key: string; selector: string; want: string }[]) => {
+    const out: string[] = [];
+    for (const it of items) {
+      const el = document.querySelector(it.selector) as HTMLInputElement | null;
+      if (el && String(el.value) !== it.want) out.push(`${it.key} (wanted '${it.want}', has '${el.value}')`);
+    }
+    return out;
+  }, reverted);
+
+  if (stillWrong.length > 0) {
+    throw new Error(
+      `FIELD_REVERTED: the form undid ${stillWrong.length} value(s) and would not keep them ` +
+        `after being set again: ${stillWrong.join(", ")}. Submitting would file a document ` +
+        `that does not hold what was asked for.`
+    );
+  }
+}
+
 async function genericFillForm(
   frame: any,
   fieldSchema: Record<string, TemplateFieldSchema>,
@@ -120,6 +179,9 @@ async function genericFillForm(
       if (hook.trigger === "pre_fill") await hook.fn(frame, null, userData);
     }
   }
+
+  // What we intend each field to hold once filling is done, so it can be read back.
+  const intended: { selector: string; value: string; key: string }[] = [];
 
   for (const [fieldKey, schema] of Object.entries(fieldSchema)) {
     // Skip fields with no DOM mapping
@@ -213,8 +275,15 @@ async function genericFillForm(
       } else {
         await setFieldValue(frame, selector, strValue);
       }
+      intended.push({ selector, value: strValue, key: fieldKey });
     }
   }
+
+  // Read back what was written. These forms recompute on change - the leave form's
+  // .usrCalendar handler rebuilds the row and clears using_type[] - so a field set earlier
+  // can be silently reverted by a field set later. Without this the form rejects the
+  // submission naming something the caller never knew had been undone.
+  await verifyIntendedValues(frame, intended);
 
   // Execute post_fill hooks
   if (hooks) {
@@ -748,10 +817,14 @@ async function submitLeave(
 
   // Use genericFillForm for standard fields
   const fieldSchema: Record<string, TemplateFieldSchema> = {
+    // Order matters. The form has a delegated change handler on .usrCalendar that rebuilds
+    // the leave row, and it clears using_type[]. Setting the dates last therefore wipes a
+    // using_type set earlier, and the form answers "Please check your leave period. (6)"
+    // with no hint that a field it recomputed is the reason.
     leave_kind: { type: "select", dom_name: "leave_kind[]", required: true },
-    using_type: { type: "select", dom_name: "using_type[]", required: true },
     begin_date: { type: "date", dom_name: "begin_date[]", required: true },
     end_date: { type: "date", dom_name: "end_date[]", required: true },
+    using_type: { type: "select", dom_name: "using_type[]", required: true },
     purpose: { type: "text", dom_name: "purpose", required: false },
     destination: { type: "text", dom_name: "destination", required: false },
     emergency_address: { type: "text", dom_name: "emergency_address", required: false },

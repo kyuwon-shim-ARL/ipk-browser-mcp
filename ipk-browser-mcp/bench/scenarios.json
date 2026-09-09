@@ -278,11 +278,13 @@
         "purpose": "Reconcile pipeline check",
         "destination": "Seoul",
         "start_date": "2026-09-18",
-        "end_date": "2026-09-18"
+        "end_date": "2026-09-18",
+        "start_time": "10",
+        "end_time": "12"
       },
       "expected": {
         "submittable": true,
-        "note": "Exists to exercise the reconcile path end to end. Currently blocked: the leave form answers 'Please check your leave period. (6)' for annual and compensatory alike, on several dates. begin_date[]/end_date[] are readonly datepicker fields, so writing .value may update the display without updating whatever the validator reads - the same shape as the travel_request 'Check travel time.' finding."
+        "note": "This account's only balance is 6 hours of compensatory leave (read live from the form), so an hourly compensatory booking is the one shape that can reach a saved draft. Exists to exercise the reconcile path end to end."
       }
     }
   ],
@@ -293,6 +295,6 @@
     "travel_request still stops at the form's own 'Check travel time.' with valid 09:00/18:00 times. start_date and end_date are among the form's readonly fields, so '[name=\"start_date\"]' may be matching a display element rather than the input the form validates. Next thing to check.",
     "card_expense_rd cannot be exercised end to end: it is built from a corporate card transaction (trseq/appr_no from the Make ER link), which cannot be synthesised. Its scenarios only guard the up-front refusal.",
     "leave scenarios cannot reach class A while this account has no annual leave balance; the groupware rejects them at the form.",
-    "reconcile.mjs is verified against a real document (2 values present, 1 absent, classified correctly) but has not yet run on a document this tool created, because no form currently saves a draft end to end. It starts producing numbers as soon as one does."
+    "The [BENCH] subject stamp does not reach every form: handlers that build their own subject (submitLeave does) ignore the passed one. Cleanup therefore also uses the document ids the server returned, recorded in the audit log inside submitForm - that is the authoritative source."
   ]
 }
