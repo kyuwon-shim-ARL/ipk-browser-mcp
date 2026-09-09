@@ -1,95 +1,68 @@
 [
   {
-    "docId": "299883",
-    "formType": "leave",
-    "at": "2026-09-09T06:23:36.601Z",
+    "docId": "299905",
+    "formType": "travel_request",
+    "at": "2026-09-09T08:35:33.552Z",
     "gone": false,
     "survived": [
       {
-        "name": "begin_date[]",
-        "value": "2026-09-18"
+        "name": "subject",
+        "value": "[Request] 2026 Q3 RAPID Sample Collection for Microbial Surveillance"
       },
       {
-        "name": "end_date[]",
-        "value": "2026-09-18"
+        "name": "budget_type",
+        "value": "02",
+        "shownAs": "R&D"
       },
       {
-        "name": "using_type[]",
-        "value": "04"
+        "name": "budget_code",
+        "value": "NN2602-0001",
+        "shownAs": "[NN2602-0001] 2026 GloPID-R Program(생명연 위탁)_2nd_Colleague"
+      },
+      {
+        "name": "start_date",
+        "value": "2026-09-14"
+      },
+      {
+        "name": "end_date",
+        "value": "2026-09-14"
+      },
+      {
+        "name": "travel_dest[]",
+        "value": "분당서울대병원, 강남역, 서울역, 판교현대백화점, 숭실대학교"
       },
       {
         "name": "purpose",
-        "value": "Reconcile pipeline check"
+        "value": "도시 환경 내 미생물 군집 및 항생제 내성 분석을 위한 시료채취 (참여자: 위귀남, 심규원, 김선주, 강예현)"
       },
       {
-        "name": "destination",
-        "value": "Seoul"
+        "name": "start_tm",
+        "value": "08:00"
       },
       {
-        "name": "emergency_address",
-        "value": "101dong, 501ho, 20, Jegi-ro, Dongdaemun-gu, Seoul, Republic of Korea"
+        "name": "end_tm",
+        "value": "16:00"
       },
       {
-        "name": "emergency_telephone",
-        "value": "01051410462"
+        "name": "purpose_type",
+        "value": "5"
       },
       {
-        "name": "subject",
-        "value": "Compensatory leave, 2026-09-18 10:00~12:00, Seoul, Kyuwon Shim"
+        "name": "matrials",
+        "value": "N"
+      },
+      {
+        "name": "bound_code",
+        "value": "19",
+        "shownAs": "Within Metropolitan (관내)"
       }
     ],
     "changed": [
       {
-        "name": "leave_kind[]",
-        "value": "11"
+        "name": "working_code",
+        "value": "198",
+        "shownAs": "More than 4 hours"
       }
     ]
-  },
-  {
-    "docId": "299884",
-    "formType": "leave",
-    "at": "2026-09-09T06:24:42.933Z",
-    "gone": false,
-    "survived": [
-      {
-        "name": "leave_kind[]",
-        "value": "11",
-        "shownAs": "Compensatory leave"
-      },
-      {
-        "name": "begin_date[]",
-        "value": "2026-09-18"
-      },
-      {
-        "name": "end_date[]",
-        "value": "2026-09-18"
-      },
-      {
-        "name": "using_type[]",
-        "value": "04",
-        "shownAs": "Hours"
-      },
-      {
-        "name": "purpose",
-        "value": "Reconcile pipeline check"
-      },
-      {
-        "name": "destination",
-        "value": "Seoul"
-      },
-      {
-        "name": "emergency_address",
-        "value": "101dong, 501ho, 20, Jegi-ro, Dongdaemun-gu, Seoul, Republic of Korea"
-      },
-      {
-        "name": "emergency_telephone",
-        "value": "01051410462"
-      },
-      {
-        "name": "subject",
-        "value": "Compensatory leave, 2026-09-18 10:00~12:00, Seoul, Kyuwon Shim"
-      }
-    ],
-    "changed": []
   }
 ]
