@@ -1,8 +1,8 @@
 [
   {
-    "docId": "299905",
+    "docId": "299953",
     "formType": "travel_request",
-    "at": "2026-09-09T08:35:33.552Z",
+    "at": "2026-09-10T06:27:50.357Z",
     "gone": false,
     "survived": [
       {
@@ -15,11 +15,6 @@
         "shownAs": "R&D"
       },
       {
-        "name": "budget_code",
-        "value": "NN2602-0001",
-        "shownAs": "[NN2602-0001] 2026 GloPID-R Program(생명연 위탁)_2nd_Colleague"
-      },
-      {
         "name": "start_date",
         "value": "2026-09-14"
       },
@@ -29,11 +24,7 @@
       },
       {
         "name": "travel_dest[]",
-        "value": "분당서울대병원, 강남역, 서울역, 판교현대백화점, 숭실대학교"
-      },
-      {
-        "name": "purpose",
-        "value": "도시 환경 내 미생물 군집 및 항생제 내성 분석을 위한 시료채취 (참여자: 위귀남, 심규원, 김선주, 강예현)"
+        "value": "Bundang Seoul National Univ. Hospital, Gangnam Station, Seoul Station, Pangyo Hyundai Dept Store, Soongsil University"
       },
       {
         "name": "start_tm",
@@ -50,14 +41,23 @@
       {
         "name": "matrials",
         "value": "N"
+      }
+    ],
+    "changed": [
+      {
+        "name": "budget_code",
+        "value": "NN2602-0001",
+        "shownAs": "[NN2602-0001] 2026 GloPID-R Program(생명연 위탁)_2nd_Colleague"
+      },
+      {
+        "name": "purpose",
+        "value": "Sample collection for analysis of urban microbial communities and antimicrobial resistance (Participants: Colleague, Kyuwon Shim, Colleague, Yehyeon Kang (Intern))"
       },
       {
         "name": "bound_code",
         "value": "19",
         "shownAs": "Within Metropolitan (관내)"
-      }
-    ],
-    "changed": [
+      },
       {
         "name": "working_code",
         "value": "198",

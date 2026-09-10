@@ -286,6 +286,83 @@
         "submittable": true,
         "note": "This account's only balance is 6 hours of compensatory leave (read live from the form), so an hourly compensatory booking is the one shape that can reach a saved draft. Exists to exercise the reconcile path end to end."
       }
+    },
+    {
+      "id": "travel-req-korean-text",
+      "form_type": "travel_request",
+      "tier": "live_draft",
+      "params": {
+        "title": "Bench probe - korean",
+        "destination": "서울역",
+        "purpose": "시료채취",
+        "start_date": "2026-10-12",
+        "end_date": "2026-10-12",
+        "budget_type": "02",
+        "budget_code": "NN2602-0002",
+        "start_tm": "09:00",
+        "end_tm": "17:00",
+        "bound_code": "20",
+        "province_code": "02",
+        "city_code": "192",
+        "travel_type_code": "03",
+        "meals_served": "N"
+      },
+      "expected": {
+        "submittable": false,
+        "note": "Office rule, not a form rule: documents are in English. doc 299905 went out in Korean because nothing checked this. Must be refused before the form is touched (ENGLISH_ONLY)."
+      }
+    },
+    {
+      "id": "travel-req-metro-with-city",
+      "form_type": "travel_request",
+      "tier": "live_draft",
+      "params": {
+        "title": "Bench probe - metro plus city",
+        "destination": "Seoul Station",
+        "purpose": "Bench probe",
+        "start_date": "2026-10-12",
+        "end_date": "2026-10-12",
+        "budget_type": "02",
+        "budget_code": "NN2602-0002",
+        "start_tm": "09:00",
+        "end_tm": "17:00",
+        "bound_code": "19",
+        "province_code": "02",
+        "city_code": "192",
+        "travel_type_code": "03",
+        "working_code": "198"
+      },
+      "expected": {
+        "submittable": false,
+        "note": "bound_code 19 hides and clears province/city and forces working_code 197; the form would save a document without the city and every select would still report ok. docs 299905 and 299953 went out this way. Must be refused (BOUND_HIDES_PROVINCE, BOUND_FORCES_WORKING_CODE)."
+      }
+    },
+    {
+      "id": "travel-req-department-practice",
+      "form_type": "travel_request",
+      "tier": "live_draft",
+      "params": {
+        "title": "Bench probe - department practice",
+        "destination": "Seoul Station",
+        "purpose": "Bench probe",
+        "start_date": "2026-10-12",
+        "end_date": "2026-10-12",
+        "budget_type": "02",
+        "budget_code": "NN2602-0002",
+        "start_tm": "09:00",
+        "end_tm": "17:00",
+        "bound_code": "20",
+        "province_code": "02",
+        "city_code": "192",
+        "travel_type_code": "03",
+        "meals_served": "N",
+        "purpose_type": "5",
+        "matrials": "N"
+      },
+      "expected": {
+        "submittable": true,
+        "note": "The combination the department's approved sampling requests actually use (verified against ARL-260616-03, ARL-260618-14/15 and the human-final doc 299953). This is the M9 convergence check: it must come out A. Verified live 2026-09-10 as draft 299964, then deleted."
+      }
     }
   ],
   "$known_gaps": [

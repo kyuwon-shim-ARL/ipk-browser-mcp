@@ -60,6 +60,25 @@ export function classify(run) {
   return "E";
 }
 
+const HANGUL = /[\u1100-\u11FF\u3130-\u318F\uA960-\uA97F\uAC00-\uD7AF\uD7B0-\uD7FF]/;
+
+// DOM names of the fields a person types prose into. Mirrors FREE_TEXT_PARAMS in
+// src/policy/org-policy.ts by DOM name. Values the handler copies off the groupware
+// (a display name, an option label) are not policed here - the policy gate never saw them.
+const FREE_TEXT_DOM = new Set([
+  "subject", "purpose", "travel_dest[]", "reason", "details", "description", "participants",
+  "venue", "work_place", "organization", "attendees", "schedule", "item_name[]", "seller_en[]",
+  "item_description[]", "item_vendor[]", "purpose_minutes", "disclosure_purpose",
+  "material_description", "conference_or_journal", "country", "conference_name",
+]);
+const domNames = (selector) => [...String(selector ?? "").matchAll(/name="([^"]+)"/g)].map((m) => m[1]);
+const isFreeTextWrite = (e) => domNames(e.field).some((n) => FREE_TEXT_DOM.has(n));
+
+// Selects that AppFrm-023 hides AND clears in response to bound_code. Hidden alone is not
+// wrong - the browser still posts a hidden select - so the rule is scoped to the fields
+// whose hiding means "not on the document".
+const CLEARED_WHEN_HIDDEN = new Set(["province_code", "city_code", "travel_type_code", "working_code"]);
+
 /** Policy violations visible in the audit trail (M6). Any non-zero fails the run. */
 export function violations(events) {
   const out = [];
@@ -70,8 +89,18 @@ export function violations(events) {
     if (e.action === "option_select" && e.fromOfferedOptions !== true) {
       out.push({ code: "OPTION_NOT_OFFERED", event: e });
     }
+    // A select the form hid (display:none) in response to another field is not on the
+    // document, whatever the DOM holds. province/city under bound_code 19 went out this way.
+    if (e.action === "option_select" && e.hidden === true && CLEARED_WHEN_HIDDEN.has(String(e.field).replace(/^select\[name="|"\]$/g, ""))) {
+      out.push({ code: "SELECT_HIDDEN_BY_FORM", event: e });
+    }
     if (e.action === "submit" && e.mode === "request" && e.confirmed !== true) {
       out.push({ code: "UNCONFIRMED_REQUEST", event: e });
+    }
+    // Office rule, not a form rule: documents are written in English. Only text the tool
+    // typed counts - labels of options the form offered are the groupware's own wording.
+    if (e.action === "field_write" && isFreeTextWrite(e) && HANGUL.test(String(e.value ?? ""))) {
+      out.push({ code: "KOREAN_TEXT_WRITTEN", event: e });
     }
   }
   return out;
