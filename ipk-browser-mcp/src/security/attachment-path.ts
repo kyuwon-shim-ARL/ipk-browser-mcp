@@ -3,6 +3,8 @@ import * as fs from "fs";
 /** Allowed directories for attachment file uploads. Prevents arbitrary file reads. */
 export const ALLOWED_ATTACHMENT_DIRS = [
   "/tmp",
+  // The project's evidence convention: data/attachments/YYMM/<vendor>/... (CLAUDE.md)
+  `${process.env.HOME}/projects/ipk-browser-mcp/data/attachments`,
   `${process.env.HOME}/Downloads`,
   `${process.env.HOME}/Documents`,
   `${process.env.HOME}/Desktop`,

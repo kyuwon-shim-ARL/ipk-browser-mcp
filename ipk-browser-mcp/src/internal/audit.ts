@@ -26,7 +26,7 @@ export type AuditAction =
   /** saved a draft or submitted for approval */
   | "submit"
   /** opened a form */
-  | "navigate";
+  | "navigate" | "precedent";
 
 export interface AuditEvent {
   ts: string;
@@ -46,6 +46,7 @@ export interface AuditEvent {
   readOnly?: boolean;
   /** true when the element was in the DOM but not rendered. Hidden fields ARE submitted
    *  (unlike disabled ones), so writing them is legitimate - but worth seeing in the log. */
+  /** On a write: the element had no box (benign; the form posts it anyway). On a select: the form hid it, which for the fields AppFrm-023 clears means the value is not on the document. */
   hidden?: boolean;
   /** for option_select: whether the value came from the options the form already offered */
   fromOfferedOptions?: boolean;
@@ -95,6 +96,28 @@ export function audit(event: Omit<AuditEvent, "ts" | "runId">): void {
 
 export function auditLogPath(): string {
   return LOG_PATH;
+}
+
+/**
+ * Every document id this tool has ever produced. Precedent lookups exclude these so the
+ * tool never scores its own past drafts as "what the department does".
+ */
+export function toolDraftedDocIds(): Set<string> {
+  const out = new Set<string>();
+  try {
+    for (const l of fs.readFileSync(LOG_PATH, "utf8").split("\n")) {
+      if (!l) continue;
+      try {
+        const e = JSON.parse(l);
+        if (e.action === "submit" && e.docId) out.add(String(e.docId));
+      } catch {
+        // a torn line is not a document
+      }
+    }
+  } catch {
+    // no log yet: nothing to exclude
+  }
+  return out;
 }
 
 /** Read back the events for one run (used by the benchmark scorer). */

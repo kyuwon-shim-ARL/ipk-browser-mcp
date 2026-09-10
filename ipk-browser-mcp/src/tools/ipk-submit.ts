@@ -4,6 +4,10 @@ import { SessionManager } from "../browser/session.js";
 import { textResult } from "../util.js";
 import { validateAttachmentPath } from "../security/attachment-path.js";
 import { audit, beginRun } from "../internal/audit.js";
+import { checkOrgPolicy } from "../policy/org-policy.js";
+import { checkTravelRequestParams, slotSelector, parseCardNo, type TravelDocSlot } from "../forms/travel-request.js";
+import { fetchTravelRequestPrecedents, readDraftText, diffAgainstPractice, type PrecedentSet } from "../precedent/fetch.js";
+import { parseTravelRequestDoc } from "../precedent/travel-request-doc.js";
 import {
   navigateToForm,
   setFieldValue,
@@ -164,6 +168,37 @@ async function verifyIntendedValues(
         `that does not hold what was asked for.`
     );
   }
+}
+
+/**
+ * Confirm each select still holds the value we chose AND is still part of what the form
+ * shows. A form that hides a select in response to another field (display:none) has
+ * decided that value is not on the document, whatever the DOM still says.
+ */
+async function verifySelectsHeld(frame: any, wanted: [string, unknown][]): Promise<void> {
+  const items = wanted.filter(([, v]) => v != null && v !== "").map(([name, v]) => ({ name, value: String(v) }));
+  if (items.length === 0) return;
+  const bad: { name: string; want: string; got: string; hidden: boolean }[] = await frame.evaluate(
+    (items: { name: string; value: string }[]) => {
+      const out: { name: string; want: string; got: string; hidden: boolean }[] = [];
+      for (const it of items) {
+        const el = document.querySelector(`select[name="${it.name}"]`) as HTMLSelectElement | null;
+        if (!el) continue;
+        const hidden = el.offsetParent === null;
+        if (el.value !== it.value || hidden) out.push({ name: it.name, want: it.value, got: el.value, hidden });
+      }
+      return out;
+    },
+    items
+  );
+  if (bad.length === 0) return;
+  for (const b of bad) audit({ action: "refusal", field: b.name, code: b.hidden ? "SELECT_HIDDEN_BY_FORM" : "SELECT_REVERTED", ok: false });
+  throw new Error(
+    "SELECT_NOT_HELD: " +
+      bad
+        .map((b) => (b.hidden ? `${b.name} is hidden by the form (value '${b.got}' would not appear on the document)` : `${b.name} wanted '${b.want}', form has '${b.got}'`))
+        .join("; ")
+  );
 }
 
 async function genericFillForm(
@@ -328,7 +363,7 @@ function loadTemplateFieldSchema(formType: string): Record<string, TemplateField
  * Every upload path must go through here so validateAttachmentPath can never be bypassed.
  * Enforced by `npm run lint:attachments`.
  */
-async function attachFile(frame: any, filePath: string): Promise<void> {
+async function attachFile(frame: any, filePath: string, explicitTarget?: string): Promise<void> {
   const err = validateAttachmentPath(filePath);
   if (err) {
     audit({ action: "refusal", code: "INVALID_ATTACHMENT", validated: false, ok: false });
@@ -338,7 +373,7 @@ async function attachFile(frame: any, filePath: string): Promise<void> {
   // slots (travel_doc_a[]..travel_doc_e[], class travel_file) and its submit check counts
   // *those*, not the generic doc_attach_file[] - so a file put in the generic one attaches
   // and the form still answers "Please attach at least one file."
-  const target = await frame.evaluate(() => {
+  const target = explicitTarget ?? await frame.evaluate(() => {
     if (document.querySelector("input.travel_file")) return "input.travel_file";
     // The generic widget renders no slot until file_attach_cnt is set; its onchange
     // (attach_reseth) builds them.
@@ -385,7 +420,7 @@ async function selectExistingOption(
   timeoutMs = 5000
 ): Promise<void> {
   const deadline = Date.now() + timeoutMs;
-  let last: { status: string; options: string[] } = { status: "no_element", options: [] };
+  let last: { status: string; options: string[]; label?: string; hidden?: boolean } = { status: "no_element", options: [] };
 
   for (;;) {
     last = await frame.evaluate(
@@ -401,13 +436,17 @@ async function selectExistingOption(
         el.dispatchEvent(new Event("change", { bubbles: true }));
         // The form's own handler may reject or rewrite the choice; confirm it stuck.
         if (el.value !== args.value) return { status: "reverted", options };
-        return { status: "ok", options };
+        const label = el.options[el.selectedIndex]?.text?.trim() ?? "";
+        return { status: "ok", options, label, hidden: el.offsetParent === null };
       },
       { selector, value }
     );
 
     if (last.status === "ok") {
-      audit({ action: "option_select", field: fieldName, fromOfferedOptions: true, ok: true });
+      // Value and label go in the log like every other select: without them reconcile and
+      // the scorer could not see province/city/transport at all, which is how two drafts
+      // went out without a city and every metric called them fine.
+      audit({ action: "option_select", field: fieldName, value, label: last.label, fromOfferedOptions: true, hidden: last.hidden, ok: true });
       return;
     }
     if (last.status === "reverted") {
@@ -555,7 +594,7 @@ export const ipkSubmitFormSchema = {
   // Undeclared parameters are dropped before the handler sees them, so a travel request's
   // times were silently never written and the form answered "Check travel time."
   start_tm: z.string().optional().describe("travel_request departure time, HH:MM on the half hour (e.g. '08:00')"),
-  bound_code: z.string().optional().describe("travel_request: '19' within metropolitan area, '20' outside it"),
+  bound_code: z.string().optional().describe("travel_request: '19' within metro (form hides province/city and forces working_code 197) or '20' out of metro (province_code, city_code, travel_type_code required; working_code hidden). Seoul sampling trips in this department are filed as '20' + Seoul/Seoul."),
   purpose_type: z.string().optional().describe("travel_request type of business travel: '1' conference, '2' presentation, '3' technical meeting, '4' training, '5' simple visit"),
   matrials: z.string().optional().describe("travel_request: 'Y' if research materials leave the institute (then a Public Disclosure Approval file is required), 'N' otherwise. The form defaults to 'Y'."),
   working_code: z.string().optional().describe("travel_request: '197' within 4 hours, '198' more than 4 hours"),
@@ -563,27 +602,33 @@ export const ipkSubmitFormSchema = {
   city_code: z.string().optional().describe("travel_request city; the form fills this from province_code (Seoul is '192')"),
   travel_type_code: z.string().optional().describe("travel_request transport: '01' institute vehicle, '02' own vehicle, '03' other public transport"),
   end_tm: z.string().optional().describe("travel_request return time, HH:MM on the half hour (e.g. '16:00')"),
+  attachment_slot: z.enum(["transport", "accommodation", "boarding", "etc", "verification", "poster"]).optional().describe("travel_request: which attachment row the file goes in. Required when attachment_path is given for this form. Approval emails for sampling trips go in 'verification'."),
+  precedent: z.boolean().default(true).describe("travel_request: read the department's recent approved requests of this form before drafting and report where the draft departs from them. Never fills a value in; set false to skip the lookup."),
+  budget_code_confirmed: z.boolean().optional().describe("travel_request: pass true to file against a budget_code that differs from the writer's recent approved requests (the tool refuses otherwise, since an offered code can still be an empty pot)."),
+  precedent_keyword: z.string().optional().describe("travel_request: keyword to pick precedents by (e.g. 'RAPID'). Defaults to no keyword, i.e. the writer's most recent requests."),
+  meals_served: z.string().optional().describe("travel_request, required with bound_code '20': 'N' if no meals are provided on the trip, otherwise the number of meals served (1-30). The form refuses to save without an answer."),
+  credit_card_no: z.string().optional().describe("travel_request: institute corporate card, 16 digits (e.g. 'XXXX-XXXX-XXXX-XXXX'). Only the traveler's own card, as shown on their previous approved requests."),
   end_time: z.string().optional().describe("End hour for hourly leave (e.g. '17')"),
-  purpose: z.string().optional().describe("Purpose/reason"),
-  destination: z.string().optional().describe("Destination"),
+  purpose: z.string().optional().describe("Purpose/reason. English only - Korean text is refused before the form is touched."),
+  destination: z.string().optional().describe("Destination. English only - Korean text is refused before the form is touched."),
   substitute_name: z.string().optional().describe("Substitute person name"),
 
   // Expense fields
   amount: z.number().optional().describe("Total amount in KRW"),
-  participants: z.string().optional().describe("Participants for meal expense"),
-  venue: z.string().optional().describe("Venue for expense"),
+  participants: z.string().optional().describe("Participants for meal expense. English only - Korean text is refused before the form is touched."),
+  venue: z.string().optional().describe("Venue for expense. English only - Korean text is refused before the form is touched."),
   budget_code: z.string().optional().describe("Budget code (required for expense/working/travel_request forms). Use the active fiscal year code, e.g. NN2612-0001."),
   attachment_path: z.string().optional().describe("Path to attachment file"),
 
   // Working fields
   work_date: z.string().optional().describe("Work date (YYYY-MM-DD)"),
-  work_place: z.string().optional().describe("Work place"),
-  reason: z.string().optional().describe("Reason for work/travel"),
-  details: z.string().optional().describe("Details"),
+  work_place: z.string().optional().describe("Work place. English only - Korean text is refused before the form is touched."),
+  reason: z.string().optional().describe("Reason for work/travel. English only - Korean text is refused before the form is touched."),
+  details: z.string().optional().describe("Details. English only - Korean text is refused before the form is touched."),
   budget_type: z.string().optional().describe("Budget type: 01=General, 02=R&D"),
 
   // Travel fields
-  title: z.string().optional().describe("Travel title"),
+  title: z.string().optional().describe("Travel title. English only - Korean text is refused before the form is touched."),
   organization: z.string().optional().describe("Organization/institution"),
   attendees: z.string().optional().describe("Attendees"),
   schedule: z.string().optional().describe("Schedule details"),
@@ -597,8 +642,8 @@ export const ipkSubmitFormSchema = {
   // Card expense fields (AppFrm-020)
   item_date: z.string().optional().describe("Date of purchase (YYYY-MM-DD)"),
   item_account_code: z.string().optional().describe("Account code: 420421=Team activities, 420420=External meeting, 420374=Commission, 420375=Registration"),
-  item_description: z.string().optional().describe("Expense description (e.g. 'Team activities')"),
-  item_vendor: z.string().optional().describe("Vendor/store name"),
+  item_description: z.string().optional().describe("Expense description (e.g. 'Team activities'). English only - Korean text is refused before the form is touched."),
+  item_vendor: z.string().optional().describe("Vendor/store name. English only - Korean text is refused before the form is touched."),
   item_control_no: z.string().optional().describe("Card receipt control number"),
   purpose_minutes: z.string().optional().describe("Meeting purpose and minutes"),
 
@@ -621,7 +666,7 @@ export const ipkSubmitFormSchema = {
   original_leave_doc: z.string().optional().describe("Document number of original leave (e.g. ARL-260121-02)"),
   return_days: z.number().optional().describe("Number of days to return"),
   return_hours: z.number().optional().describe("Number of hours to return"),
-  description: z.string().optional().describe("Reason for leave return"),
+  description: z.string().optional().describe("Reason for leave return. English only - Korean text is refused before the form is touched."),
 
   // Seminar fields (AppFrm-043)
   disclosure_purpose: z.string().optional().describe("Why the material is being disclosed"),
@@ -675,7 +720,7 @@ export const ipkSubmitFormDescription =
   "seminar: title, date, location; " +
   "overseas_travel: budget_code, title, destination, start_date, end_date, purpose. " +
   "Error recovery: NOT_LOGGED_IN→call ipk_login first; FRAME_NOT_FOUND→call ipk_navigate first; " +
-  "CONFIRMATION_REQUIRED→set draft_only=true for safe draft mode; SESSION_EXPIRING→re-login.";
+  "CONFIRMATION_REQUIRED→set draft_only=true for safe draft mode; POLICY_VIOLATION/FORM_RULE_VIOLATION→read the violations list, nothing was written; SESSION_EXPIRING→re-login.";
 
 /** Per-form navigation configuration for forms that need custom URL construction. */
 interface FormNavConfig {
@@ -685,12 +730,56 @@ interface FormNavConfig {
   waitSelector?: string;
   /** Post-navigation wait in ms (default: 2000). */
   waitMs?: number;
-  /** Pre-navigate validation (returns error message or null). */
-  validate?: (params: Record<string, any>) => string | null;
+  /** Pre-navigate validation: an error message, a structured refusal, or null. Runs before beforeNavigate. */
+  validate?: (params: Record<string, any>) => string | { code: string; message: string; violations?: unknown } | null;
+  /** Work that must happen before the form is opened (it may navigate the page). May return a refusal. */
+  beforeNavigate?: (page: any, params: Record<string, any>, config: Config, sessionManager: SessionManager) => Promise<void | { code: string; message: string; violations?: unknown }>;
 }
+
+/** Precedent read for a call, keyed on its params so caller input and handler state never mix. */
+const PRECEDENT_FOR = new WeakMap<Record<string, any>, PrecedentSet>();
 
 /** Navigation overrides for forms that cannot use the standard navigateToForm path. */
 const FORM_NAV_CONFIG: Partial<Record<string, FormNavConfig>> = {
+  travel_request: {
+    // Combinations the form itself would undo (src/forms/travel-request.ts), refused
+    // before any page is loaded so the caller learns all of them at once.
+    validate: (params) => {
+      const v = checkTravelRequestParams(params);
+      if (v.length === 0) return null;
+      for (const x of v) audit({ action: "refusal", code: x.code, field: x.fields.join(","), ok: false });
+      return { code: "FORM_RULE_VIOLATION", message: v.map((x) => `[${x.code}] ${x.message}`).join("\n"), violations: v };
+    },
+    // Precedent is read before the form is opened: the lookup navigates the page, and
+    // the form would be lost. It is advisory only (see src/precedent/fetch.ts).
+    beforeNavigate: async (page, params, config, sessionManager) => {
+      if (params.precedent === false) return;
+      const set = await fetchTravelRequestPrecedents(page, {
+        baseUrl: config.baseUrl,
+        formCode: "AppFrm-023",
+        keyword: params.precedent_keyword,
+        writer: sessionManager.getUserInfo()?.name,
+        n: 3,
+      });
+      PRECEDENT_FOR.set(params, set);
+      audit({ action: "precedent", field: "travel_request", value: String(set.docs.length), ok: !set.error });
+
+      // The budget pot is the one field precedent may stop a draft on: doc 299953 was
+      // filed against a pot with no balance while the writer's own last requests all
+      // used the carry-over code. Precedent does not pick the code - it asks.
+      const practice = set.profile.stable.budget_code;
+      if (practice && params.budget_code && practice.value !== String(params.budget_code) && params.budget_code_confirmed !== true) {
+        audit({ action: "refusal", code: "BUDGET_DIFFERS_FROM_PRACTICE", field: "budget_code", value: String(params.budget_code), label: practice.value, ok: false });
+        return {
+          code: "BUDGET_DIFFERS_FROM_PRACTICE",
+          message:
+            `budget_code '${params.budget_code}' differs from the code on all ${practice.n} recent approved requests ` +
+            `(${set.docs.map((d) => d.docNo).join(", ")}): '${practice.value}'. A pot can be empty while its code is still ` +
+            `offered. Confirm which pot has balance, then resubmit with budget_code_confirmed: true, or use '${practice.value}'.`,
+        };
+      }
+    },
+  },
   card_expense_rd: {
     validate: (params) =>
       !params.trseq || !params.appr_no
@@ -765,12 +854,20 @@ export async function handleIpkSubmitForm(
   const page = sessionManager.getPage()!;
   const formType = params.form_type as FormType;
 
-  // Safety check: require explicit confirmation for actual submission
-  if (!params.draft_only && !params.confirm_submit) {
+  // Organisational policy (src/policy/org-policy.ts) is checked before the form is touched,
+  // and every violation is returned at once. The form validates its own fields; it does not
+  // know the office rules (English only, draft first, overseas VAT), so nothing downstream
+  // would catch these.
+  const policy = checkOrgPolicy(params);
+  if (policy.length > 0) {
+    for (const v of policy) {
+      audit({ action: "refusal", code: `POLICY_${v.rule}`, field: v.fields.join(","), ok: false });
+    }
     return textResult({
       error: true,
-      code: "CONFIRMATION_REQUIRED",
-      message: "To submit for approval, set both draft_only=false AND confirm_submit=true",
+      code: policy.some((v) => v.rule === "DRAFT_FIRST") ? "CONFIRMATION_REQUIRED" : "POLICY_VIOLATION",
+      message: policy.map((v) => `[${v.rule}] ${v.message}`).join("\n"),
+      violations: policy,
     });
   }
 
@@ -799,14 +896,24 @@ export async function handleIpkSubmitForm(
     const navConfig = FORM_NAV_CONFIG[formType];
     let frame: any;
 
-    if (navConfig) {
-      // Validate required params for this form's nav
-      if (navConfig.validate) {
-        const validErr = navConfig.validate(params);
-        if (validErr) {
-          return textResult({ error: true, code: "MISSING_CARD_RECEIPT_REF", message: validErr });
-        }
+    // Pure checks first: a request that will be refused must not pay for navigation.
+    if (navConfig?.validate) {
+      const validErr = navConfig.validate(params);
+      if (typeof validErr === "string") {
+        return textResult({ error: true, code: "MISSING_CARD_RECEIPT_REF", message: validErr });
       }
+      if (validErr) {
+        return textResult({ error: true, ...validErr });
+      }
+    }
+
+    if (navConfig?.beforeNavigate) {
+      const refusal = await navConfig.beforeNavigate(page, params, config, sessionManager);
+      sessionManager.touchActivity();
+      if (refusal) return textResult({ error: true, ...refusal });
+    }
+
+    if (navConfig?.customUrl) {
       // Custom URL navigation
       // The main_menu frame only exists while the page is still the frameset. Once any
       // earlier call has navigated the page to a form, it is gone - so this path used to
@@ -1443,16 +1550,68 @@ async function submitTravelRequest(
     }
   }
 
-  // Handle attachment if provided
+  // Meals provided on the trip (asked under bound_code 20). 'N' unchecks the allowance;
+  // a count enables the select and picks it. The form enables food_ex_cnt on the Y click.
+  if (params.meals_served != null && params.meals_served !== "") {
+    const meals = String(params.meals_served);
+    await selectRadio(frame, "food_yn", meals === "N" ? "N" : "Y");
+    if (meals !== "N") {
+      await selectExistingOption(frame, 'select[name="food_ex_cnt"]', meals, "food_ex_cnt");
+    }
+  }
+
+  // Corporate card: four boxes the form joins into the hidden credit_card_no on submit.
+  if (params.credit_card_no) {
+    const parts = parseCardNo(String(params.credit_card_no))!;
+    for (let i = 0; i < 4; i++) {
+      await setRequiredField(frame, `input[name="copcard${i + 1}"]`, parts[i], `copcard${i + 1}`);
+    }
+  }
+
+  // Handle attachment if provided - into the row the caller named, never the first one.
   if (params.attachment_path) {
-    await attachFile(frame, params.attachment_path);
+    await attachFile(frame, params.attachment_path, slotSelector(params.attachment_slot as TravelDocSlot));
     await page.waitForTimeout(1000);
   }
+
+  // Read back every select. A select can report "ok" and still not be in the document:
+  // the form hides province/city under bound_code 19 and rewrites working_code. Both
+  // drafts before this check went out that way.
+  await verifySelectsHeld(frame, [
+    ["bound_code", params.bound_code],
+    ["working_code", params.working_code],
+    ["province_code", params.province_code],
+    ["city_code", params.city_code],
+    ["travel_type_code", params.travel_type_code],
+    ["start_tm", params.start_tm],
+    ["end_tm", params.end_tm],
+  ]);
 
   await page.waitForTimeout(1000);
 
   await setFormMode(frame, mode);
   const docId = await submitForm(page, frame, "check_form_request");
+
+  // Where this draft departs from the department's practice. Computed on the rendered
+  // documents, precedent minus draft, so an absence (no card, no city) counts as a
+  // difference. Nothing here changes the document; the caller decides.
+  const precedentSet = PRECEDENT_FOR.get(params);
+  let precedent: Record<string, unknown> | undefined;
+  if (precedentSet) {
+    precedent = {
+      n: precedentSet.docs.length,
+      docs: precedentSet.docs.map((d) => `${d.docNo} (${d.writer})`),
+      excluded_tool_drafts: precedentSet.excluded,
+      error: precedentSet.error,
+      practice: precedentSet.profile.stable,
+      varied: precedentSet.profile.varied,
+    };
+    if (docId && mode === "draft" && precedentSet.docs.length >= 2) {
+      const read = await readDraftText(page, config.baseUrl, docId).catch((e) => ({ text: null, reason: String(e) }));
+      if (read.text) precedent.diff = diffAgainstPractice(parseTravelRequestDoc(read.text), precedentSet.profile);
+      else precedent.diff_unavailable = read.reason;
+    }
+  }
 
   return textResult({
     error: false,
@@ -1465,6 +1624,7 @@ async function submitTravelRequest(
       message: docId
         ? `Travel request ${mode === "draft" ? "draft saved" : "submitted"} (doc_id: ${docId})`
         : `Travel request ${mode} completed`,
+      precedent,
     },
   });
 }
