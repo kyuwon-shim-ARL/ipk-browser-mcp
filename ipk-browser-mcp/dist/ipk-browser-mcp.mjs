@@ -2225,20 +2225,20 @@ var require_resolve = __commonJS({
       return false;
     }
     function countKeys(schema) {
-      let count = 0;
+      let count2 = 0;
       for (const key in schema) {
         if (key === "$ref")
           return Infinity;
-        count++;
+        count2++;
         if (SIMPLE_INLINED.has(key))
           continue;
         if (typeof schema[key] == "object") {
-          (0, util_1.eachItem)(schema[key], (sch) => count += countKeys(sch));
+          (0, util_1.eachItem)(schema[key], (sch) => count2 += countKeys(sch));
         }
-        if (count === Infinity)
+        if (count2 === Infinity)
           return Infinity;
       }
-      return count;
+      return count2;
     }
     function getFullPath(resolver, id = "", normalize) {
       if (normalize !== false)
@@ -5323,8 +5323,8 @@ var require_contains = __commonJS({
         cxt.result(valid, () => cxt.reset());
         function validateItemsWithCount() {
           const schValid = gen.name("_valid");
-          const count = gen.let("count", 0);
-          validateItems(schValid, () => gen.if(schValid, () => checkLimits(count)));
+          const count2 = gen.let("count", 0);
+          validateItems(schValid, () => gen.if(schValid, () => checkLimits(count2)));
         }
         function validateItems(_valid, block) {
           gen.forRange("i", 0, len, (i) => {
@@ -5337,16 +5337,16 @@ var require_contains = __commonJS({
             block();
           });
         }
-        function checkLimits(count) {
-          gen.code((0, codegen_1._)`${count}++`);
+        function checkLimits(count2) {
+          gen.code((0, codegen_1._)`${count2}++`);
           if (max === void 0) {
-            gen.if((0, codegen_1._)`${count} >= ${min}`, () => gen.assign(valid, true).break());
+            gen.if((0, codegen_1._)`${count2} >= ${min}`, () => gen.assign(valid, true).break());
           } else {
-            gen.if((0, codegen_1._)`${count} > ${max}`, () => gen.assign(valid, false).break());
+            gen.if((0, codegen_1._)`${count2} > ${max}`, () => gen.assign(valid, false).break());
             if (min === 1)
               gen.assign(valid, true);
             else
-              gen.if((0, codegen_1._)`${count} >= ${min}`, () => gen.assign(valid, true));
+              gen.if((0, codegen_1._)`${count2} >= ${min}`, () => gen.assign(valid, true));
           }
         }
       }
@@ -6837,6 +6837,8 @@ var init_attachment_path = __esm({
     "use strict";
     ALLOWED_ATTACHMENT_DIRS = [
       "/tmp",
+      // The project's evidence convention: data/attachments/YYMM/<vendor>/... (CLAUDE.md)
+      `${process.env.HOME}/projects/ipk-browser-mcp/data/attachments`,
       `${process.env.HOME}/Downloads`,
       `${process.env.HOME}/Documents`,
       `${process.env.HOME}/Desktop`
@@ -14067,13 +14069,13 @@ function _array(Class2, element, params) {
   });
 }
 function _custom(Class2, fn, _params) {
-  const norm = normalizeParams(_params);
-  norm.abort ?? (norm.abort = true);
+  const norm2 = normalizeParams(_params);
+  norm2.abort ?? (norm2.abort = true);
   const schema = new Class2({
     type: "custom",
     check: "custom",
     fn,
-    ...norm
+    ...norm2
   });
   return schema;
 }
@@ -21594,6 +21596,381 @@ function audit(event) {
   } catch {
   }
 }
+function toolDraftedDocIds() {
+  const out = /* @__PURE__ */ new Set();
+  try {
+    for (const l of fs3.readFileSync(LOG_PATH, "utf8").split("\n")) {
+      if (!l) continue;
+      try {
+        const e = JSON.parse(l);
+        if (e.action === "submit" && e.docId) out.add(String(e.docId));
+      } catch {
+      }
+    }
+  } catch {
+  }
+  return out;
+}
+
+// src/policy/org-policy.ts
+var HANGUL = /[\u1100-\u11FF\u3130-\u318F\uA960-\uA97F\uAC00-\uD7AF\uD7B0-\uD7FF]/;
+function containsHangul(s) {
+  return typeof s === "string" && HANGUL.test(s);
+}
+var FREE_TEXT_PARAMS = [
+  "subject",
+  "title",
+  "purpose",
+  "destination",
+  "reason",
+  "details",
+  "description",
+  "participants",
+  "venue",
+  "work_place",
+  "organization",
+  "attendees",
+  "schedule",
+  "item_name",
+  "seller_en",
+  "item_description",
+  "item_vendor",
+  "purpose_minutes",
+  "purpose_category",
+  "disclosure_purpose",
+  "material_description",
+  "conference_or_journal",
+  "country",
+  "conference_name"
+];
+var OVERSEAS_IT_VENDORS = /runpod|openai|chatgpt|anthropic|claude|google cloud|gcp|aws|amazon web|azure|github|vercel|huggingface|hugging face|lambda labs|vast\.ai|modal/i;
+var VAT_SPLITTING_FORMS = /* @__PURE__ */ new Set(["expense", "card_expense"]);
+var ORG_POLICY = [
+  {
+    id: "ENGLISH_ONLY",
+    standard: "Approval documents are written in English. Korean input from the requester is translated before it reaches the form.",
+    passes: "No free-text parameter (subject, purpose, destination, reason, ...) contains Hangul.",
+    check(params) {
+      const fields = FREE_TEXT_PARAMS.filter((k) => containsHangul(params[k]));
+      if (fields.length === 0) return null;
+      return {
+        rule: "ENGLISH_ONLY",
+        fields: [...fields],
+        message: `Korean text in ${fields.join(", ")}. Approval documents must be in English - translate these values and resubmit. Nothing was written to the form.`
+      };
+    }
+  },
+  {
+    id: "DRAFT_FIRST",
+    standard: "A document is saved as a draft and reviewed by a person before it is submitted for approval.",
+    passes: "draft_only is true, or confirm_submit is explicitly true.",
+    check(params) {
+      if (params.draft_only !== false || params.confirm_submit === true) return null;
+      return {
+        rule: "DRAFT_FIRST",
+        fields: ["draft_only", "confirm_submit"],
+        message: "To submit for approval, set both draft_only=false AND confirm_submit=true"
+      };
+    }
+  },
+  {
+    id: "OVERSEAS_IT_VAT_ZERO",
+    standard: "Overseas IT subscriptions (RunPod, OpenAI, Google Cloud, ...) carry no Korean VAT: VAT=0 and the ex-VAT amount equals the total. Splitting VAT out double-taxes the item and the document is sent back.",
+    passes: "An expense whose vendor or description names an overseas IT vendor is not filed through a form that derives VAT as amount/1.1.",
+    check(params) {
+      if (!VAT_SPLITTING_FORMS.has(String(params.form_type))) return null;
+      const fields = ["item_vendor", "item_description", "purpose", "details"].filter(
+        (k) => typeof params[k] === "string" && OVERSEAS_IT_VENDORS.test(params[k])
+      );
+      if (fields.length === 0) return null;
+      return {
+        rule: "OVERSEAS_IT_VAT_ZERO",
+        fields,
+        message: `${params.form_type} splits VAT as amount/1.1, but ${fields.join(", ")} names an overseas IT vendor that charges no Korean VAT. File it as card_expense_rd (amounts come from the card receipt) so VAT stays 0. Nothing was written to the form.`
+      };
+    }
+  }
+];
+var GENERATED_FILE_DIRS = /^\/tmp\/|\/scratchpad\//;
+ORG_POLICY.push({
+  id: "NO_GENERATED_EVIDENCE",
+  standard: "Attachments are real documents the person supplied (an approval email printed from Gmail, a receipt, an invoice). The tool never fabricates or re-lays-out evidence. doc 299953 went out with a script-rendered PDF that the person had to replace.",
+  passes: "Every attachment path is outside /tmp and any scratchpad directory.",
+  check(params) {
+    const paths = [params.attachment_path, ...Array.isArray(params.attachment_paths) ? params.attachment_paths : []].filter(Boolean);
+    const bad = paths.filter((x) => GENERATED_FILE_DIRS.test(String(x)));
+    if (bad.length === 0) return null;
+    return {
+      rule: "NO_GENERATED_EVIDENCE",
+      fields: ["attachment_path"],
+      message: `${bad.join(", ")}: files in /tmp or a scratchpad are what scripts produce, not what a person supplied. Attach the person's own file (e.g. the Gmail print-to-PDF) from Downloads, Documents or data/attachments.`
+    };
+  }
+});
+function checkOrgPolicy(params) {
+  const out = [];
+  for (const rule of ORG_POLICY) {
+    const v = rule.check(params);
+    if (v) out.push(v);
+  }
+  return out;
+}
+
+// src/forms/travel-request.ts
+var TRAVEL_DOC_SLOTS = {
+  transport: "travel_doc_a[]",
+  accommodation: "travel_doc_b[]",
+  boarding: "travel_doc_c[]",
+  etc: "travel_doc_d[]",
+  verification: "travel_doc_e[]",
+  poster: "travel_doc_f[]"
+};
+function slotSelector(slot) {
+  return `input[name="${TRAVEL_DOC_SLOTS[slot]}"]`;
+}
+function parseCardNo(s) {
+  const digits = String(s ?? "").replace(/[-\s]/g, "");
+  if (!/^\d{16}$/.test(digits)) return null;
+  return [digits.slice(0, 4), digits.slice(4, 8), digits.slice(8, 12), digits.slice(12, 16)];
+}
+function checkTravelRequestParams(p) {
+  const out = [];
+  const bound = p.bound_code == null ? "" : String(p.bound_code);
+  const hasProvince = !!(p.province_code || p.city_code);
+  if (bound === "19") {
+    if (hasProvince) {
+      out.push({
+        code: "BOUND_HIDES_PROVINCE",
+        fields: ["bound_code", "province_code", "city_code"],
+        message: "bound_code '19' (within metro) hides and clears province_code/city_code; the document would show only 'Within Metropolitan'. Use bound_code '20' to name a province and city."
+      });
+    }
+    if (p.working_code && String(p.working_code) !== "197") {
+      out.push({
+        code: "BOUND_FORCES_WORKING_CODE",
+        fields: ["bound_code", "working_code"],
+        message: `bound_code '19' forces working_code to '197'; '${p.working_code}' would be overwritten. Omit working_code or use '197'.`
+      });
+    }
+  } else if (bound === "20") {
+    if (!(p.province_code && p.city_code && p.travel_type_code)) {
+      out.push({
+        code: "BOUND_NEEDS_PROVINCE",
+        fields: ["province_code", "city_code", "travel_type_code"],
+        message: "bound_code '20' (out of metro) requires province_code, city_code and travel_type_code; the form refuses without them."
+      });
+    }
+    if (p.meals_served == null || p.meals_served === "") {
+      out.push({
+        code: "MEALS_REQUIRED",
+        fields: ["meals_served"],
+        message: "bound_code '20' asks whether meals are provided on the trip. Pass meals_served: 'N', or the number of meals served (1-30)."
+      });
+    } else if (!(String(p.meals_served) === "N" || /^([1-9]|[12]\d|30)$/.test(String(p.meals_served)))) {
+      out.push({
+        code: "MEALS_MALFORMED",
+        fields: ["meals_served"],
+        message: `meals_served must be 'N' or a count 1-30, not '${p.meals_served}'.`
+      });
+    }
+    if (p.working_code) {
+      out.push({
+        code: "BOUND_HIDES_WORKING_CODE",
+        fields: ["bound_code", "working_code"],
+        message: "bound_code '20' hides working_code; a value set there is not part of the document. Omit it."
+      });
+    }
+  }
+  if (p.attachment_path || Array.isArray(p.attachment_paths) && p.attachment_paths.length) {
+    const slot = p.attachment_slot;
+    const names = Object.keys(TRAVEL_DOC_SLOTS).join(", ");
+    if (!slot) {
+      out.push({
+        code: "ATTACHMENT_SLOT_REQUIRED",
+        fields: ["attachment_slot"],
+        message: `travel_request has six attachment rows (${names}). Say which one with attachment_slot; the file is not guessed into the first row.`
+      });
+    } else if (!(slot in TRAVEL_DOC_SLOTS)) {
+      out.push({
+        code: "ATTACHMENT_SLOT_UNKNOWN",
+        fields: ["attachment_slot"],
+        message: `attachment_slot '${slot}' is not a row on this form. Rows: ${names}.`
+      });
+    }
+  }
+  if (p.credit_card_no != null && p.credit_card_no !== "" && !parseCardNo(String(p.credit_card_no))) {
+    out.push({
+      code: "CARD_NO_MALFORMED",
+      fields: ["credit_card_no"],
+      message: "credit_card_no must be 16 digits (e.g. XXXX-XXXX-XXXX-XXXX)."
+    });
+  }
+  return out;
+}
+
+// src/precedent/travel-request-doc.ts
+var SLOT_LABELS = [
+  [/^Transport$/, "transport"],
+  [/^Accommodation$/, "accommodation"],
+  [/^Boarding Pass/, "boarding"],
+  [/^ETC \(Visa/, "etc"],
+  [/^Business trip verification/, "verification"],
+  [/^Poster$/, "poster"],
+  [/^Travel Report$/, "report"]
+];
+var norm = (s) => s.replace(/\s+/g, " ").trim();
+function parseTravelRequestDoc(text) {
+  const lines = text.split("\n").map(norm);
+  const doc = { attachments: [], labels_found: 0 };
+  const after = (label) => {
+    const l = lines.find((x) => x.startsWith(label + " "));
+    if (l) doc.labels_found++;
+    return l ? l.slice(label.length + 1).trim() : void 0;
+  };
+  doc.subject = after("Subject");
+  const budget = lines.find((x) => x.startsWith("Budget Account Code"));
+  if (budget) doc.labels_found++;
+  const codes = budget ? [...budget.matchAll(/\[([A-Z]{2}\d{4}-\d{4})\]/g)].map((m) => m[1]) : [];
+  if (codes.length) doc.budget_code = codes[codes.length - 1];
+  const card = after("Institute Credit Card No");
+  if (card && /\d{4}/.test(card)) doc.credit_card_no = card;
+  const cityLine = after("City & Transportation");
+  if (cityLine) {
+    const parts = cityLine.split(" - ").map(norm);
+    if (parts.length >= 3) {
+      doc.bound = "out";
+      [doc.province, doc.city, doc.transport] = parts;
+    } else {
+      doc.bound = /Metropolitan/.test(cityLine) ? "in" : void 0;
+      doc.transport = parts[parts.length - 1];
+    }
+  }
+  doc.purpose_type = after("Type of Business Travel");
+  const daily = lines.find((x) => /^Daily Expense \d/.test(x));
+  if (daily) doc.daily_expense = Number(daily.split(" ")[2]);
+  const food = lines.find((x) => /^Food Expense \d/.test(x));
+  if (food) doc.food_allowance = Number(food.split(" ")[2]);
+  let slot = null;
+  for (const l of lines) {
+    const hit = SLOT_LABELS.find(([re]) => re.test(l));
+    if (hit) {
+      slot = hit[1];
+      continue;
+    }
+    if (slot && /\[\d+Bytes\]/.test(l)) {
+      doc.attachments.push({ slot, file: l.replace(/\s*\[\d+Bytes\].*$/, "") });
+    } else if (slot && l) {
+      slot = null;
+    }
+  }
+  return doc;
+}
+var PRACTICE_FIELDS = ["budget_code", "bound", "province", "city", "transport", "purpose_type", "food_allowance"];
+function practiceProfile(docs) {
+  const out = { stable: {}, varied: {}, n: docs.length };
+  if (docs.length < 2) return out;
+  const tally = (key, values) => {
+    const seen = values.filter((v) => v != null && v !== "");
+    if (seen.length !== docs.length) {
+      if (seen.length) out.varied[key] = count(seen);
+      return;
+    }
+    const c = count(seen);
+    const keys = Object.keys(c);
+    if (keys.length === 1) out.stable[key] = { value: keys[0], n: docs.length };
+    else out.varied[key] = c;
+  };
+  for (const f of PRACTICE_FIELDS) tally(f, docs.map((d) => d[f] == null ? void 0 : String(d[f])));
+  tally("credit_card_no", docs.map((d) => d.credit_card_no ? "present" : "absent"));
+  tally(
+    "attachment_slot",
+    docs.map((d) => {
+      const slots = [...new Set(d.attachments.map((a) => a.slot))];
+      return slots.length === 1 ? slots[0] : void 0;
+    })
+  );
+  return out;
+}
+function count(xs) {
+  const c = {};
+  for (const x of xs) c[x] = (c[x] ?? 0) + 1;
+  return c;
+}
+
+// src/precedent/fetch.ts
+var ymd = (d) => d.toISOString().slice(0, 10);
+async function fetchTravelRequestPrecedents(page, q) {
+  const n = q.n ?? 3;
+  const origin = new URL(q.baseUrl).origin;
+  const excluded = toolDraftedDocIds();
+  const out = { docs: [], excluded: [], profile: practiceProfile([]) };
+  try {
+    const e = /* @__PURE__ */ new Date();
+    const s = new Date(e.getTime() - (q.sinceDays ?? 365) * 864e5);
+    const listUrl = `${origin}/Document/document_list.php?type=groupapproved&s_date=${ymd(s)}&e_date=${ymd(e)}&keyword=${encodeURIComponent(q.keyword ?? "")}&writer=Y&title=Y&contents=Y&attachment=Y`;
+    await page.goto(listUrl, { waitUntil: "domcontentloaded", timeout: 3e4 });
+    await page.waitForTimeout(1500);
+    const rows = await page.mainFrame().$$eval(
+      "tr",
+      (trs) => trs.map((r) => {
+        const a = r.querySelector("a[href*='doc_id=']");
+        if (!a) return null;
+        const href = a.getAttribute("href") || "";
+        const m = href.match(/doc_id=(\d+)/);
+        const cells = Array.from(r.querySelectorAll("td")).map((td) => (td.innerText || "").replace(/\s+/g, " ").trim());
+        return { href, docId: m ? m[1] : "", docNo: cells[0] ?? "", subject: cells[1] ?? "", writer: cells[3] ?? "" };
+      }).filter(Boolean)
+    );
+    const ofForm = rows.filter((r) => r.href.includes(`approve_type=${q.formCode}`) && r.docId);
+    const mine = q.writer ? ofForm.filter((r) => r.writer === q.writer) : [];
+    const ordered = [...mine, ...ofForm.filter((r) => !mine.includes(r))];
+    const picked = [];
+    for (const r of ordered) {
+      if (excluded.has(r.docId)) {
+        out.excluded.push(r.docId);
+        continue;
+      }
+      if (picked.length < n) picked.push(r);
+    }
+    for (const r of picked) {
+      await page.goto(new URL(r.href, `${origin}/Document/`).href, { waitUntil: "domcontentloaded", timeout: 3e4 });
+      await page.waitForTimeout(1500);
+      const text = await page.evaluate(() => document.body.innerText);
+      out.docs.push({ docId: r.docId, docNo: r.docNo, writer: r.writer, doc: parseTravelRequestDoc(text) });
+    }
+    const unreadable = out.docs.filter((d) => d.doc.labels_found === 0).map((d) => d.docId);
+    if (unreadable.length) out.error = `could not read fields off document(s) ${unreadable.join(", ")}: the view did not render as a label/value table`;
+    out.profile = practiceProfile(out.docs.filter((d) => d.doc.labels_found > 0).map((d) => d.doc));
+  } catch (err) {
+    out.error = err instanceof Error ? err.message : String(err);
+  }
+  return out;
+}
+async function readDraftText(page, baseUrl, docId) {
+  const origin = new URL(baseUrl).origin;
+  await page.goto(`${origin}/Document/document_list.php?type=drafts`, { waitUntil: "domcontentloaded", timeout: 3e4 });
+  await page.waitForTimeout(1500);
+  const href = await page.mainFrame().$eval(`a[href*='doc_id=${docId}']`, (a) => a.getAttribute("href")).catch(() => null);
+  if (!href) return { text: null, reason: `draft ${docId} is not on the first page of the drafts list` };
+  await page.goto(new URL(href, `${origin}/Document/`).href, { waitUntil: "domcontentloaded", timeout: 3e4 });
+  await page.waitForTimeout(1500);
+  return { text: await page.evaluate(() => document.body.innerText) };
+}
+function diffAgainstPractice(draft, profile) {
+  const out = [];
+  const draftSlot = [...new Set(draft.attachments.map((a) => a.slot))];
+  const value = (field) => {
+    if (field === "attachment_slot") return draftSlot.length === 1 ? draftSlot[0] : draftSlot.join("+") || void 0;
+    if (field === "credit_card_no") return draft.credit_card_no ? "present" : "absent";
+    const v = draft[field];
+    return v == null ? void 0 : String(v);
+  };
+  for (const [field, st] of Object.entries(profile.stable)) {
+    const d = value(field);
+    if (d !== st.value) out.push({ field, draft: d, practice: st.value, n: st.n });
+  }
+  return out;
+}
 
 // src/browser/iframe-helper.ts
 function getMainFrame(page) {
@@ -21865,6 +22242,28 @@ async function verifyIntendedValues(frame, intended) {
     );
   }
 }
+async function verifySelectsHeld(frame, wanted) {
+  const items = wanted.filter(([, v]) => v != null && v !== "").map(([name, v]) => ({ name, value: String(v) }));
+  if (items.length === 0) return;
+  const bad = await frame.evaluate(
+    (items2) => {
+      const out = [];
+      for (const it of items2) {
+        const el = document.querySelector(`select[name="${it.name}"]`);
+        if (!el) continue;
+        const hidden = el.offsetParent === null;
+        if (el.value !== it.value || hidden) out.push({ name: it.name, want: it.value, got: el.value, hidden });
+      }
+      return out;
+    },
+    items
+  );
+  if (bad.length === 0) return;
+  for (const b of bad) audit({ action: "refusal", field: b.name, code: b.hidden ? "SELECT_HIDDEN_BY_FORM" : "SELECT_REVERTED", ok: false });
+  throw new Error(
+    "SELECT_NOT_HELD: " + bad.map((b) => b.hidden ? `${b.name} is hidden by the form (value '${b.got}' would not appear on the document)` : `${b.name} wanted '${b.want}', form has '${b.got}'`).join("; ")
+  );
+}
 async function genericFillForm(frame, fieldSchema, userData, hooks, opts) {
   if (hooks) {
     for (const hook of hooks) {
@@ -21974,13 +22373,13 @@ function loadTemplateFieldSchema(formType) {
     return null;
   }
 }
-async function attachFile(frame, filePath) {
+async function attachFile(frame, filePath, explicitTarget) {
   const err = validateAttachmentPath(filePath);
   if (err) {
     audit({ action: "refusal", code: "INVALID_ATTACHMENT", validated: false, ok: false });
     throw new Error(`INVALID_ATTACHMENT: ${err}`);
   }
-  const target = await frame.evaluate(() => {
+  const target = explicitTarget ?? await frame.evaluate(() => {
     if (document.querySelector("input.travel_file")) return "input.travel_file";
     const cnt = document.querySelector('select[name="file_attach_cnt"]');
     if (cnt && Number(cnt.value) < 1) {
@@ -22020,12 +22419,13 @@ async function selectExistingOption(frame, selector, value, fieldName, timeoutMs
         el.value = args.value;
         el.dispatchEvent(new Event("change", { bubbles: true }));
         if (el.value !== args.value) return { status: "reverted", options };
-        return { status: "ok", options };
+        const label = el.options[el.selectedIndex]?.text?.trim() ?? "";
+        return { status: "ok", options, label, hidden: el.offsetParent === null };
       },
       { selector, value }
     );
     if (last.status === "ok") {
-      audit({ action: "option_select", field: fieldName, fromOfferedOptions: true, ok: true });
+      audit({ action: "option_select", field: fieldName, value, label: last.label, fromOfferedOptions: true, hidden: last.hidden, ok: true });
       return;
     }
     if (last.status === "reverted") {
@@ -22156,7 +22556,7 @@ var ipkSubmitFormSchema = {
   // Undeclared parameters are dropped before the handler sees them, so a travel request's
   // times were silently never written and the form answered "Check travel time."
   start_tm: external_exports.string().optional().describe("travel_request departure time, HH:MM on the half hour (e.g. '08:00')"),
-  bound_code: external_exports.string().optional().describe("travel_request: '19' within metropolitan area, '20' outside it"),
+  bound_code: external_exports.string().optional().describe("travel_request: '19' within metro (form hides province/city and forces working_code 197) or '20' out of metro (province_code, city_code, travel_type_code required; working_code hidden). Seoul sampling trips in this department are filed as '20' + Seoul/Seoul."),
   purpose_type: external_exports.string().optional().describe("travel_request type of business travel: '1' conference, '2' presentation, '3' technical meeting, '4' training, '5' simple visit"),
   matrials: external_exports.string().optional().describe("travel_request: 'Y' if research materials leave the institute (then a Public Disclosure Approval file is required), 'N' otherwise. The form defaults to 'Y'."),
   working_code: external_exports.string().optional().describe("travel_request: '197' within 4 hours, '198' more than 4 hours"),
@@ -22164,24 +22564,30 @@ var ipkSubmitFormSchema = {
   city_code: external_exports.string().optional().describe("travel_request city; the form fills this from province_code (Seoul is '192')"),
   travel_type_code: external_exports.string().optional().describe("travel_request transport: '01' institute vehicle, '02' own vehicle, '03' other public transport"),
   end_tm: external_exports.string().optional().describe("travel_request return time, HH:MM on the half hour (e.g. '16:00')"),
+  attachment_slot: external_exports.enum(["transport", "accommodation", "boarding", "etc", "verification", "poster"]).optional().describe("travel_request: which attachment row the file goes in. Required when attachment_path is given for this form. Approval emails for sampling trips go in 'verification'."),
+  precedent: external_exports.boolean().default(true).describe("travel_request: read the department's recent approved requests of this form before drafting and report where the draft departs from them. Never fills a value in; set false to skip the lookup."),
+  budget_code_confirmed: external_exports.boolean().optional().describe("travel_request: pass true to file against a budget_code that differs from the writer's recent approved requests (the tool refuses otherwise, since an offered code can still be an empty pot)."),
+  precedent_keyword: external_exports.string().optional().describe("travel_request: keyword to pick precedents by (e.g. 'RAPID'). Defaults to no keyword, i.e. the writer's most recent requests."),
+  meals_served: external_exports.string().optional().describe("travel_request, required with bound_code '20': 'N' if no meals are provided on the trip, otherwise the number of meals served (1-30). The form refuses to save without an answer."),
+  credit_card_no: external_exports.string().optional().describe("travel_request: institute corporate card, 16 digits (e.g. 'XXXX-XXXX-XXXX-XXXX'). Only the traveler's own card, as shown on their previous approved requests."),
   end_time: external_exports.string().optional().describe("End hour for hourly leave (e.g. '17')"),
-  purpose: external_exports.string().optional().describe("Purpose/reason"),
-  destination: external_exports.string().optional().describe("Destination"),
+  purpose: external_exports.string().optional().describe("Purpose/reason. English only - Korean text is refused before the form is touched."),
+  destination: external_exports.string().optional().describe("Destination. English only - Korean text is refused before the form is touched."),
   substitute_name: external_exports.string().optional().describe("Substitute person name"),
   // Expense fields
   amount: external_exports.number().optional().describe("Total amount in KRW"),
-  participants: external_exports.string().optional().describe("Participants for meal expense"),
-  venue: external_exports.string().optional().describe("Venue for expense"),
+  participants: external_exports.string().optional().describe("Participants for meal expense. English only - Korean text is refused before the form is touched."),
+  venue: external_exports.string().optional().describe("Venue for expense. English only - Korean text is refused before the form is touched."),
   budget_code: external_exports.string().optional().describe("Budget code (required for expense/working/travel_request forms). Use the active fiscal year code, e.g. NN2612-0001."),
   attachment_path: external_exports.string().optional().describe("Path to attachment file"),
   // Working fields
   work_date: external_exports.string().optional().describe("Work date (YYYY-MM-DD)"),
-  work_place: external_exports.string().optional().describe("Work place"),
-  reason: external_exports.string().optional().describe("Reason for work/travel"),
-  details: external_exports.string().optional().describe("Details"),
+  work_place: external_exports.string().optional().describe("Work place. English only - Korean text is refused before the form is touched."),
+  reason: external_exports.string().optional().describe("Reason for work/travel. English only - Korean text is refused before the form is touched."),
+  details: external_exports.string().optional().describe("Details. English only - Korean text is refused before the form is touched."),
   budget_type: external_exports.string().optional().describe("Budget type: 01=General, 02=R&D"),
   // Travel fields
-  title: external_exports.string().optional().describe("Travel title"),
+  title: external_exports.string().optional().describe("Travel title. English only - Korean text is refused before the form is touched."),
   organization: external_exports.string().optional().describe("Organization/institution"),
   attendees: external_exports.string().optional().describe("Attendees"),
   schedule: external_exports.string().optional().describe("Schedule details"),
@@ -22193,8 +22599,8 @@ var ipkSubmitFormSchema = {
   // Card expense fields (AppFrm-020)
   item_date: external_exports.string().optional().describe("Date of purchase (YYYY-MM-DD)"),
   item_account_code: external_exports.string().optional().describe("Account code: 420421=Team activities, 420420=External meeting, 420374=Commission, 420375=Registration"),
-  item_description: external_exports.string().optional().describe("Expense description (e.g. 'Team activities')"),
-  item_vendor: external_exports.string().optional().describe("Vendor/store name"),
+  item_description: external_exports.string().optional().describe("Expense description (e.g. 'Team activities'). English only - Korean text is refused before the form is touched."),
+  item_vendor: external_exports.string().optional().describe("Vendor/store name. English only - Korean text is refused before the form is touched."),
   item_control_no: external_exports.string().optional().describe("Card receipt control number"),
   purpose_minutes: external_exports.string().optional().describe("Meeting purpose and minutes"),
   // Travel settlement fields (AppFrm-054)
@@ -22215,7 +22621,7 @@ var ipkSubmitFormSchema = {
   original_leave_doc: external_exports.string().optional().describe("Document number of original leave (e.g. ARL-260121-02)"),
   return_days: external_exports.number().optional().describe("Number of days to return"),
   return_hours: external_exports.number().optional().describe("Number of hours to return"),
-  description: external_exports.string().optional().describe("Reason for leave return"),
+  description: external_exports.string().optional().describe("Reason for leave return. English only - Korean text is refused before the form is touched."),
   // Seminar fields (AppFrm-043)
   disclosure_purpose: external_exports.string().optional().describe("Why the material is being disclosed"),
   disclosure_date: external_exports.string().optional().describe("Date of seminar/event (YYYY-MM-DD)"),
@@ -22250,8 +22656,41 @@ var ipkSubmitFormSchema = {
   reimbursement: external_exports.number().optional().describe("Amount to reimburse traveler (KRW)"),
   corp_card_no: external_exports.string().optional().describe("Corporate card number (XXXX-XXXX-XXXX-XXXX)")
 };
-var ipkSubmitFormDescription = "Submit a form in IPK groupware. All 11 form types are fully implemented: leave (\uD734\uAC00/AppFrm-073), expense (\uACBD\uBE44/AppFrm-020), working (\uD734\uC77C\uADFC\uBB34/AppFrm-027), travel (\uCD9C\uC7A5\uBCF4\uACE0/AppFrm-076), travel_request (\uCD9C\uC7A5\uC2E0\uCCAD/AppFrm-023), budget_transfer (\uC608\uC0B0\uC804\uC6A9/AppFrm-039), card_expense (\uCE74\uB4DC\uACBD\uBE44/AppFrm-020), travel_settlement (\uCD9C\uC7A5\uC815\uC0B0/AppFrm-054), leave_return (\uB300\uCCB4\uD734\uC77C\uBC18\uB0A9/AppFrm-028), seminar (\uC138\uBBF8\uB098\uACF5\uC2DC/AppFrm-043), overseas_travel (\uD574\uC678\uCD9C\uC7A5/AppFrm-026). By default saves as draft (draft_only=true). To actually submit for approval, set draft_only=false AND confirm_submit=true. For budget_transfer, use transfer_type='rnd' (AppFrm-039, default) or transfer_type='general' (AppFrm-053). Required params per form_type: leave: leave_type, start_date, end_date; expense: budget_code, amount, reason; working: budget_code, work_date, reason; travel: title, destination, start_date, end_date; travel_request: budget_code, title, destination, start_date, end_date; budget_transfer: from_account, to_account, amount, reason; card_expense: budget_code, amount, reason; travel_settlement: budget_code, title, destination, start_date, end_date; leave_return: leave_type, start_date, end_date; seminar: title, date, location; overseas_travel: budget_code, title, destination, start_date, end_date, purpose. Error recovery: NOT_LOGGED_IN\u2192call ipk_login first; FRAME_NOT_FOUND\u2192call ipk_navigate first; CONFIRMATION_REQUIRED\u2192set draft_only=true for safe draft mode; SESSION_EXPIRING\u2192re-login.";
+var ipkSubmitFormDescription = "Submit a form in IPK groupware. All 11 form types are fully implemented: leave (\uD734\uAC00/AppFrm-073), expense (\uACBD\uBE44/AppFrm-020), working (\uD734\uC77C\uADFC\uBB34/AppFrm-027), travel (\uCD9C\uC7A5\uBCF4\uACE0/AppFrm-076), travel_request (\uCD9C\uC7A5\uC2E0\uCCAD/AppFrm-023), budget_transfer (\uC608\uC0B0\uC804\uC6A9/AppFrm-039), card_expense (\uCE74\uB4DC\uACBD\uBE44/AppFrm-020), travel_settlement (\uCD9C\uC7A5\uC815\uC0B0/AppFrm-054), leave_return (\uB300\uCCB4\uD734\uC77C\uBC18\uB0A9/AppFrm-028), seminar (\uC138\uBBF8\uB098\uACF5\uC2DC/AppFrm-043), overseas_travel (\uD574\uC678\uCD9C\uC7A5/AppFrm-026). By default saves as draft (draft_only=true). To actually submit for approval, set draft_only=false AND confirm_submit=true. For budget_transfer, use transfer_type='rnd' (AppFrm-039, default) or transfer_type='general' (AppFrm-053). Required params per form_type: leave: leave_type, start_date, end_date; expense: budget_code, amount, reason; working: budget_code, work_date, reason; travel: title, destination, start_date, end_date; travel_request: budget_code, title, destination, start_date, end_date; budget_transfer: from_account, to_account, amount, reason; card_expense: budget_code, amount, reason; travel_settlement: budget_code, title, destination, start_date, end_date; leave_return: leave_type, start_date, end_date; seminar: title, date, location; overseas_travel: budget_code, title, destination, start_date, end_date, purpose. Error recovery: NOT_LOGGED_IN\u2192call ipk_login first; FRAME_NOT_FOUND\u2192call ipk_navigate first; CONFIRMATION_REQUIRED\u2192set draft_only=true for safe draft mode; POLICY_VIOLATION/FORM_RULE_VIOLATION\u2192read the violations list, nothing was written; SESSION_EXPIRING\u2192re-login.";
+var PRECEDENT_FOR = /* @__PURE__ */ new WeakMap();
 var FORM_NAV_CONFIG = {
+  travel_request: {
+    // Combinations the form itself would undo (src/forms/travel-request.ts), refused
+    // before any page is loaded so the caller learns all of them at once.
+    validate: (params) => {
+      const v = checkTravelRequestParams(params);
+      if (v.length === 0) return null;
+      for (const x of v) audit({ action: "refusal", code: x.code, field: x.fields.join(","), ok: false });
+      return { code: "FORM_RULE_VIOLATION", message: v.map((x) => `[${x.code}] ${x.message}`).join("\n"), violations: v };
+    },
+    // Precedent is read before the form is opened: the lookup navigates the page, and
+    // the form would be lost. It is advisory only (see src/precedent/fetch.ts).
+    beforeNavigate: async (page, params, config3, sessionManager2) => {
+      if (params.precedent === false) return;
+      const set = await fetchTravelRequestPrecedents(page, {
+        baseUrl: config3.baseUrl,
+        formCode: "AppFrm-023",
+        keyword: params.precedent_keyword,
+        writer: sessionManager2.getUserInfo()?.name,
+        n: 3
+      });
+      PRECEDENT_FOR.set(params, set);
+      audit({ action: "precedent", field: "travel_request", value: String(set.docs.length), ok: !set.error });
+      const practice = set.profile.stable.budget_code;
+      if (practice && params.budget_code && practice.value !== String(params.budget_code) && params.budget_code_confirmed !== true) {
+        audit({ action: "refusal", code: "BUDGET_DIFFERS_FROM_PRACTICE", field: "budget_code", value: String(params.budget_code), label: practice.value, ok: false });
+        return {
+          code: "BUDGET_DIFFERS_FROM_PRACTICE",
+          message: `budget_code '${params.budget_code}' differs from the code on all ${practice.n} recent approved requests (${set.docs.map((d) => d.docNo).join(", ")}): '${practice.value}'. A pot can be empty while its code is still offered. Confirm which pot has balance, then resubmit with budget_code_confirmed: true, or use '${practice.value}'.`
+        };
+      }
+    }
+  },
   card_expense_rd: {
     validate: (params) => !params.trseq || !params.appr_no ? "card_expense_rd requires trseq and appr_no (from corporation_card_list.php Make ER link)." : null,
     customUrl: (params, config3) => `${config3.baseUrl}/Document/document_write.php?approve_type=AppFrm-021&mker=Y&trseq=${encodeURIComponent(params.trseq)}&appr_no=${encodeURIComponent(params.appr_no)}`,
@@ -22298,11 +22737,16 @@ async function handleIpkSubmitForm(sessionManager2, config3, params) {
   }
   const page = sessionManager2.getPage();
   const formType = params.form_type;
-  if (!params.draft_only && !params.confirm_submit) {
+  const policy = checkOrgPolicy(params);
+  if (policy.length > 0) {
+    for (const v of policy) {
+      audit({ action: "refusal", code: `POLICY_${v.rule}`, field: v.fields.join(","), ok: false });
+    }
     return textResult({
       error: true,
-      code: "CONFIRMATION_REQUIRED",
-      message: "To submit for approval, set both draft_only=false AND confirm_submit=true"
+      code: policy.some((v) => v.rule === "DRAFT_FIRST") ? "CONFIRMATION_REQUIRED" : "POLICY_VIOLATION",
+      message: policy.map((v) => `[${v.rule}] ${v.message}`).join("\n"),
+      violations: policy
     });
   }
   if (params.attachment_path) {
@@ -22323,13 +22767,21 @@ async function handleIpkSubmitForm(sessionManager2, config3, params) {
   try {
     const navConfig = FORM_NAV_CONFIG[formType];
     let frame;
-    if (navConfig) {
-      if (navConfig.validate) {
-        const validErr = navConfig.validate(params);
-        if (validErr) {
-          return textResult({ error: true, code: "MISSING_CARD_RECEIPT_REF", message: validErr });
-        }
+    if (navConfig?.validate) {
+      const validErr = navConfig.validate(params);
+      if (typeof validErr === "string") {
+        return textResult({ error: true, code: "MISSING_CARD_RECEIPT_REF", message: validErr });
       }
+      if (validErr) {
+        return textResult({ error: true, ...validErr });
+      }
+    }
+    if (navConfig?.beforeNavigate) {
+      const refusal = await navConfig.beforeNavigate(page, params, config3, sessionManager2);
+      sessionManager2.touchActivity();
+      if (refusal) return textResult({ error: true, ...refusal });
+    }
+    if (navConfig?.customUrl) {
       const url = navConfig.customUrl(params, config3);
       const waitSel = navConfig.waitSelector ?? "form input, form select";
       const mainFrame = page.frame("main_menu");
@@ -22436,14 +22888,14 @@ async function submitLeave(page, frame, sessionManager2, config3, params, mode) 
     await popup.waitForTimeout(1e3);
     const selected = await popup.evaluate(
       (name) => {
-        const norm = (v) => v.normalize("NFKC").replace(/[._]+/g, " ").replace(/\s+/g, " ").trim().toLocaleLowerCase();
-        const wanted = norm(name);
+        const norm2 = (v) => v.normalize("NFKC").replace(/[._]+/g, " ").replace(/\s+/g, " ").trim().toLocaleLowerCase();
+        const wanted = norm2(name);
         const matches = [];
         document.querySelectorAll("tr").forEach((row) => {
           const cells = row.querySelectorAll("td");
           if (cells.length < 4) return;
           const userName = cells[3]?.textContent?.trim() || "";
-          if (userName && norm(userName) === wanted) {
+          if (userName && norm2(userName) === wanted) {
             matches.push({ row, label: row.textContent?.replace(/\s+/g, " ").trim() || userName });
           }
         });
@@ -22801,13 +23253,52 @@ async function submitTravelRequest(page, frame, sessionManager2, config3, params
       }
     }
   }
+  if (params.meals_served != null && params.meals_served !== "") {
+    const meals = String(params.meals_served);
+    await selectRadio(frame, "food_yn", meals === "N" ? "N" : "Y");
+    if (meals !== "N") {
+      await selectExistingOption(frame, 'select[name="food_ex_cnt"]', meals, "food_ex_cnt");
+    }
+  }
+  if (params.credit_card_no) {
+    const parts = parseCardNo(String(params.credit_card_no));
+    for (let i = 0; i < 4; i++) {
+      await setRequiredField(frame, `input[name="copcard${i + 1}"]`, parts[i], `copcard${i + 1}`);
+    }
+  }
   if (params.attachment_path) {
-    await attachFile(frame, params.attachment_path);
+    await attachFile(frame, params.attachment_path, slotSelector(params.attachment_slot));
     await page.waitForTimeout(1e3);
   }
+  await verifySelectsHeld(frame, [
+    ["bound_code", params.bound_code],
+    ["working_code", params.working_code],
+    ["province_code", params.province_code],
+    ["city_code", params.city_code],
+    ["travel_type_code", params.travel_type_code],
+    ["start_tm", params.start_tm],
+    ["end_tm", params.end_tm]
+  ]);
   await page.waitForTimeout(1e3);
   await setFormMode(frame, mode);
   const docId = await submitForm(page, frame, "check_form_request");
+  const precedentSet = PRECEDENT_FOR.get(params);
+  let precedent;
+  if (precedentSet) {
+    precedent = {
+      n: precedentSet.docs.length,
+      docs: precedentSet.docs.map((d) => `${d.docNo} (${d.writer})`),
+      excluded_tool_drafts: precedentSet.excluded,
+      error: precedentSet.error,
+      practice: precedentSet.profile.stable,
+      varied: precedentSet.profile.varied
+    };
+    if (docId && mode === "draft" && precedentSet.docs.length >= 2) {
+      const read = await readDraftText(page, config3.baseUrl, docId).catch((e) => ({ text: null, reason: String(e) }));
+      if (read.text) precedent.diff = diffAgainstPractice(parseTravelRequestDoc(read.text), precedentSet.profile);
+      else precedent.diff_unavailable = read.reason;
+    }
+  }
   return textResult({
     error: false,
     data: {
@@ -22816,7 +23307,8 @@ async function submitTravelRequest(page, frame, sessionManager2, config3, params
       mode,
       formType: "travel_request",
       subject,
-      message: docId ? `Travel request ${mode === "draft" ? "draft saved" : "submitted"} (doc_id: ${docId})` : `Travel request ${mode} completed`
+      message: docId ? `Travel request ${mode === "draft" ? "draft saved" : "submitted"} (doc_id: ${docId})` : `Travel request ${mode} completed`,
+      precedent
     }
   });
 }
