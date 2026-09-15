@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   checkTravelRequestParams,
+  checkAttachmentSlot,
   TRAVEL_DOC_SLOTS,
   slotSelector,
   parseCardNo,
@@ -47,6 +48,12 @@ describe("attachment slots", () => {
   it("an attachment on this form without a slot is refused, not guessed into the first slot", () => {
     const v = checkTravelRequestParams({ bound_code: "20", province_code: "02", city_code: "192", travel_type_code: "03", meals_served: "N", attachment_path: "/x.pdf" });
     expect(v.map((x) => x.code)).toEqual(["ATTACHMENT_SLOT_REQUIRED"]);
+  });
+  it("the settlement forms get the same rule (they render the same rows plus a general one)", () => {
+    expect(checkAttachmentSlot({ attachment_path: "/x.pdf" }).map((x) => x.code)).toEqual(["ATTACHMENT_SLOT_REQUIRED"]);
+    expect(checkAttachmentSlot({ attachment_path: "/x.pdf", attachment_slot: "general" })).toEqual([]);
+    expect(slotSelector("general")).toBe('input[name="doc_attach_file[]"]');
+    expect(checkAttachmentSlot({})).toEqual([]);
   });
   it("an unknown slot name is refused with the list", () => {
     const v = checkTravelRequestParams({ attachment_path: "/x.pdf", attachment_slot: "receipts" });

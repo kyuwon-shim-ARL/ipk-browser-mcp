@@ -21723,10 +21723,32 @@ var TRAVEL_DOC_SLOTS = {
   boarding: "travel_doc_c[]",
   etc: "travel_doc_d[]",
   verification: "travel_doc_e[]",
-  poster: "travel_doc_f[]"
+  poster: "travel_doc_f[]",
+  general: "doc_attach_file[]"
 };
 function slotSelector(slot) {
   return `input[name="${TRAVEL_DOC_SLOTS[slot]}"]`;
+}
+function checkAttachmentSlot(p) {
+  const out = [];
+  if (p.attachment_path || Array.isArray(p.attachment_paths) && p.attachment_paths.length) {
+    const slot = p.attachment_slot;
+    const names = Object.keys(TRAVEL_DOC_SLOTS).join(", ");
+    if (!slot) {
+      out.push({
+        code: "ATTACHMENT_SLOT_REQUIRED",
+        fields: ["attachment_slot"],
+        message: `this form has separate attachment rows (${names}). Say which one with attachment_slot; the file is not guessed into the first row.`
+      });
+    } else if (!(slot in TRAVEL_DOC_SLOTS)) {
+      out.push({
+        code: "ATTACHMENT_SLOT_UNKNOWN",
+        fields: ["attachment_slot"],
+        message: `attachment_slot '${slot}' is not a row on this form. Rows: ${names}.`
+      });
+    }
+  }
+  return out;
 }
 function parseCardNo(s) {
   const digits = String(s ?? "").replace(/[-\s]/g, "");
@@ -21781,23 +21803,7 @@ function checkTravelRequestParams(p) {
       });
     }
   }
-  if (p.attachment_path || Array.isArray(p.attachment_paths) && p.attachment_paths.length) {
-    const slot = p.attachment_slot;
-    const names = Object.keys(TRAVEL_DOC_SLOTS).join(", ");
-    if (!slot) {
-      out.push({
-        code: "ATTACHMENT_SLOT_REQUIRED",
-        fields: ["attachment_slot"],
-        message: `travel_request has six attachment rows (${names}). Say which one with attachment_slot; the file is not guessed into the first row.`
-      });
-    } else if (!(slot in TRAVEL_DOC_SLOTS)) {
-      out.push({
-        code: "ATTACHMENT_SLOT_UNKNOWN",
-        fields: ["attachment_slot"],
-        message: `attachment_slot '${slot}' is not a row on this form. Rows: ${names}.`
-      });
-    }
-  }
+  out.push(...checkAttachmentSlot(p));
   if (p.credit_card_no != null && p.credit_card_no !== "" && !parseCardNo(String(p.credit_card_no))) {
     out.push({
       code: "CARD_NO_MALFORMED",
@@ -22564,7 +22570,7 @@ var ipkSubmitFormSchema = {
   city_code: external_exports.string().optional().describe("travel_request city; the form fills this from province_code (Seoul is '192')"),
   travel_type_code: external_exports.string().optional().describe("travel_request transport: '01' institute vehicle, '02' own vehicle, '03' other public transport"),
   end_tm: external_exports.string().optional().describe("travel_request return time, HH:MM on the half hour (e.g. '16:00')"),
-  attachment_slot: external_exports.enum(["transport", "accommodation", "boarding", "etc", "verification", "poster"]).optional().describe("travel_request: which attachment row the file goes in. Required when attachment_path is given for this form. Approval emails for sampling trips go in 'verification'."),
+  attachment_slot: external_exports.enum(["transport", "accommodation", "boarding", "etc", "verification", "poster", "general"]).optional().describe("travel_request / travel_settlement / overseas_travel: which attachment row the file goes in. Required when attachment_path is given on these forms. Approval emails for sampling trips go in 'verification'; receipts in 'transport'/'accommodation'; 'general' is the settlements' plain File Attachment row."),
   precedent: external_exports.boolean().default(true).describe("travel_request: read the department's recent approved requests of this form before drafting and report where the draft departs from them. Never fills a value in; set false to skip the lookup."),
   budget_code_confirmed: external_exports.boolean().optional().describe("travel_request: pass true to file against a budget_code that differs from the writer's recent approved requests (the tool refuses otherwise, since an offered code can still be an empty pot)."),
   precedent_keyword: external_exports.string().optional().describe("travel_request: keyword to pick precedents by (e.g. 'RAPID'). Defaults to no keyword, i.e. the writer's most recent requests."),
@@ -22657,6 +22663,12 @@ var ipkSubmitFormSchema = {
   corp_card_no: external_exports.string().optional().describe("Corporate card number (XXXX-XXXX-XXXX-XXXX)")
 };
 var ipkSubmitFormDescription = "Submit a form in IPK groupware. All 11 form types are fully implemented: leave (\uD734\uAC00/AppFrm-073), expense (\uACBD\uBE44/AppFrm-020), working (\uD734\uC77C\uADFC\uBB34/AppFrm-027), travel (\uCD9C\uC7A5\uBCF4\uACE0/AppFrm-076), travel_request (\uCD9C\uC7A5\uC2E0\uCCAD/AppFrm-023), budget_transfer (\uC608\uC0B0\uC804\uC6A9/AppFrm-039), card_expense (\uCE74\uB4DC\uACBD\uBE44/AppFrm-020), travel_settlement (\uCD9C\uC7A5\uC815\uC0B0/AppFrm-054), leave_return (\uB300\uCCB4\uD734\uC77C\uBC18\uB0A9/AppFrm-028), seminar (\uC138\uBBF8\uB098\uACF5\uC2DC/AppFrm-043), overseas_travel (\uD574\uC678\uCD9C\uC7A5/AppFrm-026). By default saves as draft (draft_only=true). To actually submit for approval, set draft_only=false AND confirm_submit=true. For budget_transfer, use transfer_type='rnd' (AppFrm-039, default) or transfer_type='general' (AppFrm-053). Required params per form_type: leave: leave_type, start_date, end_date; expense: budget_code, amount, reason; working: budget_code, work_date, reason; travel: title, destination, start_date, end_date; travel_request: budget_code, title, destination, start_date, end_date; budget_transfer: from_account, to_account, amount, reason; card_expense: budget_code, amount, reason; travel_settlement: budget_code, title, destination, start_date, end_date; leave_return: leave_type, start_date, end_date; seminar: title, date, location; overseas_travel: budget_code, title, destination, start_date, end_date, purpose. Error recovery: NOT_LOGGED_IN\u2192call ipk_login first; FRAME_NOT_FOUND\u2192call ipk_navigate first; CONFIRMATION_REQUIRED\u2192set draft_only=true for safe draft mode; POLICY_VIOLATION/FORM_RULE_VIOLATION\u2192read the violations list, nothing was written; SESSION_EXPIRING\u2192re-login.";
+function attachmentSlotRefusal(params) {
+  const v = checkAttachmentSlot(params);
+  if (v.length === 0) return null;
+  for (const x of v) audit({ action: "refusal", code: x.code, field: x.fields.join(","), ok: false });
+  return { code: "FORM_RULE_VIOLATION", message: v.map((x) => `[${x.code}] ${x.message}`).join("\n"), violations: v };
+}
 var PRECEDENT_FOR = /* @__PURE__ */ new WeakMap();
 var FORM_NAV_CONFIG = {
   travel_request: {
@@ -22691,6 +22703,8 @@ var FORM_NAV_CONFIG = {
       }
     }
   },
+  travel_settlement: { validate: (params) => attachmentSlotRefusal(params) },
+  overseas_travel: { validate: (params) => attachmentSlotRefusal(params) },
   card_expense_rd: {
     validate: (params) => !params.trseq || !params.appr_no ? "card_expense_rd requires trseq and appr_no (from corporation_card_list.php Make ER link)." : null,
     customUrl: (params, config3) => `${config3.baseUrl}/Document/document_write.php?approve_type=AppFrm-021&mker=Y&trseq=${encodeURIComponent(params.trseq)}&appr_no=${encodeURIComponent(params.appr_no)}`,
@@ -23663,7 +23677,7 @@ async function submitTravelSettlement(page, frame, sessionManager2, config3, par
     food_fee_total: foodExpense ? String(foodExpense) : ""
   });
   if (params.attachment_path) {
-    await attachFile(frame, params.attachment_path);
+    await attachFile(frame, params.attachment_path, slotSelector(params.attachment_slot));
     await page.waitForTimeout(1e3);
   }
   await page.waitForTimeout(1e3);
@@ -24002,7 +24016,7 @@ async function submitOverseasTravel(page, frame, sessionManager2, config3, param
     await page.waitForTimeout(1500);
   }
   if (params.attachment_path) {
-    await attachFile(frame, params.attachment_path);
+    await attachFile(frame, params.attachment_path, slotSelector(params.attachment_slot));
     await page.waitForTimeout(1e3);
   }
   await page.waitForTimeout(1e3);

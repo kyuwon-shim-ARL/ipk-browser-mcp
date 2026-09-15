@@ -19,7 +19,11 @@ export interface FormRuleViolation {
   fields: string[];
 }
 
-/** Attachment rows on AppFrm-023, in the order the form renders them. */
+/**
+ * Attachment rows shared by the travel forms - request (AppFrm-023), domestic settlement
+ * (AppFrm-054) and overseas settlement (AppFrm-026) render the same six rows (read live
+ * 2026-09-15). The settlements also carry a generic "File Attachment" row.
+ */
 export const TRAVEL_DOC_SLOTS = {
   transport: "travel_doc_a[]",
   accommodation: "travel_doc_b[]",
@@ -27,12 +31,36 @@ export const TRAVEL_DOC_SLOTS = {
   etc: "travel_doc_d[]",
   verification: "travel_doc_e[]",
   poster: "travel_doc_f[]",
+  general: "doc_attach_file[]",
 } as const;
 
 export type TravelDocSlot = keyof typeof TRAVEL_DOC_SLOTS;
 
 export function slotSelector(slot: TravelDocSlot): string {
   return `input[name="${TRAVEL_DOC_SLOTS[slot]}"]`;
+}
+
+/** An attachment on a travel form must say which row it belongs in; the tool never guesses. */
+export function checkAttachmentSlot(p: Record<string, any>): FormRuleViolation[] {
+  const out: FormRuleViolation[] = [];
+  if (p.attachment_path || (Array.isArray(p.attachment_paths) && p.attachment_paths.length)) {
+    const slot = p.attachment_slot;
+    const names = Object.keys(TRAVEL_DOC_SLOTS).join(", ");
+    if (!slot) {
+      out.push({
+        code: "ATTACHMENT_SLOT_REQUIRED",
+        fields: ["attachment_slot"],
+        message: `this form has separate attachment rows (${names}). Say which one with attachment_slot; the file is not guessed into the first row.`,
+      });
+    } else if (!(slot in TRAVEL_DOC_SLOTS)) {
+      out.push({
+        code: "ATTACHMENT_SLOT_UNKNOWN",
+        fields: ["attachment_slot"],
+        message: `attachment_slot '${slot}' is not a row on this form. Rows: ${names}.`,
+      });
+    }
+  }
+  return out;
 }
 
 /** "XXXX-XXXX-XXXX-XXXX" or 16 bare digits -> the four copcard boxes; null otherwise. */
@@ -96,23 +124,7 @@ export function checkTravelRequestParams(p: Record<string, any>): FormRuleViolat
     }
   }
 
-  if (p.attachment_path || (Array.isArray(p.attachment_paths) && p.attachment_paths.length)) {
-    const slot = p.attachment_slot;
-    const names = Object.keys(TRAVEL_DOC_SLOTS).join(", ");
-    if (!slot) {
-      out.push({
-        code: "ATTACHMENT_SLOT_REQUIRED",
-        fields: ["attachment_slot"],
-        message: `travel_request has six attachment rows (${names}). Say which one with attachment_slot; the file is not guessed into the first row.`,
-      });
-    } else if (!(slot in TRAVEL_DOC_SLOTS)) {
-      out.push({
-        code: "ATTACHMENT_SLOT_UNKNOWN",
-        fields: ["attachment_slot"],
-        message: `attachment_slot '${slot}' is not a row on this form. Rows: ${names}.`,
-      });
-    }
-  }
+  out.push(...checkAttachmentSlot(p));
 
   if (p.credit_card_no != null && p.credit_card_no !== "" && !parseCardNo(String(p.credit_card_no))) {
     out.push({

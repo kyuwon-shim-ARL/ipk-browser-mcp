@@ -5,7 +5,7 @@ import { textResult } from "../util.js";
 import { validateAttachmentPath } from "../security/attachment-path.js";
 import { audit, beginRun } from "../internal/audit.js";
 import { checkOrgPolicy } from "../policy/org-policy.js";
-import { checkTravelRequestParams, slotSelector, parseCardNo, type TravelDocSlot } from "../forms/travel-request.js";
+import { checkTravelRequestParams, checkAttachmentSlot, slotSelector, parseCardNo, type TravelDocSlot } from "../forms/travel-request.js";
 import { fetchTravelRequestPrecedents, readDraftText, diffAgainstPractice, type PrecedentSet } from "../precedent/fetch.js";
 import { parseTravelRequestDoc } from "../precedent/travel-request-doc.js";
 import {
@@ -602,7 +602,7 @@ export const ipkSubmitFormSchema = {
   city_code: z.string().optional().describe("travel_request city; the form fills this from province_code (Seoul is '192')"),
   travel_type_code: z.string().optional().describe("travel_request transport: '01' institute vehicle, '02' own vehicle, '03' other public transport"),
   end_tm: z.string().optional().describe("travel_request return time, HH:MM on the half hour (e.g. '16:00')"),
-  attachment_slot: z.enum(["transport", "accommodation", "boarding", "etc", "verification", "poster"]).optional().describe("travel_request: which attachment row the file goes in. Required when attachment_path is given for this form. Approval emails for sampling trips go in 'verification'."),
+  attachment_slot: z.enum(["transport", "accommodation", "boarding", "etc", "verification", "poster", "general"]).optional().describe("travel_request / travel_settlement / overseas_travel: which attachment row the file goes in. Required when attachment_path is given on these forms. Approval emails for sampling trips go in 'verification'; receipts in 'transport'/'accommodation'; 'general' is the settlements' plain File Attachment row."),
   precedent: z.boolean().default(true).describe("travel_request: read the department's recent approved requests of this form before drafting and report where the draft departs from them. Never fills a value in; set false to skip the lookup."),
   budget_code_confirmed: z.boolean().optional().describe("travel_request: pass true to file against a budget_code that differs from the writer's recent approved requests (the tool refuses otherwise, since an offered code can still be an empty pot)."),
   precedent_keyword: z.string().optional().describe("travel_request: keyword to pick precedents by (e.g. 'RAPID'). Defaults to no keyword, i.e. the writer's most recent requests."),
@@ -736,6 +736,14 @@ interface FormNavConfig {
   beforeNavigate?: (page: any, params: Record<string, any>, config: Config, sessionManager: SessionManager) => Promise<void | { code: string; message: string; violations?: unknown }>;
 }
 
+/** The settlement forms share the request form's attachment rows; same rule, same refusal shape. */
+function attachmentSlotRefusal(params: Record<string, any>) {
+  const v = checkAttachmentSlot(params);
+  if (v.length === 0) return null;
+  for (const x of v) audit({ action: "refusal", code: x.code, field: x.fields.join(","), ok: false });
+  return { code: "FORM_RULE_VIOLATION", message: v.map((x) => `[${x.code}] ${x.message}`).join("\n"), violations: v };
+}
+
 /** Precedent read for a call, keyed on its params so caller input and handler state never mix. */
 const PRECEDENT_FOR = new WeakMap<Record<string, any>, PrecedentSet>();
 
@@ -780,6 +788,8 @@ const FORM_NAV_CONFIG: Partial<Record<string, FormNavConfig>> = {
       }
     },
   },
+  travel_settlement: { validate: (params) => attachmentSlotRefusal(params) },
+  overseas_travel: { validate: (params) => attachmentSlotRefusal(params) },
   card_expense_rd: {
     validate: (params) =>
       !params.trseq || !params.appr_no
@@ -2204,7 +2214,7 @@ async function submitTravelSettlement(
 
   // Step 6: Handle attachment
   if (params.attachment_path) {
-    await attachFile(frame, params.attachment_path);
+    await attachFile(frame, params.attachment_path, slotSelector(params.attachment_slot as TravelDocSlot));
     await page.waitForTimeout(1000);
   }
 
@@ -2607,7 +2617,7 @@ async function submitOverseasTravel(
 
   // Handle attachment
   if (params.attachment_path) {
-    await attachFile(frame, params.attachment_path);
+    await attachFile(frame, params.attachment_path, slotSelector(params.attachment_slot as TravelDocSlot));
     await page.waitForTimeout(1000);
   }
 
