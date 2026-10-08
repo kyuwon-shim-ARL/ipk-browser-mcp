@@ -21304,7 +21304,10 @@ function loadConfig() {
     process.env.TZ = "Asia/Seoul";
   }
   return {
-    baseUrl: env("IPK_BASE_URL", "https://gw.ip-korea.org"),
+    // Origin only: every caller appends a path ("/Document/..."). IPK_BASE_URL is commonly
+    // set to ".../main.php", which turned those into ".../main.php/Document/..." - the server
+    // answers that with the frameset, so the card ER form never loaded.
+    baseUrl: new URL(env("IPK_BASE_URL", "https://gw.ip-korea.org")).origin,
     username: env("IPK_USERNAME"),
     password: env("IPK_PASSWORD"),
     headless: env("BROWSER_HEADLESS") !== "false",
@@ -22004,6 +22007,105 @@ function diffAgainstPractice(draft, profile) {
   return out;
 }
 
+// src/forms/card-er.ts
+var CARD_PREFIX = /^\s*\[\s*card\s*\]\s*/i;
+function normalizeCardSubject(subject) {
+  let rest = String(subject ?? "");
+  while (CARD_PREFIX.test(rest)) rest = rest.replace(CARD_PREFIX, "");
+  rest = rest.trim();
+  return rest ? `[Card] ${rest}` : "[Card]";
+}
+function isPreviewBlockedRequest(method, url) {
+  const m = String(method || "").toUpperCase();
+  if (m !== "GET" && m !== "HEAD") return true;
+  return /budget_check_er\.php|document_write\.php|doc_approve/i.test(url);
+}
+var SCALAR_FIELDS = ["subject", "budget_type", "budget_code", "pay_kind", "mode", "mode1", "p_reason"];
+var ROW_FIELD = /^(item_[a-z_]+|account_code|account_str|venue|meeting_begin_date|meeting_end_date|participants|purpose|vender|seller|doc_attach_file)\[\]$/;
+function summarizeCapturedForm(entries) {
+  const out = {};
+  for (const f of SCALAR_FIELDS) {
+    const hit = entries.find(([k]) => k === f);
+    out[f] = hit ? hit[1] : null;
+  }
+  for (const [k, v] of entries) {
+    if (!ROW_FIELD.test(k)) continue;
+    const arr = out[k] ?? [];
+    arr.push(v);
+    out[k] = arr;
+  }
+  return out;
+}
+
+// src/browser/draft-guard.ts
+function listHasDoc(html, docId) {
+  if (!/^\d+$/.test(String(docId))) return false;
+  return new RegExp(`doc_id=['"]?${docId}(?!\\d)`).test(html);
+}
+function classifyDocLocation(inDrafts, inProgress) {
+  if (inDrafts) return "drafts";
+  if (inProgress) return "progress";
+  return "neither";
+}
+function applyDraftGuard(payload, docId, location2, reason) {
+  const data = payload.data ?? {};
+  if (location2 === "drafts") {
+    return {
+      ...payload,
+      data: { ...data, draft_confirmed: true, message: `${data.message ?? "Draft saved"} - confirmed in Drafts` }
+    };
+  }
+  if (location2 === "progress") {
+    return {
+      error: true,
+      code: "SUBMITTED_NOT_DRAFT",
+      message: `Document ${docId} was SUBMITTED for approval, not saved as a draft. Repossess it from the document view ([ Document Repossess ]) before an approver acts.`,
+      docId,
+      data: { ...data, draft_confirmed: false }
+    };
+  }
+  return {
+    error: true,
+    code: "DRAFT_NOT_CONFIRMED",
+    message: `Document ${docId} was not found in Drafts or In Progress (first page of each)${reason ? ` - ${reason}` : ""}. It may or may not have been saved, or it may have been submitted - check the document lists before retrying.`,
+    docId,
+    data: { ...data, draft_confirmed: false }
+  };
+}
+async function locateDocument(page, baseUrl, docId, timeoutMs = 3e4) {
+  const origin = new URL(baseUrl).origin;
+  const listHtml = async (type) => {
+    await page.goto(`${origin}/Document/document_list.php?type=${type}`, { waitUntil: "domcontentloaded", timeout: timeoutMs });
+    await page.waitForTimeout(1e3);
+    return String(await page.content());
+  };
+  try {
+    const inDrafts = listHasDoc(await listHtml("drafts"), docId);
+    const inProgress = inDrafts ? false : listHasDoc(await listHtml("progress"), docId);
+    return { location: classifyDocLocation(inDrafts, inProgress) };
+  } catch (err) {
+    return { location: "neither", reason: `the lists could not be read: ${err instanceof Error ? err.message : String(err)}` };
+  } finally {
+    await page.goto(origin, { waitUntil: "domcontentloaded", timeout: timeoutMs }).catch(() => null);
+  }
+}
+async function confirmDraftResult(page, baseUrl, mode, result, timeoutMs) {
+  if (mode !== "draft") return result;
+  let payload;
+  try {
+    payload = JSON.parse(result?.content?.[0]?.text ?? "");
+  } catch {
+    return result;
+  }
+  const docId = payload?.data?.docId;
+  if (payload.error || !docId) return result;
+  const { location: location2, reason } = await locateDocument(page, baseUrl, String(docId), timeoutMs);
+  if (location2 !== "drafts") {
+    audit({ action: "refusal", code: location2 === "progress" ? "SUBMITTED_NOT_DRAFT" : "DRAFT_NOT_CONFIRMED", docId: String(docId), mode, ok: false });
+  }
+  return textResult(applyDraftGuard(payload, String(docId), location2, reason));
+}
+
 // src/browser/iframe-helper.ts
 function getMainFrame(page) {
   return page.frame("main_menu");
@@ -22690,7 +22792,7 @@ var ipkSubmitFormSchema = {
   reimbursement: external_exports.number().optional().describe("Amount to reimburse traveler (KRW)"),
   corp_card_no: external_exports.string().optional().describe("Corporate card number (XXXX-XXXX-XXXX-XXXX)")
 };
-var ipkSubmitFormDescription = "Submit a form in IPK groupware. All 11 form types are fully implemented: leave (\uD734\uAC00/AppFrm-073), expense (\uACBD\uBE44/AppFrm-020), working (\uD734\uC77C\uADFC\uBB34/AppFrm-027), travel (\uCD9C\uC7A5\uBCF4\uACE0/AppFrm-076), travel_request (\uCD9C\uC7A5\uC2E0\uCCAD/AppFrm-023), budget_transfer (\uC608\uC0B0\uC804\uC6A9/AppFrm-039), card_expense (\uCE74\uB4DC\uACBD\uBE44/AppFrm-020), travel_settlement (\uCD9C\uC7A5\uC815\uC0B0/AppFrm-054), leave_return (\uB300\uCCB4\uD734\uC77C\uBC18\uB0A9/AppFrm-028), seminar (\uC138\uBBF8\uB098\uACF5\uC2DC/AppFrm-043), overseas_travel (\uD574\uC678\uCD9C\uC7A5/AppFrm-026). By default saves as draft (draft_only=true). To actually submit for approval, set draft_only=false AND confirm_submit=true. For budget_transfer, use transfer_type='rnd' (AppFrm-039, default) or transfer_type='general' (AppFrm-053). Required params per form_type: leave: leave_type, start_date, end_date; expense: budget_code, amount, reason; working: budget_code, work_date, reason; travel: title, destination, start_date, end_date; travel_request: budget_code, title, destination, start_date, end_date; budget_transfer: from_account, to_account, amount, reason; card_expense: budget_code, amount, reason; travel_settlement: budget_code, title, destination, start_date, end_date; leave_return: leave_type, start_date, end_date; seminar: title, date, location; overseas_travel: budget_code, title, destination, start_date, end_date, purpose. Error recovery: NOT_LOGGED_IN\u2192call ipk_login first; FRAME_NOT_FOUND\u2192call ipk_navigate first; CONFIRMATION_REQUIRED\u2192set draft_only=true for safe draft mode; POLICY_VIOLATION/FORM_RULE_VIOLATION\u2192read the violations list, nothing was written; SESSION_EXPIRING\u2192re-login.";
+var ipkSubmitFormDescription = "Submit a form in IPK groupware. All 11 form types are fully implemented: leave (\uD734\uAC00/AppFrm-073), expense (\uACBD\uBE44/AppFrm-020), working (\uD734\uC77C\uADFC\uBB34/AppFrm-027), travel (\uCD9C\uC7A5\uBCF4\uACE0/AppFrm-076), travel_request (\uCD9C\uC7A5\uC2E0\uCCAD/AppFrm-023), budget_transfer (\uC608\uC0B0\uC804\uC6A9/AppFrm-039), card_expense (\uCE74\uB4DC\uACBD\uBE44/AppFrm-020), travel_settlement (\uCD9C\uC7A5\uC815\uC0B0/AppFrm-054), leave_return (\uB300\uCCB4\uD734\uC77C\uBC18\uB0A9/AppFrm-028), seminar (\uC138\uBBF8\uB098\uACF5\uC2DC/AppFrm-043), overseas_travel (\uD574\uC678\uCD9C\uC7A5/AppFrm-026). By default saves as draft (draft_only=true); a draft is reported only after it is found in the Drafts list (SUBMITTED_NOT_DRAFT / DRAFT_NOT_CONFIRMED otherwise). card_expense_rd has no draft (the groupware files it for approval): draft_only=true returns a no-save preview with the form's own validation. To actually submit for approval, set draft_only=false AND confirm_submit=true. For budget_transfer, use transfer_type='rnd' (AppFrm-039, default) or transfer_type='general' (AppFrm-053). Required params per form_type: leave: leave_type, start_date, end_date; expense: budget_code, amount, reason; working: budget_code, work_date, reason; travel: title, destination, start_date, end_date; travel_request: budget_code, title, destination, start_date, end_date; budget_transfer: from_account, to_account, amount, reason; card_expense: budget_code, amount, reason; travel_settlement: budget_code, title, destination, start_date, end_date; leave_return: leave_type, start_date, end_date; seminar: title, date, location; overseas_travel: budget_code, title, destination, start_date, end_date, purpose. Error recovery: NOT_LOGGED_IN\u2192call ipk_login first; FRAME_NOT_FOUND\u2192call ipk_navigate first; CONFIRMATION_REQUIRED\u2192set draft_only=true for safe draft mode; POLICY_VIOLATION/FORM_RULE_VIOLATION\u2192read the violations list, nothing was written; SESSION_EXPIRING\u2192re-login.";
 function attachmentSlotRefusal(params) {
   const v = checkAttachmentSlot(params);
   if (v.length === 0) return null;
@@ -22848,13 +22950,15 @@ async function handleIpkSubmitForm(sessionManager2, config3, params) {
     }
     const handler = FORM_HANDLERS[formType];
     if (handler) {
-      return await handler(page, frame, sessionManager2, config3, params, mode);
+      const result2 = await handler(page, frame, sessionManager2, config3, params, mode);
+      return await confirmDraftResult(page, config3.baseUrl, mode, result2, config3.navTimeoutMs);
     }
     const templateSchema = loadTemplateFieldSchema(formType);
     if (!templateSchema) {
       return textResult({ error: true, code: "UNKNOWN_FORM", message: `Unknown form type: ${formType}` });
     }
-    return await submitGeneric(page, frame, sessionManager2, config3, params, mode, formType, templateSchema);
+    const result = await submitGeneric(page, frame, sessionManager2, config3, params, mode, formType, templateSchema);
+    return await confirmDraftResult(page, config3.baseUrl, mode, result, config3.navTimeoutMs);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return textResult({ error: true, code: "SUBMIT_ERROR", message: msg });
@@ -23458,7 +23562,7 @@ async function submitCardExpense(page, frame, sessionManager2, config3, params, 
 async function submitCardExpenseRD(page, frame, _sessionManager, config3, params, mode) {
   const accountHelper = await Promise.resolve().then(() => (init_account(), account_exports));
   const attachmentHelper = await Promise.resolve().then(() => (init_attachment(), attachment_exports));
-  const subject = params.subject || params.title || "Card receipt";
+  const subject = normalizeCardSubject(params.subject || params.title || "Card receipt");
   const itemName = params.item_name || "Card receipt item";
   const sellerEn = params.seller_en || params.item_vendor || "";
   const pReason = params.p_reason || params.reason || "";
@@ -23475,10 +23579,13 @@ async function submitCardExpenseRD(page, frame, _sessionManager, config3, params
     };
   });
   if (!prefilled.budget_code) {
+    const frameUrl = typeof frame.url === "function" ? frame.url() : "";
+    const frames = page.frames().map((f) => `${f.name() || "-"}=${f.url()}`);
     return textResult({
       error: true,
       code: "FORM_NOT_LOADED",
-      message: "AppFrm-021 mker form did not prefill. Check trseq/appr_no values."
+      message: "AppFrm-021 mker form did not prefill. Check trseq/appr_no values.",
+      diagnostics: { frameUrl, frames, prefilled }
     });
   }
   let effectiveBudgetCode = prefilled.budget_code;
@@ -23626,68 +23733,259 @@ async function submitCardExpenseRD(page, frame, _sessionManager, config3, params
   }
   const attachResult = await attachmentHelper.attachFiles(frame, filePaths);
   await page.waitForTimeout(500);
-  const popupHolder = {
-    docId: null,
-    finalUrl: ""
+  void _sessionManager;
+  if (mode === "draft") {
+    return await previewCardExpenseRD(page, frame, config3, { subject, effectiveBudgetCode, attachResult, fileCount: filePaths.length });
+  }
+  const popupState = { aborted: false, submitted: false, subjectFixed: null };
+  let resolvePopup = () => {
   };
-  const popupPromise = new Promise((resolve4) => {
-    page.once("popup", async (pop) => {
-      try {
-        await pop.waitForLoadState("networkidle", { timeout: 15e3 });
-        await pop.waitForTimeout(1500);
-        await pop.evaluate("submit_form()").catch(() => {
-        });
-        await pop.waitForTimeout(4e3);
-      } catch {
-      } finally {
-        resolve4();
-      }
-    });
-    setTimeout(resolve4, 25e3);
+  const popupDone = new Promise((resolve4) => {
+    resolvePopup = resolve4;
   });
+  const onPopup = async (pop) => {
+    try {
+      await pop.waitForLoadState("networkidle", { timeout: 15e3 });
+      await pop.waitForTimeout(1500);
+      if (popupState.aborted) return;
+      const current = await frame.evaluate(() => {
+        const el = document.querySelector('input[name="subject"]');
+        return el ? el.value : "";
+      });
+      const fixed = normalizeCardSubject(current);
+      if (fixed !== current) {
+        await frame.evaluate((v) => {
+          const el = document.querySelector('input[name="subject"]');
+          if (el) el.value = v;
+        }, fixed);
+        popupState.subjectFixed = fixed;
+      }
+      await pop.evaluate("submit_form()");
+      popupState.submitted = true;
+      await pop.waitForTimeout(4e3);
+    } catch {
+    } finally {
+      resolvePopup();
+    }
+  };
+  page.once("popup", onPopup);
+  const popupTimer = setTimeout(resolvePopup, 25e3);
+  let run;
   try {
-    await frame.evaluate((mode1Val) => {
-      const w = window;
-      const doc = document;
-      if (doc.all && doc.all("mode1")) doc.all("mode1").value = mode1Val;
-      const form = doc.form1;
-      if (!form) throw new Error("form1 not found");
-      form.mode.value = "insert";
-      w.open("", "budget_frame", "width=940,height=400,top=100,left=100,resizable=0,scrollbars=1");
-      form.target = "budget_frame";
-      form.action = "./budget_check_er.php";
-      form.submit();
-    }, mode === "draft" ? "draft" : "");
+    await frame.evaluate(installCardErStubs, false);
+    run = await frame.evaluate(runCheckFormRequest);
   } catch (err) {
+    popupState.aborted = true;
+    page.off("popup", onPopup);
+    clearTimeout(popupTimer);
     return textResult({
       error: true,
       code: "SUBMIT_FAILED",
       message: `card_expense_rd submit trigger failed: ${err instanceof Error ? err.message : String(err)}`
     });
   }
-  await popupPromise;
+  if (run.alerts.length > 0 || run.pageError || !run.pressed) {
+    popupState.aborted = true;
+    page.off("popup", onPopup);
+    clearTimeout(popupTimer);
+    return textResult({
+      error: true,
+      code: run.alerts.length > 0 ? "SUBMIT_REJECTED" : "SUBMIT_FAILED",
+      message: run.alerts.length > 0 ? `The form refused the submission: ${run.alerts.join(" / ")}. Nothing was filed.` : `The form did not reach its Evidence Check confirmation${run.pageError ? ` (${run.pageError})` : ""}. Nothing was filed.`,
+      validation_alerts: run.alerts,
+      native_confirms: run.confirms,
+      confirm_buttons: run.confirmButtons
+    });
+  }
+  await popupDone;
+  clearTimeout(popupTimer);
   await page.waitForTimeout(2e3);
   try {
     await page.waitForLoadState("networkidle", { timeout: 1e4 });
   } catch {
   }
-  popupHolder.finalUrl = frame.url && typeof frame.url === "function" ? frame.url() : page.url();
-  const m = popupHolder.finalUrl.match(/[?&]doc_id=(\d+)/);
-  popupHolder.docId = m ? m[1] : null;
-  void _sessionManager;
+  const finalUrl = frame.url && typeof frame.url === "function" ? frame.url() : page.url();
+  const m = finalUrl.match(/[?&]doc_id=(\d+)/);
+  const docId = m ? m[1] : null;
+  audit({ action: "submit", docId, mode: "request", confirmed: true, ok: docId !== null });
   return textResult({
     error: false,
     data: {
-      success: popupHolder.docId !== null,
-      docId: popupHolder.docId,
+      success: docId !== null,
+      docId,
       mode,
       formType: "card_expense_rd",
-      subject,
+      subject: popupState.subjectFixed ?? subject,
       budgetCode: effectiveBudgetCode,
-      finalUrl: popupHolder.finalUrl,
+      finalUrl,
       attached: attachResult.attached,
       skipped_attachments: attachResult.skipped,
-      message: popupHolder.docId ? `R&D card ER ${mode === "draft" ? "draft saved" : "submitted"} (doc_id: ${popupHolder.docId}, ${attachResult.attached}/${filePaths.length} files attached)` : `R&D card ER ${mode} attempted but doc_id not found in URL \u2014 check Drafts manually`
+      message: docId ? `R&D card ER submitted for approval (doc_id: ${docId}, ${attachResult.attached}/${filePaths.length} files attached)` : popupState.submitted ? "R&D card ER submit attempted but doc_id not found in URL \u2014 check In Progress manually" : "R&D card ER: the budget check popup never filed the form \u2014 check In Progress before retrying"
+    }
+  });
+}
+function installCardErStubs(preview) {
+  const w = window;
+  const st = { alerts: [], confirms: [], confirmButtons: [], pressed: null, opens: [], submits: [], jquery: false, pageError: null };
+  w.__ipkCardEr = st;
+  const text = (v) => String(v ?? "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+  w.alert = (msg) => {
+    st.alerts.push(text(msg));
+  };
+  const nativeConfirm = w.confirm;
+  w.confirm = (msg) => {
+    st.confirms.push(text(msg));
+    return preview ? true : nativeConfirm.call(w, msg);
+  };
+  const dummy = { close: () => {
+  }, open: () => {
+  }, toggle: () => {
+  }, setContent: () => {
+  }, setTitle: () => {
+  }, $content: null, buttons: {} };
+  const pressConfirm = (opts) => {
+    const buttons = opts && typeof opts === "object" ? opts.buttons : null;
+    if (buttons && typeof buttons === "object") {
+      const entries = Object.keys(buttons).map((k) => {
+        const v = buttons[k];
+        const label = v && typeof v === "object" && v.text ? text(v.text) : k;
+        const fn = typeof v === "function" ? v : v && typeof v.action === "function" ? v.action : null;
+        return { label, fn };
+      });
+      st.confirmButtons = entries.map((e) => e.label);
+      const pick2 = entries.find((e) => /^\s*next\s*$/i.test(e.label)) || entries.find((e) => !/cancel|close|^\s*no\s*$/i.test(e.label));
+      if (pick2 && pick2.fn) {
+        st.pressed = pick2.label;
+        pick2.fn.call(dummy);
+      }
+    } else if (opts && typeof opts.confirm === "function") {
+      st.confirmButtons = [text(opts.confirmButton || "confirm")];
+      st.pressed = st.confirmButtons[0];
+      opts.confirm.call(dummy);
+    }
+    return dummy;
+  };
+  const jqAlert = (opts) => {
+    st.alerts.push(text(opts && typeof opts === "object" ? opts.content || opts.title : opts));
+    return dummy;
+  };
+  for (const jq of [w.jQuery, w.$]) {
+    if (jq && (typeof jq === "function" || typeof jq === "object")) {
+      st.jquery = true;
+      jq.confirm = pressConfirm;
+      jq.alert = jqAlert;
+    }
+  }
+  if (!preview) return;
+  w.open = (url, name) => {
+    st.opens.push(String(name || url || ""));
+    return { closed: false, close: () => {
+    }, focus: () => {
+    }, document: { write: () => {
+    }, close: () => {
+    } }, location: {} };
+  };
+  const capture = function() {
+    const entries = [];
+    new FormData(this).forEach((v, k) => entries.push([k, typeof v === "string" ? v : `file:${v.name}`]));
+    st.submits.push({ action: this.getAttribute("action") || "", target: this.getAttribute("target") || "", entries });
+  };
+  HTMLFormElement.prototype.submit = capture;
+  HTMLFormElement.prototype.requestSubmit = capture;
+  const f = document.form1;
+  if (f) {
+    try {
+      f.submit = capture;
+    } catch {
+    }
+  }
+  document.addEventListener("submit", (e) => {
+    e.preventDefault();
+    capture.call(e.target);
+  }, true);
+}
+function runCheckFormRequest() {
+  const w = window;
+  const st = w.__ipkCardEr;
+  try {
+    if (typeof w.Check_Form_Request !== "function") throw new Error("Check_Form_Request is not defined on this page");
+    w.Check_Form_Request("insert");
+  } catch (err) {
+    st.pageError = err instanceof Error ? err.message : String(err);
+  }
+  return JSON.parse(JSON.stringify(st));
+}
+async function previewCardExpenseRD(page, frame, config3, ctx) {
+  const blocked = [];
+  const onRoute = (route) => {
+    const req = route.request();
+    if (isPreviewBlockedRequest(req.method(), req.url())) {
+      blocked.push(`${req.method()} ${req.url()}`);
+      return route.abort();
+    }
+    return typeof route.fallback === "function" ? route.fallback() : route.continue();
+  };
+  const context = typeof page.context === "function" ? page.context() : null;
+  let run = null;
+  let runError = null;
+  let screenshot = null;
+  await page.route("**/*", onRoute);
+  if (context) await context.route("**/*", onRoute);
+  try {
+    try {
+      await frame.evaluate(installCardErStubs, true);
+      run = await frame.evaluate(runCheckFormRequest);
+      await page.waitForTimeout(1500);
+      run = await frame.evaluate(() => JSON.parse(JSON.stringify(window.__ipkCardEr)));
+    } catch (err) {
+      runError = err instanceof Error ? err.message : String(err);
+    }
+    try {
+      fs5.mkdirSync(config3.screenshotDir, { recursive: true, mode: 448 });
+      const file = path3.join(config3.screenshotDir, `card-er-preview-${(/* @__PURE__ */ new Date()).toISOString().replace(/[:.]/g, "-")}.png`);
+      await page.screenshot({ path: file, fullPage: true });
+      screenshot = file;
+    } catch {
+    }
+  } finally {
+    await page.unroute("**/*", onRoute).catch(() => {
+    });
+    if (context) await context.unroute("**/*", onRoute).catch(() => {
+    });
+  }
+  const alerts = run?.alerts ?? [];
+  const submits = run?.submits ?? [];
+  const lastSubmit = submits.length > 0 ? submits[submits.length - 1] : null;
+  const captured = lastSubmit ? summarizeCapturedForm(lastSubmit.entries) : null;
+  const pageError = runError ?? run?.pageError ?? null;
+  const wouldSubmit = alerts.length === 0 && !pageError && submits.length > 0;
+  const capturedSubject = typeof captured?.subject === "string" ? captured.subject : null;
+  audit({ action: "refusal", code: "CARD_ER_PREVIEW_ONLY", field: "card_expense_rd", ok: true });
+  return textResult({
+    error: false,
+    data: {
+      success: false,
+      saved: false,
+      mode: "preview",
+      formType: "card_expense_rd",
+      docId: null,
+      would_submit: wouldSubmit,
+      validation_alerts: alerts,
+      page_error: pageError,
+      message: "AppFrm-021 card ER cannot be saved as a draft \u2014 the groupware submits it for approval. Nothing was saved. Review the preview; the person files it." + (alerts.length > 0 ? ` The form's own validation refused it: ${alerts.join(" / ")}` : "") + (!wouldSubmit && alerts.length === 0 ? ` The form did not reach its submit${pageError ? ` (${pageError})` : ""}.` : ""),
+      subject_filled: ctx.subject,
+      subject_as_form_would_file: capturedSubject,
+      subject_double_prefix: capturedSubject !== null && capturedSubject !== normalizeCardSubject(capturedSubject),
+      budgetCode: ctx.effectiveBudgetCode,
+      captured,
+      captured_action: lastSubmit ? lastSubmit.action : null,
+      confirm: { jquery_found: run?.jquery ?? false, buttons: run?.confirmButtons ?? [], pressed: run?.pressed ?? null },
+      native_confirms: run?.confirms ?? [],
+      blocked_requests: blocked,
+      attached: ctx.attachResult.attached,
+      skipped_attachments: ctx.attachResult.skipped,
+      attachment_note: `${ctx.attachResult.attached}/${ctx.fileCount} files set on the form's file inputs; none were uploaded (uploads happen only when the form is filed).`,
+      screenshot
     }
   });
 }
