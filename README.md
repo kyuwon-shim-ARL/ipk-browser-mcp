@@ -136,7 +136,6 @@ scripts/
 .claude-plugin/
   plugin.json             # Claude Code plugin manifest
   hooks/hooks.json        # SessionStart hook config
-.mcp.json                 # MCP server configuration
 FIELD_REFERENCE.md        # Form field mapping reference
 docs/                     # Additional documentation
 ```

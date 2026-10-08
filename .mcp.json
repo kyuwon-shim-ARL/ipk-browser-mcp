@@ -1,9 +1,0 @@
-{
-  "mcpServers": {
-    "ipk-browser": {
-      "command": "node",
-      "args": ["${CLAUDE_PLUGIN_ROOT}/ipk-browser-mcp/dist/ipk-browser-mcp.mjs"],
-      "env": {}
-    }
-  }
-}

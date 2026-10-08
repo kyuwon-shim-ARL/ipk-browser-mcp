@@ -11,5 +11,13 @@
   "license": "MIT",
   "keywords": ["ipk", "groupware", "browser", "automation", "mcp", "playwright"],
   "skills": "./skills/",
-  "mcpServers": "./.mcp.json"
+  "mcpServers": {
+    "ipk-browser": {
+      "command": "node",
+      "args": [
+        "${CLAUDE_PLUGIN_ROOT}/ipk-browser-mcp/dist/ipk-browser-mcp.mjs"
+      ],
+      "env": {}
+    }
+  }
 }
