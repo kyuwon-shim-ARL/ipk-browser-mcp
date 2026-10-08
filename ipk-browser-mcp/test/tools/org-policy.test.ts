@@ -133,6 +133,11 @@ describe("TEAM_ACTIVITY_FIELDS_REQUIRED", () => {
     expect(v.map((x) => x.rule)).toEqual(["TEAM_ACTIVITY_FIELDS_REQUIRED"]);
     expect(v[0].fields).toEqual(["venue", "meeting_begin", "meeting_end"]);
   });
+  it("fires when the account is picked by label instead of code", () => {
+    const v = checkOrgPolicy(cardRD({ item_account_code: undefined, account_code_label: "Team Activities", venue: undefined }));
+    expect(v.map((x) => x.rule)).toEqual(["TEAM_ACTIVITY_FIELDS_REQUIRED"]);
+    expect(v[0].fields).toEqual(["venue"]);
+  });
   it("falls back to purpose when purpose_minutes is absent", () => {
     expect(checkOrgPolicy(cardRD({ purpose_minutes: undefined, purpose: "Quarterly team lunch" }))).toEqual([]);
   });

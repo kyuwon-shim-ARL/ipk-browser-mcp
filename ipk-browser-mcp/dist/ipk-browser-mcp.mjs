@@ -21680,7 +21680,9 @@ var ORG_POLICY = [
     passes: "When card_expense_rd is filed with item_account_code '412107', venue, meeting_begin, meeting_end, participants and purpose_minutes (or purpose) are all non-empty.",
     check(params) {
       if (String(params.form_type) !== "card_expense_rd") return null;
-      if (String(params.item_account_code) !== TEAM_ACTIVITY_ACCOUNT_CODE) return null;
+      const byCode = String(params.item_account_code) === TEAM_ACTIVITY_ACCOUNT_CODE;
+      const byLabel = !params.item_account_code && /team activit/i.test(String(params.account_code_label ?? ""));
+      if (!byCode && !byLabel) return null;
       const required2 = {
         venue: params.venue,
         meeting_begin: params.meeting_begin,
@@ -23492,7 +23494,7 @@ async function submitCardExpenseRD(page, frame, _sessionManager, config3, params
       });
     }
     effectiveBudgetCode = await frame.evaluate(() => {
-      const el = document.getElementById("budget_code");
+      const el = document.querySelector('select[name="budget_code"]');
       return el ? el.value : null;
     });
   }

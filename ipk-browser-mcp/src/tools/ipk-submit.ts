@@ -1943,7 +1943,7 @@ async function submitCardExpenseRD(
     // Re-read rather than trust params.budget_code: setSelectValue only writes the value
     // when it matches an offered option, so reading it back is what confirms the select.
     effectiveBudgetCode = await frame.evaluate(() => {
-      const el = document.getElementById("budget_code") as HTMLSelectElement | null;
+      const el = document.querySelector('select[name="budget_code"]') as HTMLSelectElement | null;
       return el ? el.value : null;
     });
   }
