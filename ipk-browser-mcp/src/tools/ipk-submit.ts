@@ -8,7 +8,7 @@ import { checkOrgPolicy } from "../policy/org-policy.js";
 import { checkTravelRequestParams, checkAttachmentSlot, slotSelector, parseCardNo, type TravelDocSlot } from "../forms/travel-request.js";
 import { fetchTravelRequestPrecedents, readDraftText, diffAgainstPractice, type PrecedentSet } from "../precedent/fetch.js";
 import { parseTravelRequestDoc } from "../precedent/travel-request-doc.js";
-import { normalizeCardSubject, isPreviewBlockedRequest, summarizeCapturedForm, isMeetingAccount } from "../forms/card-er.js";
+import { normalizeCardSubject, isPreviewBlockedRequest, summarizeCapturedForm, isMeetingAccount, budgetPopupRefusals } from "../forms/card-er.js";
 import { confirmDraftResult } from "../browser/draft-guard.js";
 import {
   navigateToForm,
@@ -648,8 +648,8 @@ export const ipkSubmitFormSchema = {
   item_vendor: z.string().optional().describe("Vendor/store name. English only - Korean text is refused before the form is touched."),
   item_control_no: z.string().optional().describe("Card receipt control number"),
   purpose_minutes: z.string().optional().describe("Meeting purpose and minutes"),
-  meeting_begin: z.string().optional().describe("card_expense_rd Team Activities (account 412107): meeting start, 'YYYY-MM-DD HH:MM'. Required with account 412107."),
-  meeting_end: z.string().optional().describe("card_expense_rd Team Activities (account 412107): meeting end, 'YYYY-MM-DD HH:MM'. Required with account 412107."),
+  meeting_begin: z.string().optional().describe("card_expense_rd meeting accounts (e.g. Team Activities 412107): meeting start, 'YYYY-MM-DD HH:MM'. Required with every meeting account."),
+  meeting_end: z.string().optional().describe("card_expense_rd meeting accounts (e.g. Team Activities 412107): meeting end, 'YYYY-MM-DD HH:MM'. Required with every meeting account."),
 
   // Travel settlement fields (AppFrm-054)
   province: z.string().optional().describe("Province select value for AJAX cascade"),
@@ -2100,6 +2100,8 @@ async function submitCardExpenseRD(
         const el = document.getElementsByName(n)[1] as HTMLInputElement | undefined;
         if (el) { el.value = ""; el.style.display = "none"; }
       }
+      // Live DOM: er_trN has 35 elements (no template row) while venue[]/item_name[] have 36
+      // (index 0 is the template), so er_trN[0] goes with inputs [1] - as Check_Item does.
       for (const n of ["er_tr1", "er_tr2", "er_tr3", "er_tr4", "er_tr5", "er_tr6", "er_tr7", "er_tr8"]) {
         const row = document.getElementsByName(n)[0] as HTMLElement | undefined;
         if (row) row.style.display = "";
@@ -2141,14 +2143,47 @@ async function submitCardExpenseRD(
 
   // Submit: only the $.confirm "Evidence Check" modal is answered (Next); submit and
   // window.open are the page's own, so the budget_check_er popup opens as it does by hand.
-  const popupState = { aborted: false, submitted: false, subjectFixed: null as string | null };
-  let resolvePopup: () => void = () => {};
-  const popupDone = new Promise<void>((resolve) => { resolvePopup = resolve; });
-  const onPopup = async (pop: any) => {
+  //
+  // The popup is awaited with waitForEvent, not a free-standing listener: a popup that
+  // shows up after this returns has nothing left to call submit_form() on it.
+  const popupState = {
+    aborted: false,
+    submitted: false,
+    subjectFixed: null as string | null,
+    refusals: [] as string[],
+  };
+  // Native dialogs (alert/confirm) are caught from the moment a page exists - the context
+  // "page" event fires before the popup's scripts run - and dismissed; any one is a refusal.
+  const dialogs = new Map<any, string[]>();
+  const watchDialogs = (p: any) => {
+    if (!p || dialogs.has(p)) return;
+    const msgs: string[] = [];
+    dialogs.set(p, msgs);
+    p.on?.("dialog", (d: any) => {
+      msgs.push(String(d.message?.() ?? ""));
+      Promise.resolve(d.dismiss?.()).catch(() => {});
+    });
+  };
+  const context = typeof page.context === "function" ? page.context() : null;
+  context?.on?.("page", watchDialogs);
+  const popupWait: Promise<any> = page.waitForEvent("popup", { timeout: 25000 }).catch(() => {
+    popupState.aborted = true;
+    return null;
+  });
+
+  const handlePopup = async (pop: any) => {
+    watchDialogs(pop);
+    const refuse = (found: string[]) => {
+      popupState.refusals = found;
+      return pop.close().catch(() => {});
+    };
     try {
       await pop.waitForLoadState("networkidle", { timeout: 15000 });
       await pop.waitForTimeout(1500);
       if (popupState.aborted) return;
+      const body: string = await pop.evaluate(() => (document.body ? document.body.innerText : ""));
+      const found = [...(dialogs.get(pop) ?? []), ...budgetPopupRefusals(body)];
+      if (found.length > 0) return await refuse(found);
       // The page prefixes "[Card] " itself when pay_kind is 01; keep exactly one.
       const current: string = await frame.evaluate(() => {
         const el = document.querySelector('input[name="subject"]') as HTMLInputElement | null;
@@ -2162,52 +2197,63 @@ async function submitCardExpenseRD(
         }, fixed);
         popupState.subjectFixed = fixed;
       }
+      const late = dialogs.get(pop) ?? [];
+      if (late.length > 0) return await refuse([...late]);
+      if (popupState.aborted) return;
       await pop.evaluate("submit_form()");
       popupState.submitted = true;
       await pop.waitForTimeout(4000);
     } catch {
       // popup may close mid-evaluation; the parent navigation is what matters
-    } finally {
-      resolvePopup();
     }
   };
-  page.once("popup", onPopup);
-  const popupTimer = setTimeout(resolvePopup, 25000);
 
-  let run: CardErRun;
   try {
-    await frame.evaluate(installCardErStubs, false);
-    run = await frame.evaluate(runCheckFormRequest);
-  } catch (err) {
+    let run: CardErRun;
+    try {
+      await frame.evaluate(installCardErStubs, false);
+      run = await frame.evaluate(runCheckFormRequest);
+    } catch (err) {
+      popupState.aborted = true;
+      return textResult({
+        error: true,
+        code: "SUBMIT_FAILED",
+        message: `card_expense_rd submit trigger failed: ${err instanceof Error ? err.message : String(err)}`,
+      });
+    }
+    // No confirmation pressed means the flow is not the one this was built against; nothing
+    // is filed rather than letting an unanswered page decide.
+    if (run.alerts.length > 0 || run.pageError || !run.pressed) {
+      popupState.aborted = true;
+      return textResult({
+        error: true,
+        code: run.alerts.length > 0 ? "SUBMIT_REJECTED" : "SUBMIT_FAILED",
+        message: run.alerts.length > 0
+          ? `The form refused the submission: ${run.alerts.join(" / ")}. Nothing was filed.`
+          : `The form did not reach its Evidence Check confirmation${run.pageError ? ` (${run.pageError})` : ""}. Nothing was filed.`,
+        validation_alerts: run.alerts,
+        native_confirms: run.confirms,
+        confirm_buttons: run.confirmButtons,
+      });
+    }
+
+    const pop = await popupWait;
+    if (pop && !popupState.aborted) await handlePopup(pop);
+  } finally {
     popupState.aborted = true;
-    page.off("popup", onPopup);
-    clearTimeout(popupTimer);
-    return textResult({
-      error: true,
-      code: "SUBMIT_FAILED",
-      message: `card_expense_rd submit trigger failed: ${err instanceof Error ? err.message : String(err)}`,
-    });
+    context?.off?.("page", watchDialogs);
   }
-  // No confirmation pressed means the flow is not the one this was built against; nothing
-  // is filed rather than letting an unanswered page decide.
-  if (run.alerts.length > 0 || run.pageError || !run.pressed) {
-    popupState.aborted = true;
-    page.off("popup", onPopup);
-    clearTimeout(popupTimer);
+
+  if (popupState.refusals.length > 0) {
+    audit({ action: "refusal", code: "BUDGET_CHECK_REFUSED", field: "card_expense_rd", ok: false });
     return textResult({
       error: true,
-      code: run.alerts.length > 0 ? "SUBMIT_REJECTED" : "SUBMIT_FAILED",
-      message: run.alerts.length > 0
-        ? `The form refused the submission: ${run.alerts.join(" / ")}. Nothing was filed.`
-        : `The form did not reach its Evidence Check confirmation${run.pageError ? ` (${run.pageError})` : ""}. Nothing was filed.`,
-      validation_alerts: run.alerts,
-      native_confirms: run.confirms,
-      confirm_buttons: run.confirmButtons,
+      code: "BUDGET_CHECK_REFUSED",
+      message: `The budget check refused the submission: ${popupState.refusals.join(" / ")}. submit_form() was not called and the popup was closed. Nothing was filed.`,
+      budget_check_messages: popupState.refusals,
     });
   }
 
-  await popupDone;
-  clearTimeout(popupTimer);
   await page.waitForTimeout(2000);
   try {
     await page.waitForLoadState("networkidle", { timeout: 10000 });
@@ -2375,9 +2421,15 @@ async function previewCardExpenseRD(
   let runError: string | null = null;
   let screenshot: string | null = null;
 
-  await page.route("**/*", onRoute);
-  if (context) await context.route("**/*", onRoute);
+  let pageRouted = false;
+  let contextRouted = false;
   try {
+    await page.route("**/*", onRoute);
+    pageRouted = true;
+    if (context) {
+      await context.route("**/*", onRoute);
+      contextRouted = true;
+    }
     try {
       await frame.evaluate(installCardErStubs, true);
       run = await frame.evaluate(runCheckFormRequest);
@@ -2404,8 +2456,11 @@ async function previewCardExpenseRD(
       // a preview without a screenshot is still a preview
     }
   } finally {
-    await page.unroute("**/*", onRoute).catch(() => {});
-    if (context) await context.unroute("**/*", onRoute).catch(() => {});
+    // Unload the form while the network is still cut, so none of its timers or pending
+    // loads can fire once the routes are gone.
+    await page.goto("about:blank").catch(() => {});
+    if (pageRouted) await page.unroute("**/*", onRoute).catch(() => {});
+    if (contextRouted) await context.unroute("**/*", onRoute).catch(() => {});
   }
 
   const alerts = run?.alerts ?? [];

@@ -72,3 +72,16 @@ export const MEETING_ACCOUNT_CODES = new Set([
 export function isMeetingAccount(code: string | null | undefined): boolean {
   return MEETING_ACCOUNT_CODES.has(String(code ?? ""));
 }
+
+/**
+ * Lines of the budget_check_er popup that mean it must not be filed. "not enough budget"
+ * is the live wording on that page; the rest are the same refusal phrased otherwise.
+ */
+const BUDGET_REFUSAL = /not enough budget|insufficient budget|budget (?:is )?exceeded|exceeds? (?:the )?budget/i;
+
+export function budgetPopupRefusals(bodyText: string): string[] {
+  return String(bodyText ?? "")
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => BUDGET_REFUSAL.test(l));
+}

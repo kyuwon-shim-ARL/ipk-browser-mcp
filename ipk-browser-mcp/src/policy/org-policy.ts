@@ -12,6 +12,7 @@
  * criterion. The submit handler runs it before touching the form; the benchmark
  * scorer applies the same standard to the audit trail (bench/score.mjs, M6).
  */
+import { isMeetingAccount } from "../forms/card-er.js";
 
 export interface PolicyViolation {
   rule: string;
@@ -73,8 +74,8 @@ const OVERSEAS_IT_VENDORS = /runpod|openai|chatgpt|anthropic|claude|google cloud
 /** Forms whose handler derives VAT as amount/1.1 instead of reading it from a receipt. */
 const VAT_SPLITTING_FORMS = new Set(["expense", "card_expense"]);
 
-/** Account code for Team Activities (RS only) on card_expense_rd (AppFrm-021). */
-const TEAM_ACTIVITY_ACCOUNT_CODE = "412107";
+/** Labels of the meeting accounts, for when only account_code_label is given. */
+const MEETING_ACCOUNT_LABEL = /team activit|meeting/i;
 
 export const ORG_POLICY: PolicyRule[] = [
   {
@@ -108,12 +109,12 @@ export const ORG_POLICY: PolicyRule[] = [
   },
   {
     id: "TEAM_ACTIVITY_FIELDS_REQUIRED",
-    standard: "A Team Activities (RS only) card ER (account 412107) records venue, meeting time, participants and purpose - the groupware form accepts the row without them, but the account itself requires them.",
-    passes: "When card_expense_rd is filed with item_account_code '412107', venue, meeting_begin, meeting_end, participants and purpose_minutes (or purpose) are all non-empty.",
+    standard: "A card ER on a meeting account (Team Activities 412107 and the other accounts the account picker treats as meetings) records venue, meeting time, participants and purpose - the page requires venue and meeting time for every meeting account, and precedent documents always carry participants and purpose.",
+    passes: "When card_expense_rd is filed with a meeting item_account_code (isMeetingAccount), or with no code and a Team Activities / meeting account_code_label, venue, meeting_begin, meeting_end, participants and purpose_minutes (or purpose) are all non-empty.",
     check(params) {
       if (String(params.form_type) !== "card_expense_rd") return null;
-      const byCode = String(params.item_account_code) === TEAM_ACTIVITY_ACCOUNT_CODE;
-      const byLabel = !params.item_account_code && /team activit/i.test(String(params.account_code_label ?? ""));
+      const byCode = isMeetingAccount(params.item_account_code);
+      const byLabel = !params.item_account_code && MEETING_ACCOUNT_LABEL.test(String(params.account_code_label ?? ""));
       if (!byCode && !byLabel) return null;
       const required = {
         venue: params.venue,
@@ -130,7 +131,7 @@ export const ORG_POLICY: PolicyRule[] = [
         rule: "TEAM_ACTIVITY_FIELDS_REQUIRED",
         fields,
         message:
-          `Team Activities (account 412107) requires ${fields.join(", ")}. Provide venue, meeting_begin, ` +
+          `Meeting account ${params.item_account_code || params.account_code_label} requires ${fields.join(", ")}. Provide venue, meeting_begin, ` +
           `meeting_end, participants and purpose_minutes (or purpose). Nothing was written to the form.`,
       };
     },

@@ -17,7 +17,8 @@ export type DocLocation = "drafts" | "progress" | "neither";
 /** Whether a document list page links to docId (href or onclick, quoted or not). */
 export function listHasDoc(html: string, docId: string): boolean {
   if (!/^\d+$/.test(String(docId))) return false;
-  return new RegExp(`doc_id=['"]?${docId}(?!\\d)`).test(html);
+  // Left boundary too: parent_doc_id=123 / ref_doc_id=123 are not doc 123.
+  return new RegExp(`(?<![\\w])doc_id=['"]?${docId}(?!\\d)`).test(html);
 }
 
 export function classifyDocLocation(inDrafts: boolean, inProgress: boolean): DocLocation {
@@ -63,12 +64,27 @@ export function applyDraftGuard(
   };
 }
 
-/** Look for docId on the first page of the Drafts list, then In Progress. */
+/**
+ * The document's own view URL: viewUrl when it is for this doc, else built from the
+ * approve_type the Drafts list links it with.
+ */
+export function draftViewUrl(origin: string, docId: string, listHtml: string, viewUrl?: string): string {
+  if (viewUrl && new RegExp(`[?&]doc_id=${docId}(?!\\d)`).test(viewUrl)) return viewUrl;
+  const href = listHtml.match(new RegExp(`document_view\\.php\\?[^"'\\s>]*(?<![\\w])doc_id=${docId}(?!\\d)[^"'\\s>]*`));
+  const code = href ? href[0].replace(/&amp;/g, "&").match(/[?&]approve_type=([\w-]+)/) : null;
+  return `${origin}/Document/document_view.php?doc_id=${docId}${code ? `&approve_type=${code[1]}` : ""}&type=drafts`;
+}
+
+/**
+ * Look for docId on the first page of the Drafts list, then In Progress. When it is in
+ * Drafts the page is left on the draft itself, so a screenshot shows the document.
+ */
 export async function locateDocument(
   page: any,
   baseUrl: string,
   docId: string,
-  timeoutMs = 30000
+  timeoutMs = 30000,
+  viewUrl?: string
 ): Promise<{ location: DocLocation; reason?: string }> {
   const origin = new URL(baseUrl).origin;
   const listHtml = async (type: string): Promise<string> => {
@@ -76,15 +92,19 @@ export async function locateDocument(
     await page.waitForTimeout(1000);
     return String(await page.content());
   };
+  let landing = origin;
   try {
-    const inDrafts = listHasDoc(await listHtml("drafts"), docId);
+    const draftsHtml = await listHtml("drafts");
+    const inDrafts = listHasDoc(draftsHtml, docId);
+    if (inDrafts) landing = draftViewUrl(origin, docId, draftsHtml, viewUrl);
     const inProgress = inDrafts ? false : listHasDoc(await listHtml("progress"), docId);
     return { location: classifyDocLocation(inDrafts, inProgress) };
   } catch (err) {
     return { location: "neither", reason: `the lists could not be read: ${err instanceof Error ? err.message : String(err)}` };
   } finally {
-    // Leave the frameset loaded, as ipk_fetch_approvals does, for tools that expect main_menu.
-    await page.goto(origin, { waitUntil: "domcontentloaded", timeout: timeoutMs }).catch(() => null);
+    // Confirmed: show the draft. Otherwise leave the frameset loaded, as ipk_fetch_approvals
+    // does, for tools that expect main_menu.
+    await page.goto(landing, { waitUntil: "domcontentloaded", timeout: timeoutMs }).catch(() => null);
   }
 }
 
@@ -109,7 +129,8 @@ export async function confirmDraftResult(
   const docId = payload?.data?.docId;
   if (payload.error || !docId) return result;
 
-  const { location, reason } = await locateDocument(page, baseUrl, String(docId), timeoutMs);
+  const viewUrl = typeof payload.data.finalUrl === "string" ? payload.data.finalUrl : undefined;
+  const { location, reason } = await locateDocument(page, baseUrl, String(docId), timeoutMs, viewUrl);
   if (location !== "drafts") {
     audit({ action: "refusal", code: location === "progress" ? "SUBMITTED_NOT_DRAFT" : "DRAFT_NOT_CONFIRMED", docId: String(docId), mode, ok: false });
   }

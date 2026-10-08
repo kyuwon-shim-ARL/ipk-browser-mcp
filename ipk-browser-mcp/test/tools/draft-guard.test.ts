@@ -3,7 +3,7 @@
  * doc 301323 (2026-10-08) was filed for approval while the tool said "draft saved".
  */
 import { describe, it, expect, vi } from "vitest";
-import { listHasDoc, classifyDocLocation, applyDraftGuard, confirmDraftResult } from "../../src/browser/draft-guard.js";
+import { listHasDoc, classifyDocLocation, applyDraftGuard, confirmDraftResult, draftViewUrl } from "../../src/browser/draft-guard.js";
 import { textResult } from "../../src/util.js";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -18,9 +18,28 @@ describe("listHasDoc", () => {
   it("does not match a longer id that starts with the same digits", () => {
     expect(listHasDoc(row("3013230"), "301323")).toBe(false);
   });
+  it("does not match parent_doc_id / ref_doc_id with the same number", () => {
+    expect(listHasDoc(`<a href="view.php?parent_doc_id=123">`, "123")).toBe(false);
+    expect(listHasDoc(`<a href="view.php?ref_doc_id='123'">`, "123")).toBe(false);
+    expect(listHasDoc(`<a href="view.php?x=1&doc_id=123">`, "123")).toBe(true);
+    expect(listHasDoc(`<a onclick="go('doc_id=\"123\"')">`, "123")).toBe(true);
+    expect(listHasDoc(`<a onclick="go('doc_id='123')">`, "123")).toBe(true);
+  });
   it("is false for an empty list or a non-numeric id", () => {
     expect(listHasDoc("<table></table>", "301323")).toBe(false);
     expect(listHasDoc(row("1"), ".*")).toBe(false);
+  });
+});
+
+describe("draftViewUrl", () => {
+  const O = "https://gw.ip-korea.org";
+  it("ignores a viewUrl for another doc and omits approve_type when the list has none", () => {
+    expect(draftViewUrl(O, "5", "", `${O}/Document/document_view.php?doc_id=55`)).toBe(`${O}/Document/document_view.php?doc_id=5&type=drafts`);
+  });
+  it("reads approve_type from an &amp;-escaped list href", () => {
+    expect(draftViewUrl(O, "5", `<a href="./document_view.php?doc_id=5&amp;approve_type=AppFrm-074&amp;type=drafts">`)).toBe(
+      `${O}/Document/document_view.php?doc_id=5&approve_type=AppFrm-074&type=drafts`
+    );
   });
 });
 
@@ -82,6 +101,29 @@ describe("confirmDraftResult", () => {
     expect(out.data.draft_confirmed).toBe(true);
     expect(page.goto).toHaveBeenCalledWith(`${BASE}/Document/document_list.php?type=drafts`, expect.anything());
     expect(page.goto).not.toHaveBeenCalledWith(`${BASE}/Document/document_list.php?type=progress`, expect.anything());
+  });
+
+  it("after confirming, the page is left on the draft's own view, not the home page", async () => {
+    const page = pageWith({ drafts: row("301323") });
+    await confirmDraftResult(page, BASE, "draft", draftResult());
+    expect(page.goto).toHaveBeenLastCalledWith(
+      `${BASE}/Document/document_view.php?doc_id=301323&approve_type=AppFrm-021&type=drafts`,
+      expect.anything()
+    );
+  });
+
+  it("prefers the handler's finalUrl for the landing page", async () => {
+    const page = pageWith({ drafts: row("301323") });
+    const finalUrl = `${BASE}/Document/document_view.php?doc_id=301323&approve_type=AppFrm-073&type=drafts`;
+    const r = textResult({ error: false, data: { docId: "301323", mode: "draft", finalUrl, message: "m" } });
+    await confirmDraftResult(page, BASE, "draft", r);
+    expect(page.goto).toHaveBeenLastCalledWith(finalUrl, expect.anything());
+  });
+
+  it("a doc not in Drafts still lands on the origin (failure path unchanged)", async () => {
+    const page = pageWith({ progress: row("301323") });
+    await confirmDraftResult(page, BASE, "draft", draftResult());
+    expect(page.goto).toHaveBeenLastCalledWith(BASE, expect.anything());
   });
 
   it("a doc In Progress becomes SUBMITTED_NOT_DRAFT (the doc 301323 case)", async () => {

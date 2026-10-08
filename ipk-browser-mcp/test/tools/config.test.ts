@@ -15,4 +15,14 @@ describe("loadConfig baseUrl", () => {
     process.env.IPK_BASE_URL = "https://gw.ip-korea.org/";
     expect(loadConfig().baseUrl).toBe("https://gw.ip-korea.org");
   });
+  it("assumes https for a scheme-less host", () => {
+    process.env.IPK_BASE_URL = "gw.ip-korea.org";
+    expect(loadConfig().baseUrl).toBe("https://gw.ip-korea.org");
+    process.env.IPK_BASE_URL = "gw.ip-korea.org/main.php";
+    expect(loadConfig().baseUrl).toBe("https://gw.ip-korea.org");
+  });
+  it("keeps an explicit http scheme", () => {
+    process.env.IPK_BASE_URL = "http://localhost:8080/";
+    expect(loadConfig().baseUrl).toBe("http://localhost:8080");
+  });
 });

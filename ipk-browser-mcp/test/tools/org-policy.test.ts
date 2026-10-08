@@ -124,7 +124,7 @@ const cardRD = (over: Record<string, unknown> = {}) => ({
   ...over,
 });
 
-describe("TEAM_ACTIVITY_FIELDS_REQUIRED", () => {
+describe("TEAM_ACTIVITY_FIELDS_REQUIRED (every meeting account)", () => {
   it("passes a complete team-activity card_expense_rd", () => {
     expect(checkOrgPolicy(cardRD())).toEqual([]);
   });
@@ -141,7 +141,20 @@ describe("TEAM_ACTIVITY_FIELDS_REQUIRED", () => {
   it("falls back to purpose when purpose_minutes is absent", () => {
     expect(checkOrgPolicy(cardRD({ purpose_minutes: undefined, purpose: "Quarterly team lunch" }))).toEqual([]);
   });
-  it("does not fire for a non-team-activity account code on card_expense_rd", () => {
+  it("requires the same fields for other meeting accounts, not just 412107", () => {
+    for (const code of ["420421", "410310", "412104"]) {
+      const v = checkOrgPolicy(cardRD({ item_account_code: code, venue: undefined, meeting_begin: undefined, meeting_end: undefined, participants: undefined, purpose_minutes: undefined }));
+      expect(v.map((x) => x.rule)).toEqual(["TEAM_ACTIVITY_FIELDS_REQUIRED"]);
+      expect(v[0].fields).toEqual(["venue", "meeting_begin", "meeting_end", "participants", "purpose_minutes"]);
+      expect(v[0].message).toMatch(new RegExp(`Meeting account ${code}`));
+    }
+    expect(checkOrgPolicy(cardRD({ item_account_code: "420421" }))).toEqual([]);
+  });
+  it("label fallback covers meeting labels other than Team Activities", () => {
+    const v = checkOrgPolicy(cardRD({ item_account_code: undefined, account_code_label: "Meeting Expenses", participants: undefined }));
+    expect(v[0].fields).toEqual(["participants"]);
+  });
+  it("does not fire for a non-meeting account code on card_expense_rd", () => {
     expect(
       checkOrgPolicy({
         form_type: "card_expense_rd",

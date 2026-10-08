@@ -20,7 +20,7 @@ vi.mock("../../src/internal/primitives/attachment.js", () => ({
 
 import { handleIpkSubmitForm, installCardErStubs, runCheckFormRequest } from "../../src/tools/ipk-submit.js";
 import { checkOrgPolicy } from "../../src/policy/org-policy.js";
-import { normalizeCardSubject, isPreviewBlockedRequest, summarizeCapturedForm, isMeetingAccount } from "../../src/forms/card-er.js";
+import { normalizeCardSubject, isPreviewBlockedRequest, summarizeCapturedForm, isMeetingAccount, budgetPopupRefusals } from "../../src/forms/card-er.js";
 
 // ── pure helpers ───────────────────────────────────────────────────
 
@@ -108,7 +108,7 @@ const okRun = (): Run => ({
   pageError: null,
 });
 
-function makeHarness(run: Run) {
+function makeHarness(run: Run, waitForPopup: () => Promise<any> = async () => { throw new Error("Timeout 25000ms exceeded"); }) {
   const stubInstalls: boolean[] = [];
   const evaluated: string[] = [];
   const frame: any = {
@@ -127,7 +127,7 @@ function makeHarness(run: Run) {
       return undefined;
     }),
   };
-  const ctx = { route: vi.fn(async () => undefined), unroute: vi.fn(async () => undefined) };
+  const ctx = { route: vi.fn(async () => undefined), unroute: vi.fn(async () => undefined), on: vi.fn(), off: vi.fn() };
   const page: any = {
     frame: vi.fn(() => frame),
     mainFrame: vi.fn(() => frame),
@@ -140,9 +140,12 @@ function makeHarness(run: Run) {
     unroute: vi.fn(async () => undefined),
     context: vi.fn(() => ctx),
     screenshot: vi.fn(async () => Buffer.from("")),
+    viewportSize: vi.fn(() => ({ width: 1280, height: 800 })),
+    setViewportSize: vi.fn(async () => undefined),
     once: vi.fn(),
     on: vi.fn(),
     off: vi.fn(),
+    waitForEvent: vi.fn(waitForPopup),
   };
   const session: any = {
     isLoggedIn: () => true,
@@ -178,6 +181,23 @@ const params = (over: Record<string, unknown> = {}) => ({
 
 const parse = (r: any) => JSON.parse(r.content[0].text);
 
+/** A budget_check_er popup: body text, and dialogs it raises while loading. */
+function makePopup(body = "Budget check", dialogsOnLoad: string[] = []) {
+  const handlers: Record<string, ((x: any) => void)[]> = {};
+  const pop: any = {
+    dismissed: [] as string[],
+    on: vi.fn((ev: string, fn: (x: any) => void) => { (handlers[ev] ??= []).push(fn); }),
+    fire(ev: string, message: string) {
+      for (const fn of handlers[ev] ?? []) fn({ message: () => message, dismiss: async () => { pop.dismissed.push(message); } });
+    },
+    waitForLoadState: vi.fn(async () => { for (const m of dialogsOnLoad) pop.fire("dialog", m); }),
+    waitForTimeout: vi.fn(async () => undefined),
+    evaluate: vi.fn(async (fn: any) => (typeof fn === "function" ? body : undefined)),
+    close: vi.fn(async () => undefined),
+  };
+  return pop;
+}
+
 describe("card_expense_rd with draft_only=true is a no-save preview", () => {
   beforeEach(() => vi.clearAllMocks());
 
@@ -212,6 +232,25 @@ describe("card_expense_rd with draft_only=true is a no-save preview", () => {
     expect(h.ctx.route).toHaveBeenCalledWith("**/*", expect.any(Function));
     expect(h.page.unroute).toHaveBeenCalledWith("**/*", expect.any(Function));
     expect(h.ctx.unroute).toHaveBeenCalledWith("**/*", expect.any(Function));
+  });
+
+  it("unloads the form to about:blank after the screenshot and before lifting the cut", async () => {
+    const h = makeHarness(okRun());
+    await handleIpkSubmitForm(h.session, h.config, params());
+    const blank = h.page.goto.mock.invocationCallOrder[h.page.goto.mock.calls.findIndex((c: any[]) => c[0] === "about:blank")];
+    expect(blank).toBeGreaterThan(h.page.screenshot.mock.invocationCallOrder[0]);
+    expect(blank).toBeLessThan(h.page.unroute.mock.invocationCallOrder[0]);
+    expect(blank).toBeLessThan(h.ctx.unroute.mock.invocationCallOrder[0]);
+  });
+
+  it("a route registration that throws still unroutes what was registered", async () => {
+    const h = makeHarness(okRun());
+    h.ctx.route.mockRejectedValueOnce(new Error("context closed"));
+    await handleIpkSubmitForm(h.session, h.config, params()).catch(() => null);
+    expect(h.page.route).toHaveBeenCalled();
+    expect(h.page.unroute).toHaveBeenCalledWith("**/*", expect.any(Function));
+    expect(h.ctx.unroute).not.toHaveBeenCalled();
+    expect(h.evaluated).not.toContain("runCheckFormRequest");
   });
 
   it("the route handler aborts writes and lets reads through", async () => {
@@ -265,10 +304,83 @@ describe("card_expense_rd submit path goes through Check_Form_Request", () => {
     expect(h.stubInstalls).toEqual([false]);
     expect(h.evaluated).toContain("runCheckFormRequest");
     expect(h.page.route).not.toHaveBeenCalled();
-    // the popup listener is removed so a late budget_check popup is never filed
-    const listener = h.page.once.mock.calls.find((c: any[]) => c[0] === "popup")?.[1];
-    expect(listener).toBeTypeOf("function");
-    expect(h.page.off).toHaveBeenCalledWith("popup", listener);
+    // no free-standing popup listener; the context dialog watcher is removed
+    expect(h.page.once).not.toHaveBeenCalled();
+    expect(h.page.on).not.toHaveBeenCalledWith("popup", expect.anything());
+    expect(h.page.waitForEvent).toHaveBeenCalledWith("popup", expect.objectContaining({ timeout: 25000 }));
+    const watcher = h.ctx.on.mock.calls.find((c: any[]) => c[0] === "page")?.[1];
+    expect(watcher).toBeTypeOf("function");
+    expect(h.ctx.off).toHaveBeenCalledWith("page", watcher);
+  });
+
+  it("a popup that arrives after the tool returned is never filed", async () => {
+    let deliver: (p: any) => void = () => {};
+    const late = new Promise<any>((resolve) => { deliver = resolve; });
+    const run = { ...okRun(), alerts: ["Please insert meeting time"], pressed: null, submits: [] };
+    const h = makeHarness(run, () => late);
+    const out = parse(await handleIpkSubmitForm(h.session, h.config, params({ draft_only: false, confirm_submit: true })));
+    expect(out.code).toBe("SUBMIT_REJECTED");
+    const pop = makePopup();
+    deliver(pop);
+    await new Promise((r) => setTimeout(r, 20));
+    expect(pop.evaluate).not.toHaveBeenCalledWith("submit_form()");
+    expect(pop.waitForLoadState).not.toHaveBeenCalled();
+  });
+
+  it("a popup wait that times out files nothing", async () => {
+    const h = makeHarness(okRun());
+    const out = parse(await handleIpkSubmitForm(h.session, h.config, params({ draft_only: false, confirm_submit: true })));
+    expect(out.error).toBe(false);
+    expect(out.data.success).toBe(false);
+    expect(out.data.message).toMatch(/never filed the form/);
+    expect(h.ctx.off).toHaveBeenCalledWith("page", expect.any(Function));
+  });
+
+  it("a clean budget check popup gets submit_form()", async () => {
+    const pop = makePopup("Budget check\nRemaining: 1,000,000");
+    const h = makeHarness(okRun(), async () => pop);
+    const out = parse(await handleIpkSubmitForm(h.session, h.config, params({ draft_only: false, confirm_submit: true })));
+    expect(pop.on).toHaveBeenCalledWith("dialog", expect.any(Function));
+    expect(pop.evaluate).toHaveBeenCalledWith("submit_form()");
+    expect(pop.close).not.toHaveBeenCalled();
+    expect(out.code).not.toBe("BUDGET_CHECK_REFUSED");
+  });
+
+  it("'not enough budget' in the popup is refused: no submit_form(), popup closed, message returned", async () => {
+    const pop = makePopup("Budget check\nThere is not enough budget for this item.\n[ Close ]");
+    const h = makeHarness(okRun(), async () => pop);
+    const out = parse(await handleIpkSubmitForm(h.session, h.config, params({ draft_only: false, confirm_submit: true })));
+    expect(out.error).toBe(true);
+    expect(out.code).toBe("BUDGET_CHECK_REFUSED");
+    expect(out.budget_check_messages).toEqual(["There is not enough budget for this item."]);
+    expect(pop.evaluate).not.toHaveBeenCalledWith("submit_form()");
+    expect(pop.close).toHaveBeenCalled();
+  });
+
+  it("a native dialog on the popup is refused, dismissed, and its message returned", async () => {
+    const pop = makePopup("Budget check", ["Budget code is closed."]);
+    const h = makeHarness(okRun(), async () => pop);
+    const out = parse(await handleIpkSubmitForm(h.session, h.config, params({ draft_only: false, confirm_submit: true })));
+    expect(out.code).toBe("BUDGET_CHECK_REFUSED");
+    expect(out.budget_check_messages).toEqual(["Budget code is closed."]);
+    expect(pop.dismissed).toEqual(["Budget code is closed."]);
+    expect(pop.evaluate).not.toHaveBeenCalledWith("submit_form()");
+    expect(pop.close).toHaveBeenCalled();
+  });
+
+  it("the context page watcher catches dialogs on a page before the popup event resolves", async () => {
+    const pop = makePopup("Budget check");
+    const h = makeHarness(okRun(), async () => {
+      // the context sees the page first; the dialog fires before waitForEvent resolves
+      const watcher = h.ctx.on.mock.calls.find((c: any[]) => c[0] === "page")![1];
+      watcher(pop);
+      pop.fire("dialog", "Early alert");
+      return pop;
+    });
+    const out = parse(await handleIpkSubmitForm(h.session, h.config, params({ draft_only: false, confirm_submit: true })));
+    expect(out.code).toBe("BUDGET_CHECK_REFUSED");
+    expect(out.budget_check_messages).toEqual(["Early alert"]);
+    expect(pop.evaluate).not.toHaveBeenCalledWith("submit_form()");
   });
 
   it("never posts form1 by hand", async () => {
@@ -388,6 +500,18 @@ describe("installCardErStubs + runCheckFormRequest (fake page globals)", () => {
     const run = runCheckFormRequest();
     expect(run.pageError).toMatch(/Check_Form_Request/);
     expect(run.submits).toEqual([]);
+  });
+});
+
+describe("budgetPopupRefusals", () => {
+  it("finds the live 'not enough budget' wording and its variants", () => {
+    expect(budgetPopupRefusals("Budget check\nNot enough budget.\nClose")).toEqual(["Not enough budget."]);
+    expect(budgetPopupRefusals("Insufficient budget for NN2606-0001")).toEqual(["Insufficient budget for NN2606-0001"]);
+    expect(budgetPopupRefusals("The amount exceeds the budget")).toHaveLength(1);
+  });
+  it("passes a normal budget check page", () => {
+    expect(budgetPopupRefusals("Budget check\nBudget: 1,000,000\nRemaining: 500,000\n[ Submit ]")).toEqual([]);
+    expect(budgetPopupRefusals("")).toEqual([]);
   });
 });
 
