@@ -22036,6 +22036,21 @@ function summarizeCapturedForm(entries) {
   }
   return out;
 }
+var MEETING_ACCOUNT_CODES = /* @__PURE__ */ new Set([
+  "420420",
+  "410307",
+  "410310",
+  "420450",
+  "420451",
+  "412104",
+  "420421",
+  "412106",
+  "420422",
+  "412107"
+]);
+function isMeetingAccount(code) {
+  return MEETING_ACCOUNT_CODES.has(String(code ?? ""));
+}
 
 // src/browser/draft-guard.ts
 function listHasDoc(html, docId) {
@@ -23717,6 +23732,25 @@ async function submitCardExpenseRD(page, frame, _sessionManager, config3, params
       message: "card_expense_rd: provide item_account_code (e.g. '410318') or account_code_label (e.g. 'IT Software'). Use ipk_inspect_form or ./pr_account_sel.php to list valid codes for the budget."
     });
   }
+  const filedAccount = await frame.evaluate(() => {
+    const el = document.getElementsByName("account_code[]")[1];
+    return el ? el.value : "";
+  });
+  if (isMeetingAccount(filedAccount)) {
+    await frame.evaluate(() => {
+      for (const n of ["item_name[]", "item_desc[]"]) {
+        const el = document.getElementsByName(n)[1];
+        if (el) {
+          el.value = "";
+          el.style.display = "none";
+        }
+      }
+      for (const n of ["er_tr1", "er_tr2", "er_tr3", "er_tr4", "er_tr5", "er_tr6", "er_tr7", "er_tr8"]) {
+        const row = document.getElementsByName(n)[0];
+        if (row) row.style.display = "";
+      }
+    });
+  }
   const filePaths = Array.isArray(params.attachment_paths) ? params.attachment_paths : params.attachment_path ? [params.attachment_path] : [];
   if (filePaths.length === 0) {
     return textResult({
@@ -23943,7 +23977,13 @@ async function previewCardExpenseRD(page, frame, config3, ctx) {
     try {
       fs5.mkdirSync(config3.screenshotDir, { recursive: true, mode: 448 });
       const file = path3.join(config3.screenshotDir, `card-er-preview-${(/* @__PURE__ */ new Date()).toISOString().replace(/[:.]/g, "-")}.png`);
-      await page.screenshot({ path: file, fullPage: true });
+      const vp = page.viewportSize();
+      try {
+        if (vp) await page.setViewportSize({ width: vp.width, height: 4e3 });
+        await page.screenshot({ path: file, fullPage: true });
+      } finally {
+        if (vp) await page.setViewportSize(vp);
+      }
       screenshot = file;
     } catch {
     }
