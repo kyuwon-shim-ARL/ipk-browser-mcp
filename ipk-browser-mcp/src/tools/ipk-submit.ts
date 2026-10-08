@@ -1916,10 +1916,13 @@ async function submitCardExpenseRD(
     };
   });
   if (!prefilled.budget_code) {
+    const frameUrl = typeof frame.url === "function" ? frame.url() : "";
+    const frames = page.frames().map((f: any) => `${f.name() || "-"}=${f.url()}`);
     return textResult({
       error: true,
       code: "FORM_NOT_LOADED",
       message: "AppFrm-021 mker form did not prefill. Check trseq/appr_no values.",
+      diagnostics: { frameUrl, frames, prefilled },
     });
   }
 

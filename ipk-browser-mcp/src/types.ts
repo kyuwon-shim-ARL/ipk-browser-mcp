@@ -242,7 +242,10 @@ export function loadConfig(): Config {
     process.env.TZ = "Asia/Seoul";
   }
   return {
-    baseUrl: env("IPK_BASE_URL", "https://gw.ip-korea.org"),
+    // Origin only: every caller appends a path ("/Document/..."). IPK_BASE_URL is commonly
+    // set to ".../main.php", which turned those into ".../main.php/Document/..." - the server
+    // answers that with the frameset, so the card ER form never loaded.
+    baseUrl: new URL(env("IPK_BASE_URL", "https://gw.ip-korea.org")).origin,
     username: env("IPK_USERNAME"),
     password: env("IPK_PASSWORD"),
     headless: env("BROWSER_HEADLESS") !== "false",
