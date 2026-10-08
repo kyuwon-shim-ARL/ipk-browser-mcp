@@ -21228,7 +21228,7 @@ var FORM_CODES = {
   leave: "AppFrm-073",
   expense: "AppFrm-020",
   // Fixed: was AppFrm-021 (incorrect form code)
-  working: "AppFrm-027",
+  working: "AppFrm-074",
   travel: "AppFrm-076",
   travel_request: "AppFrm-023",
   budget_transfer: "AppFrm-039",
@@ -22129,6 +22129,76 @@ function checkTravelRequestParams(p) {
   return out;
 }
 
+// src/forms/working.ts
+function parseDate(date3) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date3)) return null;
+  const d = /* @__PURE__ */ new Date(`${date3}T00:00:00Z`);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+function isoWeekKey(date3) {
+  const d = parseDate(date3);
+  if (!d) return `invalid:${date3}`;
+  const t = new Date(d.getTime());
+  const dayNum = (t.getUTCDay() + 6) % 7;
+  t.setUTCDate(t.getUTCDate() - dayNum + 3);
+  const firstThursday = new Date(Date.UTC(t.getUTCFullYear(), 0, 4));
+  const firstDayNum = (firstThursday.getUTCDay() + 6) % 7;
+  firstThursday.setUTCDate(firstThursday.getUTCDate() - firstDayNum + 3);
+  const week = 1 + Math.round((t.getTime() - firstThursday.getTime()) / (7 * 864e5));
+  return `${t.getUTCFullYear()}-W${String(week).padStart(2, "0")}`;
+}
+function isWeekend(date3) {
+  const d = parseDate(date3);
+  if (!d) return false;
+  const day = d.getUTCDay();
+  return day === 0 || day === 6;
+}
+function checkWorkingRows(rows) {
+  const violations = [];
+  const warnings = [];
+  if (!rows || rows.length === 0) {
+    violations.push({ code: "MISSING_ROWS", message: "At least one {date, hours} row is required.", fields: ["rows"] });
+    return { violations, warnings };
+  }
+  const weekTotals = /* @__PURE__ */ new Map();
+  rows.forEach((row, i) => {
+    const field = `rows[${i}]`;
+    if (!Number.isInteger(row.hours) || row.hours < 1 || row.hours > 12) {
+      violations.push({
+        code: "HOURS_OUT_OF_RANGE",
+        message: `${field}: hours must be a whole number from 1 to 12 (the form's working_time[] select only offers 01:00-12:00) - got ${row.hours}.`,
+        fields: [field]
+      });
+    }
+    const d = parseDate(row.date);
+    if (!d) {
+      violations.push({ code: "INVALID_DATE", message: `${field}: date '${row.date}' is not a valid YYYY-MM-DD date.`, fields: [field] });
+      return;
+    }
+    if (!isWeekend(row.date)) {
+      warnings.push({
+        code: "WEEKDAY_DATE",
+        message: `${field}: ${row.date} is a weekday. This form is for weekend/holiday work - if it's a public holiday that's fine, but there is no holiday calendar here to confirm it.`,
+        fields: [field]
+      });
+    }
+    if (Number.isFinite(row.hours)) {
+      const key = isoWeekKey(row.date);
+      weekTotals.set(key, (weekTotals.get(key) ?? 0) + row.hours);
+    }
+  });
+  for (const [week, total] of weekTotals) {
+    if (total > 12) {
+      violations.push({
+        code: "WEEKLY_CAP_EXCEEDED",
+        message: `Total working hours for ISO week ${week} is ${total}, over the department's 12-hour/week cap.`,
+        fields: ["rows"]
+      });
+    }
+  }
+  return { violations, warnings };
+}
+
 // src/precedent/travel-request-doc.ts
 var SLOT_LABELS = [
   [/^Transport$/, "transport"],
@@ -22590,7 +22660,7 @@ import { fileURLToPath } from "url";
 var FORM_REGISTRY = {
   leave: { appFrmCode: "AppFrm-073", templateFile: "AppFrm-073.json", status: "implemented", description: "\uD734\uAC00\uC2E0\uCCAD" },
   expense: { appFrmCode: "AppFrm-020", templateFile: "AppFrm-020.json", status: "implemented", description: "\uACBD\uBE44\uC9C0\uCD9C" },
-  working: { appFrmCode: "AppFrm-027", templateFile: "AppFrm-027.json", status: "implemented", description: "\uD734\uC77C\uADFC\uBB34" },
+  working: { appFrmCode: "AppFrm-074", templateFile: "AppFrm-074.json", status: "implemented", description: "\uD734\uC77C\uADFC\uBB34" },
   travel: { appFrmCode: "AppFrm-076", templateFile: "AppFrm-076.json", status: "implemented", description: "\uCD9C\uC7A5\uBCF4\uACE0" },
   travel_request: { appFrmCode: "AppFrm-023", templateFile: "AppFrm-023.json", status: "implemented", description: "\uCD9C\uC7A5\uC2E0\uCCAD" },
   budget_transfer: { appFrmCode: "AppFrm-039", templateFile: "AppFrm-039.json", status: "implemented", description: "\uC608\uC0B0\uC804\uC6A9(R&D)" },
@@ -23069,12 +23139,15 @@ var ipkSubmitFormSchema = {
   venue: external_exports.string().optional().describe("Venue for expense. English only - Korean text is refused before the form is touched."),
   budget_code: external_exports.string().optional().describe("Budget code (required for expense/working/travel_request forms). Use the active fiscal year code, e.g. NN2612-0001. For card_expense_rd, selects the budget pot in the mker form's own select (it otherwise defaults to the first option); refused if not among the options offered."),
   attachment_path: external_exports.string().optional().describe("Path to attachment file"),
-  // Working fields
-  work_date: external_exports.string().optional().describe("Work date (YYYY-MM-DD)"),
-  work_place: external_exports.string().optional().describe("Work place. English only - Korean text is refused before the form is touched."),
-  reason: external_exports.string().optional().describe("Reason for work/travel. English only - Korean text is refused before the form is touched."),
+  // Working fields (AppFrm-074, weekend/holiday overtime)
+  work_date: external_exports.string().optional().describe("expense: date of purchase (YYYY-MM-DD)"),
+  rows: external_exports.array(external_exports.object({
+    date: external_exports.string().describe("YYYY-MM-DD"),
+    hours: external_exports.number().describe("1-12, whole hours")
+  })).optional().describe("working: one row per weekend/holiday work date, {date, hours}. hours must be 1-12 (the form's own select only offers whole hours in that range); total hours per ISO week must not exceed 12. A weekday date warns (no public-holiday calendar to tell a holiday weekday from an ordinary one) but is not refused."),
+  reason: external_exports.string().optional().describe("Reason for work/travel. English only - Korean text is refused before the form is touched. working: min 20 chars."),
   details: external_exports.string().optional().describe("Details. English only - Korean text is refused before the form is touched."),
-  budget_type: external_exports.string().optional().describe("Budget type: 01=General, 02=R&D"),
+  budget_type: external_exports.string().optional().describe("expense/travel_request budget type: 01=General, 02=R&D"),
   // Travel fields
   title: external_exports.string().optional().describe("Travel title. English only - Korean text is refused before the form is touched."),
   organization: external_exports.string().optional().describe("Organization/institution"),
@@ -23147,7 +23220,7 @@ var ipkSubmitFormSchema = {
   reimbursement: external_exports.number().optional().describe("Amount to reimburse traveler (KRW)"),
   corp_card_no: external_exports.string().optional().describe("Corporate card number (XXXX-XXXX-XXXX-XXXX)")
 };
-var ipkSubmitFormDescription = "Submit a form in IPK groupware. All 11 form types are fully implemented: leave (\uD734\uAC00/AppFrm-073), expense (\uACBD\uBE44/AppFrm-020), working (\uD734\uC77C\uADFC\uBB34/AppFrm-027), travel (\uCD9C\uC7A5\uBCF4\uACE0/AppFrm-076), travel_request (\uCD9C\uC7A5\uC2E0\uCCAD/AppFrm-023), budget_transfer (\uC608\uC0B0\uC804\uC6A9/AppFrm-039), card_expense (\uCE74\uB4DC\uACBD\uBE44/AppFrm-020), travel_settlement (\uCD9C\uC7A5\uC815\uC0B0/AppFrm-054), leave_return (\uB300\uCCB4\uD734\uC77C\uBC18\uB0A9/AppFrm-028), seminar (\uC138\uBBF8\uB098\uACF5\uC2DC/AppFrm-043), overseas_travel (\uD574\uC678\uCD9C\uC7A5/AppFrm-026). By default saves as draft (draft_only=true); a draft is reported only after it is found in the Drafts list (SUBMITTED_NOT_DRAFT / DRAFT_NOT_CONFIRMED otherwise). card_expense_rd has no draft (the groupware files it for approval): draft_only=true returns a no-save preview with the form's own validation. NO_FINAL_SUBMIT: draft_only=false is refused unless confirm_submit=true AND env IPK_ALLOW_SUBMIT=1. Even unlocked, for every form type except card_expense_rd this tool still only saves a draft and returns a no_final_submit note with the click path - it never performs the final approval-request click itself. For budget_transfer, use transfer_type='rnd' (AppFrm-039, default) or transfer_type='general' (AppFrm-053). Required params per form_type: leave: leave_type, start_date, end_date; expense: budget_code, amount, reason; working: budget_code, work_date, reason; travel: title, destination, start_date, end_date; travel_request: budget_code, title, destination, start_date, end_date; budget_transfer: from_account, to_account, amount, reason; card_expense: budget_code, amount, reason; travel_settlement: budget_code, title, destination, start_date, end_date; leave_return: leave_type, start_date, end_date; seminar: title, date, location; overseas_travel: budget_code, title, destination, start_date, end_date, purpose. Error recovery: NOT_LOGGED_IN\u2192call ipk_login first; FRAME_NOT_FOUND\u2192call ipk_navigate first; CONFIRMATION_REQUIRED\u2192set draft_only=true for safe draft mode; POLICY_VIOLATION/FORM_RULE_VIOLATION\u2192read the violations list, nothing was written; SESSION_EXPIRING\u2192re-login.";
+var ipkSubmitFormDescription = "Submit a form in IPK groupware. All 11 form types are fully implemented: leave (\uD734\uAC00/AppFrm-073), expense (\uACBD\uBE44/AppFrm-020), working (\uD734\uC77C\uADFC\uBB34/AppFrm-074), travel (\uCD9C\uC7A5\uBCF4\uACE0/AppFrm-076), travel_request (\uCD9C\uC7A5\uC2E0\uCCAD/AppFrm-023), budget_transfer (\uC608\uC0B0\uC804\uC6A9/AppFrm-039), card_expense (\uCE74\uB4DC\uACBD\uBE44/AppFrm-020), travel_settlement (\uCD9C\uC7A5\uC815\uC0B0/AppFrm-054), leave_return (\uB300\uCCB4\uD734\uC77C\uBC18\uB0A9/AppFrm-028), seminar (\uC138\uBBF8\uB098\uACF5\uC2DC/AppFrm-043), overseas_travel (\uD574\uC678\uCD9C\uC7A5/AppFrm-026). By default saves as draft (draft_only=true); a draft is reported only after it is found in the Drafts list (SUBMITTED_NOT_DRAFT / DRAFT_NOT_CONFIRMED otherwise). card_expense_rd has no draft (the groupware files it for approval): draft_only=true returns a no-save preview with the form's own validation. NO_FINAL_SUBMIT: draft_only=false is refused unless confirm_submit=true AND env IPK_ALLOW_SUBMIT=1. Even unlocked, for every form type except card_expense_rd this tool still only saves a draft and returns a no_final_submit note with the click path - it never performs the final approval-request click itself. For budget_transfer, use transfer_type='rnd' (AppFrm-039, default) or transfer_type='general' (AppFrm-053). Required params per form_type: leave: leave_type, start_date, end_date; expense: budget_code, amount, reason; working: reason, rows ([{date, hours}], weekend/holiday overtime - AppFrm-074, hours 1-12, weekly total <=12); travel: title, destination, start_date, end_date; travel_request: budget_code, title, destination, start_date, end_date; budget_transfer: from_account, to_account, amount, reason; card_expense: budget_code, amount, reason; travel_settlement: budget_code, title, destination, start_date, end_date; leave_return: leave_type, start_date, end_date; seminar: title, date, location; overseas_travel: budget_code, title, destination, start_date, end_date, purpose. Error recovery: NOT_LOGGED_IN\u2192call ipk_login first; FRAME_NOT_FOUND\u2192call ipk_navigate first; CONFIRMATION_REQUIRED\u2192set draft_only=true for safe draft mode; POLICY_VIOLATION/FORM_RULE_VIOLATION\u2192read the violations list, nothing was written; SESSION_EXPIRING\u2192re-login.";
 function attachmentSlotRefusal(params) {
   const v = checkAttachmentSlot(params);
   if (v.length === 0) return null;
@@ -23589,40 +23662,72 @@ async function submitExpense(page, frame, sessionManager2, config3, params, mode
     }
   });
 }
+async function fillWorkingRow(frame, idx, date3, hhmm) {
+  return frame.evaluate(
+    (args) => {
+      const dateEl = document.getElementsByName("app_dt[]")[args.idx];
+      const selEl = document.getElementsByName("working_time[]")[args.idx];
+      if (!dateEl || !selEl) return "no_element";
+      const options = Array.from(selEl.options).map((o) => o.value);
+      if (!options.includes(args.hhmm)) return "no_option";
+      dateEl.value = args.date;
+      selEl.value = args.hhmm;
+      selEl.dispatchEvent(new Event("change", { bubbles: true }));
+      return "ok";
+    },
+    { idx, date: date3, hhmm }
+  );
+}
 async function submitWorking(page, frame, sessionManager2, config3, params, mode) {
   const userInfo = sessionManager2.getUserInfo();
-  const workDate = params.work_date || params.start_date || nextSaturday();
-  const reason = params.reason || "experiment";
-  const workPlace = params.work_place || "IPK";
-  const details = params.details || reason;
-  const budgetType = params.budget_type || "02";
-  const budgetCode = params.budget_code;
-  if (!budgetCode) {
-    return textResult({ error: true, code: "MISSING_BUDGET_CODE", message: "budget_code is required. Provide the active fiscal year budget code (e.g. NN2612-0001)." });
+  const reason = params.reason;
+  if (!reason) {
+    return textResult({
+      error: true,
+      code: "MISSING_REASON",
+      message: "reason is required: one English sentence describing the work (min 20 chars; see rules/public/AppFrm-074.json)."
+    });
   }
-  const subject = `Application for Working on ${workDate}, ${userInfo.name}`;
-  const fieldSchema = {
-    subject: { type: "text", dom_name: "subject", required: true },
-    budget_type: { type: "select", dom_name: "budget_type", required: true }
-  };
-  await genericFillForm(frame, fieldSchema, { subject, budget_type: budgetType });
-  await page.waitForTimeout(1e3);
-  const remainingSchema = {
-    budget_code: { type: "select", dom_name: "budget_code", required: true },
-    desired_date: { type: "date", dom_name: "desired_date", required: true },
-    wroking_place: { type: "text", dom_name: "wroking_place", required: true },
-    // Note: typo is in the original groupware
-    sub_subject: { type: "text", dom_name: "sub_subject", required: true },
-    contents1: { type: "textarea", dom_name: "contents1", required: false }
-  };
-  await genericFillForm(frame, remainingSchema, {
-    budget_code: budgetCode,
-    desired_date: workDate,
-    wroking_place: workPlace,
-    sub_subject: reason,
-    contents1: details
-  });
-  await page.waitForTimeout(1e3);
+  const rawRows = params.rows;
+  const rows = (Array.isArray(rawRows) ? rawRows : []).map((r) => ({
+    date: String(r?.date ?? ""),
+    hours: Number(r?.hours)
+  }));
+  const { violations, warnings } = checkWorkingRows(rows);
+  if (violations.length > 0) {
+    for (const v of violations) audit({ action: "refusal", code: v.code, field: v.fields.join(","), ok: false });
+    return textResult({
+      error: true,
+      code: "FORM_RULE_VIOLATION",
+      message: violations.map((v) => `[${v.code}] ${v.message}`).join("\n"),
+      violations
+    });
+  }
+  const subject = params.subject || `Application for Working on ${rows[0].date}, ${userInfo.name}`;
+  await genericFillForm(
+    frame,
+    { subject: { type: "text", dom_name: "subject", required: true }, reason: { type: "text", dom_name: "reason", required: true } },
+    { subject, reason }
+  );
+  for (let i = 1; i < rows.length; i++) {
+    await frame.locator(".btnAdd").click();
+    await page.waitForTimeout(300);
+  }
+  for (let i = 0; i < rows.length; i++) {
+    const hhmm = `${String(rows[i].hours).padStart(2, "0")}:00`;
+    const status = await fillWorkingRow(frame, i, rows[i].date, hhmm);
+    if (status !== "ok") {
+      audit({ action: "refusal", code: `WORKING_ROW_${status.toUpperCase()}`, field: `rows[${i}]`, ok: false });
+      return textResult({
+        error: true,
+        code: "WORKING_ROW_NOT_SET",
+        message: `rows[${i}]: could not set app_dt[]/working_time[] (${status}). The form may not have offered '${hhmm}' as an option, or the row wasn't added.`
+      });
+    }
+  }
+  await page.waitForTimeout(500);
+  const workingRuleRefusal = await checkFieldRulesAgainstForm(frame, "working");
+  if (workingRuleRefusal) return textResult({ error: true, ...workingRuleRefusal });
   await setFormMode(frame, mode);
   const docId = await submitForm(page, frame, "check_form_request");
   return textResult({
@@ -23633,6 +23738,7 @@ async function submitWorking(page, frame, sessionManager2, config3, params, mode
       mode,
       formType: "working",
       subject,
+      warning: warnings.length > 0 ? warnings.map((w) => w.message).join(" | ") : void 0,
       message: docId ? `Working request ${mode === "draft" ? "draft saved" : "submitted"} (doc_id: ${docId})` : `Working request ${mode} completed`
     }
   });
@@ -24908,12 +25014,6 @@ function todayStr() {
 function tomorrow() {
   const d = /* @__PURE__ */ new Date();
   d.setDate(d.getDate() + 1);
-  return d.toISOString().split("T")[0];
-}
-function nextSaturday() {
-  const d = /* @__PURE__ */ new Date();
-  const daysUntilSat = (6 - d.getDay()) % 7 || 7;
-  d.setDate(d.getDate() + daysUntilSat);
   return d.toISOString().split("T")[0];
 }
 

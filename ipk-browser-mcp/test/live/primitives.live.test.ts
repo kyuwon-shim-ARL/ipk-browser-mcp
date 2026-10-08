@@ -38,14 +38,13 @@ describe.skipIf(!LIVE)("Live primitive smoke tests (IPK_LIVE=1 required)", () =>
     expect(parsed.data?.docId || parsed.data?.doc_id).toBeTruthy();
   });
 
-  // Round-trip test 2: Working draft
+  // Round-trip test 2: Working draft (AppFrm-074 - B0: was wrongly AppFrm-027)
   it("working: create draft → doc_id returned", async () => {
     const { handleIpkSubmitForm } = await import("../../src/tools/ipk-submit.js");
     const result = await handleIpkSubmitForm(sessionManager, config, {
       form_type: "working",
-      work_date: "2099-12-31",
-      reason: "Live smoke test — please delete",
-      budget_code: process.env.IPK_TEST_BUDGET_CODE || "NN2612-0001",
+      reason: "Live smoke test - please delete - automated weekend work verification",
+      rows: [{ date: "2099-12-31", hours: 2 }], // 2099-12-31 is a Thursday; this test only checks the draft round-trip, not the weekend/holiday warning
       draft_only: true,
     });
     const parsed = JSON.parse(result.content[0].text);

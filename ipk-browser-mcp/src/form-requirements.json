@@ -207,60 +207,44 @@
   },
 
   "working": {
-    "_form_code": "AppFrm-027",
-    "_description": "휴일근무신청서",
-    "_raw_context_hint": "최소 입력 예시: '이번주 토요일 실험', '3/22 데이터 분석'",
-    "_raw_context_what_ai_needs": "날짜, 무슨 업무인지 한줄.",
+    "_form_code": "AppFrm-074",
+    "_description": "주말/휴일 근무 신청서 (Application for Working on Weekends & Holidays) - B0 fix: was wrongly pointed at AppFrm-027 (a Facility/Construction Work Request, unrelated form)",
+    "_raw_context_hint": "최소 입력 예시: '이번주 토요일 2시간 실험', '3/22 3시간 데이터 분석'",
+    "_raw_context_what_ai_needs": "날짜(들), 시간(들), 무슨 업무인지 영문 한 문장.",
 
     "strict_fields": {
-      "desired_date": {
-        "html_name": "desired_date",
-        "description": "근무 희망일",
-        "format": "YYYY-MM-DD",
-        "why_strict": "날짜 오류 시 근태 기록 불일치.",
-        "validation": ["must_be_valid_date"],
+      "rows": {
+        "html_name": "app_dt[] / working_time[]",
+        "description": "근무 날짜·시간 행 (반복 가능, '[ + ]' 버튼으로 행 추가)",
+        "format": "[{date: YYYY-MM-DD, hours: 1-12}]",
+        "why_strict": "시간은 서식이 제공하는 01:00~12:00 옵션 중 하나여야 하고, 같은 ISO 주의 합계가 12시간을 넘으면 그룹 규정 위반.",
+        "validation": ["hours 1-12 per row", "weekly total <= 12", "date should be a weekend/holiday (warn if weekday)"],
         "inference_allowed": true,
         "inference_note": "'이번주 토요일' → 계산 가능"
+      },
+      "reason": {
+        "html_name": "reason",
+        "description": "근무 이유 (영문, 20자 이상)",
+        "why_strict": "ENGLISH_ONLY 정책 + 최소 길이(빈 값/플레이스홀더 방지)"
       }
     },
 
     "inferable_fields": {
-      "sub_subject": {
-        "html_name": "sub_subject",
-        "description": "업무 내용 (간략)",
-        "inference_context": "'실험' → 'experiment', '데이터 분석' → 'data analysis'"
-      },
-      "details": {
-        "html_name": "contents1",
-        "description": "상세 업무 내용",
-        "inference_context": "sub_subject를 좀 더 풀어쓰기. 미지정 시 sub_subject 복사."
-      },
-      "budget_type": {
-        "html_name": "budget_type",
-        "description": "예산유형",
-        "default": "02",
-        "inference_context": "대부분 R&D(02). 일반 업무면 01."
-      },
-      "budget_code": {
-        "html_name": "budget_code",
-        "description": "예산코드",
-        "default": "NN2512-0001",
-        "inference_context": "최근 사용 코드 기본 적용."
-      },
-      "wroking_place": {
-        "html_name": "wroking_place",
-        "description": "근무 장소 (note: HTML field name typo 'wroking' is intentional — matches original groupware)",
-        "default": "IPK",
-        "inference_context": "보통 IPK. '집에서' → home, '학교' → university"
+      "subject": {
+        "html_name": "subject",
+        "description": "제목 - 기본값 'Application for Working on {첫 행 날짜}, {이름}'",
+        "inference_context": "지정하지 않으면 첫 행 날짜와 사용자 이름으로 생성"
       }
     },
 
     "config_fields": {},
 
     "auto_fields": {
-      "subject": "Application for Working on {날짜}, {이름}",
-      "division": "시스템 (소속)",
-      "requester": "시스템 (신청자)"
+      "user_nm": "시스템 (이름, 화면 표시용 - 입력 필드 아님)",
+      "division_nm": "시스템 (소속)",
+      "group_nm": "시스템 (팀)",
+      "grade_nm": "시스템 (직급)",
+      "position_nm": "시스템 (직책)"
     },
 
     "attachment_rules": { "required": false }

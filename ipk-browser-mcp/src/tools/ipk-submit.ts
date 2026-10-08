@@ -8,6 +8,7 @@ import { checkOrgPolicy } from "../policy/org-policy.js";
 import { checkFieldRules, FieldRulesUnavailable, type Rulebook } from "../policy/field-rules.js";
 import { loadProfile, type Profile } from "../profile/profile.js";
 import { checkTravelRequestParams, checkAttachmentSlot, slotSelector, parseCardNo, type TravelDocSlot } from "../forms/travel-request.js";
+import { checkWorkingRows, type WorkingRow } from "../forms/working.js";
 import { fetchTravelRequestPrecedents, readDraftText, diffAgainstPractice, type PrecedentSet } from "../precedent/fetch.js";
 import { parseTravelRequestDoc } from "../precedent/travel-request-doc.js";
 import { normalizeCardSubject, isPreviewBlockedRequest, summarizeCapturedForm, isMeetingAccount, budgetPopupRefusals } from "../forms/card-er.js";
@@ -734,12 +735,14 @@ export const ipkSubmitFormSchema = {
   budget_code: z.string().optional().describe("Budget code (required for expense/working/travel_request forms). Use the active fiscal year code, e.g. NN2612-0001. For card_expense_rd, selects the budget pot in the mker form's own select (it otherwise defaults to the first option); refused if not among the options offered."),
   attachment_path: z.string().optional().describe("Path to attachment file"),
 
-  // Working fields
-  work_date: z.string().optional().describe("Work date (YYYY-MM-DD)"),
-  work_place: z.string().optional().describe("Work place. English only - Korean text is refused before the form is touched."),
-  reason: z.string().optional().describe("Reason for work/travel. English only - Korean text is refused before the form is touched."),
+  // Working fields (AppFrm-074, weekend/holiday overtime)
+  work_date: z.string().optional().describe("expense: date of purchase (YYYY-MM-DD)"),
+  rows: z.array(z.object({
+    date: z.string().describe("YYYY-MM-DD"), hours: z.number().describe("1-12, whole hours"),
+  })).optional().describe("working: one row per weekend/holiday work date, {date, hours}. hours must be 1-12 (the form's own select only offers whole hours in that range); total hours per ISO week must not exceed 12. A weekday date warns (no public-holiday calendar to tell a holiday weekday from an ordinary one) but is not refused."),
+  reason: z.string().optional().describe("Reason for work/travel. English only - Korean text is refused before the form is touched. working: min 20 chars."),
   details: z.string().optional().describe("Details. English only - Korean text is refused before the form is touched."),
-  budget_type: z.string().optional().describe("Budget type: 01=General, 02=R&D"),
+  budget_type: z.string().optional().describe("expense/travel_request budget type: 01=General, 02=R&D"),
 
   // Travel fields
   title: z.string().optional().describe("Travel title. English only - Korean text is refused before the form is touched."),
@@ -819,7 +822,7 @@ export const ipkSubmitFormSchema = {
 
 export const ipkSubmitFormDescription =
   "Submit a form in IPK groupware. All 11 form types are fully implemented: " +
-  "leave (휴가/AppFrm-073), expense (경비/AppFrm-020), working (휴일근무/AppFrm-027), travel (출장보고/AppFrm-076), travel_request (출장신청/AppFrm-023), budget_transfer (예산전용/AppFrm-039), " +
+  "leave (휴가/AppFrm-073), expense (경비/AppFrm-020), working (휴일근무/AppFrm-074), travel (출장보고/AppFrm-076), travel_request (출장신청/AppFrm-023), budget_transfer (예산전용/AppFrm-039), " +
   "card_expense (카드경비/AppFrm-020), travel_settlement (출장정산/AppFrm-054), leave_return (대체휴일반납/AppFrm-028), seminar (세미나공시/AppFrm-043), overseas_travel (해외출장/AppFrm-026). " +
   "By default saves as draft (draft_only=true); a draft is reported only after it is found in the Drafts list (SUBMITTED_NOT_DRAFT / DRAFT_NOT_CONFIRMED otherwise). " +
   "card_expense_rd has no draft (the groupware files it for approval): draft_only=true returns a no-save preview with the form's own validation. " +
@@ -830,7 +833,7 @@ export const ipkSubmitFormDescription =
   "Required params per form_type: " +
   "leave: leave_type, start_date, end_date; " +
   "expense: budget_code, amount, reason; " +
-  "working: budget_code, work_date, reason; " +
+  "working: reason, rows ([{date, hours}], weekend/holiday overtime - AppFrm-074, hours 1-12, weekly total <=12); " +
   "travel: title, destination, start_date, end_date; " +
   "travel_request: budget_code, title, destination, start_date, end_date; " +
   "budget_transfer: from_account, to_account, amount, reason; " +
@@ -1477,6 +1480,40 @@ async function submitExpense(
   });
 }
 
+/**
+ * Fill one app_dt[]/working_time[] row by index. The row must already exist in the DOM
+ * (see the ".btnAdd" click loop in submitWorking - a fresh AppFrm-074 write page starts
+ * with exactly one row). Never fabricates a working_time[] option: the select only
+ * offers 01:00-12:00 (confirmed live, 2026-10-09), and this checks the value is among
+ * them before writing it, the same guarantee selectExistingOption gives a single select.
+ */
+async function fillWorkingRow(frame: any, idx: number, date: string, hhmm: string): Promise<"ok" | "no_element" | "no_option"> {
+  return frame.evaluate(
+    (args: { idx: number; date: string; hhmm: string }) => {
+      const dateEl = document.getElementsByName("app_dt[]")[args.idx] as HTMLInputElement | undefined;
+      const selEl = document.getElementsByName("working_time[]")[args.idx] as HTMLSelectElement | undefined;
+      if (!dateEl || !selEl) return "no_element";
+      const options = Array.from(selEl.options).map((o) => o.value);
+      if (!options.includes(args.hhmm)) return "no_option";
+      dateEl.value = args.date;
+      selEl.value = args.hhmm;
+      selEl.dispatchEvent(new Event("change", { bubbles: true }));
+      return "ok";
+    },
+    { idx, date, hhmm }
+  );
+}
+
+/**
+ * AppFrm-074 "Application for Working on Weekends & Holidays" - B0 fix: the MCP
+ * `working` type used to target AppFrm-027, a Facility/Construction Work Request with
+ * no relation to overtime (budget_code/work_place/holi_start are 027's fields, not
+ * 074's - every draft this ever produced was the wrong document). 074 has its own real
+ * [Draft] button (confirmed live: `document.all('mode1').value='draft';
+ * Check_Form_Request('insert')`, the same pattern every other normal form here uses),
+ * so this goes through the generic setFormMode/submitForm path, not the
+ * card_expense_rd no-draft-state path.
+ */
 async function submitWorking(
   page: any,
   frame: any,
@@ -1486,46 +1523,67 @@ async function submitWorking(
   mode: "draft" | "request"
 ) {
   const userInfo = sessionManager.getUserInfo()!;
-  const workDate = params.work_date || params.start_date || nextSaturday();
-  const reason = params.reason || "experiment";
-  const workPlace = params.work_place || "IPK";
-  const details = params.details || reason;
-  const budgetType = params.budget_type || "02"; // IPK is R&D institute, "02" (R&D) is correct default
-  const budgetCode = params.budget_code;
-  if (!budgetCode) {
-    return textResult({ error: true, code: "MISSING_BUDGET_CODE", message: "budget_code is required. Provide the active fiscal year budget code (e.g. NN2612-0001)." });
+  const reason = params.reason;
+  if (!reason) {
+    return textResult({
+      error: true,
+      code: "MISSING_REASON",
+      message: "reason is required: one English sentence describing the work (min 20 chars; see rules/public/AppFrm-074.json).",
+    });
   }
 
-  const subject = `Application for Working on ${workDate}, ${userInfo.name}`;
+  const rawRows: unknown = params.rows;
+  const rows: WorkingRow[] = (Array.isArray(rawRows) ? rawRows : []).map((r: any) => ({
+    date: String(r?.date ?? ""),
+    hours: Number(r?.hours),
+  }));
 
-  // Use genericFillForm — budget_type must be set first with a wait for cascade
-  const fieldSchema: Record<string, TemplateFieldSchema> = {
-    subject: { type: "text", dom_name: "subject", required: true },
-    budget_type: { type: "select", dom_name: "budget_type", required: true },
-  };
+  const { violations, warnings } = checkWorkingRows(rows);
+  if (violations.length > 0) {
+    for (const v of violations) audit({ action: "refusal", code: v.code, field: v.fields.join(","), ok: false });
+    return textResult({
+      error: true,
+      code: "FORM_RULE_VIOLATION",
+      message: violations.map((v) => `[${v.code}] ${v.message}`).join("\n"),
+      violations,
+    });
+  }
 
-  // Step 1: Set subject and budget_type first (triggers cascade)
-  await genericFillForm(frame, fieldSchema, { subject, budget_type: budgetType });
-  await page.waitForTimeout(1000);
+  const subject = params.subject || `Application for Working on ${rows[0].date}, ${userInfo.name}`;
 
-  // Step 2: Set remaining fields after cascade settles
-  const remainingSchema: Record<string, TemplateFieldSchema> = {
-    budget_code: { type: "select", dom_name: "budget_code", required: true },
-    desired_date: { type: "date", dom_name: "desired_date", required: true },
-    wroking_place: { type: "text", dom_name: "wroking_place", required: true }, // Note: typo is in the original groupware
-    sub_subject: { type: "text", dom_name: "sub_subject", required: true },
-    contents1: { type: "textarea", dom_name: "contents1", required: false },
-  };
+  await genericFillForm(
+    frame,
+    { subject: { type: "text", dom_name: "subject", required: true }, reason: { type: "text", dom_name: "reason", required: true } },
+    { subject, reason }
+  );
 
-  await genericFillForm(frame, remainingSchema, {
-    budget_code: budgetCode,
-    desired_date: workDate,
-    wroking_place: workPlace,
-    sub_subject: reason,
-    contents1: details,
-  });
+  // A fresh write page starts with exactly one app_dt[]/working_time[] row; click the
+  // form's own "[ + ]" add-row control (class btnAdd) for each row beyond the first -
+  // never build the row ourselves, the form owns that markup.
+  for (let i = 1; i < rows.length; i++) {
+    await frame.locator(".btnAdd").click();
+    await page.waitForTimeout(300);
+  }
 
-  await page.waitForTimeout(1000);
+  for (let i = 0; i < rows.length; i++) {
+    const hhmm = `${String(rows[i].hours).padStart(2, "0")}:00`;
+    const status = await fillWorkingRow(frame, i, rows[i].date, hhmm);
+    if (status !== "ok") {
+      audit({ action: "refusal", code: `WORKING_ROW_${status.toUpperCase()}`, field: `rows[${i}]`, ok: false });
+      return textResult({
+        error: true,
+        code: "WORKING_ROW_NOT_SET",
+        message: `rows[${i}]: could not set app_dt[]/working_time[] (${status}). The form may not have offered '${hhmm}' as an option, or the row wasn't added.`,
+      });
+    }
+  }
+
+  await page.waitForTimeout(500);
+
+  // Per-field rulebook (rules/public/AppFrm-074.json) against the form's own fields,
+  // right before the save click - see checkFieldRulesAgainstForm.
+  const workingRuleRefusal = await checkFieldRulesAgainstForm(frame, "working");
+  if (workingRuleRefusal) return textResult({ error: true, ...workingRuleRefusal });
 
   await setFormMode(frame, mode);
   const docId = await submitForm(page, frame, "check_form_request");
@@ -1538,6 +1596,7 @@ async function submitWorking(
       mode,
       formType: "working",
       subject,
+      warning: warnings.length > 0 ? warnings.map((w) => w.message).join(" | ") : undefined,
       message: docId
         ? `Working request ${mode === "draft" ? "draft saved" : "submitted"} (doc_id: ${docId})`
         : `Working request ${mode} completed`,
@@ -3297,10 +3356,4 @@ function tomorrow(): string {
   return d.toISOString().split("T")[0];
 }
 
-function nextSaturday(): string {
-  const d = new Date();
-  const daysUntilSat = (6 - d.getDay()) % 7 || 7;
-  d.setDate(d.getDate() + daysUntilSat);
-  return d.toISOString().split("T")[0];
-}
 

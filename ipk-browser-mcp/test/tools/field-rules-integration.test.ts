@@ -242,3 +242,41 @@ describe("leave (AppFrm-073) against the real public rulebook", () => {
     expect(r.blocks.some((v) => v.field === "approver")).toBe(true);
   });
 });
+
+describe("working (AppFrm-074) against the real public rulebook - minimal good draft (B0: was wrongly AppFrm-027)", () => {
+  const book = loadReal("AppFrm-074");
+
+  it("subject/reason/app_dt[]/working_time[] pass; the self identity fields (no mapping yet) only warn, 0 blocks", () => {
+    const profile = emptyProfile({ name: "Tester", dept: "ARL" });
+    const draft = {
+      subject: "Application for Working on 2026-11-07, Richard Roe",
+      reason: "Nextflow based urban metagenomic surveillance pipeline optimization",
+      "app_dt[]": ["2026-11-07"],
+      "working_time[]": ["02:00"],
+      user_nm: "Richard Roe",
+      user_emp_no: "00000",
+      division_nm: "Research Division",
+      group_nm: "ARL",
+      grade_nm: "Post-Doc",
+      position_nm: "Post-Doc",
+      "view:Approval (2) Team Head (R)": "Jane Doe",
+    };
+    const r = checkFieldRules(book, draft, { profile, unknownFields: "warn" });
+    expect(r.blocks).toEqual([]);
+    expect(r.warnings.map((v) => v.field).sort()).toEqual([
+      // user_emp_no is in the rulebook's `ignore` list (not a self field it tracks) -
+      // see rules/public/AppFrm-074.json.
+      "user_nm", "division_nm", "group_nm", "grade_nm", "position_nm", "view:Approval (2) Team Head (R)",
+    ].sort());
+  });
+
+  it("an out-of-range working_time[] value blocks (not among the form's own 01:00-12:00 options)", () => {
+    const r = checkFieldRules(book, {
+      subject: "Application for Working on 2026-11-07, Richard Roe",
+      reason: "Nextflow based urban metagenomic surveillance pipeline optimization",
+      "app_dt[]": ["2026-11-07"],
+      "working_time[]": ["13:00"],
+    }, { unknownFields: "warn" });
+    expect(r.blocks.some((v) => v.field === "working_time[]")).toBe(true);
+  });
+});

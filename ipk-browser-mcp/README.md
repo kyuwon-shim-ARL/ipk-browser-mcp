@@ -67,7 +67,7 @@ npm run build
 |-----------|-------------|-------------|-------------------|
 | `leave` | AppFrm-073 | 휴가신청 | `leave_type`, `start_date`, `end_date` |
 | `expense` | AppFrm-020 | 경비지출 | `budget_code`, `amount`, `reason` |
-| `working` | AppFrm-027 | 휴일근무 | `budget_code`, `work_date`, `reason` |
+| `working` | AppFrm-074 | 휴일근무 | `reason`, `rows` ([{date, hours}]) |
 | `travel` | AppFrm-076 | 출장보고 | `title`, `destination`, `start_date`, `end_date` |
 | `travel_request` | AppFrm-023 | 출장신청 | `budget_code`, `title`, `destination`, `start_date`, `end_date` |
 | `budget_transfer` | AppFrm-039 | 예산전용 | `from_account`, `to_account`, `amount`, `reason` |
@@ -91,7 +91,7 @@ npm run build
 
 ### Working on Holiday
 ```json
-{ "form_type": "working", "budget_code": "NN2612-0001", "work_date": "2026-04-12", "reason": "experiment" }
+{ "form_type": "working", "reason": "Nextflow based urban metagenomic surveillance pipeline optimization", "rows": [{ "date": "2026-04-12", "hours": 2 }] }
 ```
 
 ### Travel Report

@@ -127,7 +127,7 @@ class IPKGroupware:
     FORM_CODES = {
         "leave": "AppFrm-073",
         "expense": "AppFrm-021",
-        "working": "AppFrm-027",
+        "working": "AppFrm-027",  # wrong form (Facility/Construction, not overtime) - submit_work_request is disabled, see B0 note there
         "travel": "AppFrm-076",
     }
 
@@ -682,7 +682,23 @@ class IPKGroupware:
         budget_code: str = None,  # None이면 이력 기반 추론
         draft_only: bool = True,
     ) -> bool:
-        """휴일근무 신청 (이력 기반 추론 지원)"""
+        """휴일근무 신청 (이력 기반 추론 지원)
+
+        DISABLED (B0, 2026-10-09): this method targets AppFrm-027, which is a
+        Facility/Construction Work Request, not the holiday/weekend overtime form - the
+        real one is AppFrm-074 ("Application for Working on Weekends & Holidays"). This
+        method's field names (budget_type/budget_code/desired_date/wroking_place/
+        sub_subject/contents1) belong entirely to 027 and do not exist on 074, so a
+        field-by-field port isn't a small fix. The TS/MCP side has already been
+        repointed (src/tools/ipk-submit.ts submitWorking, FORM_CODES, form-registry) -
+        use ipk_submit_form(form_type="working") there instead of this method.
+        """
+        raise NotImplementedError(
+            "submit_work_request is disabled: it targets AppFrm-027 (Facility/"
+            "Construction Work Request), not the holiday/weekend overtime form "
+            "(AppFrm-074). Use the MCP tool instead: ipk_submit_form with "
+            "form_type='working' (see src/tools/ipk-submit.ts)."
+        )
         if not self.logged_in:
             raise RuntimeError("로그인이 필요합니다")
 

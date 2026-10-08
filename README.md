@@ -75,7 +75,7 @@ Then restart Claude Code so the new MCP server bundle and hook are loaded.
 |------|-------------|-------------|
 | Leave Request | `leave` | AppFrm-073 |
 | R&D Expense Report | `expense` | AppFrm-021 |
-| Holiday Work Request | `working` | AppFrm-027 |
+| Holiday/Weekend Work Application | `working` | AppFrm-074 |
 | Travel Request | `travel_request` | AppFrm-023 |
 | Travel Report | `travel` | AppFrm-076 |
 | Budget Transfer (R&D) | `budget_transfer` | AppFrm-039 |

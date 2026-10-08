@@ -22,7 +22,7 @@ export type FrameLike = Pick<
 export type FormType =
   | "leave"           // 휴가 (AppFrm-073)
   | "expense"         // 경비 (AppFrm-020, legacy mapping was 021 — see form-registry.ts)
-  | "working"         // 휴일근무 (AppFrm-027)
+  | "working"         // 휴일근무 (AppFrm-074)
   | "travel"          // 출장보고 (AppFrm-076)
   | "travel_request"  // 출장신청 (AppFrm-023)
   | "budget_transfer" // 예산전용 (AppFrm-039/053)
@@ -69,7 +69,7 @@ export const ATTACHMENT_REQUIRED_LEAVES: Record<string, string> = {
 export const FORM_CODES: Record<FormType, string> = {
   leave: "AppFrm-073",
   expense: "AppFrm-020",       // Fixed: was AppFrm-021 (incorrect form code)
-  working: "AppFrm-027",
+  working: "AppFrm-074",
   travel: "AppFrm-076",
   travel_request: "AppFrm-023",
   budget_transfer: "AppFrm-039",
