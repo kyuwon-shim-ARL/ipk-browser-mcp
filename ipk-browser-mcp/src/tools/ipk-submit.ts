@@ -8,6 +8,7 @@ import { checkOrgPolicy } from "../policy/org-policy.js";
 import { checkTravelRequestParams, checkAttachmentSlot, slotSelector, parseCardNo, type TravelDocSlot } from "../forms/travel-request.js";
 import { fetchTravelRequestPrecedents, readDraftText, diffAgainstPractice, type PrecedentSet } from "../precedent/fetch.js";
 import { parseTravelRequestDoc } from "../precedent/travel-request-doc.js";
+import { normalizeCardSubject, isPreviewBlockedRequest, summarizeCapturedForm } from "../forms/card-er.js";
 import {
   navigateToForm,
   setFieldValue,
@@ -1877,8 +1878,16 @@ async function submitCardExpense(
  *  - account_code (or account_code_label for auto-pick from Sel_account popup)
  *  - At least 1 attachment_path (or attachment_paths array for multi-file)
  *
- * Submit flow uses the 2-stage budget_check_er popup orchestration via the
- * er-submit-helper module.
+ * There is no draft for this form: the server ignores mode1='draft' on mker=Y and files
+ * the document for approval (doc 301323, 2026-10-08). So:
+ *  - mode "draft" (the default) is a PREVIEW. The form is filled, then the page's own
+ *    Check_Form_Request('insert') runs with the network cut (route abort) and submit /
+ *    window.open stubbed, so its validation and normalisation run and nothing is sent.
+ *  - mode "request" (draft_only=false + confirm_submit=true) also goes through
+ *    Check_Form_Request, with only the $.confirm "Evidence Check" modal answered "Next",
+ *    then the budget_check_er popup's submit_form() files it.
+ * Neither path posts form1 by hand: that skipped the form's validation and its "[Card] "
+ * subject prefix.
  *
  * Discovered: 2026-04-07 session probe (Google Cloud + RunPod ER drafts).
  */
@@ -1894,10 +1903,10 @@ async function submitCardExpenseRD(
   const accountHelper = await import("../internal/primitives/account.js");
   const attachmentHelper = await import("../internal/primitives/attachment.js");
 
-  // Subject naming convention (kept short — form auto-prefixes "[Card]"):
-  // Just "{Vendor} ({service}) usage fee" — no lab tag, no date, no amount.
-  // Card receipt date and KRW amount are already shown in the form body.
-  const subject = params.subject || params.title || "Card receipt";
+  // Subject naming convention: "[Card] {Vendor} ({service}) usage fee" — no lab tag, no
+  // date, no amount (the receipt date and KRW amount are in the form body). The prefix is
+  // set here, and any second one the page adds is collapsed before filing.
+  const subject = normalizeCardSubject(params.subject || params.title || "Card receipt");
   const itemName = params.item_name || "Card receipt item";
   const sellerEn = params.seller_en || params.item_vendor || "";
   const pReason = params.p_reason || params.reason || "";
@@ -2096,51 +2105,82 @@ async function submitCardExpenseRD(
   const attachResult = await attachmentHelper.attachFiles(frame, filePaths);
   await page.waitForTimeout(500);
 
-  // Step 4: 2-stage submit (Evidence Check modal bypass + budget_check_er popup orchestration)
-  // We replicate the logic of er-submit-helper.submitERWithBudgetCheck but operate on the
-  // iframe (frame) since the form lives inside main_menu.
-  const popupHolder: { docId: string | null; finalUrl: string } = {
-    docId: null,
-    finalUrl: "",
-  };
-  const popupPromise = new Promise<void>((resolve) => {
-    page.once("popup", async (pop: any) => {
-      try {
-        await pop.waitForLoadState("networkidle", { timeout: 15000 });
-        await pop.waitForTimeout(1500);
-        await pop.evaluate("submit_form()").catch(() => {});
-        await pop.waitForTimeout(4000);
-      } catch {
-        // ignore
-      } finally {
-        resolve();
-      }
-    });
-    setTimeout(resolve, 25000);
-  });
+  // Step 4: run the form's own Check_Form_Request('insert') - preview or submit.
+  // Mark _sessionManager as intentionally unused for tsc strictness
+  void _sessionManager;
+  if (mode === "draft") {
+    return await previewCardExpenseRD(page, frame, config, { subject, effectiveBudgetCode, attachResult, fileCount: filePaths.length });
+  }
 
+  // Submit: only the $.confirm "Evidence Check" modal is answered (Next); submit and
+  // window.open are the page's own, so the budget_check_er popup opens as it does by hand.
+  const popupState = { aborted: false, submitted: false, subjectFixed: null as string | null };
+  let resolvePopup: () => void = () => {};
+  const popupDone = new Promise<void>((resolve) => { resolvePopup = resolve; });
+  const onPopup = async (pop: any) => {
+    try {
+      await pop.waitForLoadState("networkidle", { timeout: 15000 });
+      await pop.waitForTimeout(1500);
+      if (popupState.aborted) return;
+      // The page prefixes "[Card] " itself when pay_kind is 01; keep exactly one.
+      const current: string = await frame.evaluate(() => {
+        const el = document.querySelector('input[name="subject"]') as HTMLInputElement | null;
+        return el ? el.value : "";
+      });
+      const fixed = normalizeCardSubject(current);
+      if (fixed !== current) {
+        await frame.evaluate((v: string) => {
+          const el = document.querySelector('input[name="subject"]') as HTMLInputElement | null;
+          if (el) el.value = v;
+        }, fixed);
+        popupState.subjectFixed = fixed;
+      }
+      await pop.evaluate("submit_form()");
+      popupState.submitted = true;
+      await pop.waitForTimeout(4000);
+    } catch {
+      // popup may close mid-evaluation; the parent navigation is what matters
+    } finally {
+      resolvePopup();
+    }
+  };
+  page.once("popup", onPopup);
+  const popupTimer = setTimeout(resolvePopup, 25000);
+
+  let run: CardErRun;
   try {
-    await frame.evaluate((mode1Val: string) => {
-      const w = window as any;
-      const doc = document as any;
-      if (doc.all && doc.all("mode1")) doc.all("mode1").value = mode1Val;
-      const form = doc.form1 as HTMLFormElement;
-      if (!form) throw new Error("form1 not found");
-      (form as any).mode.value = "insert";
-      w.open("", "budget_frame", "width=940,height=400,top=100,left=100,resizable=0,scrollbars=1");
-      (form as any).target = "budget_frame";
-      (form as any).action = "./budget_check_er.php";
-      form.submit();
-    }, mode === "draft" ? "draft" : "");
+    await frame.evaluate(installCardErStubs, false);
+    run = await frame.evaluate(runCheckFormRequest);
   } catch (err) {
+    popupState.aborted = true;
+    page.off("popup", onPopup);
+    clearTimeout(popupTimer);
     return textResult({
       error: true,
       code: "SUBMIT_FAILED",
       message: `card_expense_rd submit trigger failed: ${err instanceof Error ? err.message : String(err)}`,
     });
   }
+  // No confirmation pressed means the flow is not the one this was built against; nothing
+  // is filed rather than letting an unanswered page decide.
+  if (run.alerts.length > 0 || run.pageError || !run.pressed) {
+    popupState.aborted = true;
+    page.off("popup", onPopup);
+    clearTimeout(popupTimer);
+    return textResult({
+      error: true,
+      code: run.alerts.length > 0 ? "SUBMIT_REJECTED" : "SUBMIT_FAILED",
+      message: run.alerts.length > 0
+        ? `The form refused the submission: ${run.alerts.join(" / ")}. Nothing was filed.`
+        : `The form did not reach its Evidence Check confirmation${run.pageError ? ` (${run.pageError})` : ""}. Nothing was filed.`,
+      validation_alerts: run.alerts,
+      native_confirms: run.confirms,
+      confirm_buttons: run.confirmButtons,
+    });
+  }
 
-  await popupPromise;
+  await popupDone;
+  clearTimeout(popupTimer);
   await page.waitForTimeout(2000);
   try {
     await page.waitForLoadState("networkidle", { timeout: 10000 });
@@ -2149,28 +2189,229 @@ async function submitCardExpenseRD(
   }
 
   // After submit, frame URL should be document_view.php?doc_id=...
-  popupHolder.finalUrl = (frame.url && typeof frame.url === "function") ? frame.url() : page.url();
-  const m = popupHolder.finalUrl.match(/[?&]doc_id=(\d+)/);
-  popupHolder.docId = m ? m[1] : null;
-
-  // Mark _sessionManager as intentionally unused for tsc strictness
-  void _sessionManager;
+  const finalUrl: string = (frame.url && typeof frame.url === "function") ? frame.url() : page.url();
+  const m = finalUrl.match(/[?&]doc_id=(\d+)/);
+  const docId = m ? m[1] : null;
+  audit({ action: "submit", docId, mode: "request", confirmed: true, ok: docId !== null });
 
   return textResult({
     error: false,
     data: {
-      success: popupHolder.docId !== null,
-      docId: popupHolder.docId,
+      success: docId !== null,
+      docId,
       mode,
       formType: "card_expense_rd",
-      subject,
+      subject: popupState.subjectFixed ?? subject,
       budgetCode: effectiveBudgetCode,
-      finalUrl: popupHolder.finalUrl,
+      finalUrl,
       attached: attachResult.attached,
       skipped_attachments: attachResult.skipped,
-      message: popupHolder.docId
-        ? `R&D card ER ${mode === "draft" ? "draft saved" : "submitted"} (doc_id: ${popupHolder.docId}, ${attachResult.attached}/${filePaths.length} files attached)`
-        : `R&D card ER ${mode} attempted but doc_id not found in URL — check Drafts manually`,
+      message: docId
+        ? `R&D card ER submitted for approval (doc_id: ${docId}, ${attachResult.attached}/${filePaths.length} files attached)`
+        : popupState.submitted
+          ? "R&D card ER submit attempted but doc_id not found in URL — check In Progress manually"
+          : "R&D card ER: the budget check popup never filed the form — check In Progress before retrying",
+    },
+  });
+}
+
+/** What one Check_Form_Request run left behind (window.__ipkCardEr in the form frame). */
+export interface CardErRun {
+  alerts: string[];
+  confirms: string[];
+  confirmButtons: string[];
+  pressed: string | null;
+  opens: string[];
+  submits: { action: string; target: string; entries: [string, string][] }[];
+  jquery: boolean;
+  pageError: string | null;
+}
+
+/**
+ * Runs in the form frame. Stubs what Check_Form_Request reaches for:
+ *  - alert / $.alert: recorded (they are the form's validation messages);
+ *  - $.confirm (jquery-confirm, the "Evidence Check" modal): presses "Next", or the first
+ *    button that is not Cancel/Close/No. Handles `buttons: { Next: fn }`,
+ *    `buttons: { x: { text, action } }` and the older `{ confirm: fn }` shape;
+ *  - preview only: window.open returns a dummy, form submit/requestSubmit and the submit
+ *    event are captured as FormData instead of sent, and a native confirm() is answered
+ *    true (recorded; nothing can be sent anyway).
+ * The stubs stay in place after the run, so a late page-side submit is still captured.
+ */
+export function installCardErStubs(preview: boolean): void {
+  const w = window as any;
+  const st: any = { alerts: [], confirms: [], confirmButtons: [], pressed: null, opens: [], submits: [], jquery: false, pageError: null };
+  w.__ipkCardEr = st;
+  const text = (v: any) => String(v ?? "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+  w.alert = (msg: any) => { st.alerts.push(text(msg)); };
+  const nativeConfirm = w.confirm;
+  w.confirm = (msg: any) => {
+    st.confirms.push(text(msg));
+    return preview ? true : nativeConfirm.call(w, msg);
+  };
+  const dummy = { close: () => {}, open: () => {}, toggle: () => {}, setContent: () => {}, setTitle: () => {}, $content: null, buttons: {} };
+  const pressConfirm = (opts: any) => {
+    const buttons = opts && typeof opts === "object" ? opts.buttons : null;
+    if (buttons && typeof buttons === "object") {
+      const entries = Object.keys(buttons).map((k) => {
+        const v = buttons[k];
+        const label = v && typeof v === "object" && v.text ? text(v.text) : k;
+        const fn = typeof v === "function" ? v : v && typeof v.action === "function" ? v.action : null;
+        return { label, fn };
+      });
+      st.confirmButtons = entries.map((e) => e.label);
+      const pick = entries.find((e) => /^\s*next\s*$/i.test(e.label)) || entries.find((e) => !/cancel|close|^\s*no\s*$/i.test(e.label));
+      if (pick && pick.fn) {
+        st.pressed = pick.label;
+        pick.fn.call(dummy);
+      }
+    } else if (opts && typeof opts.confirm === "function") {
+      st.confirmButtons = [text(opts.confirmButton || "confirm")];
+      st.pressed = st.confirmButtons[0];
+      opts.confirm.call(dummy);
+    }
+    return dummy;
+  };
+  const jqAlert = (opts: any) => {
+    st.alerts.push(text(opts && typeof opts === "object" ? opts.content || opts.title : opts));
+    return dummy;
+  };
+  for (const jq of [w.jQuery, w.$]) {
+    if (jq && (typeof jq === "function" || typeof jq === "object")) {
+      st.jquery = true;
+      jq.confirm = pressConfirm;
+      jq.alert = jqAlert;
+    }
+  }
+  if (!preview) return;
+  w.open = (url: any, name: any) => {
+    st.opens.push(String(name || url || ""));
+    return { closed: false, close: () => {}, focus: () => {}, document: { write: () => {}, close: () => {} }, location: {} };
+  };
+  const capture = function (this: HTMLFormElement) {
+    const entries: [string, string][] = [];
+    new FormData(this).forEach((v, k) => entries.push([k, typeof v === "string" ? v : `file:${(v as File).name}`]));
+    st.submits.push({ action: this.getAttribute("action") || "", target: this.getAttribute("target") || "", entries });
+  };
+  HTMLFormElement.prototype.submit = capture;
+  HTMLFormElement.prototype.requestSubmit = capture as any;
+  const f = (document as any).form1;
+  if (f) {
+    try { f.submit = capture; } catch { /* a control named "submit" shadows it; the prototype covers it */ }
+  }
+  document.addEventListener("submit", (e) => {
+    e.preventDefault();
+    capture.call(e.target as HTMLFormElement);
+  }, true);
+}
+
+/** Runs in the form frame after installCardErStubs: the page's own [ Request ] handler. */
+export function runCheckFormRequest(): CardErRun {
+  const w = window as any;
+  const st = w.__ipkCardEr;
+  try {
+    if (typeof w.Check_Form_Request !== "function") throw new Error("Check_Form_Request is not defined on this page");
+    w.Check_Form_Request("insert");
+  } catch (err) {
+    st.pageError = err instanceof Error ? err.message : String(err);
+  }
+  return JSON.parse(JSON.stringify(st));
+}
+
+/**
+ * The draft_only=true path for card_expense_rd. The form is already filled; this runs its
+ * own validation with nothing able to leave the browser, and reports what it would file.
+ *
+ * Two layers keep it from saving:
+ *  1. Playwright routes (page and context, so a popup is covered too) abort every request
+ *     isPreviewBlockedRequest() flags - any non-GET, and budget_check_er / document_write /
+ *     doc_approve whatever the method - for the whole run.
+ *  2. In the frame, submit and window.open are stubbed to capture (installCardErStubs).
+ */
+async function previewCardExpenseRD(
+  page: any,
+  frame: any,
+  config: Config,
+  ctx: { subject: string; effectiveBudgetCode: string | null; attachResult: { attached: number; skipped: unknown[] }; fileCount: number }
+) {
+  const blocked: string[] = [];
+  const onRoute = (route: any) => {
+    const req = route.request();
+    if (isPreviewBlockedRequest(req.method(), req.url())) {
+      blocked.push(`${req.method()} ${req.url()}`);
+      return route.abort();
+    }
+    return typeof route.fallback === "function" ? route.fallback() : route.continue();
+  };
+  const context = typeof page.context === "function" ? page.context() : null;
+  let run: CardErRun | null = null;
+  let runError: string | null = null;
+  let screenshot: string | null = null;
+
+  await page.route("**/*", onRoute);
+  if (context) await context.route("**/*", onRoute);
+  try {
+    try {
+      await frame.evaluate(installCardErStubs, true);
+      run = await frame.evaluate(runCheckFormRequest);
+      // Let any deferred page-side submit fire while the network is still cut.
+      await page.waitForTimeout(1500);
+      run = await frame.evaluate(() => JSON.parse(JSON.stringify((window as any).__ipkCardEr)));
+    } catch (err) {
+      runError = err instanceof Error ? err.message : String(err);
+    }
+    try {
+      fs.mkdirSync(config.screenshotDir, { recursive: true, mode: 0o700 });
+      const file = path.join(config.screenshotDir, `card-er-preview-${new Date().toISOString().replace(/[:.]/g, "-")}.png`);
+      await page.screenshot({ path: file, fullPage: true });
+      screenshot = file;
+    } catch {
+      // a preview without a screenshot is still a preview
+    }
+  } finally {
+    await page.unroute("**/*", onRoute).catch(() => {});
+    if (context) await context.unroute("**/*", onRoute).catch(() => {});
+  }
+
+  const alerts = run?.alerts ?? [];
+  const submits = run?.submits ?? [];
+  const lastSubmit = submits.length > 0 ? submits[submits.length - 1] : null;
+  const captured = lastSubmit ? summarizeCapturedForm(lastSubmit.entries) : null;
+  const pageError = runError ?? run?.pageError ?? null;
+  const wouldSubmit = alerts.length === 0 && !pageError && submits.length > 0;
+  const capturedSubject = typeof captured?.subject === "string" ? captured.subject : null;
+
+  audit({ action: "refusal", code: "CARD_ER_PREVIEW_ONLY", field: "card_expense_rd", ok: true });
+
+  return textResult({
+    error: false,
+    data: {
+      success: false,
+      saved: false,
+      mode: "preview",
+      formType: "card_expense_rd",
+      docId: null,
+      would_submit: wouldSubmit,
+      validation_alerts: alerts,
+      page_error: pageError,
+      message:
+        "AppFrm-021 card ER cannot be saved as a draft — the groupware submits it for approval. " +
+        "Nothing was saved. Review the preview; the person files it." +
+        (alerts.length > 0 ? ` The form's own validation refused it: ${alerts.join(" / ")}` : "") +
+        (!wouldSubmit && alerts.length === 0 ? ` The form did not reach its submit${pageError ? ` (${pageError})` : ""}.` : ""),
+      subject_filled: ctx.subject,
+      subject_as_form_would_file: capturedSubject,
+      subject_double_prefix: capturedSubject !== null && capturedSubject !== normalizeCardSubject(capturedSubject),
+      budgetCode: ctx.effectiveBudgetCode,
+      captured,
+      captured_action: lastSubmit ? lastSubmit.action : null,
+      confirm: { jquery_found: run?.jquery ?? false, buttons: run?.confirmButtons ?? [], pressed: run?.pressed ?? null },
+      native_confirms: run?.confirms ?? [],
+      blocked_requests: blocked,
+      attached: ctx.attachResult.attached,
+      skipped_attachments: ctx.attachResult.skipped,
+      attachment_note: `${ctx.attachResult.attached}/${ctx.fileCount} files set on the form's file inputs; none were uploaded (uploads happen only when the form is filed).`,
+      screenshot,
     },
   });
 }

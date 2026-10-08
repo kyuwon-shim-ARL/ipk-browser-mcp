@@ -83,11 +83,11 @@
   },
   "submit_flow": {
     "stage_1": "javascript:document.all('mode1').value='draft';Check_Form_Request('insert')",
-    "stage_2_modal": "jQuery-confirm 'Notice! Evidence Check!' — bypass via direct form submit",
+    "stage_2_modal": "jQuery-confirm 'Notice! Evidence Check!' — answered 'Next' by a $.confirm stub; Check_Form_Request itself is never bypassed (its validation and '[Card] ' prefix must run)",
     "stage_3_popup": "POST to ./budget_check_er.php targeting popup 'budget_frame'",
     "stage_4_finalize": "Popup calls submit_form() which retargets parent to ./document_write.php and submits",
-    "success_url_pattern": "document_view.php?doc_id={id}&approve_type=AppFrm-021&type=drafts",
-    "helper": "src/browser/er-submit-helper.ts:submitERWithBudgetCheck"
+    "no_draft": "mker=Y ignores mode1='draft' and files the document for approval (doc 301323, 2026-10-08). draft_only=true is a no-save preview.",
+    "helper": "ipk-browser-mcp/src/tools/ipk-submit.ts:submitCardExpenseRD / previewCardExpenseRD"
   },
   "validation_rules": {
     "min_attachments": 1,
