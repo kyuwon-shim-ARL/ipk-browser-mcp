@@ -27,7 +27,8 @@ ipk-browser-mcp/dist/*.mjs.map
 .history.json
 
 # Claude Code
-.claude/
+.claude/*
+!.claude/settings.json
 
 # IDE
 .idea/
@@ -40,3 +41,6 @@ input/
 .DS_Store
 Thumbs.db
 .gstack/
+
+# Per-field rulebooks hold full corporate card numbers and doc_ids; repo is public
+form_rules/
