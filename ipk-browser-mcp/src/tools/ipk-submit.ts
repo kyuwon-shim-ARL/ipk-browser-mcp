@@ -9,6 +9,7 @@ import { checkTravelRequestParams, checkAttachmentSlot, slotSelector, parseCardN
 import { fetchTravelRequestPrecedents, readDraftText, diffAgainstPractice, type PrecedentSet } from "../precedent/fetch.js";
 import { parseTravelRequestDoc } from "../precedent/travel-request-doc.js";
 import { normalizeCardSubject, isPreviewBlockedRequest, summarizeCapturedForm } from "../forms/card-er.js";
+import { confirmDraftResult } from "../browser/draft-guard.js";
 import {
   navigateToForm,
   setFieldValue,
@@ -708,7 +709,9 @@ export const ipkSubmitFormDescription =
   "Submit a form in IPK groupware. All 11 form types are fully implemented: " +
   "leave (휴가/AppFrm-073), expense (경비/AppFrm-020), working (휴일근무/AppFrm-027), travel (출장보고/AppFrm-076), travel_request (출장신청/AppFrm-023), budget_transfer (예산전용/AppFrm-039), " +
   "card_expense (카드경비/AppFrm-020), travel_settlement (출장정산/AppFrm-054), leave_return (대체휴일반납/AppFrm-028), seminar (세미나공시/AppFrm-043), overseas_travel (해외출장/AppFrm-026). " +
-  "By default saves as draft (draft_only=true). To actually submit for approval, set draft_only=false AND confirm_submit=true. " +
+  "By default saves as draft (draft_only=true); a draft is reported only after it is found in the Drafts list (SUBMITTED_NOT_DRAFT / DRAFT_NOT_CONFIRMED otherwise). " +
+  "card_expense_rd has no draft (the groupware files it for approval): draft_only=true returns a no-save preview with the form's own validation. " +
+  "To actually submit for approval, set draft_only=false AND confirm_submit=true. " +
   "For budget_transfer, use transfer_type='rnd' (AppFrm-039, default) or transfer_type='general' (AppFrm-053). " +
   "Required params per form_type: " +
   "leave: leave_type, start_date, end_date; " +
@@ -958,9 +961,12 @@ export async function handleIpkSubmitForm(
     }
 
     // Dispatch to per-form handler (or generic fallback)
+    // Every draft result is checked against the Drafts list before it may say "draft"
+    // (src/browser/draft-guard.ts): a doc_id in the URL does not say where the document went.
     const handler = FORM_HANDLERS[formType];
     if (handler) {
-      return await handler(page, frame, sessionManager, config, params, mode);
+      const result = await handler(page, frame, sessionManager, config, params, mode);
+      return await confirmDraftResult(page, config.baseUrl, mode, result, config.navTimeoutMs);
     }
 
     // Generic template-driven fallback for any unlisted form type
@@ -968,7 +974,8 @@ export async function handleIpkSubmitForm(
     if (!templateSchema) {
       return textResult({ error: true, code: "UNKNOWN_FORM", message: `Unknown form type: ${formType}` });
     }
-    return await submitGeneric(page, frame, sessionManager, config, params, mode, formType, templateSchema);
+    const result = await submitGeneric(page, frame, sessionManager, config, params, mode, formType, templateSchema);
+    return await confirmDraftResult(page, config.baseUrl, mode, result, config.navTimeoutMs);
 
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
