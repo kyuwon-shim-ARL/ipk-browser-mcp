@@ -42,6 +42,23 @@ describe("ENGLISH_ONLY", () => {
     expect(checkOrgPolicy(travel({ budget_code: "NN2602-0001", bound_code: "19" }))).toEqual([]);
   });
 
+  it("refuses Korean in a card_expense_rd team-activity venue/participants", () => {
+    const v = checkOrgPolicy({
+      form_type: "card_expense_rd",
+      trseq: "1",
+      appr_no: "2",
+      item_account_code: "412107",
+      venue: "ARL 회의실",
+      participants: "장수진, 김철수",
+      meeting_begin: "2026-09-28 09:30",
+      meeting_end: "2026-09-28 11:00",
+      purpose_minutes: "Quarterly lunch",
+      draft_only: true,
+    });
+    expect(v.map((x) => x.rule)).toContain("ENGLISH_ONLY");
+    expect(v.find((x) => x.rule === "ENGLISH_ONLY")!.fields).toEqual(["participants", "venue"]);
+  });
+
   it("containsHangul detects syllables and jamo, not CJK-free strings", () => {
     expect(containsHangul("관내")).toBe(true);
     expect(containsHangul("ㅋㅋ")).toBe(true);
@@ -90,6 +107,48 @@ describe("NO_GENERATED_EVIDENCE", () => {
   it("accepts the person's own file from Downloads or data/attachments", () => {
     expect(checkOrgPolicy(travel({ attachment_path: "/home/u/Downloads/2026_Q3_RAPID_sampling을_위한_국내_출장.pdf" }))).toEqual([]);
     expect(checkOrgPolicy(travel({ attachment_path: "/home/u/projects/ipk-browser-mcp/data/attachments/2609/rapid/x.pdf" }))).toEqual([]);
+  });
+});
+
+const cardRD = (over: Record<string, unknown> = {}) => ({
+  form_type: "card_expense_rd",
+  trseq: "0069AKW950001",
+  appr_no: "21580194",
+  item_account_code: "412107",
+  venue: "ARL 3rd floor meeting room",
+  meeting_begin: "2026-09-28 09:30",
+  meeting_end: "2026-09-28 11:00",
+  participants: "Jang, Kim, Lee",
+  purpose_minutes: "Quarterly team lunch to discuss Q3 results",
+  draft_only: true,
+  ...over,
+});
+
+describe("TEAM_ACTIVITY_FIELDS_REQUIRED", () => {
+  it("passes a complete team-activity card_expense_rd", () => {
+    expect(checkOrgPolicy(cardRD())).toEqual([]);
+  });
+  it("refuses when account 412107 is missing meeting fields", () => {
+    const v = checkOrgPolicy(cardRD({ meeting_begin: undefined, meeting_end: undefined, venue: undefined }));
+    expect(v.map((x) => x.rule)).toEqual(["TEAM_ACTIVITY_FIELDS_REQUIRED"]);
+    expect(v[0].fields).toEqual(["venue", "meeting_begin", "meeting_end"]);
+  });
+  it("falls back to purpose when purpose_minutes is absent", () => {
+    expect(checkOrgPolicy(cardRD({ purpose_minutes: undefined, purpose: "Quarterly team lunch" }))).toEqual([]);
+  });
+  it("does not fire for a non-team-activity account code on card_expense_rd", () => {
+    expect(
+      checkOrgPolicy({
+        form_type: "card_expense_rd",
+        trseq: "1",
+        appr_no: "2",
+        item_account_code: "410318",
+        draft_only: true,
+      })
+    ).toEqual([]);
+  });
+  it("does not fire for other form types", () => {
+    expect(checkOrgPolicy(travel({ item_account_code: "412107" }))).toEqual([]);
   });
 });
 

@@ -73,6 +73,9 @@ const OVERSEAS_IT_VENDORS = /runpod|openai|chatgpt|anthropic|claude|google cloud
 /** Forms whose handler derives VAT as amount/1.1 instead of reading it from a receipt. */
 const VAT_SPLITTING_FORMS = new Set(["expense", "card_expense"]);
 
+/** Account code for Team Activities (RS only) on card_expense_rd (AppFrm-021). */
+const TEAM_ACTIVITY_ACCOUNT_CODE = "412107";
+
 export const ORG_POLICY: PolicyRule[] = [
   {
     id: "ENGLISH_ONLY",
@@ -100,6 +103,33 @@ export const ORG_POLICY: PolicyRule[] = [
         rule: "DRAFT_FIRST",
         fields: ["draft_only", "confirm_submit"],
         message: "To submit for approval, set both draft_only=false AND confirm_submit=true",
+      };
+    },
+  },
+  {
+    id: "TEAM_ACTIVITY_FIELDS_REQUIRED",
+    standard: "A Team Activities (RS only) card ER (account 412107) records venue, meeting time, participants and purpose - the groupware form accepts the row without them, but the account itself requires them.",
+    passes: "When card_expense_rd is filed with item_account_code '412107', venue, meeting_begin, meeting_end, participants and purpose_minutes (or purpose) are all non-empty.",
+    check(params) {
+      if (String(params.form_type) !== "card_expense_rd") return null;
+      if (String(params.item_account_code) !== TEAM_ACTIVITY_ACCOUNT_CODE) return null;
+      const required = {
+        venue: params.venue,
+        meeting_begin: params.meeting_begin,
+        meeting_end: params.meeting_end,
+        participants: params.participants,
+        purpose_minutes: params.purpose_minutes || params.purpose,
+      };
+      const fields = Object.entries(required)
+        .filter(([, v]) => typeof v !== "string" || v.trim() === "")
+        .map(([k]) => k);
+      if (fields.length === 0) return null;
+      return {
+        rule: "TEAM_ACTIVITY_FIELDS_REQUIRED",
+        fields,
+        message:
+          `Team Activities (account 412107) requires ${fields.join(", ")}. Provide venue, meeting_begin, ` +
+          `meeting_end, participants and purpose_minutes (or purpose). Nothing was written to the form.`,
       };
     },
   },

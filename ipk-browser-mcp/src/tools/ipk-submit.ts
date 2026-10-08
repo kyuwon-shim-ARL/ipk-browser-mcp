@@ -617,7 +617,7 @@ export const ipkSubmitFormSchema = {
   amount: z.number().optional().describe("Total amount in KRW"),
   participants: z.string().optional().describe("Participants for meal expense. English only - Korean text is refused before the form is touched."),
   venue: z.string().optional().describe("Venue for expense. English only - Korean text is refused before the form is touched."),
-  budget_code: z.string().optional().describe("Budget code (required for expense/working/travel_request forms). Use the active fiscal year code, e.g. NN2612-0001."),
+  budget_code: z.string().optional().describe("Budget code (required for expense/working/travel_request forms). Use the active fiscal year code, e.g. NN2612-0001. For card_expense_rd, selects the budget pot in the mker form's own select (it otherwise defaults to the first option); refused if not among the options offered."),
   attachment_path: z.string().optional().describe("Path to attachment file"),
 
   // Working fields
@@ -646,6 +646,8 @@ export const ipkSubmitFormSchema = {
   item_vendor: z.string().optional().describe("Vendor/store name. English only - Korean text is refused before the form is touched."),
   item_control_no: z.string().optional().describe("Card receipt control number"),
   purpose_minutes: z.string().optional().describe("Meeting purpose and minutes"),
+  meeting_begin: z.string().optional().describe("card_expense_rd Team Activities (account 412107): meeting start, 'YYYY-MM-DD HH:MM'. Required with account 412107."),
+  meeting_end: z.string().optional().describe("card_expense_rd Team Activities (account 412107): meeting end, 'YYYY-MM-DD HH:MM'. Required with account 412107."),
 
   // Travel settlement fields (AppFrm-054)
   province: z.string().optional().describe("Province select value for AJAX cascade"),
@@ -1921,9 +1923,38 @@ async function submitCardExpenseRD(
     });
   }
 
+  // Step 0: Select the budget pot. The mker form defaults budget_code to its first
+  // option (an arbitrary grant), not the pot the item should actually be filed against,
+  // so an unselected budget_code silently files against the wrong grant. setSelectValue
+  // throws INVALID_OPTION before writing anything if the code is not among the options
+  // the select actually offers - an offered code can still not exist for this trseq/appr_no.
+  let effectiveBudgetCode = prefilled.budget_code;
+  if (params.budget_code) {
+    try {
+      await setSelectValue(frame, 'select[name="budget_code"]', params.budget_code);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return textResult({
+        error: true,
+        code: "BUDGET_CODE_NOT_OFFERED",
+        message: `budget_code '${params.budget_code}' is not offered by this form. ${msg}`,
+      });
+    }
+    // Re-read rather than trust params.budget_code: setSelectValue only writes the value
+    // when it matches an offered option, so reading it back is what confirms the select.
+    effectiveBudgetCode = await frame.evaluate(() => {
+      const el = document.getElementById("budget_code") as HTMLSelectElement | null;
+      return el ? el.value : null;
+    });
+  }
+
   // Step 1: Fill user-discretion fields
   await frame.evaluate(
-    (args: { subject: string; itemName: string; sellerEn: string; pReason: string }) => {
+    (args: {
+      subject: string; itemName: string; sellerEn: string; pReason: string;
+      venue: string; participants: string; purposeMinutes: string;
+      meetingBegin: string; meetingEnd: string;
+    }) => {
       const subjectEl = document.querySelector('input[name="subject"]') as HTMLInputElement | null;
       if (subjectEl) subjectEl.value = args.subject;
       const items = document.querySelectorAll('input[name="item_name[]"]') as NodeListOf<HTMLInputElement>;
@@ -1936,8 +1967,38 @@ async function submitCardExpenseRD(
       if (itemDescs[1]) itemDescs[1].value = args.itemName;
       const pr = document.querySelectorAll('textarea[name="p_reason"]') as NodeListOf<HTMLTextAreaElement>;
       pr.forEach((t) => { t.value = args.pReason; });
+
+      // Team-activity meeting fields (row index 1 — index 0 is the hidden template row,
+      // same convention as item_name[] above).
+      if (args.venue) {
+        const venues = document.getElementsByName("venue[]") as NodeListOf<HTMLInputElement>;
+        if (venues[1]) venues[1].value = args.venue;
+      }
+      if (args.participants) {
+        const participantsEls = document.getElementsByName("participants[]") as NodeListOf<HTMLInputElement | HTMLTextAreaElement>;
+        if (participantsEls[1]) participantsEls[1].value = args.participants;
+      }
+      if (args.purposeMinutes) {
+        const purposeEls = document.getElementsByName("purpose[]") as NodeListOf<HTMLInputElement | HTMLTextAreaElement>;
+        if (purposeEls[1]) purposeEls[1].value = args.purposeMinutes;
+      }
+      if (args.meetingBegin) {
+        const begins = document.getElementsByName("meeting_begin_date[]") as NodeListOf<HTMLInputElement>;
+        if (begins[1]) begins[1].value = args.meetingBegin;
+      }
+      if (args.meetingEnd) {
+        const ends = document.getElementsByName("meeting_end_date[]") as NodeListOf<HTMLInputElement>;
+        if (ends[1]) ends[1].value = args.meetingEnd;
+      }
     },
-    { subject, itemName, sellerEn, pReason }
+    {
+      subject, itemName, sellerEn, pReason,
+      venue: params.venue || "",
+      participants: params.participants || "",
+      purposeMinutes: params.purpose_minutes || params.purpose || "",
+      meetingBegin: params.meeting_begin || "",
+      meetingEnd: params.meeting_end || "",
+    }
   );
 
   // Step 2: Resolve account code (explicit code wins, then label match, then default 410318)
@@ -1947,7 +2008,7 @@ async function submitCardExpenseRD(
     const codes = await accountHelper.fetchAccountCodes(page as any, {
       baseUrl: config.baseUrl,
       budgetType: prefilled.budget_type || "02",
-      budgetCode: prefilled.budget_code,
+      budgetCode: effectiveBudgetCode,
       approveType: "AppFrm-021",
     });
     const match = codes.find((c) => c.code === params.item_account_code);
@@ -1975,7 +2036,7 @@ async function submitCardExpenseRD(
     const codes = await accountHelper.fetchAccountCodes(page as any, {
       baseUrl: config.baseUrl,
       budgetType: prefilled.budget_type || "02",
-      budgetCode: prefilled.budget_code,
+      budgetCode: effectiveBudgetCode,
       approveType: "AppFrm-021",
     });
     const labelLower = String(params.account_code_label).toLowerCase();
@@ -2100,6 +2161,7 @@ async function submitCardExpenseRD(
       mode,
       formType: "card_expense_rd",
       subject,
+      budgetCode: effectiveBudgetCode,
       finalUrl: popupHolder.finalUrl,
       attached: attachResult.attached,
       skipped_attachments: attachResult.skipped,
