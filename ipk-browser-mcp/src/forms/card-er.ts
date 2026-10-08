@@ -58,3 +58,17 @@ export function summarizeCapturedForm(entries: [string, string][]): CapturedForm
   }
   return out;
 }
+
+/**
+ * Accounts the account picker (pr_account_sel.php Check_Item) treats as meetings: it
+ * clears and hides item_name[1]/item_desc[1] and shows the venue/time/participant rows.
+ * A row filed with item_name set is stored as a plain item and the document view drops
+ * the Venue/Date/Participants/Purpose block (doc 301323, 2026-10-08).
+ */
+export const MEETING_ACCOUNT_CODES = new Set([
+  "420420", "410307", "410310", "420450", "420451", "412104", "420421", "412106", "420422", "412107",
+]);
+
+export function isMeetingAccount(code: string | null | undefined): boolean {
+  return MEETING_ACCOUNT_CODES.has(String(code ?? ""));
+}

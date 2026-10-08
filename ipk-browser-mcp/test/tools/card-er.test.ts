@@ -20,7 +20,7 @@ vi.mock("../../src/internal/primitives/attachment.js", () => ({
 
 import { handleIpkSubmitForm, installCardErStubs, runCheckFormRequest } from "../../src/tools/ipk-submit.js";
 import { checkOrgPolicy } from "../../src/policy/org-policy.js";
-import { normalizeCardSubject, isPreviewBlockedRequest, summarizeCapturedForm } from "../../src/forms/card-er.js";
+import { normalizeCardSubject, isPreviewBlockedRequest, summarizeCapturedForm, isMeetingAccount } from "../../src/forms/card-er.js";
 
 // ── pure helpers ───────────────────────────────────────────────────
 
@@ -388,5 +388,14 @@ describe("installCardErStubs + runCheckFormRequest (fake page globals)", () => {
     const run = runCheckFormRequest();
     expect(run.pageError).toMatch(/Check_Form_Request/);
     expect(run.submits).toEqual([]);
+  });
+});
+
+describe("isMeetingAccount", () => {
+  it("treats Team Activities 412107 and the other picker meeting codes as meetings", () => {
+    for (const c of ["412107", "420421", "420420", "410310"]) expect(isMeetingAccount(c)).toBe(true);
+  });
+  it("does not treat IT subscriptions or empty as meetings", () => {
+    for (const c of ["410318", "", null, undefined]) expect(isMeetingAccount(c as any)).toBe(false);
   });
 });

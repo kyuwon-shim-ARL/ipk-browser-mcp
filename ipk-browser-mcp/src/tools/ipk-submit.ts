@@ -8,7 +8,7 @@ import { checkOrgPolicy } from "../policy/org-policy.js";
 import { checkTravelRequestParams, checkAttachmentSlot, slotSelector, parseCardNo, type TravelDocSlot } from "../forms/travel-request.js";
 import { fetchTravelRequestPrecedents, readDraftText, diffAgainstPractice, type PrecedentSet } from "../precedent/fetch.js";
 import { parseTravelRequestDoc } from "../precedent/travel-request-doc.js";
-import { normalizeCardSubject, isPreviewBlockedRequest, summarizeCapturedForm } from "../forms/card-er.js";
+import { normalizeCardSubject, isPreviewBlockedRequest, summarizeCapturedForm, isMeetingAccount } from "../forms/card-er.js";
 import { confirmDraftResult } from "../browser/draft-guard.js";
 import {
   navigateToForm,
@@ -2087,6 +2087,26 @@ async function submitCardExpenseRD(
     });
   }
 
+  // Step 2b: Do what the account picker's Check_Item does for meeting accounts - clear and
+  // hide item_name/item_desc, show the meeting rows. Injecting the account directly skips it,
+  // and a meeting row that still carries item_name is filed as a plain item.
+  const filedAccount: string = await frame.evaluate(() => {
+    const el = document.getElementsByName("account_code[]")[1] as HTMLInputElement | undefined;
+    return el ? el.value : "";
+  });
+  if (isMeetingAccount(filedAccount)) {
+    await frame.evaluate(() => {
+      for (const n of ["item_name[]", "item_desc[]"]) {
+        const el = document.getElementsByName(n)[1] as HTMLInputElement | undefined;
+        if (el) { el.value = ""; el.style.display = "none"; }
+      }
+      for (const n of ["er_tr1", "er_tr2", "er_tr3", "er_tr4", "er_tr5", "er_tr6", "er_tr7", "er_tr8"]) {
+        const row = document.getElementsByName(n)[0] as HTMLElement | undefined;
+        if (row) row.style.display = "";
+      }
+    });
+  }
+
   // Step 3: Attach file(s)
   const filePaths: string[] = Array.isArray(params.attachment_paths)
     ? params.attachment_paths
@@ -2370,7 +2390,15 @@ async function previewCardExpenseRD(
     try {
       fs.mkdirSync(config.screenshotDir, { recursive: true, mode: 0o700 });
       const file = path.join(config.screenshotDir, `card-er-preview-${new Date().toISOString().replace(/[:.]/g, "-")}.png`);
-      await page.screenshot({ path: file, fullPage: true });
+      // The form scrolls inside the main_menu frame, so fullPage alone cuts off the item
+      // rows. Stretch the viewport for the shot so the frame lays out at full height.
+      const vp = page.viewportSize();
+      try {
+        if (vp) await page.setViewportSize({ width: vp.width, height: 4000 });
+        await page.screenshot({ path: file, fullPage: true });
+      } finally {
+        if (vp) await page.setViewportSize(vp);
+      }
       screenshot = file;
     } catch {
       // a preview without a screenshot is still a preview
