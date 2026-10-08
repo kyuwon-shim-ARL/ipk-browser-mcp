@@ -109,6 +109,43 @@ After T6 completes, each stub is replaced with a bridge call:
 
 ---
 
+## Form Onboarding Workflow
+
+When adding a new IPK form (an `AppFrm-XXX` not yet in `form_templates/`), follow
+**template-first**: declarative knowledge in JSON drives the existing generic pipeline.
+
+```
+[1] Explore     ipk_inspect_form (MCP, src/tools/ipk-inspect.ts)
+                  │  selectors, iframe nesting, ajax cascade, submit_flow stages
+                  ▼
+[2] Persist     form_templates/AppFrm-XXX.json     ← single source of truth
+                  │  (NOT skills/문서작성/skill.md — skill is workflow-only)
+                  ▼
+[3] Verify      tests/forms/test_<appfrm>_draft.py (E2E gate)
+                  │  login → draft submit → document_view.php?...&type=drafts
+                  ▼
+[4] Execute     document_agent.py / pipeline.py (generic submitter)
+                  │  load_template → infer_fields → fill_form
+                  ▼
+[5] Fallback    Per-form submit_*.py only when generic cannot handle.
+                Treated as a signal to extend the generic submitter;
+                keep the JSON template in sync with any .py knowledge.
+```
+
+**Anti-pattern**: writing a new ~400-line `submit_*.py` per form.
+`submit_runpod_er.py` is 426 lines because it bypasses generic to handle
+AppFrm-021 `mker=Y` approval popups (43 raw `frame.evaluate` / `gw.page` calls).
+When this happens, the popup flow belongs in the generic submitter, not
+duplicated per form.
+
+**Why declarative wins**: `ipk_inspect_form` outputs structure (selectors, fields,
+submit flow). Storing it as JSON keeps one form ↔ one source. Storing it as
+imperative Python forks the knowledge between `form_templates/AppFrm-XXX.json`
+and `submit_*.py`, with no sync mechanism (DRY violation; IPK DOM changes
+silent-fail in both places).
+
+---
+
 ## Security Design
 
 | Concern | Mechanism |

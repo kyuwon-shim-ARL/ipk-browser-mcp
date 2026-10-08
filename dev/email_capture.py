@@ -16,19 +16,47 @@ from playwright.sync_api import sync_playwright
 TOKEN_PATH = "/home/kyuwon/projects/email_agent/token.json"
 SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
 
+# Multi-account token directory: ~/.gmail_tokens/<email>.json
+TOKENS_DIR = Path.home() / ".gmail_tokens"
+
 
 # ---------------------------------------------------------------------------
 # Gmail API helpers
 # ---------------------------------------------------------------------------
 
-def _get_gmail_service():
-    creds = Credentials.from_authorized_user_file(TOKEN_PATH, SCOPES)
+def _get_gmail_service(token_path: str = TOKEN_PATH):
+    creds = Credentials.from_authorized_user_file(token_path, SCOPES)
     return build("gmail", "v1", credentials=creds)
 
 
-def search_emails(query: str, user_email: str, max_results: int = 10) -> list[dict]:
+def get_token_paths() -> list[tuple[str, str]]:
+    """Return [(email, token_path), ...] for all configured Gmail accounts.
+
+    Checks two sources in order:
+      1. The legacy single-account TOKEN_PATH (always included if it exists).
+      2. Files in TOKENS_DIR (filename without extension = email address).
+    Deduplicates by token path.
+    """
+    seen: set[str] = set()
+    tokens: list[tuple[str, str]] = []
+
+    if Path(TOKEN_PATH).exists():
+        tokens.append(("kyuwon.shim@ip-korea.org", TOKEN_PATH))
+        seen.add(TOKEN_PATH)
+
+    if TOKENS_DIR.exists():
+        for f in sorted(TOKENS_DIR.glob("*.json")):
+            if str(f) not in seen:
+                tokens.append((f.stem, str(f)))
+                seen.add(str(f))
+
+    return tokens
+
+
+def search_emails(query: str, user_email: str, max_results: int = 10,
+                  token_path: str = TOKEN_PATH) -> list[dict]:
     """Search Gmail and return a list of message metadata dicts."""
-    service = _get_gmail_service()
+    service = _get_gmail_service(token_path)
     result = (
         service.users()
         .messages()
@@ -57,9 +85,10 @@ def search_emails(query: str, user_email: str, max_results: int = 10) -> list[di
     return out
 
 
-def get_email_content(message_id: str, user_email: str) -> dict:
+def get_email_content(message_id: str, user_email: str,
+                      token_path: str = TOKEN_PATH) -> dict:
     """Fetch full email content (plain text + HTML) for a given message ID."""
-    service = _get_gmail_service()
+    service = _get_gmail_service(token_path)
     msg = service.users().messages().get(userId="me", id=message_id, format="full").execute()
 
     headers = {h["name"]: h["value"] for h in msg.get("payload", {}).get("headers", [])}
@@ -108,6 +137,76 @@ def get_email_content(message_id: str, user_email: str) -> dict:
         "plain_body": plain_body,
         "snippet": msg.get("snippet", ""),
     }
+
+
+def get_attachments(message_id: str, token_path: str = TOKEN_PATH) -> list[dict]:
+    """Extract PDF and image attachments from a Gmail message.
+
+    Returns a list of dicts:
+      {filename, mime_type, data: bytes, inline: bool}
+
+    Handles:
+      - Regular attachments (attachmentId → separate API call)
+      - Inline parts with body.data already present
+      - Nested multipart structures (multipart/mixed, multipart/related)
+    """
+    service = _get_gmail_service(token_path)
+    msg = service.users().messages().get(userId="me", id=message_id, format="full").execute()
+
+    SUPPORTED_MIME = {"application/pdf", "image/jpeg", "image/png", "image/gif"}
+    results: list[dict] = []
+
+    def _walk(parts: list) -> None:
+        for part in parts:
+            sub = part.get("parts", [])
+            if sub:
+                _walk(sub)
+                continue
+
+            mime = part.get("mimeType", "")
+            if mime not in SUPPORTED_MIME:
+                continue
+
+            filename = part.get("filename") or f"attachment.{mime.split('/')[-1]}"
+            body = part.get("body", {})
+            att_id = body.get("attachmentId")
+            inline_data = body.get("data", "")
+
+            if att_id:
+                raw_b64 = service.users().messages().attachments().get(
+                    userId="me", messageId=message_id, id=att_id
+                ).execute()["data"]
+                raw = base64.urlsafe_b64decode(raw_b64 + "==")
+                results.append({"filename": filename, "mime_type": mime,
+                                 "data": raw, "inline": False})
+            elif inline_data:
+                raw = base64.urlsafe_b64decode(inline_data + "==")
+                results.append({"filename": filename, "mime_type": mime,
+                                 "data": raw, "inline": True})
+
+    payload = msg.get("payload", {})
+    _walk(payload.get("parts", []) or [payload])
+    return results
+
+
+def search_all_accounts(query: str, max_results: int = 10) -> list[dict]:
+    """Search all configured Gmail accounts and return combined results.
+
+    Each result dict has an extra ``account_email`` and ``token_path`` field
+    so callers can fetch attachments from the right account.
+    """
+    combined: list[dict] = []
+    for account_email, token_path in get_token_paths():
+        try:
+            msgs = search_emails(query, account_email,
+                                 max_results=max_results, token_path=token_path)
+            for m in msgs:
+                m["account_email"] = account_email
+                m["token_path"] = token_path
+            combined.extend(msgs)
+        except Exception as exc:
+            print(f"[{account_email}] search failed: {exc}", file=__import__("sys").stderr)
+    return combined
 
 
 # ---------------------------------------------------------------------------
