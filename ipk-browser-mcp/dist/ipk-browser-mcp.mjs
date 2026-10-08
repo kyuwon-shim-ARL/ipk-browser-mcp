@@ -21645,6 +21645,7 @@ var FREE_TEXT_PARAMS = [
 ];
 var OVERSEAS_IT_VENDORS = /runpod|openai|chatgpt|anthropic|claude|google cloud|gcp|aws|amazon web|azure|github|vercel|huggingface|hugging face|lambda labs|vast\.ai|modal/i;
 var VAT_SPLITTING_FORMS = /* @__PURE__ */ new Set(["expense", "card_expense"]);
+var TEAM_ACTIVITY_ACCOUNT_CODE = "412107";
 var ORG_POLICY = [
   {
     id: "ENGLISH_ONLY",
@@ -21670,6 +21671,29 @@ var ORG_POLICY = [
         rule: "DRAFT_FIRST",
         fields: ["draft_only", "confirm_submit"],
         message: "To submit for approval, set both draft_only=false AND confirm_submit=true"
+      };
+    }
+  },
+  {
+    id: "TEAM_ACTIVITY_FIELDS_REQUIRED",
+    standard: "A Team Activities (RS only) card ER (account 412107) records venue, meeting time, participants and purpose - the groupware form accepts the row without them, but the account itself requires them.",
+    passes: "When card_expense_rd is filed with item_account_code '412107', venue, meeting_begin, meeting_end, participants and purpose_minutes (or purpose) are all non-empty.",
+    check(params) {
+      if (String(params.form_type) !== "card_expense_rd") return null;
+      if (String(params.item_account_code) !== TEAM_ACTIVITY_ACCOUNT_CODE) return null;
+      const required2 = {
+        venue: params.venue,
+        meeting_begin: params.meeting_begin,
+        meeting_end: params.meeting_end,
+        participants: params.participants,
+        purpose_minutes: params.purpose_minutes || params.purpose
+      };
+      const fields = Object.entries(required2).filter(([, v]) => typeof v !== "string" || v.trim() === "").map(([k]) => k);
+      if (fields.length === 0) return null;
+      return {
+        rule: "TEAM_ACTIVITY_FIELDS_REQUIRED",
+        fields,
+        message: `Team Activities (account 412107) requires ${fields.join(", ")}. Provide venue, meeting_begin, meeting_end, participants and purpose_minutes (or purpose). Nothing was written to the form.`
       };
     }
   },
@@ -22584,7 +22608,7 @@ var ipkSubmitFormSchema = {
   amount: external_exports.number().optional().describe("Total amount in KRW"),
   participants: external_exports.string().optional().describe("Participants for meal expense. English only - Korean text is refused before the form is touched."),
   venue: external_exports.string().optional().describe("Venue for expense. English only - Korean text is refused before the form is touched."),
-  budget_code: external_exports.string().optional().describe("Budget code (required for expense/working/travel_request forms). Use the active fiscal year code, e.g. NN2612-0001."),
+  budget_code: external_exports.string().optional().describe("Budget code (required for expense/working/travel_request forms). Use the active fiscal year code, e.g. NN2612-0001. For card_expense_rd, selects the budget pot in the mker form's own select (it otherwise defaults to the first option); refused if not among the options offered."),
   attachment_path: external_exports.string().optional().describe("Path to attachment file"),
   // Working fields
   work_date: external_exports.string().optional().describe("Work date (YYYY-MM-DD)"),
@@ -22609,6 +22633,8 @@ var ipkSubmitFormSchema = {
   item_vendor: external_exports.string().optional().describe("Vendor/store name. English only - Korean text is refused before the form is touched."),
   item_control_no: external_exports.string().optional().describe("Card receipt control number"),
   purpose_minutes: external_exports.string().optional().describe("Meeting purpose and minutes"),
+  meeting_begin: external_exports.string().optional().describe("card_expense_rd Team Activities (account 412107): meeting start, 'YYYY-MM-DD HH:MM'. Required with account 412107."),
+  meeting_end: external_exports.string().optional().describe("card_expense_rd Team Activities (account 412107): meeting end, 'YYYY-MM-DD HH:MM'. Required with account 412107."),
   // Travel settlement fields (AppFrm-054)
   province: external_exports.string().optional().describe("Province select value for AJAX cascade"),
   city: external_exports.string().optional().describe("City select value for AJAX cascade"),
@@ -23453,6 +23479,23 @@ async function submitCardExpenseRD(page, frame, _sessionManager, config3, params
       message: "AppFrm-021 mker form did not prefill. Check trseq/appr_no values."
     });
   }
+  let effectiveBudgetCode = prefilled.budget_code;
+  if (params.budget_code) {
+    try {
+      await setSelectValue(frame, 'select[name="budget_code"]', params.budget_code);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return textResult({
+        error: true,
+        code: "BUDGET_CODE_NOT_OFFERED",
+        message: `budget_code '${params.budget_code}' is not offered by this form. ${msg}`
+      });
+    }
+    effectiveBudgetCode = await frame.evaluate(() => {
+      const el = document.getElementById("budget_code");
+      return el ? el.value : null;
+    });
+  }
   await frame.evaluate(
     (args) => {
       const subjectEl = document.querySelector('input[name="subject"]');
@@ -23469,15 +23512,45 @@ async function submitCardExpenseRD(page, frame, _sessionManager, config3, params
       pr.forEach((t) => {
         t.value = args.pReason;
       });
+      if (args.venue) {
+        const venues = document.getElementsByName("venue[]");
+        if (venues[1]) venues[1].value = args.venue;
+      }
+      if (args.participants) {
+        const participantsEls = document.getElementsByName("participants[]");
+        if (participantsEls[1]) participantsEls[1].value = args.participants;
+      }
+      if (args.purposeMinutes) {
+        const purposeEls = document.getElementsByName("purpose[]");
+        if (purposeEls[1]) purposeEls[1].value = args.purposeMinutes;
+      }
+      if (args.meetingBegin) {
+        const begins = document.getElementsByName("meeting_begin_date[]");
+        if (begins[1]) begins[1].value = args.meetingBegin;
+      }
+      if (args.meetingEnd) {
+        const ends = document.getElementsByName("meeting_end_date[]");
+        if (ends[1]) ends[1].value = args.meetingEnd;
+      }
     },
-    { subject, itemName, sellerEn, pReason }
+    {
+      subject,
+      itemName,
+      sellerEn,
+      pReason,
+      venue: params.venue || "",
+      participants: params.participants || "",
+      purposeMinutes: params.purpose_minutes || params.purpose || "",
+      meetingBegin: params.meeting_begin || "",
+      meetingEnd: params.meeting_end || ""
+    }
   );
   let accountSet = false;
   if (params.item_account_code) {
     const codes = await accountHelper.fetchAccountCodes(page, {
       baseUrl: config3.baseUrl,
       budgetType: prefilled.budget_type || "02",
-      budgetCode: prefilled.budget_code,
+      budgetCode: effectiveBudgetCode,
       approveType: "AppFrm-021"
     });
     const match = codes.find((c) => c.code === params.item_account_code);
@@ -23504,7 +23577,7 @@ async function submitCardExpenseRD(page, frame, _sessionManager, config3, params
     const codes = await accountHelper.fetchAccountCodes(page, {
       baseUrl: config3.baseUrl,
       budgetType: prefilled.budget_type || "02",
-      budgetCode: prefilled.budget_code,
+      budgetCode: effectiveBudgetCode,
       approveType: "AppFrm-021"
     });
     const labelLower = String(params.account_code_label).toLowerCase();
@@ -23608,6 +23681,7 @@ async function submitCardExpenseRD(page, frame, _sessionManager, config3, params
       mode,
       formType: "card_expense_rd",
       subject,
+      budgetCode: effectiveBudgetCode,
       finalUrl: popupHolder.finalUrl,
       attached: attachResult.attached,
       skipped_attachments: attachResult.skipped,
