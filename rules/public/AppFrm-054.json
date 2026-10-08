@@ -1,0 +1,438 @@
+{
+ "form": "AppFrm-054",
+ "title": "Domestic Travel Expense Settlement",
+ "schema_version": 1,
+ "fields": {
+  "subject": {
+   "label": "Subject",
+   "scope": "org",
+   "source": "team-pack",
+   "on_missing": "warn"
+  },
+  "budget_type": {
+   "label": "Budget Account Code (type prefix)",
+   "scope": "self",
+   "source": "profile",
+   "on_missing": "block"
+  },
+  "budget_code": {
+   "label": "Budget Account Code",
+   "scope": "self",
+   "source": "profile",
+   "on_missing": "block"
+  },
+  "item_no": {
+   "label": "Budget Account Code (account)",
+   "scope": "org",
+   "checks": [
+    {
+     "type": "fixed",
+     "value": "410201"
+    }
+   ],
+   "why": "Every one of the 30 settlements (own and colleague, all pots) uses account 410201 Domestic Business Travel.",
+   "evidence": [
+    "300424",
+    "300382",
+    "299366",
+    "297344",
+    "296298",
+    "295950",
+    "300391",
+    "293821"
+   ],
+   "visibility": "public",
+   "dept": "ARL"
+  },
+  "daily_fee_total": {
+   "label": "Daily Expense - Total Budget",
+   "scope": "case",
+   "checks": [],
+   "why": "Prefilled from the request. Corpus rate: 20,000 per day in Seoul/Gyeonggi (Seoul 0n1d=20,000, 0n2d=40,000, 2n3d=60,000; Goyang request 30,000 was settled at 20,000 in 292982) and 30,000 per day elsewhere (Cheongju, Daejeon, Gyeongju).",
+   "evidence": [
+    "299366",
+    "299135",
+    "296298",
+    "298415",
+    "295950",
+    "292982"
+   ]
+  },
+  "daily_fee_card": {
+   "label": "Daily Expense - Institute Credit Card",
+   "scope": "org",
+   "checks": [
+    {
+     "type": "fixed",
+     "value": "0"
+    }
+   ],
+   "why": "The daily allowance is always paid to the traveller (Cash/Personal column), never on the institute card: 30/30 docs show 0 here.",
+   "evidence": [
+    "300424",
+    "300382",
+    "299366",
+    "296298",
+    "295950",
+    "300391",
+    "284346"
+   ],
+   "visibility": "public",
+   "dept": "ARL"
+  },
+  "daily_fee_cash": {
+   "label": "Daily Expense - Cash / Personal Credit Card",
+   "scope": "case",
+   "checks": [],
+   "why": "Equals the settled allowance for this trip (rate in daily_fee_total).",
+   "evidence": []
+  },
+  "daily_fee_sum": {
+   "label": "Daily Expense - Sum",
+   "scope": "case",
+   "checks": [],
+   "why": "Settled allowance; Finance lowers it where the request overstated the rate (292982).",
+   "evidence": []
+  },
+  "daily_fee_diff": {
+   "label": "Daily Expense - Differences",
+   "scope": "case",
+   "checks": [],
+   "why": "Total Budget minus Sum, computed by the form.",
+   "evidence": []
+  },
+  "transport_fee_total": {
+   "label": "Transport Fee - Total Budget",
+   "scope": "case",
+   "checks": [],
+   "why": "Actual transport cost; own-car trips claim fuel (and toll) in the Cash/Personal column, public-transport day trips in Seoul claim 0 (all 7 RAPID/Seoul public-transport settlements are 0).",
+   "evidence": [
+    "300424",
+    "300382",
+    "300391",
+    "296298"
+   ]
+  },
+  "transport_fee_sum": {
+   "label": "Transport Fee - Sum",
+   "scope": "case",
+   "checks": [],
+   "why": "Settled transport amount.",
+   "evidence": []
+  },
+  "accommodation_fee_total": {
+   "label": "Accommodation - Total Budget",
+   "scope": "case",
+   "checks": [],
+   "why": "Hotel paid on the institute card goes in the Credit Card column (284346, 295935, 295950); paid personally goes in Cash with a 'reason for not using R&D card' statement attached (296047, 296103).",
+   "evidence": [
+    "284346",
+    "295935",
+    "295950",
+    "296047",
+    "296103"
+   ]
+  },
+  "accommodation_fee_sum": {
+   "label": "Accommodation - Sum",
+   "scope": "case",
+   "checks": [],
+   "why": "Settled accommodation amount.",
+   "evidence": []
+  },
+  "food_fee_total": {
+   "label": "Food Expense - Total Budget",
+   "scope": "case",
+   "checks": [],
+   "why": "Prefilled from the request; outside Seoul/Gyeonggi 9,000 per meal (27,000/day, 81,000 for 3 days) less meals provided ('Number of meals served'), and 0 for Seoul.",
+   "evidence": [
+    "295950",
+    "296298",
+    "296390",
+    "297343"
+   ]
+  },
+  "food_fee_card": {
+   "label": "Food Expense - Institute Credit Card",
+   "scope": "org",
+   "checks": [
+    {
+     "type": "fixed",
+     "value": "0"
+    }
+   ],
+   "why": "The food allowance is a per-meal allowance paid to the traveller: 30/30 docs show 0 in the card column.",
+   "evidence": [
+    "295950",
+    "296298",
+    "298415",
+    "284346",
+    "293821",
+    "296390"
+   ],
+   "visibility": "public",
+   "dept": "ARL"
+  },
+  "food_fee_sum": {
+   "label": "Food Expense - Sum",
+   "scope": "case",
+   "checks": [],
+   "why": "Settled food allowance; see the conditional for Seoul.",
+   "evidence": []
+  },
+  "settle_amount": {
+   "label": "Total Sum - Sum",
+   "scope": "case",
+   "checks": [],
+   "why": "Total settled amount, the sum of the rows.",
+   "evidence": []
+  },
+  "note": {
+   "label": "Note(s)",
+   "scope": "case",
+   "checks": [],
+   "why": "Left empty in 30/30 docs; the per-row Description cell is used instead when a remark is needed (e.g. 'Appr No' for a card payment in 295935).",
+   "evidence": []
+  },
+  "budget_control_no": {
+   "label": "Budget Control No",
+   "scope": "case",
+   "checks": [],
+   "why": "Inherited from the approved request.",
+   "evidence": []
+  },
+  "purpose_category": {
+   "label": "Purpose of Business Travel",
+   "scope": "case",
+   "checks": [],
+   "why": "Inherited from the request (AppFrm-023 rulebook governs it); corpus: sampling and meetings = 'Simple visit to vendor & etc', conferences = 'Participation in the conference/seminar'.",
+   "evidence": []
+  },
+  "purpose": {
+   "label": "Purpose",
+   "scope": "case",
+   "checks": [],
+   "why": "Inherited from the request, not editable here; English-only and length rules belong to the AppFrm-023 rulebook.",
+   "evidence": []
+  },
+  "province": {
+   "label": "City & Transportation (province)",
+   "scope": "case",
+   "checks": [],
+   "why": "Inherited from the request.",
+   "evidence": []
+  },
+  "city": {
+   "label": "City & Transportation (city)",
+   "scope": "case",
+   "checks": [],
+   "why": "Inherited from the request.",
+   "evidence": []
+  },
+  "transport_mode": {
+   "label": "City & Transportation (transport)",
+   "scope": "case",
+   "checks": [],
+   "why": "Inherited from the request.",
+   "evidence": []
+  },
+  "start_date": {
+   "label": "Itinerary start",
+   "scope": "case",
+   "checks": [],
+   "why": "Inherited from the request.",
+   "evidence": []
+  },
+  "end_date": {
+   "label": "Itinerary end",
+   "scope": "case",
+   "checks": [],
+   "why": "Inherited from the request.",
+   "evidence": []
+  },
+  "destination": {
+   "label": "Destination(Organization/Conference name)",
+   "scope": "case",
+   "checks": [],
+   "why": "Inherited from the request.",
+   "evidence": []
+  },
+  "travel_with_invitation": {
+   "label": "Travel with Invitation",
+   "scope": "case",
+   "checks": [],
+   "why": "Inherited from the request; 'No' in all 30 docs.",
+   "evidence": []
+  },
+  "attach_row:verification": {
+   "label": "Business trip verification documents (date,location, details) [travel_doc_e]",
+   "scope": "org",
+   "checks": [
+    {
+     "type": "min_len",
+     "min": 1
+    }
+   ],
+   "why": "The proof that the trip happened as approved goes here: the invitation/request email printed from Gmail, the official letter (공문), the registration confirmation or name badge; 17/20 colleague settlements put it in this row (exceptions: 297516 Boarding Pass, 299243 and 300165 ETC), while the user put it in ETC in 3 of 10 (286840, 286841, 295629), which org practice says is the wrong row.",
+   "evidence": [
+    "300424",
+    "300382",
+    "300070",
+    "299491",
+    "299233",
+    "299135",
+    "298417",
+    "298223",
+    "297344",
+    "297343",
+    "296298",
+    "296103",
+    "296047",
+    "295991",
+    "295950",
+    "286840",
+    "286841",
+    "295629",
+    "memory:feedback_prefer_screenshots.md"
+   ],
+   "visibility": "public",
+   "dept": "ARL"
+  },
+  "attach_row:transport": {
+   "label": "Transport [travel_doc_a]",
+   "scope": "org",
+   "checks": [],
+   "why": "Only when a transport cost is claimed: train/bus receipts (284346), own-car route/distance printout (296047 travel.pdf, 296103 travel_HK.pdf) and Hi-Pass toll records (295950); empty for 0-cost public-transport day trips.",
+   "evidence": [
+    "284346",
+    "296047",
+    "296103",
+    "295950"
+   ],
+   "visibility": "public",
+   "dept": "ARL"
+  },
+  "attach_row:accommodation": {
+   "label": "Accommodation [travel_doc_b]",
+   "scope": "org",
+   "checks": [],
+   "why": "Only when accommodation is claimed: the booking confirmation plus the receipt or corporate-card sales slip (매출전표), and, if paid personally, the 'Statement / Reason for not using R&D card' (296047, 296103).",
+   "evidence": [
+    "295950",
+    "295991",
+    "296047",
+    "296103",
+    "284346",
+    "295935"
+   ],
+   "visibility": "public",
+   "dept": "ARL"
+  },
+  "attach_row:boarding_pass": {
+   "label": "Boarding Pass (Certificate of Entry&Departure) [travel_doc_c]",
+   "scope": "org",
+   "checks": [],
+   "why": "Not used for domestic trips: empty in 29/30 docs (the one exception, 297516, is a misplaced meeting flyer).",
+   "evidence": [
+    "297516"
+   ],
+   "visibility": "public",
+   "dept": "ARL"
+  },
+  "attach_row:etc": {
+   "label": "ETC (Visa, Insurance etc) [travel_doc_d]",
+   "scope": "org",
+   "checks": [],
+   "why": "Normally empty; at most a secondary item such as a payment/registration confirmation (299243, own 292982) - the main trip evidence belongs in the verification row, not here.",
+   "evidence": [
+    "299243",
+    "292982",
+    "300165"
+   ],
+   "visibility": "public",
+   "dept": "ARL"
+  },
+  "attach_row:poster": {
+   "label": "Poster [travel_doc_f]",
+   "scope": "org",
+   "checks": [],
+   "why": "Conference trips only: the event poster or the traveller's poster (299233, 299243, 299491, own 295935); empty for meetings and sampling.",
+   "evidence": [
+    "299233",
+    "299243",
+    "299491",
+    "295935"
+   ],
+   "visibility": "public",
+   "dept": "ARL"
+  },
+  "attach_row:file_attachment": {
+   "label": "File Attachment List / Additional document & Transfer Receipt",
+   "scope": "org",
+   "checks": [],
+   "why": "The generic list is empty in 30/30 settlements; 'Additional document & Transfer Receipt' holds Finance's transfer receipt (<budget control no>.pdf), so the traveller adds evidence to the typed rows instead (own 284346 put card slips here, an exception).",
+   "evidence": [
+    "300424",
+    "300382",
+    "300391",
+    "284346"
+   ],
+   "visibility": "public",
+   "dept": "ARL"
+  },
+  "sel_travel": {
+   "label": "Attach Approved Document",
+   "scope": "case",
+   "checks": [],
+   "why": "The approved AppFrm-023 request this settlement is opened from (p_doc_id).",
+   "evidence": []
+  }
+ },
+ "conditional": [
+  {
+   "when": {
+    "field": "province",
+    "regex": "^Seoul"
+   },
+   "then": {
+    "field": "food_fee_sum",
+    "value": "0"
+   },
+   "why": "No food allowance is paid for Seoul trips: all 17 Seoul settlements (12 colleague, 5 own; day trips and 2-night stays alike) settle food at 0, whereas every non-metro trip gets 9,000 per meal.",
+   "evidence": [
+    "300424",
+    "300382",
+    "300165",
+    "300070",
+    "299491",
+    "299366",
+    "299243",
+    "299233",
+    "299135",
+    "298223",
+    "297516",
+    "297344",
+    "300391",
+    "295629",
+    "291395",
+    "286841",
+    "286840"
+   ],
+   "visibility": "public"
+  }
+ ],
+ "ignore": [
+  "mode1",
+  "p_doc_id",
+  "piv",
+  "t1",
+  "t2",
+  "t3",
+  "t4",
+  "t5",
+  "payment_date",
+  "food_yn",
+  "food_ex_cnt",
+  "retention"
+ ]
+}

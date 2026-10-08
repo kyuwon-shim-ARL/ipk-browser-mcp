@@ -31,7 +31,14 @@ This prompts for your IPK groupware ID/password (input is hidden via `read -s`) 
 
 On next start, the plugin's `SessionStart` hook auto-installs Playwright Chromium (≈ 30 seconds, one-time).
 
-### 4. Use
+### 4. Set up your profile (once)
+
+Ask Claude to run `ipk_profile_init` (after it logs in). This reads your own cards and
+budget pots off the groupware (read-only) into `~/.config/ipk-browser-mcp/profile.json`,
+so card/leave/travel forms don't block asking for a card number or budget code it could
+have found itself. Re-run it if a card or budget pot changes.
+
+### 5. Use
 
 Ask Claude naturally:
 

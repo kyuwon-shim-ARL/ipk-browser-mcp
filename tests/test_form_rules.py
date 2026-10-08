@@ -14,19 +14,23 @@ from form_rules import check_rules, load_rulebook, validate_rulebook  # noqa: E4
 BOOK = {
     "form": "AppFrm-999",
     "title": "Test form",
+    "schema_version": 1,
     "fields": {
-        "subject": {"label": "Subject", "scope": "org",
+        "subject": {"label": "Subject", "scope": "org", "visibility": "public", "dept": "ARL",
                     "checks": [{"type": "pattern", "regex": r"^\[Card\] "}, {"type": "max_len", "max": 60}, {"type": "english"}],
                     "why": "all colleague ERs", "evidence": ["1", "2"]},
-        "budget_code": {"label": "Budget", "scope": "self",
+        "budget_code": {"label": "Budget", "scope": "self", "visibility": "local", "fiscal_year": "2026",
                         "checks": [{"type": "one_of", "values": ["NN2606-0001", "NN2606-0002"]}],
                         "why": "budgets assigned to this person", "evidence": ["3"]},
         "amount": {"label": "Amount", "scope": "case", "checks": [], "why": "from the receipt", "evidence": []},
-        "vat": {"label": "VAT", "scope": "org", "checks": [{"type": "one_of", "values": ["0", "split"]}], "why": "", "evidence": ["1"]},
-        "saving_years": {"label": "Saving years", "scope": "org", "checks": [{"type": "fixed", "value": "5"}], "why": "", "evidence": ["1"]},
+        "vat": {"label": "VAT", "scope": "org", "visibility": "public", "dept": "ARL",
+                "checks": [{"type": "one_of", "values": ["0", "split"]}], "why": "", "evidence": ["1"]},
+        "saving_years": {"label": "Saving years", "scope": "org", "visibility": "public", "dept": "ARL",
+                          "checks": [{"type": "fixed", "value": "5"}], "why": "", "evidence": ["1"]},
     },
     "conditional": [
         {"when": {"field": "subject", "regex": "(?i)runpod|openai"}, "then": {"field": "vat", "value": "0"},
+         "visibility": "public",
          "why": "overseas IT: no Korean VAT", "evidence": ["4"]},
     ],
     "ignore": ["hidden_token"],
@@ -103,6 +107,37 @@ def test_validate_requires_evidence_for_org_and_self_rules():
     bad = json.loads(json.dumps(BOOK))
     bad["fields"]["saving_years"]["evidence"] = []
     assert any("saving_years" in e and "evidence" in e for e in validate_rulebook(bad))
+
+
+def test_validate_requires_schema_version():
+    bad = json.loads(json.dumps(BOOK))
+    del bad["schema_version"]
+    assert any("schema_version" in e for e in validate_rulebook(bad))
+    bad["schema_version"] = 0
+    assert any("schema_version" in e for e in validate_rulebook(bad))
+
+
+def test_validate_requires_visibility_on_non_case_fields():
+    bad = json.loads(json.dumps(BOOK))
+    del bad["fields"]["subject"]["visibility"]
+    errs = validate_rulebook(bad)
+    assert any("subject" in e and "visibility" in e for e in errs)
+    # case fields need no visibility
+    assert "amount" not in "\n".join(errs)
+
+
+def test_validate_requires_dept_on_org_fields():
+    bad = json.loads(json.dumps(BOOK))
+    del bad["fields"]["vat"]["dept"]
+    errs = validate_rulebook(bad)
+    assert any("vat" in e and "dept" in e for e in errs)
+
+
+def test_validate_requires_visibility_on_conditional():
+    bad = json.loads(json.dumps(BOOK))
+    del bad["conditional"][0]["visibility"]
+    errs = validate_rulebook(bad)
+    assert any("conditional[0]" in e and "visibility" in e for e in errs)
 
 
 def test_shipped_rulebooks_are_valid():

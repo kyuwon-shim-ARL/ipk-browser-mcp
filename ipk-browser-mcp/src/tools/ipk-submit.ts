@@ -5,6 +5,8 @@ import { textResult } from "../util.js";
 import { validateAttachmentPath } from "../security/attachment-path.js";
 import { audit, beginRun } from "../internal/audit.js";
 import { checkOrgPolicy } from "../policy/org-policy.js";
+import { checkFieldRules, FieldRulesUnavailable, type Rulebook } from "../policy/field-rules.js";
+import { loadProfile, type Profile } from "../profile/profile.js";
 import { checkTravelRequestParams, checkAttachmentSlot, slotSelector, parseCardNo, type TravelDocSlot } from "../forms/travel-request.js";
 import { fetchTravelRequestPrecedents, readDraftText, diffAgainstPractice, type PrecedentSet } from "../precedent/fetch.js";
 import { parseTravelRequestDoc } from "../precedent/travel-request-doc.js";
@@ -18,6 +20,7 @@ import {
   setRequiredSelect,
   setFormMode,
   submitForm,
+  serializeFormFields,
 } from "../browser/iframe-helper.js";
 import type { CascadeStep } from "../browser/iframe-helper.js";
 import {
@@ -357,6 +360,115 @@ function loadTemplateFieldSchema(formType: string): Record<string, TemplateField
   } catch {
     return null;
   }
+}
+
+/**
+ * Load rules/public/<AppFrm>.json (field-rules.ts, shared-knowledge-v4 B1/B3) for this
+ * form type, plus an optional private pack (a curator-distributed zip the person has
+ * unpacked locally) and their profile - see field-rules.ts for the stub semantics.
+ * Returns null when no public rulebook ships for this form yet (not every AppFrm has
+ * been migrated); a missing rulebook is not checked, same as a missing template.
+ */
+function loadPublicRulebook(formType: string): Rulebook | null {
+  const registry = FORM_REGISTRY[formType as keyof typeof FORM_REGISTRY];
+  if (!registry) return null;
+  // Same two-levels-up convention as loadTemplateFieldSchema's form_templates/ lookup
+  // (dist/ipk-browser-mcp.mjs -> repo root). Running the TS source directly (vitest, no
+  // bundling) sits one directory deeper (src/tools/ -> ipk-browser-mcp/, not repo root),
+  // so that candidate is tried too rather than only ever working after a build.
+  for (const projectRoot of [path.resolve(__dirname, "..", ".."), path.resolve(__dirname, "..", "..", "..")]) {
+    const rulesPath = path.join(projectRoot, "rules", "public", `${registry.appFrmCode}.json`);
+    try {
+      return JSON.parse(fs.readFileSync(rulesPath, "utf-8"));
+    } catch {
+      continue;
+    }
+  }
+  return null;
+}
+
+function loadJsonIfPresent(p: string): Record<string, unknown> | null {
+  try {
+    return JSON.parse(fs.readFileSync(p, "utf-8"));
+  } catch {
+    return null;
+  }
+}
+
+/** ~/.config/ipk-browser-mcp/{knowledge/rules,profile.json} - see field-rules.ts and B4. */
+function loadFieldRulesOptions(formType: string): { profile?: Profile; privatePack?: Rulebook } {
+  const home = process.env.IPK_HOME_DIR ?? process.env.HOME ?? "";
+  const profile = loadProfile() ?? undefined;
+  const registry = FORM_REGISTRY[formType as keyof typeof FORM_REGISTRY];
+  const privatePack = home && registry
+    ? (loadJsonIfPresent(path.join(home, ".config", "ipk-browser-mcp", "knowledge", "rules", `${registry.appFrmCode}.json`)) as unknown as Rulebook | undefined)
+    : undefined;
+  return { profile, privatePack };
+}
+
+/**
+ * Merge a private pack's fields over the public rulebook's stubs (more specific layer
+ * wins - shared-knowledge-v4 C2). A field absent from the pack keeps its public stub.
+ */
+function mergeRulebook(pub: Rulebook, pack?: Rulebook): Rulebook {
+  if (!pack) return pub;
+  return { ...pub, fields: { ...pub.fields, ...pack.fields }, conditional: [...(pub.conditional ?? []), ...(pack.conditional ?? [])] };
+}
+
+/**
+ * Runs field-rules.ts against the *live form's own DOM fields*, right before the save
+ * click (submitForm / the mker preview-or-submit branch). It must read the DOM, not the
+ * MCP call's params: params carry server-only names (form_type, draft_only,
+ * confirm_submit, ...) that no rulebook has ever heard of, while the fields a rulebook
+ * actually names (item_desc[], account_str[], ...) are typed onto the page by several
+ * steps of a handler, computed selects, and the form's own change handlers - the
+ * params the caller sent are not what gets filed. (Passing params directly here is the
+ * bug a previous version of this wiring had: every save on a wired form was refused as
+ * FORM_RULE_VIOLATION because form_type/draft_only/confirm_submit are not DOM names.)
+ *
+ * A form with no rulebook shipped at rules/public/<AppFrm>.json yet is not checked
+ * (null) - a missing rulebook is "not checked", same as a missing template. A rulebook
+ * that exists but the serialized form came back empty IS checked, and fails closed: an
+ * unreadable form is exactly the case this gate exists for.
+ */
+export async function checkFieldRulesAgainstForm(
+  frame: any,
+  formType: string
+): Promise<{ code: string; message: string; violations: unknown } | null> {
+  const pub = loadPublicRulebook(formType);
+  if (!pub) return null; // no rulebook shipped for this form yet
+  const { profile, privatePack } = loadFieldRulesOptions(formType);
+  const book = mergeRulebook(pub, privatePack);
+
+  const serialized = (await serializeFormFields(frame, Object.keys(book.fields))) ?? {};
+  if (Object.keys(serialized).length === 0) {
+    audit({ action: "refusal", code: "FIELD_RULES_UNAVAILABLE", ok: false });
+    return {
+      code: "FORM_RULE_VIOLATION",
+      message: `${book.form}: the form's own fields could not be read (empty or unreadable serialization) - refusing to save unchecked.`,
+      violations: [],
+    };
+  }
+
+  let result;
+  try {
+    const env = {
+      IPK_GROUP_LEADER: process.env.IPK_GROUP_LEADER,
+      IPK_SUBSTITUTE_NAME: process.env.IPK_SUBSTITUTE_NAME,
+      IPK_EMERGENCY_ADDRESS: process.env.IPK_EMERGENCY_ADDRESS,
+      IPK_EMERGENCY_TELEPHONE: process.env.IPK_EMERGENCY_TELEPHONE,
+    };
+    result = checkFieldRules(book, serialized, { profile, env, unknownFields: "warn" });
+  } catch (e) {
+    if (e instanceof FieldRulesUnavailable) {
+      audit({ action: "refusal", code: "FIELD_RULES_UNAVAILABLE", ok: false });
+      return { code: "FORM_RULE_VIOLATION", message: e.message, violations: [] };
+    }
+    throw e;
+  }
+  if (result.blocks.length === 0) return null;
+  for (const v of result.blocks) audit({ action: "refusal", code: "FIELD_RULE_VIOLATION", field: v.field, ok: false });
+  return { code: "FORM_RULE_VIOLATION", message: result.blocks.map((v) => `[${v.field}] ${v.message}`).join("\n"), violations: result.blocks };
 }
 
 
@@ -922,6 +1034,11 @@ export async function handleIpkSubmitForm(
     });
   }
 
+  // Per-field rulebooks (src/policy/field-rules.ts, shared-knowledge-v4 B1-B3) run per
+  // form, right before that form's own save click - see checkFieldRulesAgainstForm's
+  // doc comment for why this cannot run here against params (form_type, draft_only, ...
+  // are not DOM names).
+
   // Validate attachment path if provided
   if (params.attachment_path) {
     const attachErr = validateAttachmentPath(params.attachment_path);
@@ -1217,6 +1334,11 @@ async function submitLeave(
   }
 
   await page.waitForTimeout(1000);
+
+  // Per-field rulebooks (rules/public/AppFrm-073.json) against the form's own fields,
+  // right before the save click - see checkFieldRulesAgainstForm.
+  const leaveRuleRefusal = await checkFieldRulesAgainstForm(frame, "leave");
+  if (leaveRuleRefusal) return textResult({ error: true, ...leaveRuleRefusal });
 
   // Set mode and submit
   await setFormMode(frame, mode);
@@ -1660,6 +1782,11 @@ async function submitTravelRequest(
 
   await page.waitForTimeout(1000);
 
+  // Per-field rulebooks (rules/public/AppFrm-023.json) against the form's own fields,
+  // right before the save click - see checkFieldRulesAgainstForm.
+  const travelRequestRuleRefusal = await checkFieldRulesAgainstForm(frame, "travel_request");
+  if (travelRequestRuleRefusal) return textResult({ error: true, ...travelRequestRuleRefusal });
+
   await setFormMode(frame, mode);
   const docId = await submitForm(page, frame, "check_form_request");
 
@@ -1781,6 +1908,11 @@ async function submitBudgetTransfer(
   }
 
   await page.waitForTimeout(1000);
+
+  // Per-field rulebooks (rules/public/AppFrm-039.json) against the form's own fields,
+  // right before the save click - see checkFieldRulesAgainstForm.
+  const budgetTransferRuleRefusal = await checkFieldRulesAgainstForm(frame, "budget_transfer");
+  if (budgetTransferRuleRefusal) return textResult({ error: true, ...budgetTransferRuleRefusal });
 
   await setFormMode(frame, mode);
   const docId = await submitForm(page, frame, "check_form_request");
@@ -2184,6 +2316,13 @@ async function submitCardExpenseRD(
   // Set file_attach_cnt = N then upload N files into doc_attach_file[]
   const attachResult = await attachmentHelper.attachFiles(frame, filePaths);
   await page.waitForTimeout(500);
+
+  // Per-field rulebooks (rules/public/AppFrm-021.json) against the form's own fields,
+  // right before the preview-or-submit branch - see checkFieldRulesAgainstForm. Checked
+  // even in preview (draft) mode: AppFrm-021 has no real draft state, so preview is the
+  // only chance to catch this before the "submit" branch actually files the document.
+  const cardRdRuleRefusal = await checkFieldRulesAgainstForm(frame, "card_expense_rd");
+  if (cardRdRuleRefusal) return textResult({ error: true, ...cardRdRuleRefusal });
 
   // Step 4: run the form's own Check_Form_Request('insert') - preview or submit.
   // Mark _sessionManager as intentionally unused for tsc strictness
@@ -2666,6 +2805,12 @@ async function submitTravelSettlement(
   }
 
   await page.waitForTimeout(1000);
+
+  // Per-field rulebooks (rules/public/AppFrm-054.json) against the form's own fields,
+  // right before the save click - see checkFieldRulesAgainstForm.
+  const settlementRuleRefusal = await checkFieldRulesAgainstForm(frame, "travel_settlement");
+  if (settlementRuleRefusal) return textResult({ error: true, ...settlementRuleRefusal });
+
   await setFormMode(frame, mode);
   const docId = await submitForm(page, frame, "check_form_request");
 

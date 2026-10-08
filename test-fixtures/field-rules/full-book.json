@@ -1,0 +1,27 @@
+{
+ "form": "AppFrm-999",
+ "title": "Test form",
+ "schema_version": 1,
+ "fields": {
+  "subject": {"label": "Subject", "scope": "org", "visibility": "public", "dept": "ARL",
+    "checks": [{"type": "pattern", "regex": "^\\[Card\\] "}, {"type": "max_len", "max": 60}, {"type": "english"}],
+    "why": "all colleague ERs", "evidence": ["1", "2"]},
+  "account_str": {"label": "Account", "scope": "org", "visibility": "local", "dept": "ARL",
+    "checks": [{"type": "one_of", "values": ["410318"]}],
+    "why": "a colleague's own pot practice, not shared", "evidence": ["5"]},
+  "budget_code": {"label": "Budget", "scope": "self", "visibility": "local", "fiscal_year": 2026,
+    "checks": [{"type": "one_of", "values": ["NN2606-0001", "NN2606-0002"]}],
+    "why": "budgets assigned to this person", "evidence": ["3"]},
+  "amount": {"label": "Amount", "scope": "case", "checks": [], "why": "from the receipt", "evidence": []},
+  "card_no": {"label": "Card", "scope": "self", "visibility": "local",
+    "checks": [{"type": "one_of", "values": ["1234-5678-9012-3456"]}],
+    "why": "the card assigned to this person", "evidence": ["6"]},
+  "approver": {"label": "Approver", "scope": "self", "visibility": "local",
+    "checks": [{"type": "fixed", "value": "Jane Doe"}],
+    "why": "this person's own team head", "evidence": ["7"]}
+ },
+ "conditional": [
+  {"when": {"field": "subject", "regex": "(?i)runpod|openai"}, "then": {"field": "account_str", "value": "410318"},
+   "visibility": "public", "why": "overseas IT subscriptions go to 410318", "evidence": ["4"]}
+ ]
+}

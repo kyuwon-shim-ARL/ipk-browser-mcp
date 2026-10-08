@@ -1,0 +1,686 @@
+{
+ "form": "AppFrm-021",
+ "title": "R&D Expense Request (ER) - corporate card",
+ "schema_version": 1,
+ "fields": {
+  "subject": {
+   "label": "Subject",
+   "scope": "org",
+   "checks": [
+    {
+     "type": "pattern",
+     "regex": "^\\[Card\\] "
+    },
+    {
+     "type": "english"
+    },
+    {
+     "type": "max_len",
+     "max": 39
+    }
+   ],
+   "why": "Every colleague card ER starts '[Card] ' and is short English (p75 length 39, n=20); the user's own subjects (e.g. 51-char '[Card] ARL FedEx Shipping Fee for Sequencing Samples') and the scripts' ' - date (KRW amount)' suffix run longer than office practice. Wire-transfer ERs (300485, 300613) drop the prefix; this rulebook covers the card flow.",
+   "evidence": [
+    "300881",
+    "300865",
+    "300691",
+    "300632",
+    "300629",
+    "300541",
+    "300540",
+    "300418",
+    "300246",
+    "300654",
+    "300651"
+   ],
+   "visibility": "public",
+   "dept": "ARL"
+  },
+  "budget_type": {
+   "label": "Budget Type",
+   "scope": "org",
+   "checks": [
+    {
+     "type": "one_of",
+     "values": [
+      "R&D",
+      "02"
+     ],
+     "form_values": {
+      "02": "R&D"
+     }
+    }
+   ],
+   "why": "All 30 docs (own and colleague) show 'R&D'; the DOM option value is '02' (submit_2609_card_er.py).",
+   "evidence": [
+    "300654",
+    "300651",
+    "300881",
+    "300632",
+    "300540",
+    "300246"
+   ],
+   "visibility": "public",
+   "dept": "ARL"
+  },
+  "budget_code": {
+   "label": "Budget Code",
+   "scope": "self",
+   "source": "profile",
+   "on_missing": "block"
+  },
+  "payment": {
+   "label": "Payment",
+   "scope": "org",
+   "checks": [
+    {
+     "type": "one_of",
+     "values": [
+      "Corporate Credit Card",
+      "Wire transfer to vendor"
+     ]
+    }
+   ],
+   "why": "Only two payment kinds appear across 30 docs; card ERs ([Card] subject) are always 'Corporate Credit Card' (see conditional).",
+   "evidence": [
+    "300654",
+    "300881",
+    "300485",
+    "300613"
+   ],
+   "visibility": "public",
+   "dept": "ARL"
+  },
+  "card_no": {
+   "label": "Card Number",
+   "scope": "self",
+   "source": "profile",
+   "on_missing": "block"
+  },
+  "invoice[]": {
+   "label": "Date of Invoice",
+   "scope": "case",
+   "checks": [],
+   "why": "Card transaction date, prefilled by the system.",
+   "evidence": []
+  },
+  "item_desc[]": {
+   "label": "Cate No",
+   "scope": "org",
+   "checks": [
+    {
+     "type": "fixed",
+     "value": "none"
+    }
+   ],
+   "why": "All 28 card-row docs (own and colleague) show 'none'.",
+   "evidence": [
+    "300654",
+    "300651",
+    "300881",
+    "300632",
+    "300540",
+    "300246",
+    "292446"
+   ],
+   "visibility": "public",
+   "dept": "ARL"
+  },
+  "account_str[]": {
+   "label": "Account Code",
+   "scope": "org",
+   "checks": [
+    {
+     "type": "pattern",
+     "regex": "^\\[4\\d{5}\\] \\S"
+    }
+   ],
+   "why": "Account is '[6-digit code] label' chosen by expense kind (see conditionals: IT 410318, shipping 410911, conference 410306, overtime meal 412103); colleagues also use 410703 Reagent & Supplies, 410901 Office supplies, 412107 Team Activities (RS-only budget).",
+   "evidence": [
+    "300654",
+    "300651",
+    "300649",
+    "300480",
+    "300881",
+    "300632",
+    "300540",
+    "296590"
+   ],
+   "visibility": "public",
+   "dept": "ARL"
+  },
+  "item_name[]": {
+   "label": "Description",
+   "scope": "org",
+   "checks": [
+    {
+     "type": "english"
+    },
+    {
+     "type": "max_len",
+     "max": 21
+    }
+   ],
+   "why": "Colleagues write a short English item name (p75 length 21, n=16 non-empty; overtime meals list the diners, team activities leave it blank); the user's descriptions with dates or purposes appended run longer. Korean is not allowed (project rule).",
+   "evidence": [
+    "300632",
+    "300629",
+    "300649",
+    "300650",
+    "300540",
+    "300541",
+    "300687",
+    "memory:feedback_ipk_english_only.md"
+   ],
+   "visibility": "public",
+   "dept": "ARL"
+  },
+  "item_qty[]": {
+   "label": "Qty",
+   "scope": "org",
+   "checks": [
+    {
+     "type": "fixed",
+     "value": "1"
+    }
+   ],
+   "why": "Every card row in all 28 card docs is Qty 1 (one card charge = one row).",
+   "evidence": [
+    "300654",
+    "300651",
+    "300881",
+    "300632",
+    "300541",
+    "292446"
+   ],
+   "visibility": "public",
+   "dept": "ARL"
+  },
+  "item_amount_ral1[]": {
+   "label": "Amount excl. VAT",
+   "scope": "case",
+   "checks": [],
+   "why": "Derived from the card charge; for overseas IT it equals the total (memory), which this checker cannot test.",
+   "evidence": []
+  },
+  "item_amount_vat[]": {
+   "label": "VAT",
+   "scope": "org",
+   "checks": [],
+   "why": "VAT handling is office practice by expense kind: overseas IT subscriptions VAT 0, FedEx shipping and conference registration VAT = total/11 (memory, 26 and 5 precedents); only the VAT=0 case is checkable (conditional). The user's April RunPod ERs 292446/292644 split VAT and were the reason for the rule.",
+   "evidence": [
+    "memory:feedback_overseas_it_vat_zero.md",
+    "memory:feedback_fedex_er_account_vat.md",
+    "memory:feedback_overseas_registration_vat_split.md",
+    "300540",
+    "300632",
+    "300651"
+   ],
+   "visibility": "public",
+   "dept": "ARL"
+  },
+  "item_amount[]": {
+   "label": "Total Amount",
+   "scope": "case",
+   "checks": [],
+   "why": "The card charge in KRW, prefilled.",
+   "evidence": []
+  },
+  "control_no[]": {
+   "label": "Control No",
+   "scope": "case",
+   "checks": [],
+   "why": "System voucher number.",
+   "evidence": []
+  },
+  "seller_korea[]": {
+   "label": "Payee/Vendor",
+   "scope": "case",
+   "checks": [],
+   "why": "Merchant name from the card company (often Korean, e.g. 페더럴익스프레스코리아 유한회사); a fact of the transaction.",
+   "evidence": []
+  },
+  "seller[]": {
+   "label": "Vendor (English, not shown on view)",
+   "scope": "case",
+   "checks": [],
+   "why": "English vendor name typed by the drafter; not visible on document_view, so no precedent.",
+   "evidence": []
+  },
+  "p_reason": {
+   "label": "Comment (hidden; scripts mirror Notes into it)",
+   "scope": "org",
+   "checks": [
+    {
+     "type": "english"
+    },
+    {
+     "type": "max_len",
+     "max": 67
+    }
+   ],
+   "why": "Colleagues write one short English purpose sentence or leave it empty (p75 length 67, n=11 non-empty); invoice/AWB details belong in attachments. Exception: RunPod uses the user-fixed 101-char note (conditional), which exceeds this limit.",
+   "evidence": [
+    "300632",
+    "300540",
+    "300541",
+    "300649",
+    "300476",
+    "memory:feedback_runpod_er_note.md"
+   ],
+   "visibility": "public",
+   "dept": "ARL"
+  },
+  "notes": {
+   "label": "Notes",
+   "scope": "org",
+   "checks": [
+    {
+     "type": "english"
+    },
+    {
+     "type": "max_len",
+     "max": 67
+    }
+   ],
+   "why": "The visible Notes field (DOM 'notes'; 'p_reason' is a hidden comment box). Colleagues write one short English purpose sentence or leave it empty (p75 length 67, n=11 non-empty); invoice/AWB details belong in attachments. Exception: RunPod uses the user-fixed 101-char note (conditional), which exceeds this limit.",
+   "evidence": [
+    "300632",
+    "300540",
+    "300541",
+    "300649",
+    "300476",
+    "memory:feedback_runpod_er_note.md"
+   ],
+   "visibility": "public",
+   "dept": "ARL"
+  },
+  "vender[]": {
+   "label": "Payee/Vendor (card list fills it)",
+   "scope": "case",
+   "checks": [],
+   "why": "Prefilled from the card transaction.",
+   "evidence": []
+  },
+  "org_name": {
+   "label": "Event Name (410306 only)",
+   "scope": "case",
+   "checks": [
+    {
+     "type": "english"
+    }
+   ],
+   "why": "Shown when the account is 410306; name of the conference. English per project rule (own 293384 used Korean, 296590 English).",
+   "evidence": [
+    "293384",
+    "296590"
+   ]
+  },
+  "dmex_se_cd": {
+   "label": "Organizer Domestic/Overseas (410306 only)",
+   "scope": "case",
+   "checks": [
+    {
+     "type": "one_of",
+     "values": [
+      "01",
+      "02"
+     ]
+    }
+   ],
+   "why": "01 Domestic, 02 Overseas.",
+   "evidence": [
+    "293384",
+    "296590"
+   ]
+  },
+  "organizer_nm": {
+   "label": "Organizer (410306 only)",
+   "scope": "case",
+   "checks": [
+    {
+     "type": "english"
+    }
+   ],
+   "why": "Organizing body of the event, English.",
+   "evidence": [
+    "293384",
+    "296590"
+   ]
+  },
+  "edu_start_day": {
+   "label": "Date/Time start (410306 only)",
+   "scope": "case",
+   "checks": [
+    {
+     "type": "pattern",
+     "regex": "^\\d{4}-\\d{2}-\\d{2}( \\d{2}:\\d{2})?$"
+    }
+   ],
+   "why": "Event start, 'YYYY-MM-DD HH:MM' as in 293384/296590.",
+   "evidence": [
+    "293384",
+    "296590"
+   ]
+  },
+  "edu_end_day": {
+   "label": "Date/Time end (410306 only)",
+   "scope": "case",
+   "checks": [
+    {
+     "type": "pattern",
+     "regex": "^\\d{4}-\\d{2}-\\d{2}( \\d{2}:\\d{2})?$"
+    }
+   ],
+   "why": "Event start, 'YYYY-MM-DD HH:MM' as in 293384/296590.",
+   "evidence": [
+    "293384",
+    "296590"
+   ]
+  },
+  "edu_member": {
+   "label": "Attendee (410306 only)",
+   "scope": "self",
+   "source": "profile",
+   "on_missing": "block"
+  },
+  "venue[]": {
+   "label": "Venue (meeting accounts)",
+   "scope": "org",
+   "checks": [
+    {
+     "type": "english"
+    },
+    {
+     "type": "max_len",
+     "max": 22
+    }
+   ],
+   "why": "Team Activities (412107) ERs name a short English venue (p75 length 22, n=10).",
+   "evidence": [
+    "300881",
+    "300691",
+    "300482",
+    "300457",
+    "299838",
+    "299868",
+    "297181",
+    "300459",
+    "298567",
+    "294924"
+   ],
+   "visibility": "public",
+   "dept": "ARL"
+  },
+  "meeting_begin_date[]": {
+   "label": "Date/Time start (meeting accounts)",
+   "scope": "org",
+   "checks": [
+    {
+     "type": "pattern",
+     "regex": "^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}$"
+    }
+   ],
+   "why": "Rendered 'YYYY-MM-DD HH:MM ~ YYYY-MM-DD HH:MM' on every Team Activities ER.",
+   "evidence": [
+    "300881",
+    "300691",
+    "300482",
+    "300457",
+    "299838",
+    "299868",
+    "297181",
+    "300459",
+    "298567",
+    "294924"
+   ],
+   "visibility": "public",
+   "dept": "ARL"
+  },
+  "meeting_end_date[]": {
+   "label": "Date/Time end (meeting accounts)",
+   "scope": "org",
+   "checks": [
+    {
+     "type": "pattern",
+     "regex": "^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}$"
+    }
+   ],
+   "why": "Same as start.",
+   "evidence": [
+    "300881",
+    "300691",
+    "300482",
+    "300457",
+    "299838",
+    "299868",
+    "297181",
+    "300459",
+    "298567",
+    "294924"
+   ],
+   "visibility": "public",
+   "dept": "ARL"
+  },
+  "participants[]": {
+   "label": "Participants (meeting accounts)",
+   "scope": "org",
+   "checks": [
+    {
+     "type": "english"
+    }
+   ],
+   "why": "Comma-separated English names on every Team Activities ER; who attended is a fact of the case, only the language is office practice.",
+   "evidence": [
+    "300881",
+    "300691",
+    "300482",
+    "300457",
+    "299838",
+    "299868",
+    "297181",
+    "300459",
+    "298567",
+    "294924"
+   ],
+   "visibility": "public",
+   "dept": "ARL"
+  },
+  "purpose[]": {
+   "label": "Purpose & Minutes (meeting accounts)",
+   "scope": "org",
+   "checks": [
+    {
+     "type": "english"
+    },
+    {
+     "type": "max_len",
+     "max": 103
+    }
+   ],
+   "why": "One or two English sentences on what the meeting was for (p75 length 103, n=10).",
+   "evidence": [
+    "300881",
+    "300691",
+    "300482",
+    "300457",
+    "299838",
+    "299868",
+    "297181",
+    "300459",
+    "298567",
+    "294924"
+   ],
+   "visibility": "public",
+   "dept": "ARL"
+  }
+ },
+ "conditional": [
+  {
+   "when": {
+    "field": "subject",
+    "regex": "^\\[Card\\]"
+   },
+   "then": {
+    "field": "payment",
+    "value": "Corporate Credit Card"
+   },
+   "why": "All 28 [Card] ERs are paid by corporate credit card.",
+   "evidence": [
+    "300654",
+    "300881",
+    "300632",
+    "300540"
+   ],
+   "visibility": "public"
+  },
+  {
+   "when": {
+    "field": "item_name[]",
+    "regex": "(?i)runpod"
+   },
+   "then": {
+    "field": "p_reason",
+    "value": "To run GPU demanding models such as molecular embedding and reinforcement learning, virtual screening"
+   },
+   "why": "RunPod note is fixed by the user (older own docs carried the typo 'embbeding').",
+   "evidence": [
+    "memory:feedback_runpod_er_note.md",
+    "300654",
+    "294309",
+    "292927"
+   ],
+   "visibility": "public"
+  },
+  {
+   "when": {
+    "field": "item_name[]",
+    "regex": "(?i)runpod|google cloud|gemini|chatgpt|openai|claude|anthropic|foxit"
+   },
+   "then": {
+    "field": "item_amount_vat[]",
+    "value": "0"
+   },
+   "why": "Overseas IT subscriptions carry no Korean VAT (Microsoft 365 is billed domestically with VAT and is not in this list).",
+   "evidence": [
+    "memory:feedback_overseas_it_vat_zero.md",
+    "300654",
+    "294309",
+    "293196",
+    "292927",
+    "300540"
+   ],
+   "visibility": "public"
+  },
+  {
+   "when": {
+    "field": "item_name[]",
+    "regex": "(?i)runpod|google cloud|gemini|chatgpt|openai|claude|anthropic|foxit|microsoft 365"
+   },
+   "then": {
+    "field": "account_str[]",
+    "value": "[410318] IT Software (IT Subscription)"
+   },
+   "why": "Software/cloud/GPU subscriptions go to 410318 for the user and colleagues alike.",
+   "evidence": [
+    "300654",
+    "293196",
+    "292927",
+    "300540",
+    "300541"
+   ],
+   "visibility": "public"
+  },
+  {
+   "when": {
+    "field": "item_name[]",
+    "regex": "(?i)fedex|shipping|delivery|courier"
+   },
+   "then": {
+    "field": "account_str[]",
+    "value": "[410911] Commission"
+   },
+   "why": "Shipping/delivery fees are 410911 Commission (26 FedEx precedents per memory; colleagues 300632, 300629).",
+   "evidence": [
+    "memory:feedback_fedex_er_account_vat.md",
+    "300651",
+    "300632",
+    "300629"
+   ],
+   "visibility": "public"
+  },
+  {
+   "when": {
+    "field": "item_name[]",
+    "regex": "(?i)registration|conference|virtual pass"
+   },
+   "then": {
+    "field": "account_str[]",
+    "value": "[410306] Participating in Conferences"
+   },
+   "why": "Conference registration fees are 410306 (VAT split, unlike IT).",
+   "evidence": [
+    "memory:feedback_overseas_registration_vat_split.md",
+    "296590",
+    "293384"
+   ],
+   "visibility": "public"
+  },
+  {
+   "when": {
+    "field": "subject",
+    "regex": "(?i)overtime meal"
+   },
+   "then": {
+    "field": "account_str[]",
+    "value": "[412103] Overtime Meals"
+   },
+   "why": "Overtime meal ERs are 412103 for every writer.",
+   "evidence": [
+    "300476",
+    "300687",
+    "300688",
+    "300865",
+    "297084"
+   ],
+   "visibility": "public"
+  },
+  {
+   "when": {
+    "field": "item_name[]",
+    "regex": "(?i)runpod"
+   },
+   "then": {
+    "field": "notes",
+    "value": "To run GPU demanding models such as molecular embedding and reinforcement learning, virtual screening"
+   },
+   "why": "RunPod note is fixed by the user (older own docs carried the typo 'embbeding').",
+   "evidence": [
+    "memory:feedback_runpod_er_note.md",
+    "300654",
+    "294309",
+    "292927"
+   ],
+   "visibility": "public"
+  }
+ ],
+ "ignore": [
+  "account_code[]",
+  "account_seq[]",
+  "appr_no",
+  "apprno",
+  "approve_line_temp",
+  "c_t[]",
+  "card_number",
+  "chk410306",
+  "doc_attach_file[]",
+  "edu_member_id",
+  "file_attach_cnt",
+  "item_amount_ral[]",
+  "mode1",
+  "p_t[]",
+  "pay_kind",
+  "total_amt",
+  "trseq"
+ ]
+}

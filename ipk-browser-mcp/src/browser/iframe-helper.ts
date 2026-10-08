@@ -404,3 +404,44 @@ export async function submitForm(
   }
 }
 
+/**
+ * Read the live form's own field values, by DOM name - what field-rules.ts checks must
+ * see, since checking the MCP call's params would check names the server never typed
+ * into the form (form_type, draft_only, confirm_submit, ...) and miss names it did
+ * (item_desc[], account_str[], ...) - see ipk-submit.ts checkFieldRulesAgainstForm.
+ *
+ * Repeating-row names (`name[]`) collect every row's value into an array, in DOM order,
+ * so a template/unused row shows up as an empty string rather than being silently merged
+ * into the real one; field-rules.ts drops empty entries before checking them. A hidden
+ * input is included only when its name is in `knownNames` (the rulebook's own field
+ * list) - an unlisted hidden field is plumbing (a CSRF token, a row counter), not
+ * something any rulebook was ever going to have an opinion on.
+ */
+export async function serializeFormFields(
+  frame: Frame,
+  knownNames: string[]
+): Promise<Record<string, string | string[]>> {
+  return frame.evaluate((known: string[]) => {
+    const knownSet = new Set(known);
+    const out: Record<string, string | string[]> = {};
+    const els = document.querySelectorAll("input[name], select[name], textarea[name]");
+    els.forEach((raw) => {
+      const el = raw as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
+      if ((el as HTMLInputElement).disabled) return;
+      const name = el.name;
+      if (!name) return;
+      const type = (el as HTMLInputElement).type;
+      if (type === "hidden" && !knownSet.has(name)) return;
+      if ((type === "checkbox" || type === "radio") && !(el as HTMLInputElement).checked) return;
+      const value = el.value;
+      if (name.endsWith("[]")) {
+        (out[name] as string[] | undefined) ??= [];
+        (out[name] as string[]).push(value);
+      } else {
+        out[name] = value;
+      }
+    });
+    return out;
+  }, knownNames);
+}
+

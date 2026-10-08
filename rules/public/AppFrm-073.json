@@ -1,0 +1,149 @@
+{
+ "form": "AppFrm-073",
+ "title": "Leave Request",
+ "schema_version": 1,
+ "fields": {
+  "subject": {
+   "label": "Subject",
+   "scope": "org",
+   "checks": [
+    {
+     "type": "pattern",
+     "regex": "^[A-Z][A-Za-z ]* [Ll]eave, \\d{4}-\\d{2}-\\d{2}~\\d{4}-\\d{2}-\\d{2}, .+, [A-Z][a-z]+ [A-Z][a-z]+$"
+    },
+    {
+     "type": "english"
+    }
+   ],
+   "why": "Subject is '<Leave kind>, <begin>~<end>, <destination>, <name>' with dates only, also for hourly leave (no times): this is the shape the form's change handlers generate and every own doc (incl. HR-edited 299357) has; the repo's hourly template ('<date> 16:00~17:00') diverges from it.",
+   "evidence": [
+    "299745",
+    "299566",
+    "299415",
+    "299357",
+    "296487",
+    "296391",
+    "296017",
+    "295886",
+    "295635",
+    "295581"
+   ],
+   "visibility": "public",
+   "dept": "ARL"
+  },
+  "leave_kind[]": {
+   "label": "Leave Kind / Kind",
+   "scope": "case",
+   "checks": [],
+   "why": "Kind of leave (Annual, Compensatory, Childcare, ...) is chosen per case from the remaining balances."
+  },
+  "using_type[]": {
+   "label": "Leave Kind / Using (Full day | Hours)",
+   "scope": "case",
+   "checks": [],
+   "why": "Full day vs Hours is a fact of the case."
+  },
+  "begin_date[]": {
+   "label": "Leave Kind / Period (start)",
+   "scope": "case",
+   "checks": [],
+   "why": "Date of the case."
+  },
+  "end_date[]": {
+   "label": "Leave Kind / Period (end)",
+   "scope": "case",
+   "checks": [],
+   "why": "Date of the case."
+  },
+  "start_time[]": {
+   "label": "Leave Kind / Hours (from)",
+   "scope": "case",
+   "checks": [],
+   "why": "Hour of the case (hourly leave only)."
+  },
+  "end_time[]": {
+   "label": "Leave Kind / Hours (to)",
+   "scope": "case",
+   "checks": [],
+   "why": "Hour of the case (hourly leave only)."
+  },
+  "purpose": {
+   "label": "Purpose for leave",
+   "scope": "org",
+   "checks": [
+    {
+     "type": "english"
+    }
+   ],
+   "why": "Content is per case (all own docs say 'child care', a habit not a rule); the only rule is that form text is English.",
+   "evidence": [
+    "memory:feedback_ipk_english_only.md"
+   ],
+   "visibility": "public",
+   "dept": "ARL"
+  },
+  "destination": {
+   "label": "Destination for leaves",
+   "scope": "org",
+   "checks": [
+    {
+     "type": "english"
+    }
+   ],
+   "why": "Where the user will be is a fact of the case (own docs: always home address, which is not a rule and is not listed); the only rule is that form text is English.",
+   "evidence": [
+    "memory:feedback_ipk_english_only.md"
+   ],
+   "visibility": "public",
+   "dept": "ARL"
+  },
+  "approver": {
+   "label": "Approval (2) Team Head (R)",
+   "scope": "self",
+   "source": "profile",
+   "on_missing": "block"
+  },
+  "substitute_name": {
+   "label": "Substitute / Name",
+   "scope": "self",
+   "source": "profile",
+   "on_missing": "block"
+  },
+  "substitute_payroll": {
+   "label": "Substitute / Payroll No",
+   "scope": "self",
+   "source": "profile",
+   "on_missing": "block"
+  },
+  "substitute_position": {
+   "label": "Substitute / Position/Dept",
+   "scope": "self",
+   "source": "profile",
+   "on_missing": "block"
+  },
+  "substitute_contact": {
+   "label": "Substitute / Contact",
+   "scope": "self",
+   "source": "profile",
+   "on_missing": "block"
+  },
+  "emergency_address": {
+   "label": "Emergency Contact / Address",
+   "scope": "self",
+   "source": "profile",
+   "on_missing": "block"
+  },
+  "emergency_telephone": {
+   "label": "Emergency Contact / telephone",
+   "scope": "self",
+   "source": "profile",
+   "on_missing": "block"
+  }
+ },
+ "conditional": [],
+ "ignore": [
+  "mode1",
+  "approve_type",
+  "doc_id"
+ ]
+}

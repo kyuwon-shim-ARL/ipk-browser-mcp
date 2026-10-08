@@ -44,6 +44,7 @@ NEW_FILE_ALLOWLIST = (
     "ipk-browser-mcp/bench/",
     "form_templates/",
     "rules/public/",
+    "test-fixtures/",
     "skills/",
     "scripts/",
     ".claude-plugin/",
@@ -65,12 +66,17 @@ def card_number_violations(text: str) -> list[str]:
     return [m.group(0) for m in CARD_RE.finditer(text) if m.group(0).replace("-", "") != DUMMY_CARD.replace("-", "")]
 
 
+DUMMY_CARD_OUTER = DUMMY_CARD.split("-")  # ["1234", "5678", "9012", "3456"]
+
+
 def masked_card_violations(text: str) -> list[str]:
     out = []
     for m in MASKED_CARD_RE.finditer(text):
         first, last = m.group(1), m.group(4)
         if first == "XXXX" and last == "XXXX":
             continue  # fully masked - allowed
+        if first == DUMMY_CARD_OUTER[0] and last == DUMMY_CARD_OUTER[3]:
+            continue  # the dummy's own masked form (1234-XXXX-XXXX-3456) - not a real card
         out.append(m.group(0))
     return out
 

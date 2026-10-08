@@ -1,0 +1,23 @@
+{
+  "form_code": "AppFrm-074",
+  "form_name": "Application for Working on Weekends & Holidays",
+  "field_schema": {
+    "subject": {"type": "text", "widget_type": "text", "dom_name": "subject", "required": true, "source": "user_input"},
+    "user_nm": {"type": "text", "widget_type": "text", "dom_name": "user_nm", "required": false, "source": "auto_filled", "note": "Employee name, auto-filled by groupware"},
+    "user_emp_no": {"type": "text", "widget_type": "text", "dom_name": "user_emp_no", "required": false, "source": "auto_filled", "note": "Payroll No., auto-filled"},
+    "division_nm": {"type": "text", "widget_type": "text", "dom_name": "division_nm", "required": false, "source": "auto_filled"},
+    "group_nm": {"type": "text", "widget_type": "text", "dom_name": "group_nm", "required": false, "source": "auto_filled"},
+    "grade_nm": {"type": "text", "widget_type": "text", "dom_name": "grade_nm", "required": false, "source": "auto_filled"},
+    "position_nm": {"type": "text", "widget_type": "text", "dom_name": "position_nm", "required": false, "source": "auto_filled"},
+    "reason": {"type": "text", "widget_type": "text", "dom_name": "reason", "required": true, "source": "user_input"},
+    "work_date": {"type": "date", "widget_type": "text", "dom_name": "app_dt[]", "required": true, "source": "user_input", "note": "Application date (the work date); repeatable row keyed with order_no[]"},
+    "working_hours": {"type": "select", "widget_type": "select", "dom_name": "working_time[]", "required": true, "source": "user_input", "note": "Expected working hours, HH:00 from 01:00-12:00; repeatable row paired with app_dt[]"}
+  },
+  "repeatable_rows": {
+    "row_fields": ["order_no[]", "app_dt[]", "working_time[]"],
+    "note": "One row per weekend/holiday work date; 'Actual Working hours Start/End', 'Times', 'Result (x1.5 Times)' columns are read-only, computed post-approval from clock-in/out, not form inputs"
+  },
+  "submit_flow": {
+    "note": "Not yet exercised live (read-only inspection only); dev/ipk_gw.py and ipk-submit.ts currently target AppFrm-027 (wrong form) for the 'working' type and must be repointed to AppFrm-074 with this field_schema"
+  }
+}

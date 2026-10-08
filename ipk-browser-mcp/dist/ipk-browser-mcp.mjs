@@ -3231,8 +3231,8 @@ var require_utils = __commonJS({
       }
       return ind;
     }
-    function removeDotSegments(path6) {
-      let input = path6;
+    function removeDotSegments(path7) {
+      let input = path7;
       const output = [];
       let nextSlash = -1;
       let len = 0;
@@ -3431,8 +3431,8 @@ var require_schemes = __commonJS({
         wsComponent.secure = void 0;
       }
       if (wsComponent.resourceName) {
-        const [path6, query] = wsComponent.resourceName.split("?");
-        wsComponent.path = path6 && path6 !== "/" ? path6 : void 0;
+        const [path7, query] = wsComponent.resourceName.split("?");
+        wsComponent.path = path7 && path7 !== "/" ? path7 : void 0;
         wsComponent.query = query;
         wsComponent.resourceName = void 0;
       }
@@ -6794,12 +6794,12 @@ var require_dist = __commonJS({
         throw new Error(`Unknown format "${name}"`);
       return f;
     };
-    function addFormats(ajv, list, fs8, exportName) {
+    function addFormats(ajv, list, fs9, exportName) {
       var _a;
       var _b;
       (_a = (_b = ajv.opts.code).formats) !== null && _a !== void 0 ? _a : _b.formats = (0, codegen_1._)`require("ajv-formats/dist/formats").${exportName}`;
       for (const f of list)
-        ajv.addFormat(f, fs8[f]);
+        ajv.addFormat(f, fs9[f]);
     }
     module.exports = exports = formatsPlugin;
     Object.defineProperty(exports, "__esModule", { value: true });
@@ -6852,7 +6852,7 @@ __export(attachment_exports, {
   attachFiles: () => attachFiles,
   clearAllAttachments: () => clearAllAttachments
 });
-import * as fs4 from "fs";
+import * as fs5 from "fs";
 async function attachFiles(ctx, filePaths) {
   const result = { attached: 0, skipped: [] };
   const valid = [];
@@ -6862,7 +6862,7 @@ async function attachFiles(ctx, filePaths) {
       result.skipped.push({ path: p, reason: pathErr });
       continue;
     }
-    if (!fs4.existsSync(p)) {
+    if (!fs5.existsSync(p)) {
       result.skipped.push({ path: p, reason: "file not found on local fs" });
     } else {
       valid.push(p);
@@ -7490,8 +7490,8 @@ function getErrorMap() {
 
 // node_modules/zod/v3/helpers/parseUtil.js
 var makeIssue = (params) => {
-  const { data, path: path6, errorMaps, issueData } = params;
-  const fullPath = [...path6, ...issueData.path || []];
+  const { data, path: path7, errorMaps, issueData } = params;
+  const fullPath = [...path7, ...issueData.path || []];
   const fullIssue = {
     ...issueData,
     path: fullPath
@@ -7607,11 +7607,11 @@ var errorUtil;
 
 // node_modules/zod/v3/types.js
 var ParseInputLazyPath = class {
-  constructor(parent, value, path6, key) {
+  constructor(parent, value, path7, key) {
     this._cachedPath = [];
     this.parent = parent;
     this.data = value;
-    this._path = path6;
+    this._path = path7;
     this._key = key;
   }
   get path() {
@@ -11248,10 +11248,10 @@ function assignProp(target, prop, value) {
     configurable: true
   });
 }
-function getElementAtPath(obj, path6) {
-  if (!path6)
+function getElementAtPath(obj, path7) {
+  if (!path7)
     return obj;
-  return path6.reduce((acc, key) => acc?.[key], obj);
+  return path7.reduce((acc, key) => acc?.[key], obj);
 }
 function promiseAllObject(promisesObj) {
   const keys = Object.keys(promisesObj);
@@ -11571,11 +11571,11 @@ function aborted(x, startIndex = 0) {
   }
   return false;
 }
-function prefixIssues(path6, issues) {
+function prefixIssues(path7, issues) {
   return issues.map((iss) => {
     var _a;
     (_a = iss).path ?? (_a.path = []);
-    iss.path.unshift(path6);
+    iss.path.unshift(path7);
     return iss;
   });
 }
@@ -21270,8 +21270,8 @@ var CONFIG_DIR = `${process.env.HOME}/.config/ipk-browser-mcp`;
 var ENV_FILE = `${CONFIG_DIR}/.env`;
 function loadDotenv() {
   try {
-    const { readFileSync: readFileSync4 } = __require("fs");
-    const content = readFileSync4(ENV_FILE, "utf-8");
+    const { readFileSync: readFileSync5 } = __require("fs");
+    const content = readFileSync5(ENV_FILE, "utf-8");
     const vars = {};
     for (const line of content.split("\n")) {
       const trimmed = line.trim();
@@ -21579,7 +21579,7 @@ async function handleIpkLogin(sessionManager2, params) {
 }
 
 // src/tools/ipk-submit.ts
-import * as fs5 from "fs";
+import * as fs6 from "fs";
 init_attachment_path();
 
 // src/internal/audit.ts
@@ -21797,6 +21797,238 @@ function checkOrgPolicy(params) {
     if (v) out.push(v);
   }
   return out;
+}
+
+// src/profile/profile.ts
+import * as fs4 from "fs";
+import * as path3 from "path";
+var PROFILE_SCHEMA_VERSION = 1;
+function emptyProfile(user) {
+  return {
+    schema_version: PROFILE_SCHEMA_VERSION,
+    user,
+    cards: [],
+    budget_pots: [],
+    updated_at: (/* @__PURE__ */ new Date()).toISOString()
+  };
+}
+function profileDir(home = process.env.IPK_HOME_DIR ?? process.env.HOME ?? "") {
+  return path3.join(home, ".config", "ipk-browser-mcp");
+}
+function profilePath(home) {
+  return path3.join(profileDir(home), "profile.json");
+}
+function loadProfile(home) {
+  try {
+    return JSON.parse(fs4.readFileSync(profilePath(home), "utf-8"));
+  } catch {
+    return null;
+  }
+}
+function saveProfile(profile, home) {
+  const dir = profileDir(home);
+  fs4.mkdirSync(dir, { recursive: true });
+  const p = profilePath(home);
+  fs4.writeFileSync(p, JSON.stringify(profile, null, 2) + "\n", { mode: 384 });
+  fs4.chmodSync(p, 384);
+  return p;
+}
+function maskCardNumber(number3) {
+  const digits = number3.replace(/\D/g, "");
+  if (digits.length < 4) return "****";
+  return `****-****-****-${digits.slice(-4)}`;
+}
+function cardDigits(number3) {
+  return number3.replace(/\D/g, "");
+}
+function cardMatches(profileNumber, domValue) {
+  const domDigits = cardDigits(domValue);
+  if (!/[Xx]/.test(profileNumber)) {
+    return cardDigits(profileNumber) === domDigits;
+  }
+  const groups = profileNumber.split(/[-\s]+/).filter(Boolean);
+  const first = cardDigits(groups[0] ?? "");
+  const last = cardDigits(groups[groups.length - 1] ?? "");
+  if (!first || !last) return false;
+  return domDigits.startsWith(first) && domDigits.endsWith(last) && domDigits.length >= first.length + last.length;
+}
+function fiscalYearFromCode(code) {
+  const m = /^[A-Za-z]{2}(\d{2})/.exec(code);
+  if (!m) return void 0;
+  return 2e3 + Number(m[1]);
+}
+
+// src/policy/field-rules.ts
+var FieldRulesUnavailable = class extends Error {
+};
+var HANGUL2 = /[ᄀ-ᇿ㄰-㆏ꥠ-꥿가-힯ힰ-퟿]/;
+function toRegExp(pattern) {
+  const m = /^\(\?i\)/.exec(pattern);
+  return m ? new RegExp(pattern.slice(m[0].length), "i") : new RegExp(pattern);
+}
+function runCheck(c, rawValue) {
+  const v = c.form_values?.[rawValue] ?? rawValue;
+  switch (c.type) {
+    case "pattern":
+      if (!toRegExp(c.regex).test(v)) return `pattern /${c.regex}/ not matched`;
+      return null;
+    case "max_len":
+      if (v.length > c.max) return `max_len ${c.max} exceeded (${v.length})`;
+      return null;
+    case "min_len":
+      if (v.length < c.min) return `min_len ${c.min} not reached (${v.length})`;
+      return null;
+    case "english":
+      if (HANGUL2.test(v)) return "english: contains Hangul";
+      return null;
+    case "one_of":
+      if (!c.values.includes(v)) return `one_of: '${v}' not in ${JSON.stringify(c.values)}`;
+      return null;
+    case "fixed":
+      if (v !== c.value) return `fixed: '${v}' != '${c.value}'`;
+      return null;
+  }
+  return null;
+}
+function toValues(value) {
+  return Array.isArray(value) ? value.map(String) : [String(value)];
+}
+var HARD_SELF_FIELD_CHECKS = {
+  budget_code: (p, values) => values.every((v) => p.budget_pots.some((b) => b.code === v))
+};
+var CARD_SELF_FIELDS = /* @__PURE__ */ new Set(["card_no", "credit_card_no", "copcard"]);
+function ownCardMatch(profile, values) {
+  return values.every((v) => profile.cards.some((c) => c.kind === "own" && cardMatches(c.number, v)));
+}
+function unconfirmedOwnCardMatch(profile, values) {
+  return values.every((v) => profile.cards.some((c) => c.kind === "own-unconfirmed" && cardMatches(c.number, v)));
+}
+function matchesSomeoneElsesCard(profile, values) {
+  return values.some((v) => profile.cards.some((c) => c.kind === "shared" && cardMatches(c.number, v)));
+}
+var SOFT_SELF_FIELD_SOURCES = {
+  approver: (p, env2) => p?.approval_line?.group_leader ?? env2?.IPK_GROUP_LEADER,
+  substitute_name: (p, env2) => p?.approval_line?.substitute ?? env2?.IPK_SUBSTITUTE_NAME,
+  emergency_address: (_p, env2) => env2?.IPK_EMERGENCY_ADDRESS,
+  emergency_telephone: (_p, env2) => env2?.IPK_EMERGENCY_TELEPHONE
+};
+function checkFieldRules(book, draft, options = {}) {
+  const fields = book.fields ?? {};
+  const ignore = new Set(book.ignore ?? []);
+  const unknownMode = options.unknownFields ?? "block";
+  const blocks = [];
+  const warnings = [];
+  const unknown2 = Object.keys(draft).filter((k) => !(k in fields) && !ignore.has(k));
+  if (unknown2.length > 0) {
+    if (unknownMode === "block") {
+      throw new FieldRulesUnavailable(`${book.form}: no rule for field(s) ${unknown2.join(", ")}. The draft was not checked.`);
+    }
+    const nonEmpty = unknown2.filter((k) => toValues(draft[k]).some((v) => v !== ""));
+    if (nonEmpty.length > 0) {
+      warnings.push({
+        field: nonEmpty.join(", "),
+        scope: "unknown",
+        message: `no rule for field(s) ${nonEmpty.join(", ")} - not checked against office/personal practice (the rulebook may not have caught up with this form field yet)`
+      });
+    }
+  }
+  const conditionals = book.conditional ?? [];
+  const matched = conditionals.filter(
+    (c) => c.when.field in draft && toValues(draft[c.when.field]).some((v) => toRegExp(c.when.regex).test(v))
+  );
+  const decided = new Set(matched.map((c) => c.then.field));
+  for (const [name, value] of Object.entries(draft)) {
+    const f = fields[name];
+    if (!f || f.scope === "case" || decided.has(name)) continue;
+    const values = toValues(value).filter((v) => v !== "");
+    if (values.length === 0) continue;
+    if (f.source) {
+      if (f.scope === "self") {
+        if (CARD_SELF_FIELDS.has(name)) {
+          if (!options.profile) {
+            blocks.push({
+              field: name,
+              scope: f.scope,
+              message: `${name} [self]: no profile loaded - ask the person; run ipk_profile_init to read your own cards from the groupware.`
+            });
+          } else if (ownCardMatch(options.profile, values)) {
+          } else if (unconfirmedOwnCardMatch(options.profile, values)) {
+            warnings.push({
+              field: name,
+              scope: f.scope,
+              message: `${name} [self]: this card appeared on only one of this person's own approved documents - not blocked, but unconfirmed (seen on <2 non-meeting approved AppFrm-021 docs). Re-run ipk_profile_init later to confirm it.`
+            });
+          } else {
+            const message = matchesSomeoneElsesCard(options.profile, values) ? `${name} [self]: this card belongs to someone else - ask the person; a shared card is only allowed where an explicit rule names it (e.g. the Team Activities account conditional).` : `${name} [self]: value not found in the profile - ask the person; never fill a self field from someone else's precedent.`;
+            blocks.push({ field: name, scope: f.scope, message });
+          }
+        } else if (name in HARD_SELF_FIELD_CHECKS) {
+          const check2 = HARD_SELF_FIELD_CHECKS[name];
+          if (!options.profile) {
+            blocks.push({
+              field: name,
+              scope: f.scope,
+              message: `${name} [self]: no profile loaded - ask the person; run ipk_profile_init to read your own cards/budget pots from the groupware.`
+            });
+          } else if (!check2(options.profile, values)) {
+            blocks.push({
+              field: name,
+              scope: f.scope,
+              message: `${name} [self]: value not found in the profile - ask the person; never fill a self field from someone else's precedent.`
+            });
+          }
+        } else if (name in SOFT_SELF_FIELD_SOURCES) {
+          const configured = SOFT_SELF_FIELD_SOURCES[name](options.profile, options.env);
+          if (configured === void 0) {
+            warnings.push({
+              field: name,
+              scope: f.scope,
+              message: `${name} [self]: not independently verifiable yet - configure profile.approval_line or the matching env var (see ipk-submit.ts) to check this field.`
+            });
+          } else if (!values.every((v) => v === configured)) {
+            blocks.push({
+              field: name,
+              scope: f.scope,
+              message: `${name} [self]: shows '${values.join(", ")}' but the configured value is '${configured}' - ask the person (this may be the wrong person on the document).`
+            });
+          }
+        } else {
+          warnings.push({
+            field: name,
+            scope: f.scope,
+            message: `${name} [self]: no profile mapping defined for '${name}' yet - not verifiable, not blocked.`
+          });
+        }
+      } else {
+        warnings.push({
+          field: name,
+          scope: f.scope,
+          message: `${name} [org]: no ${f.source} data available to check this field against office practice`
+        });
+      }
+      continue;
+    }
+    for (const c of f.checks ?? []) {
+      for (const v of values) {
+        const msg = runCheck(c, v);
+        if (msg) blocks.push({ field: name, scope: f.scope, message: `${name} [${f.scope}]: ${msg}${f.why ? ` - ${f.why}` : ""}` });
+      }
+    }
+  }
+  for (const c of matched) {
+    if (c.then.field in draft) {
+      const got = toValues(draft[c.then.field]).filter((g) => g !== "");
+      const mismatched = got.length > 0 && got.some((g) => (c.then.form_values?.[g] ?? g) !== c.then.value);
+      if (mismatched) {
+        blocks.push({
+          field: c.then.field,
+          scope: fields[c.then.field]?.scope ?? "org",
+          message: `${c.then.field}: must be '${c.then.value}' when ${c.when.field} matches /${c.when.regex}/${c.why ? ` - ${c.why}` : ""}`
+        });
+      }
+    }
+  }
+  return { blocks, warnings };
 }
 
 // src/forms/travel-request.ts
@@ -22325,9 +22557,33 @@ async function submitForm(page, frame, method = "check_form_request") {
     page.off("dialog", onDialog);
   }
 }
+async function serializeFormFields(frame, knownNames) {
+  return frame.evaluate((known) => {
+    const knownSet = new Set(known);
+    const out = {};
+    const els = document.querySelectorAll("input[name], select[name], textarea[name]");
+    els.forEach((raw) => {
+      const el = raw;
+      if (el.disabled) return;
+      const name = el.name;
+      if (!name) return;
+      const type = el.type;
+      if (type === "hidden" && !knownSet.has(name)) return;
+      if ((type === "checkbox" || type === "radio") && !el.checked) return;
+      const value = el.value;
+      if (name.endsWith("[]")) {
+        out[name] ??= [];
+        out[name].push(value);
+      } else {
+        out[name] = value;
+      }
+    });
+    return out;
+  }, knownNames);
+}
 
 // src/tools/ipk-submit.ts
-import * as path3 from "path";
+import * as path4 from "path";
 import { fileURLToPath } from "url";
 
 // src/form-registry.ts
@@ -22349,7 +22605,7 @@ var FORM_REGISTRY = {
 
 // src/tools/ipk-submit.ts
 var __filename = fileURLToPath(import.meta.url);
-var __dirname = path3.dirname(__filename);
+var __dirname = path4.dirname(__filename);
 async function executePostActions(frame, actions) {
   for (const act of actions) {
     if (act.action === "wait_selector" && act.target) {
@@ -22531,15 +22787,80 @@ async function genericFillForm(frame, fieldSchema, userData, hooks, opts) {
 function loadTemplateFieldSchema(formType) {
   const registry2 = FORM_REGISTRY[formType];
   if (!registry2) return null;
-  const projectRoot = path3.resolve(__dirname, "..", "..");
-  const templatePath = path3.join(projectRoot, "form_templates", registry2.templateFile);
+  const projectRoot = path4.resolve(__dirname, "..", "..");
+  const templatePath = path4.join(projectRoot, "form_templates", registry2.templateFile);
   try {
-    const raw = fs5.readFileSync(templatePath, "utf-8");
+    const raw = fs6.readFileSync(templatePath, "utf-8");
     const template = JSON.parse(raw);
     return template.field_schema || null;
   } catch {
     return null;
   }
+}
+function loadPublicRulebook(formType) {
+  const registry2 = FORM_REGISTRY[formType];
+  if (!registry2) return null;
+  for (const projectRoot of [path4.resolve(__dirname, "..", ".."), path4.resolve(__dirname, "..", "..", "..")]) {
+    const rulesPath = path4.join(projectRoot, "rules", "public", `${registry2.appFrmCode}.json`);
+    try {
+      return JSON.parse(fs6.readFileSync(rulesPath, "utf-8"));
+    } catch {
+      continue;
+    }
+  }
+  return null;
+}
+function loadJsonIfPresent(p) {
+  try {
+    return JSON.parse(fs6.readFileSync(p, "utf-8"));
+  } catch {
+    return null;
+  }
+}
+function loadFieldRulesOptions(formType) {
+  const home = process.env.IPK_HOME_DIR ?? process.env.HOME ?? "";
+  const profile = loadProfile() ?? void 0;
+  const registry2 = FORM_REGISTRY[formType];
+  const privatePack = home && registry2 ? loadJsonIfPresent(path4.join(home, ".config", "ipk-browser-mcp", "knowledge", "rules", `${registry2.appFrmCode}.json`)) : void 0;
+  return { profile, privatePack };
+}
+function mergeRulebook(pub, pack) {
+  if (!pack) return pub;
+  return { ...pub, fields: { ...pub.fields, ...pack.fields }, conditional: [...pub.conditional ?? [], ...pack.conditional ?? []] };
+}
+async function checkFieldRulesAgainstForm(frame, formType) {
+  const pub = loadPublicRulebook(formType);
+  if (!pub) return null;
+  const { profile, privatePack } = loadFieldRulesOptions(formType);
+  const book = mergeRulebook(pub, privatePack);
+  const serialized = await serializeFormFields(frame, Object.keys(book.fields)) ?? {};
+  if (Object.keys(serialized).length === 0) {
+    audit({ action: "refusal", code: "FIELD_RULES_UNAVAILABLE", ok: false });
+    return {
+      code: "FORM_RULE_VIOLATION",
+      message: `${book.form}: the form's own fields could not be read (empty or unreadable serialization) - refusing to save unchecked.`,
+      violations: []
+    };
+  }
+  let result;
+  try {
+    const env2 = {
+      IPK_GROUP_LEADER: process.env.IPK_GROUP_LEADER,
+      IPK_SUBSTITUTE_NAME: process.env.IPK_SUBSTITUTE_NAME,
+      IPK_EMERGENCY_ADDRESS: process.env.IPK_EMERGENCY_ADDRESS,
+      IPK_EMERGENCY_TELEPHONE: process.env.IPK_EMERGENCY_TELEPHONE
+    };
+    result = checkFieldRules(book, serialized, { profile, env: env2, unknownFields: "warn" });
+  } catch (e) {
+    if (e instanceof FieldRulesUnavailable) {
+      audit({ action: "refusal", code: "FIELD_RULES_UNAVAILABLE", ok: false });
+      return { code: "FORM_RULE_VIOLATION", message: e.message, violations: [] };
+    }
+    throw e;
+  }
+  if (result.blocks.length === 0) return null;
+  for (const v of result.blocks) audit({ action: "refusal", code: "FIELD_RULE_VIOLATION", field: v.field, ok: false });
+  return { code: "FORM_RULE_VIOLATION", message: result.blocks.map((v) => `[${v.field}] ${v.message}`).join("\n"), violations: result.blocks };
 }
 async function attachFile(frame, filePath, explicitTarget) {
   const err = validateAttachmentPath(filePath);
@@ -23161,6 +23482,8 @@ async function submitLeave(page, frame, sessionManager2, config3, params, mode) 
     await page.waitForTimeout(1e3);
   }
   await page.waitForTimeout(1e3);
+  const leaveRuleRefusal = await checkFieldRulesAgainstForm(frame, "leave");
+  if (leaveRuleRefusal) return textResult({ error: true, ...leaveRuleRefusal });
   await setFormMode(frame, mode);
   const docId = await submitForm(page, frame, "check_form_request");
   return textResult({
@@ -23489,6 +23812,8 @@ async function submitTravelRequest(page, frame, sessionManager2, config3, params
     ["end_tm", params.end_tm]
   ]);
   await page.waitForTimeout(1e3);
+  const travelRequestRuleRefusal = await checkFieldRulesAgainstForm(frame, "travel_request");
+  if (travelRequestRuleRefusal) return textResult({ error: true, ...travelRequestRuleRefusal });
   await setFormMode(frame, mode);
   const docId = await submitForm(page, frame, "check_form_request");
   const precedentSet = PRECEDENT_FOR.get(params);
@@ -23815,6 +24140,8 @@ async function submitCardExpenseRD(page, frame, _sessionManager, config3, params
   }
   const attachResult = await attachmentHelper.attachFiles(frame, filePaths);
   await page.waitForTimeout(500);
+  const cardRdRuleRefusal = await checkFieldRulesAgainstForm(frame, "card_expense_rd");
+  if (cardRdRuleRefusal) return textResult({ error: true, ...cardRdRuleRefusal });
   void _sessionManager;
   if (mode === "draft") {
     return await previewCardExpenseRD(page, frame, config3, { subject, effectiveBudgetCode, attachResult, fileCount: filePaths.length });
@@ -24064,8 +24391,8 @@ async function previewCardExpenseRD(page, frame, config3, ctx) {
       runError = err instanceof Error ? err.message : String(err);
     }
     try {
-      fs5.mkdirSync(config3.screenshotDir, { recursive: true, mode: 448 });
-      const file = path3.join(config3.screenshotDir, `card-er-preview-${(/* @__PURE__ */ new Date()).toISOString().replace(/[:.]/g, "-")}.png`);
+      fs6.mkdirSync(config3.screenshotDir, { recursive: true, mode: 448 });
+      const file = path4.join(config3.screenshotDir, `card-er-preview-${(/* @__PURE__ */ new Date()).toISOString().replace(/[:.]/g, "-")}.png`);
       const vp = page.viewportSize();
       try {
         if (vp) await page.setViewportSize({ width: vp.width, height: 4e3 });
@@ -24186,6 +24513,8 @@ async function submitTravelSettlement(page, frame, sessionManager2, config3, par
     await page.waitForTimeout(1e3);
   }
   await page.waitForTimeout(1e3);
+  const settlementRuleRefusal = await checkFieldRulesAgainstForm(frame, "travel_settlement");
+  if (settlementRuleRefusal) return textResult({ error: true, ...settlementRuleRefusal });
   await setFormMode(frame, mode);
   const docId = await submitForm(page, frame, "check_form_request");
   const warnings = [];
@@ -24895,8 +25224,8 @@ async function handleIpkGetContent(sessionManager2, config3, params) {
 }
 
 // src/tools/screenshot.ts
-import * as fs6 from "fs";
-import * as path4 from "path";
+import * as fs7 from "fs";
+import * as path5 from "path";
 var screenshotSchema = {
   filename: external_exports.string().optional().describe("Custom filename (without path). Default: auto-generated timestamp."),
   full_page: external_exports.boolean().default(false).describe("Capture full page (true) or viewport only (false)")
@@ -24908,10 +25237,10 @@ async function handleScreenshot(sessionManager2, config3, params) {
   }
   const page = sessionManager2.getPage();
   try {
-    fs6.mkdirSync(config3.screenshotDir, { recursive: true, mode: 448 });
+    fs7.mkdirSync(config3.screenshotDir, { recursive: true, mode: 448 });
     const timestamp = (/* @__PURE__ */ new Date()).toISOString().replace(/[:.]/g, "-");
     const filename = params.filename || `ipk-${timestamp}.png`;
-    const filepath = path4.join(config3.screenshotDir, filename);
+    const filepath = path5.join(config3.screenshotDir, filename);
     await page.screenshot({
       path: filepath,
       fullPage: params.full_page || false
@@ -24919,8 +25248,8 @@ async function handleScreenshot(sessionManager2, config3, params) {
     const ttlMs = config3.screenshotTtlMinutes * 60 * 1e3;
     setTimeout(() => {
       try {
-        if (fs6.existsSync(filepath)) {
-          fs6.unlinkSync(filepath);
+        if (fs7.existsSync(filepath)) {
+          fs7.unlinkSync(filepath);
         }
       } catch {
       }
@@ -24941,16 +25270,16 @@ async function handleScreenshot(sessionManager2, config3, params) {
 }
 function cleanupExpiredScreenshots(config3) {
   try {
-    if (!fs6.existsSync(config3.screenshotDir)) return;
+    if (!fs7.existsSync(config3.screenshotDir)) return;
     const now = Date.now();
     const ttlMs = config3.screenshotTtlMinutes * 60 * 1e3;
-    const files = fs6.readdirSync(config3.screenshotDir);
+    const files = fs7.readdirSync(config3.screenshotDir);
     for (const file of files) {
       if (!file.endsWith(".png")) continue;
-      const filepath = path4.join(config3.screenshotDir, file);
-      const stat = fs6.statSync(filepath);
+      const filepath = path5.join(config3.screenshotDir, file);
+      const stat = fs7.statSync(filepath);
       if (now - stat.mtimeMs > ttlMs) {
-        fs6.unlinkSync(filepath);
+        fs7.unlinkSync(filepath);
       }
     }
   } catch {
@@ -24958,11 +25287,11 @@ function cleanupExpiredScreenshots(config3) {
 }
 
 // src/tools/ipk-inspect.ts
-import * as fs7 from "fs";
-import * as path5 from "path";
+import * as fs8 from "fs";
+import * as path6 from "path";
 import { fileURLToPath as fileURLToPath2 } from "url";
 var __filename2 = fileURLToPath2(import.meta.url);
-var __dirname2 = path5.dirname(__filename2);
+var __dirname2 = path6.dirname(__filename2);
 var ipkInspectFormSchema = {
   form_code: external_exports.string().describe("Form code to inspect, e.g. AppFrm-054"),
   compare_template: external_exports.boolean().default(true).describe("Cross-verify against form_templates JSON")
@@ -25018,10 +25347,10 @@ async function handleIpkInspectForm(sessionManager2, config3, params) {
       elements: domElements
     };
     if (compareTemplate) {
-      const projectRoot = path5.resolve(__dirname2, "..", "..");
-      const templatePath = path5.join(projectRoot, "form_templates", `${formCode}.json`);
+      const projectRoot = path6.resolve(__dirname2, "..", "..");
+      const templatePath = path6.join(projectRoot, "form_templates", `${formCode}.json`);
       try {
-        const raw = fs7.readFileSync(templatePath, "utf-8");
+        const raw = fs8.readFileSync(templatePath, "utf-8");
         const template = JSON.parse(raw);
         const fieldSchema = template.field_schema || {};
         const templateKeys = new Set(Object.keys(fieldSchema));
@@ -25074,6 +25403,216 @@ async function handleIpkInspectForm(sessionManager2, config3, params) {
   }
 }
 
+// src/tools/ipk-profile.ts
+var ipkProfileInitSchema = {};
+var ipkProfileInitDescription = "Read this logged-in person's own cards and budget pots off the groupware (read-only - never saves, drafts, or submits anything) and write ~/.config/ipk-browser-mcp/profile.json. Run this once per person (and again whenever a card or budget pot changes) before card/leave/travel/budget forms that have self-scope fields (card number, budget pot), so field-rules.ts has something to check those fields against instead of blocking and asking every time. Works with 0 approved documents - cards and pots come from the card list and a form's own select options, not from history. Returns masked card numbers (last 4 digits only) and a list of keys it could not derive, if any.";
+var CARD_TAIL_RE = /\d{4}-\d{4}-\d{4}-\d{4}/g;
+var NAME_RE = /[A-Z][a-zA-Z.'-]*(?:\s+[A-Z][a-zA-Z.'-]*)+/;
+function lastMatch(re, text) {
+  const all = text.match(re);
+  return all && all.length > 0 ? all[all.length - 1] : null;
+}
+function normName(s) {
+  return s.replace(/\s+/g, "").toLowerCase();
+}
+function idToDisplayName(id) {
+  if (/\s/.test(id)) return id;
+  return id.split(/[._]+/).filter(Boolean).map((p) => p.charAt(0).toUpperCase() + p.slice(1)).join(" ");
+}
+function parseCardListRows(rows, ownerAliases) {
+  const aliasSet = new Set(
+    ownerAliases.filter(Boolean).flatMap((a) => [normName(a), normName(idToDisplayName(a))])
+  );
+  const out = [];
+  for (const row of rows) {
+    const number3 = lastMatch(CARD_TAIL_RE, row.cardCell);
+    if (!number3) continue;
+    const ownerName = NAME_RE.exec(row.ownerCell)?.[0] ?? row.ownerCell;
+    const holder_match = aliasSet.has(normName(ownerName));
+    out.push({ number: number3, kind: holder_match ? "own" : "shared", holder_match });
+  }
+  return out;
+}
+function dedupeCards(rows, source) {
+  const byDigits = /* @__PURE__ */ new Map();
+  for (const r of rows) {
+    const digits = r.number.replace(/\D/g, "");
+    const existing = byDigits.get(digits);
+    if (!existing) {
+      byDigits.set(digits, { number: r.number, kind: r.kind, holder_match: r.holder_match, source });
+    } else if (r.kind === "own" && existing.kind !== "own") {
+      byDigits.set(digits, { number: r.number, kind: "own", holder_match: true, source });
+    }
+  }
+  return [...byDigits.values()];
+}
+function parseBudgetPotOptions(options, source) {
+  const CODE_RE = /^[A-Za-z]{2}\d{2,4}-\d+$/;
+  return options.filter((o) => CODE_RE.test(o.value)).map((o) => ({
+    code: o.value,
+    label: o.text?.trim() || void 0,
+    fiscal_year: fiscalYearFromCode(o.value),
+    source
+  }));
+}
+function parseApprovedCardDoc(text) {
+  const lines = text.split("\n").map((l) => l.replace(/\s+/g, " ").trim());
+  const cardLine = lines.find((l) => /\bCard Number\b/.test(l));
+  const cardNumber = cardLine ? lastMatch(/\d{4}-(?:[Xx]{4}|\d{4})-(?:[Xx]{4}|\d{4})-\d{4}/g, cardLine) : null;
+  const accountLine = lines.find((l) => /\[\d{6}\]/.test(l));
+  const accountCode = accountLine ? (accountLine.match(/\[(\d{6})\]/) ?? [])[1] ?? null : null;
+  return { cardNumber, accountCode };
+}
+function ownerAliasesFor(userInfo) {
+  if (!userInfo) return [];
+  const envName = process.env.IPK_USER_NAME;
+  return [userInfo.name, userInfo.username, idToDisplayName(userInfo.username), envName ?? "", envName ? idToDisplayName(envName) : ""];
+}
+async function fetchCardsFromGroupware(page, config3, userInfo) {
+  const origin = new URL(config3.baseUrl).origin;
+  await page.goto(`${origin}/Document/corporation_card_list.php`, { waitUntil: "domcontentloaded", timeout: config3.navTimeoutMs });
+  await page.waitForTimeout(1e3);
+  const raw = await page.mainFrame().evaluate(() => {
+    const tables = Array.from(document.querySelectorAll("table"));
+    const t = tables.find((tbl) => {
+      const headRow = tbl.querySelector("tr");
+      const headerText = headRow ? Array.from(headRow.querySelectorAll("th,td")).map((c) => (c.textContent || "").trim()) : [];
+      return headerText.includes("Owner") && headerText.includes("Card No");
+    });
+    if (!t) return [];
+    const trs = Array.from(t.querySelectorAll("tr"));
+    const headers = Array.from(trs[0].querySelectorAll("th,td")).map((c) => (c.textContent || "").trim());
+    const cardIdx = headers.indexOf("Card No");
+    const ownerIdx = headers.indexOf("Owner");
+    const out = [];
+    for (const tr of trs.slice(1)) {
+      const cells = Array.from(tr.querySelectorAll("td"));
+      const cardCell = (cells[cardIdx]?.textContent || "").replace(/\s+/g, " ").trim();
+      const ownerCell = (cells[ownerIdx]?.textContent || "").replace(/\s+/g, " ").trim();
+      if (cardCell) out.push({ cardCell, ownerCell });
+    }
+    return out;
+  });
+  const parsed = parseCardListRows(raw, ownerAliasesFor(userInfo));
+  return dedupeCards(parsed, "corporation_card_list.php");
+}
+function bucketApprovedCards(docs, isMeeting, source) {
+  const nonMeeting = docs.filter((d) => d.cardNumber && !isMeeting(d.accountCode));
+  const counts = /* @__PURE__ */ new Map();
+  const tally = /* @__PURE__ */ new Map();
+  for (const d of nonMeeting) {
+    const digits = d.cardNumber.replace(/\D/g, "");
+    tally.set(digits, (tally.get(digits) ?? 0) + 1);
+    if (!counts.has(digits)) counts.set(digits, d.cardNumber);
+  }
+  const out = [];
+  for (const [digits, count2] of tally) {
+    out.push({
+      number: counts.get(digits),
+      kind: count2 >= 2 ? "own" : "own-unconfirmed",
+      holder_match: true,
+      source
+    });
+  }
+  return out;
+}
+async function fetchOwnCardsFromApprovedERs(page, config3) {
+  const origin = new URL(config3.baseUrl).origin;
+  const ymd2 = (d) => d.toISOString().slice(0, 10);
+  const e = /* @__PURE__ */ new Date();
+  const s = new Date(e.getTime() - 365 * 864e5);
+  const listUrl = `${origin}/Document/document_list.php?type=approved&s_date=${ymd2(s)}&e_date=${ymd2(e)}&keyword=&writer=Y&title=Y&contents=Y&attachment=Y`;
+  await page.goto(listUrl, { waitUntil: "domcontentloaded", timeout: config3.navTimeoutMs });
+  await page.waitForTimeout(1e3);
+  const hrefs = await page.mainFrame().$$eval(
+    "a[href*='doc_id=']",
+    (as) => as.map((a) => a.getAttribute("href") || "").filter((h) => h.includes("approve_type=AppFrm-021"))
+  );
+  const docs = [];
+  for (const href of hrefs.slice(0, 10)) {
+    await page.goto(new URL(href, `${origin}/Document/`).href, { waitUntil: "domcontentloaded", timeout: config3.navTimeoutMs });
+    await page.waitForTimeout(800);
+    const text = await page.evaluate(() => document.body.innerText);
+    docs.push(parseApprovedCardDoc(text));
+  }
+  return bucketApprovedCards(docs, isMeetingAccount, "AppFrm-021 approved documents");
+}
+async function fetchBudgetPotsFromGroupware(page, config3) {
+  const origin = new URL(config3.baseUrl).origin;
+  await page.goto(`${origin}/Document/document_write.php?approve_type=AppFrm-021`, { waitUntil: "domcontentloaded", timeout: config3.navTimeoutMs });
+  await page.mainFrame().waitForSelector('select[name="budget_code"]', { timeout: 8e3 }).catch(() => null);
+  const options = await page.mainFrame().evaluate(() => {
+    const el = document.querySelector('select[name="budget_code"]');
+    if (!el) return [];
+    return Array.from(el.options).map((o) => ({ value: o.value, text: (o.textContent || "").trim() }));
+  });
+  return parseBudgetPotOptions(options, "AppFrm-021 budget_code select");
+}
+var defaultDeps = {
+  fetchCards: fetchCardsFromGroupware,
+  fetchOwnCardsFallback: fetchOwnCardsFromApprovedERs,
+  fetchBudgetPots: fetchBudgetPotsFromGroupware
+};
+async function handleIpkProfileInit(sessionManager2, config3, _params = {}, deps = defaultDeps) {
+  if (!sessionManager2.isLoggedIn()) {
+    return textResult({
+      error: true,
+      code: "NOT_LOGGED_IN",
+      message: sessionManager2.getLoginState() === "expired" ? "Browser session expired after 30 minutes idle (the MCP connection is fine). Call ipk_login again." : "Call ipk_login first"
+    });
+  }
+  const page = sessionManager2.getPage();
+  const userInfo = sessionManager2.getUserInfo();
+  const profile = emptyProfile({ name: userInfo?.name ?? "", dept: userInfo?.dept ?? "" });
+  const notDerived = [];
+  let cardSignal = "corporation_card_list.php Owner column";
+  try {
+    profile.cards = await deps.fetchCards(page, config3, userInfo);
+  } catch (err) {
+    notDerived.push(`cards (${err instanceof Error ? err.message : String(err)})`);
+  }
+  const ownCount = profile.cards.filter((c) => c.kind === "own").length;
+  if (ownCount === 0) {
+    try {
+      const fallback = await deps.fetchOwnCardsFallback(page, config3);
+      if (fallback.length > 0) {
+        profile.cards = [...profile.cards, ...fallback];
+        cardSignal = "AppFrm-021 approved documents (card_list.php showed none this person owns)";
+      }
+    } catch (err) {
+      notDerived.push(`cards fallback (${err instanceof Error ? err.message : String(err)})`);
+    }
+  }
+  if (profile.cards.filter((c) => c.kind === "own").length === 0) {
+    notDerived.push("cards (no card attributable to this person on corporation_card_list.php or their own approved AppFrm-021 documents)");
+  }
+  try {
+    profile.budget_pots = await deps.fetchBudgetPots(page, config3);
+  } catch (err) {
+    notDerived.push(`budget_pots (${err instanceof Error ? err.message : String(err)})`);
+  }
+  if (profile.budget_pots.length === 0) notDerived.push("budget_pots (budget_code select offered none)");
+  notDerived.push("approval_line (group_leader/substitute - not yet read automatically; set by hand if needed)");
+  const path7 = saveProfile(profile, void 0);
+  const ownCards = profile.cards.filter((c) => c.kind === "own");
+  const sharedCards = profile.cards.filter((c) => c.kind === "shared");
+  return textResult({
+    error: false,
+    data: {
+      profile_path: path7,
+      cards_found: ownCards.length,
+      cards_signal: ownCards.length > 0 ? cardSignal : void 0,
+      cards_masked: ownCards.map((c) => maskCardNumber(c.number)),
+      shared_cards_seen: sharedCards.length,
+      // seen on the list but not this person's - count only
+      budget_pots_found: profile.budget_pots.length,
+      budget_pot_codes: profile.budget_pots.map((b) => b.code),
+      not_derived: notDerived,
+      message: notDerived.length > 0 ? `Wrote ${path7}. Could not derive: ${notDerived.join("; ")} - ask the person for these only.` : `Wrote ${path7}. Every key was derived from the groupware; nothing left to ask.`
+    }
+  });
+}
+
 // src/index.ts
 var config2 = loadConfig();
 var sessionManager = new SessionManager(config2);
@@ -25102,6 +25641,9 @@ server.tool("screenshot", screenshotDescription, screenshotSchema, async (params
 });
 server.tool("ipk_inspect_form", ipkInspectFormDescription, ipkInspectFormSchema, async (params) => {
   return handleIpkInspectForm(sessionManager, config2, params);
+});
+server.tool("ipk_profile_init", ipkProfileInitDescription, ipkProfileInitSchema, async (params) => {
+  return handleIpkProfileInit(sessionManager, config2, params);
 });
 var transport = new StdioServerTransport();
 await server.connect(transport);

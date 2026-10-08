@@ -1,0 +1,175 @@
+{
+ "form": "AppFrm-074",
+ "title": "Application for Working on Weekends & Holidays",
+ "schema_version": 1,
+ "fields": {
+  "subject": {
+   "label": "Subject",
+   "scope": "org",
+   "checks": [
+    {
+     "type": "pattern",
+     "regex": "^Application for Working on \\d{4}-\\d{2}-\\d{2}, [A-Z][A-Za-z.' -]+$"
+    },
+    {
+     "type": "english"
+    }
+   ],
+   "why": "Subject is 'Application for Working on <work date>, <writer name>' on all 10 own docs; the date is the WORK date (294429: drafted 2026-05-29, subject 2026-06-06), so it must equal view:Application date, which this schema cannot compare and the drafter must ensure.",
+   "evidence": [
+    "296717",
+    "296033",
+    "294429",
+    "292219",
+    "288568",
+    "287315",
+    "286655",
+    "286543",
+    "285589",
+    "284775",
+    "memory:feedback_ipk_english_only.md"
+   ],
+   "visibility": "public",
+   "dept": "ARL"
+  },
+  "reason": {
+   "label": "Reason",
+   "scope": "org",
+   "checks": [
+    {
+     "type": "english"
+    },
+    {
+     "type": "min_len",
+     "min": 20
+    }
+   ],
+   "why": "Reason is a one-sentence English description of the research work (memory example 'Nextflow based urban metagenomic surveillance pipeline optimization'), not a time range like the AppFrm-027 script's 'Overtime work: 17:20 - 20:20'; min 20 only rejects an empty/placeholder reason (shortest own value 53, n=10), no max because no colleague docs.",
+   "evidence": [
+    "296717",
+    "296033",
+    "294429",
+    "292219",
+    "288568",
+    "287315",
+    "286655",
+    "286543",
+    "285589",
+    "284775",
+    "memory:feedback_ipk_overtime_form.md",
+    "memory:feedback_ipk_english_only.md"
+   ],
+   "visibility": "public",
+   "dept": "ARL"
+  },
+  "user_nm": {
+   "label": "Name",
+   "scope": "self",
+   "source": "profile",
+   "on_missing": "block"
+  },
+  "division_nm": {
+   "label": "Division",
+   "scope": "self",
+   "source": "profile",
+   "on_missing": "block"
+  },
+  "group_nm": {
+   "label": "Team/Group",
+   "scope": "self",
+   "source": "profile",
+   "on_missing": "block"
+  },
+  "grade_nm": {
+   "label": "Grade",
+   "scope": "self",
+   "source": "profile",
+   "on_missing": "block"
+  },
+  "position_nm": {
+   "label": "Position",
+   "scope": "self",
+   "source": "profile",
+   "on_missing": "block"
+  },
+  "view:Approval (2) Team Head (R)": {
+   "label": "Approval ( 2 ) Team Head (R)",
+   "scope": "self",
+   "source": "profile",
+   "on_missing": "block"
+  },
+  "app_dt[]": {
+   "label": "Application date",
+   "scope": "case",
+   "checks": [],
+   "why": "The day of the overtime/holiday work; a fact of the case.",
+   "evidence": []
+  },
+  "working_time[]": {
+   "label": "Expected Working hours",
+   "scope": "org",
+   "checks": [
+    {
+     "type": "pattern",
+     "regex": "^(0[1-9]|1[01]):[0-5]\\d$|^12:00$"
+    }
+   ],
+   "why": "The amount is per case, but the form's printed rules (on all 10 docs) require more than 1 hour and cap total overtime at 12 h per week, so a single entry must be HH:MM between 01:00 and 12:00; all 10 own values were whole hours 02:00-07:00.",
+   "evidence": [
+    "296717",
+    "296033",
+    "294429",
+    "292219",
+    "288568",
+    "287315",
+    "286655",
+    "286543",
+    "285589",
+    "284775"
+   ],
+   "visibility": "public",
+   "dept": "ARL"
+  },
+  "view:Actual Working hours Start": {
+   "label": "Actual Working hours Start",
+   "scope": "case",
+   "checks": [],
+   "why": "Filled from the clock-in/out system after the work; a case fact.",
+   "evidence": []
+  },
+  "view:Actual Working hours End": {
+   "label": "Actual Working hours End",
+   "scope": "case",
+   "checks": [],
+   "why": "Filled from the clock-in/out system after the work; a case fact.",
+   "evidence": []
+  },
+  "view:Times": {
+   "label": "Times",
+   "scope": "case",
+   "checks": [],
+   "why": "Computed actual overtime, capped at the pre-approved hours (294429: 05:05 worked, 05:00 counted).",
+   "evidence": []
+  },
+  "view:Result (x1.5 Times)": {
+   "label": "Result (x1.5 Times)",
+   "scope": "case",
+   "checks": [],
+   "why": "Computed as Times x 1.5.",
+   "evidence": []
+  }
+ },
+ "conditional": [],
+ "ignore": [
+  "apporve_cc",
+  "approve_type",
+  "close_date",
+  "document_list",
+  "file_attach_cnt",
+  "mode1",
+  "retention",
+  "security",
+  "urgent",
+  "user_emp_no"
+ ]
+}

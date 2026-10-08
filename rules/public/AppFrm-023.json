@@ -1,0 +1,476 @@
+{
+ "form": "AppFrm-023",
+ "title": "Domestic Travel Request",
+ "schema_version": 1,
+ "fields": {
+  "subject": {
+   "label": "Subject",
+   "scope": "org",
+   "checks": [
+    {
+     "type": "pattern",
+     "regex": "^\\[Request\\] "
+    },
+    {
+     "type": "english"
+    },
+    {
+     "type": "max_len",
+     "max": 47
+    }
+   ],
+   "why": "Every one of the 30 docs starts '[Request] '; length cap is the colleagues' p75 (47 chars incl. prefix, n=20); English per project rule. The user's own subjects run longer (median 58, 6 of 10 over 47) and two colleague/own docs (300694, 293067) contain Korean.",
+   "evidence": [
+    "300868",
+    "300497",
+    "299939",
+    "298298",
+    "298900",
+    "299390",
+    "300579",
+    "memory:feedback_ipk_english_only.md"
+   ],
+   "visibility": "public",
+   "dept": "ARL"
+  },
+  "fin_support_type": {
+   "label": "Travel with Invitation",
+   "scope": "case",
+   "checks": [],
+   "why": "Whether the host pays; 'No' on all 30 docs, but a funded invitation would legitimately be 'Yes'.",
+   "evidence": []
+  },
+  "bound_code": {
+   "label": "City & Transportation (bound: 19 Within Metropolitan / 20 Outside)",
+   "scope": "org",
+   "checks": [
+    {
+     "type": "one_of",
+     "values": [
+      "20"
+     ]
+    }
+   ],
+   "why": "Department practice files every destination, Seoul included, as out-of-metro (20) with a province and city; the only 'Within Metropolitan' doc (299512) got a 15000 daily rate, and the user's own AI4Sci draft had to be corrected from 19 to 20. 19 also hides province/city on the view.",
+   "evidence": [
+    "300868",
+    "299940",
+    "298850",
+    "297967",
+    "300694",
+    "300579",
+    "memory:feedback_seoul_is_outside_metro.md"
+   ],
+   "visibility": "public",
+   "dept": "ARL"
+  },
+  "province_code": {
+   "label": "City & Transportation (province)",
+   "scope": "case",
+   "checks": [],
+   "why": "Destination province, a fact of the trip.",
+   "evidence": []
+  },
+  "city_code": {
+   "label": "City & Transportation (city)",
+   "scope": "case",
+   "checks": [],
+   "why": "Destination city, a fact of the trip.",
+   "evidence": []
+  },
+  "travel_type_code": {
+   "label": "City & Transportation (transport)",
+   "scope": "org",
+   "checks": [
+    {
+     "type": "one_of",
+     "values": [
+      "Other Public Transporation",
+      "Own Vehicle - Gasoline",
+      "Own Vehicle - Diesel"
+     ]
+    }
+   ],
+   "why": "Only these three transport categories appear in 30 approved docs (the option label is spelled 'Transporation'); which one is per trip (Seoul: 9 own vehicle, 7 public among colleagues). Options load by cascade, so pass the selected option's shown text (or the code for budget_code), not its internal value.",
+   "evidence": [
+    "300868",
+    "299940",
+    "298813",
+    "288555",
+    "300579"
+   ],
+   "visibility": "public",
+   "dept": "ARL"
+  },
+  "purpose_type": {
+   "label": "Type of Business Travel",
+   "scope": "org",
+   "checks": [
+    {
+     "type": "one_of",
+     "values": [
+      "Participation in the conference/seminar",
+      "Simple visit to vendor & etc",
+      "Technical meeting"
+     ],
+     "form_values": {
+      "1": "Participation in the conference/seminar",
+      "5": "Simple visit to vendor & etc",
+      "3": "Technical meeting"
+     }
+    }
+   ],
+   "why": "Colleagues use conference/seminar for symposia, workshops, conferences and invited talks, and 'Simple visit to vendor & etc' for sampling, evaluations, meetings and training; see conditionals.",
+   "evidence": [
+    "298298",
+    "300497",
+    "299939",
+    "299940",
+    "298690",
+    "299906",
+    "300694"
+   ],
+   "visibility": "public",
+   "dept": "ARL"
+  },
+  "copcard": {
+   "label": "Institute Credit Card No",
+   "scope": "self",
+   "source": "profile",
+   "on_missing": "block"
+  },
+  "purpose": {
+   "label": "Purpose",
+   "scope": "org",
+   "checks": [
+    {
+     "type": "english"
+    },
+    {
+     "type": "max_len",
+     "max": 175
+    }
+   ],
+   "why": "One or two English sentences; colleagues' p75 is 175 chars (n=20, median 103). The user's own purposes are much longer (median 210, 5 of 10 over 175, up to 655).",
+   "evidence": [
+    "299939",
+    "299940",
+    "298900",
+    "298813",
+    "300497",
+    "300868",
+    "memory:feedback_ipk_english_only.md"
+   ],
+   "visibility": "public",
+   "dept": "ARL"
+  },
+  "matrials": {
+   "label": "presentation materials",
+   "scope": "case",
+   "checks": [],
+   "why": "Whether talk materials are attached; the row only shows when Yes (300868).",
+   "evidence": []
+  },
+  "start_date": {
+   "label": "Itinerary (start)",
+   "scope": "case",
+   "checks": [],
+   "why": "Trip date.",
+   "evidence": []
+  },
+  "end_date": {
+   "label": "Itinerary (end)",
+   "scope": "case",
+   "checks": [],
+   "why": "Trip date.",
+   "evidence": []
+  },
+  "night": {
+   "label": "Itinerary (nights)",
+   "scope": "case",
+   "checks": [],
+   "why": "Follows from the dates.",
+   "evidence": []
+  },
+  "days": {
+   "label": "Itinerary (days)",
+   "scope": "case",
+   "checks": [],
+   "why": "Follows from the dates.",
+   "evidence": []
+  },
+  "start_tm": {
+   "label": "Itinerary (start time)",
+   "scope": "case",
+   "checks": [],
+   "why": "Only printed for day trips.",
+   "evidence": []
+  },
+  "end_tm": {
+   "label": "Itinerary (end time)",
+   "scope": "case",
+   "checks": [],
+   "why": "Only printed for day trips.",
+   "evidence": []
+  },
+  "travel_dest[]": {
+   "label": "Destination(Organization/Conference name)",
+   "scope": "org",
+   "checks": [
+    {
+     "type": "english"
+    },
+    {
+     "type": "max_len",
+     "max": 42
+    }
+   ],
+   "why": "Colleagues write a short place plus organisation, e.g. 'Seoul(KHIDI)' (p75 42 chars, n=20, median 34); the user writes full addresses or venue lists (all 10 over 42, median 90, up to 157). English per project rule (Korean in 299903, 300694, 293067, 293383).",
+   "evidence": [
+    "298690",
+    "300868",
+    "299390",
+    "298449",
+    "299939",
+    "memory:feedback_ipk_english_only.md"
+   ],
+   "visibility": "public",
+   "dept": "ARL"
+  },
+  "travel_trans[]": {
+   "label": "Transportation (itinerary row)",
+   "scope": "case",
+   "checks": [],
+   "why": "Mirrors the chosen transport for this trip.",
+   "evidence": []
+  },
+  "food_yn": {
+   "label": "Number of meals served",
+   "scope": "case",
+   "checks": [],
+   "why": "Whether the host serves meals is a trip fact, but it must be answered explicitly: the view prints 'Number of meals served: n' only when meals were served (300868, 300497, 298691); the AI4Sci request was corrected to N.",
+   "evidence": [
+    "memory:feedback_seoul_is_outside_metro.md"
+   ]
+  },
+  "daily_stand": {
+   "label": "Daily Expense (Standard)",
+   "scope": "org",
+   "checks": [
+    {
+     "type": "one_of",
+     "values": [
+      "20000",
+      "30000"
+     ]
+    }
+   ],
+   "why": "Rate by destination: 20000 for Seoul (all 21 Seoul docs) and Suwon, 30000 for Daejeon, Cheongju, Gyeongju, Gangwon and Goyang; 15000 appears only on the mis-bounded 299512.",
+   "evidence": [
+    "300868",
+    "299940",
+    "298850",
+    "297967",
+    "299390",
+    "296021",
+    "293383"
+   ],
+   "visibility": "public",
+   "dept": "ARL"
+  },
+  "daily_day": {
+   "label": "Daily Expense (Days)",
+   "scope": "case",
+   "checks": [],
+   "why": "Equals trip days.",
+   "evidence": []
+  },
+  "food_stand": {
+   "label": "Food Expense (Standard)",
+   "scope": "org",
+   "checks": [
+    {
+     "type": "one_of",
+     "values": [
+      "0",
+      "27000"
+     ]
+    }
+   ],
+   "why": "0 for Seoul and Gyeonggi trips (all 21 Seoul docs), 27000 for farther destinations (Daejeon, Cheongju, Gyeongju, Gangwon).",
+   "evidence": [
+    "300868",
+    "299940",
+    "297967",
+    "299390",
+    "296021",
+    "288555"
+   ],
+   "visibility": "public",
+   "dept": "ARL"
+  },
+  "food_day": {
+   "label": "Food Expense (Days)",
+   "scope": "case",
+   "checks": [],
+   "why": "Equals trip days.",
+   "evidence": []
+  },
+  "notes": {
+   "label": "Note(s)",
+   "scope": "org",
+   "source": "team-pack",
+   "on_missing": "warn"
+  },
+  "budget_type": {
+   "label": "Budget Account Code (type)",
+   "scope": "self",
+   "source": "profile",
+   "on_missing": "block"
+  },
+  "budget_code": {
+   "label": "Budget Account Code (pot)",
+   "scope": "self",
+   "source": "profile",
+   "on_missing": "block"
+  },
+  "item_no": {
+   "label": "Budget Account Code (account)",
+   "scope": "org",
+   "checks": [
+    {
+     "type": "fixed",
+     "value": "Domestic Business Travel[410201]"
+    }
+   ],
+   "why": "Every one of the 30 docs, across all pots and writers, charges account 410201 Domestic Business Travel. Options load by cascade, so pass the selected option's shown text (or the code for budget_code), not its internal value.",
+   "evidence": [
+    "300868",
+    "300497",
+    "299390",
+    "299512",
+    "300579",
+    "293383"
+   ],
+   "visibility": "public",
+   "dept": "ARL"
+  }
+ },
+ "conditional": [
+  {
+   "when": {
+    "field": "province_code",
+    "regex": "^Seoul"
+   },
+   "then": {
+    "field": "bound_code",
+    "value": "20"
+   },
+   "why": "Seoul is outside the metropolitan area for IPK (Pangyo); all 21 Seoul docs name province and city (20); the one Seoul-area trip filed as Within Metropolitan (299512) lost province/city and got a 15000 rate.",
+   "evidence": [
+    "300868",
+    "299940",
+    "300579",
+    "memory:feedback_seoul_is_outside_metro.md"
+   ],
+   "visibility": "public"
+  },
+  {
+   "when": {
+    "field": "province_code",
+    "regex": "^Seoul"
+   },
+   "then": {
+    "field": "daily_stand",
+    "value": "20000"
+   },
+   "why": "Seoul daily rate is 20000 on all 21 Seoul docs.",
+   "evidence": [
+    "300868",
+    "299940",
+    "298850",
+    "300579",
+    "299953"
+   ],
+   "visibility": "public"
+  },
+  {
+   "when": {
+    "field": "province_code",
+    "regex": "^Seoul"
+   },
+   "then": {
+    "field": "food_stand",
+    "value": "0"
+   },
+   "why": "No food allowance standard for Seoul on all 21 Seoul docs.",
+   "evidence": [
+    "300868",
+    "299940",
+    "298850",
+    "300579",
+    "299953"
+   ],
+   "visibility": "public"
+  },
+  {
+   "when": {
+    "field": "subject",
+    "regex": "(?i)sampl"
+   },
+   "then": {
+    "field": "purpose_type",
+    "value": "Simple visit to vendor & etc"
+   },
+   "why": "Sampling trips are 'Simple visit to vendor & etc' on all 5 docs (own and colleague).",
+   "evidence": [
+    "299939",
+    "299940",
+    "299953",
+    "295178",
+    "290940"
+   ],
+   "visibility": "public"
+  },
+  {
+   "when": {
+    "field": "subject",
+    "regex": "(?i)symposium|syposium|conference|seminar|workshop"
+   },
+   "then": {
+    "field": "purpose_type",
+    "value": "Participation in the conference/seminar"
+   },
+   "why": "Colleagues file every symposium/conference/seminar/workshop as participation (11 of 11); the user's 296021 (NIH Weekly Conference) used 'Simple visit', which diverges from org practice.",
+   "evidence": [
+    "298298",
+    "298263",
+    "298850",
+    "300497",
+    "300868",
+    "297967",
+    "300579",
+    "292500"
+   ],
+   "visibility": "public"
+  }
+ ],
+ "ignore": [
+  "working_code",
+  "project_code",
+  "er_row_cnt",
+  "daily_pay",
+  "food_pay",
+  "copcard1",
+  "copcard2",
+  "copcard3",
+  "copcard4",
+  "travel_doc_a[]",
+  "travel_doc_b[]",
+  "travel_doc_c[]",
+  "travel_doc_d[]",
+  "travel_doc_e[]",
+  "travel_doc_f[]",
+  "doc_attach_file[]"
+ ]
+}

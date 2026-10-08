@@ -1,0 +1,160 @@
+{
+ "form": "AppFrm-039",
+ "title": "Statement of Team Budget transfer (R&D)",
+ "schema_version": 1,
+ "fields": {
+  "subject": {
+   "label": "Subject",
+   "scope": "org",
+   "source": "team-pack",
+   "on_missing": "warn"
+  },
+  "request_type": {
+   "label": "1. Type",
+   "scope": "org",
+   "checks": [
+    {
+     "type": "one_of",
+     "values": [
+      "Transfer"
+     ],
+     "form_values": {
+      "01": "Transfer"
+     }
+    }
+   ],
+   "why": "Every approved ARL document (25/25, own and colleague) is a Transfer (radio value 01); Increase (02, 30% cap) and New Account (03) exist on the form but have no precedent, so they need explicit confirmation.",
+   "evidence": [
+    "300578",
+    "288531",
+    "287574",
+    "287573",
+    "283129",
+    "298206",
+    "299841",
+    "300912",
+    "memory:project_budget_transfer_form.md"
+   ],
+   "visibility": "public",
+   "dept": "ARL"
+  },
+  "budget_code": {
+   "label": "2. Account No",
+   "scope": "self",
+   "source": "profile",
+   "on_missing": "block"
+  },
+  "source_account": {
+   "label": "5. Transfer Item: Source",
+   "scope": "case",
+   "checks": [],
+   "why": "Which account gives up budget depends on the live Available balance (team_budget_detail_list.php), not on precedent; sources vary across all 25 docs.",
+   "evidence": [
+    "memory:project_budget_transfer_form.md"
+   ]
+  },
+  "target_account": {
+   "label": "5. Transfer Item: Target",
+   "scope": "org",
+   "checks": [
+    {
+     "type": "pattern",
+     "regex": "^\\[ ?\\d{6}\\] \\S"
+    }
+   ],
+   "why": "The target is the account the department books this kind of expense to, shown as '[ <6-digit code>] <name>'; the only expense-to-account rule with enough support is in the conditional (registration fee -> 410306).",
+   "evidence": [
+    "300578",
+    "287574",
+    "300912",
+    "memory:project_budget_transfer_form.md",
+    "memory:feedback_overseas_registration_vat_split.md"
+   ],
+   "visibility": "public",
+   "dept": "ARL"
+  },
+  "amount1": {
+   "label": "5. Transfer Item: Amount",
+   "scope": "case",
+   "checks": [],
+   "why": "The shortfall of this case; never compared to precedent.",
+   "evidence": []
+  },
+  "control_no": {
+   "label": "6. Control No",
+   "scope": "case",
+   "checks": [],
+   "why": "8-digit number that increases with draft date across all writers (25004166 .. 26004428), so it looks issued per document rather than chosen; origin unconfirmed.",
+   "evidence": [
+    "283129",
+    "300912",
+    "memory:project_budget_transfer_form.md"
+   ]
+  },
+  "contents_data": {
+   "label": "Description",
+   "scope": "org",
+   "checks": [
+    {
+     "type": "max_len",
+     "max": 78
+    },
+    {
+     "type": "english"
+    }
+   ],
+   "why": "One short English sentence saying what the moved budget is for (e.g. 'Budget transfer for a domestic business trip'); max_len is the colleagues' 75th percentile (77.75 -> 78, n=20). The user's latest (109 chars) and oldest (162 chars, two lines) run longer than department practice.",
+   "evidence": [
+    "298206",
+    "298306",
+    "299841",
+    "300179",
+    "299309",
+    "299691",
+    "300291",
+    "298897",
+    "299687",
+    "300226",
+    "300856",
+    "300643",
+    "300912",
+    "299869"
+   ],
+   "visibility": "public",
+   "dept": "ARL"
+  },
+  "retention": {
+   "label": "Saving years",
+   "scope": "org",
+   "checks": [],
+   "why": "An older template claims 5 years, but document_view does not show which option was selected, so no rule could be confirmed.",
+   "evidence": [],
+   "visibility": "public",
+   "dept": "ARL"
+  }
+ },
+ "conditional": [
+  {
+   "when": {
+    "field": "contents_data",
+    "regex": "(?i)registration fee"
+   },
+   "then": {
+    "field": "target_account",
+    "value": "[ 410306] Participating in Conferences"
+   },
+   "why": "Conference registration fees are booked to 410306; a transfer that funds one must target it.",
+   "evidence": [
+    "300578",
+    "memory:project_budget_transfer_form.md",
+    "memory:feedback_overseas_registration_vat_split.md"
+   ],
+   "visibility": "public"
+  }
+ ],
+ "ignore": [
+  "mode1",
+  "project_title",
+  "project_period"
+ ]
+}

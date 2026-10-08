@@ -12,6 +12,7 @@ import { ipkNavigateSchema, ipkNavigateDescription, handleIpkNavigate } from "./
 import { ipkGetContentSchema, ipkGetContentDescription, handleIpkGetContent } from "./tools/ipk-content.js";
 import { screenshotSchema, screenshotDescription, handleScreenshot, cleanupExpiredScreenshots } from "./tools/screenshot.js";
 import { ipkInspectFormSchema, ipkInspectFormDescription, handleIpkInspectForm } from "./tools/ipk-inspect.js";
+import { ipkProfileInitSchema, ipkProfileInitDescription, handleIpkProfileInit } from "./tools/ipk-profile.js";
 
 declare const __PACKAGE_VERSION__: string;
 
@@ -59,6 +60,11 @@ server.tool("screenshot", screenshotDescription, screenshotSchema, async (params
 // Tool 7: ipk_inspect_form
 server.tool("ipk_inspect_form", ipkInspectFormDescription, ipkInspectFormSchema, async (params) => {
   return handleIpkInspectForm(sessionManager, config, params as { form_code: string; compare_template?: boolean });
+});
+
+// Tool 8: ipk_profile_init
+server.tool("ipk_profile_init", ipkProfileInitDescription, ipkProfileInitSchema, async (params) => {
+  return handleIpkProfileInit(sessionManager, config, params as Record<string, unknown>);
 });
 
 // Start server

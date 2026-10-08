@@ -41,6 +41,23 @@ def test_masked_card_violations_allows_fully_masked():
     assert masked_card_violations("Card No\tXXXX-XXXX-XXXX-XXXX") == []
 
 
+def test_masked_card_violations_allows_the_dummys_masked_form():
+    # The B4 self-field tests use the dummy card's masked form (its own outer digits,
+    # mirroring an approved document's own masked display) - this must not trip the
+    # guard the way a real masked card would.
+    dummy_outer = DUMMY_CARD.split("-")
+    dummy_masked = "-".join([dummy_outer[0], "XXXX", "XXXX", dummy_outer[3]])
+    assert masked_card_violations(f"Card No\t{dummy_masked}") == []
+
+
+def test_masked_card_violations_still_flags_a_different_cards_masked_form():
+    # Only the dummy's own outer digits are exempt - a masked card with real-looking but
+    # different outer digits must still be flagged.
+    test_outer = TEST_MASKED.split("-")
+    assert masked_card_violations(f"Card No\t{TEST_MASKED}") == [TEST_MASKED]
+    assert test_outer[0] != DUMMY_CARD.split("-")[0]
+
+
 def test_name_keyed_object_violations_flags_a_writer_profiles_style_table():
     doc = json.dumps({
         "writer_profiles": {

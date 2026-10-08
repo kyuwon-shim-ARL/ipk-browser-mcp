@@ -77,6 +77,13 @@ After user confirms the draft:
    mcp tool: ipk_login
    ```
 
+   **First time on this machine** (or if `ipk_submit_form` comes back with a
+   `FORM_RULE_VIOLATION` naming a self field like `card_no`/`budget_code` and asking you
+   to run it): call `ipk_profile_init` once, right after login. It reads this person's
+   own cards and budget pots off the groupware (read-only) into
+   `~/.config/ipk-browser-mcp/profile.json`, which is what lets those fields pass instead
+   of blocking every time. Re-run it if a card or budget pot changes.
+
 2. **Submit as draft** (always):
    ```
    mcp tool: ipk_submit_form

@@ -1,0 +1,79 @@
+{
+ "form": "AppFrm-999",
+ "title": "Test form",
+ "schema_version": 1,
+ "fields": {
+  "subject": {
+   "label": "Subject",
+   "scope": "org",
+   "visibility": "public",
+   "dept": "ARL",
+   "checks": [
+    {
+     "type": "pattern",
+     "regex": "^\\[Card\\] "
+    },
+    {
+     "type": "max_len",
+     "max": 60
+    },
+    {
+     "type": "english"
+    }
+   ],
+   "why": "all colleague ERs",
+   "evidence": [
+    "1",
+    "2"
+   ]
+  },
+  "account_str": {
+   "label": "Account",
+   "scope": "org",
+   "source": "team-pack",
+   "on_missing": "warn"
+  },
+  "budget_code": {
+   "label": "Budget",
+   "scope": "self",
+   "source": "profile",
+   "on_missing": "block"
+  },
+  "amount": {
+   "label": "Amount",
+   "scope": "case",
+   "checks": [],
+   "why": "from the receipt",
+   "evidence": []
+  },
+  "card_no": {
+   "label": "Card",
+   "scope": "self",
+   "source": "profile",
+   "on_missing": "block"
+  },
+  "approver": {
+   "label": "Approver",
+   "scope": "self",
+   "source": "profile",
+   "on_missing": "block"
+  }
+ },
+ "conditional": [
+  {
+   "when": {
+    "field": "subject",
+    "regex": "(?i)runpod|openai"
+   },
+   "then": {
+    "field": "account_str",
+    "value": "410318"
+   },
+   "visibility": "public",
+   "why": "overseas IT subscriptions go to 410318",
+   "evidence": [
+    "4"
+   ]
+  }
+ ]
+}

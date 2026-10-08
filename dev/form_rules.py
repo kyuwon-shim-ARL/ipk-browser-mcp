@@ -29,6 +29,11 @@ from baseline_gate import BaselineUnavailable
 RULES_DIR = Path(__file__).resolve().parent.parent / "form_rules"
 SCOPES = {"org", "self", "case"}
 CHECK_TYPES = {"pattern", "max_len", "min_len", "english", "one_of", "fixed"}
+# Who may see a rule (and its why/evidence text), independent of scope (whose practice it
+# is): public ships in the plugin repo; private is a team pack a curator distributes
+# off-git; local never leaves this machine. case fields need none of this - they are
+# never compared, so they are never shared either way.
+VISIBILITIES = {"public", "private", "local"}
 HANGUL = re.compile(r"[가-힣ㄱ-ㆎ]")
 
 
@@ -41,17 +46,33 @@ def load_rulebook(form: str) -> dict:
 
 def validate_rulebook(book: dict) -> list[str]:
     errs = []
+    sv = book.get("schema_version")
+    if sv is None:
+        errs.append("book: missing schema_version")
+    elif not isinstance(sv, int) or isinstance(sv, bool) or sv < 1:
+        errs.append("book: schema_version must be a positive int")
     for name, f in book.get("fields", {}).items():
-        if f.get("scope") not in SCOPES:
-            errs.append(f"{name}: scope '{f.get('scope')}' not in {sorted(SCOPES)}")
+        scope = f.get("scope")
+        if scope not in SCOPES:
+            errs.append(f"{name}: scope '{scope}' not in {sorted(SCOPES)}")
         for c in f.get("checks", []):
             if c.get("type") not in CHECK_TYPES:
                 errs.append(f"{name}: check type '{c.get('type')}' not in {sorted(CHECK_TYPES)}")
-        if f.get("scope") in ("org", "self") and f.get("checks") and not f.get("evidence"):
-            errs.append(f"{name}: an {f['scope']} rule needs evidence (doc ids)")
+        if scope in ("org", "self") and f.get("checks") and not f.get("evidence"):
+            errs.append(f"{name}: an {scope} rule needs evidence (doc ids)")
+        if scope != "case":
+            if f.get("visibility") not in VISIBILITIES:
+                errs.append(f"{name}: visibility '{f.get('visibility')}' not in {sorted(VISIBILITIES)}")
+            if scope == "org" and not f.get("dept"):
+                errs.append(f"{name}: an org rule needs dept")
+        for key in ("fiscal_year", "valid_until"):
+            if key in f and not isinstance(f[key], (str, int)):
+                errs.append(f"{name}: {key} must be a string or int")
     for i, c in enumerate(book.get("conditional", [])):
         if c.get("then", {}).get("field") not in book.get("fields", {}):
             errs.append(f"conditional[{i}]: then.field is not a field of the form")
+        if c.get("visibility") not in VISIBILITIES:
+            errs.append(f"conditional[{i}]: visibility '{c.get('visibility')}' not in {sorted(VISIBILITIES)}")
     return errs
 
 

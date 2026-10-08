@@ -124,6 +124,14 @@ function makeHarness(run: Run, waitForPopup: () => Promise<any> = async () => { 
       const src = String(fn);
       if (src.includes("vender_kor")) return { budget_type: "02", budget_code: "NN2606-0001", amount: "11000", vender_kor: "구글" };
       if (src.includes("__ipkCardEr")) return run;
+      // serializeFormFields (iframe-helper.ts): this harness does not track real field
+      // state, so return a minimal subject-only draft - enough to pass field-rules.ts's
+      // own checks (not empty, so it is not the fail-closed "unreadable form" case) and
+      // free of self-scope field names (budget_code, card_no, ...), which would block on
+      // a profile this test environment does not set up. card-er.test.ts tests the
+      // card_expense_rd submit flow around the form; field-rules.ts has its own tests
+      // (field-rules.test.ts, field-rules-integration.test.ts).
+      if (src.includes("knownSet")) return { subject: "[Card] test subject" };
       return undefined;
     }),
   };
