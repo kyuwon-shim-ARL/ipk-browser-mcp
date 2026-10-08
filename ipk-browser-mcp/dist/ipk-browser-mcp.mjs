@@ -21298,6 +21298,9 @@ function hydrateEnv() {
     if (process.env[k] === void 0) process.env[k] = v;
   }
 }
+function withScheme(url) {
+  return url.includes("://") ? url : `https://${url}`;
+}
 function loadConfig() {
   hydrateEnv();
   if (!process.env.TZ) {
@@ -21307,7 +21310,8 @@ function loadConfig() {
     // Origin only: every caller appends a path ("/Document/..."). IPK_BASE_URL is commonly
     // set to ".../main.php", which turned those into ".../main.php/Document/..." - the server
     // answers that with the frameset, so the card ER form never loaded.
-    baseUrl: new URL(env("IPK_BASE_URL", "https://gw.ip-korea.org")).origin,
+    // A bare host ("gw.ip-korea.org") makes new URL() throw; assume https.
+    baseUrl: new URL(withScheme(env("IPK_BASE_URL", "https://gw.ip-korea.org"))).origin,
     username: env("IPK_USERNAME"),
     password: env("IPK_PASSWORD"),
     headless: env("BROWSER_HEADLESS") !== "false",
@@ -21615,6 +21619,55 @@ function toolDraftedDocIds() {
   return out;
 }
 
+// src/forms/card-er.ts
+var CARD_PREFIX = /^\s*\[\s*card\s*\]\s*/i;
+function normalizeCardSubject(subject) {
+  let rest = String(subject ?? "");
+  while (CARD_PREFIX.test(rest)) rest = rest.replace(CARD_PREFIX, "");
+  rest = rest.trim();
+  return rest ? `[Card] ${rest}` : "[Card]";
+}
+function isPreviewBlockedRequest(method, url) {
+  const m = String(method || "").toUpperCase();
+  if (m !== "GET" && m !== "HEAD") return true;
+  return /budget_check_er\.php|document_write\.php|doc_approve/i.test(url);
+}
+var SCALAR_FIELDS = ["subject", "budget_type", "budget_code", "pay_kind", "mode", "mode1", "p_reason"];
+var ROW_FIELD = /^(item_[a-z_]+|account_code|account_str|venue|meeting_begin_date|meeting_end_date|participants|purpose|vender|seller|doc_attach_file)\[\]$/;
+function summarizeCapturedForm(entries) {
+  const out = {};
+  for (const f of SCALAR_FIELDS) {
+    const hit = entries.find(([k]) => k === f);
+    out[f] = hit ? hit[1] : null;
+  }
+  for (const [k, v] of entries) {
+    if (!ROW_FIELD.test(k)) continue;
+    const arr = out[k] ?? [];
+    arr.push(v);
+    out[k] = arr;
+  }
+  return out;
+}
+var MEETING_ACCOUNT_CODES = /* @__PURE__ */ new Set([
+  "420420",
+  "410307",
+  "410310",
+  "420450",
+  "420451",
+  "412104",
+  "420421",
+  "412106",
+  "420422",
+  "412107"
+]);
+function isMeetingAccount(code) {
+  return MEETING_ACCOUNT_CODES.has(String(code ?? ""));
+}
+var BUDGET_REFUSAL = /not enough budget|insufficient budget|budget (?:is )?exceeded|exceeds? (?:the )?budget/i;
+function budgetPopupRefusals(bodyText) {
+  return String(bodyText ?? "").split(/\r?\n/).map((l) => l.trim()).filter((l) => BUDGET_REFUSAL.test(l));
+}
+
 // src/policy/org-policy.ts
 var HANGUL = /[\u1100-\u11FF\u3130-\u318F\uA960-\uA97F\uAC00-\uD7AF\uD7B0-\uD7FF]/;
 function containsHangul(s) {
@@ -21648,7 +21701,7 @@ var FREE_TEXT_PARAMS = [
 ];
 var OVERSEAS_IT_VENDORS = /runpod|openai|chatgpt|anthropic|claude|google cloud|gcp|aws|amazon web|azure|github|vercel|huggingface|hugging face|lambda labs|vast\.ai|modal/i;
 var VAT_SPLITTING_FORMS = /* @__PURE__ */ new Set(["expense", "card_expense"]);
-var TEAM_ACTIVITY_ACCOUNT_CODE = "412107";
+var MEETING_ACCOUNT_LABEL = /team activit|meeting/i;
 var ORG_POLICY = [
   {
     id: "ENGLISH_ONLY",
@@ -21679,12 +21732,12 @@ var ORG_POLICY = [
   },
   {
     id: "TEAM_ACTIVITY_FIELDS_REQUIRED",
-    standard: "A Team Activities (RS only) card ER (account 412107) records venue, meeting time, participants and purpose - the groupware form accepts the row without them, but the account itself requires them.",
-    passes: "When card_expense_rd is filed with item_account_code '412107', venue, meeting_begin, meeting_end, participants and purpose_minutes (or purpose) are all non-empty.",
+    standard: "A card ER on a meeting account (Team Activities 412107 and the other accounts the account picker treats as meetings) records venue, meeting time, participants and purpose - the page requires venue and meeting time for every meeting account, and precedent documents always carry participants and purpose.",
+    passes: "When card_expense_rd is filed with a meeting item_account_code (isMeetingAccount), or with no code and a Team Activities / meeting account_code_label, venue, meeting_begin, meeting_end, participants and purpose_minutes (or purpose) are all non-empty.",
     check(params) {
       if (String(params.form_type) !== "card_expense_rd") return null;
-      const byCode = String(params.item_account_code) === TEAM_ACTIVITY_ACCOUNT_CODE;
-      const byLabel = !params.item_account_code && /team activit/i.test(String(params.account_code_label ?? ""));
+      const byCode = isMeetingAccount(params.item_account_code);
+      const byLabel = !params.item_account_code && MEETING_ACCOUNT_LABEL.test(String(params.account_code_label ?? ""));
       if (!byCode && !byLabel) return null;
       const required2 = {
         venue: params.venue,
@@ -21698,7 +21751,7 @@ var ORG_POLICY = [
       return {
         rule: "TEAM_ACTIVITY_FIELDS_REQUIRED",
         fields,
-        message: `Team Activities (account 412107) requires ${fields.join(", ")}. Provide venue, meeting_begin, meeting_end, participants and purpose_minutes (or purpose). Nothing was written to the form.`
+        message: `Meeting account ${params.item_account_code || params.account_code_label} requires ${fields.join(", ")}. Provide venue, meeting_begin, meeting_end, participants and purpose_minutes (or purpose). Nothing was written to the form.`
       };
     }
   },
@@ -22007,55 +22060,10 @@ function diffAgainstPractice(draft, profile) {
   return out;
 }
 
-// src/forms/card-er.ts
-var CARD_PREFIX = /^\s*\[\s*card\s*\]\s*/i;
-function normalizeCardSubject(subject) {
-  let rest = String(subject ?? "");
-  while (CARD_PREFIX.test(rest)) rest = rest.replace(CARD_PREFIX, "");
-  rest = rest.trim();
-  return rest ? `[Card] ${rest}` : "[Card]";
-}
-function isPreviewBlockedRequest(method, url) {
-  const m = String(method || "").toUpperCase();
-  if (m !== "GET" && m !== "HEAD") return true;
-  return /budget_check_er\.php|document_write\.php|doc_approve/i.test(url);
-}
-var SCALAR_FIELDS = ["subject", "budget_type", "budget_code", "pay_kind", "mode", "mode1", "p_reason"];
-var ROW_FIELD = /^(item_[a-z_]+|account_code|account_str|venue|meeting_begin_date|meeting_end_date|participants|purpose|vender|seller|doc_attach_file)\[\]$/;
-function summarizeCapturedForm(entries) {
-  const out = {};
-  for (const f of SCALAR_FIELDS) {
-    const hit = entries.find(([k]) => k === f);
-    out[f] = hit ? hit[1] : null;
-  }
-  for (const [k, v] of entries) {
-    if (!ROW_FIELD.test(k)) continue;
-    const arr = out[k] ?? [];
-    arr.push(v);
-    out[k] = arr;
-  }
-  return out;
-}
-var MEETING_ACCOUNT_CODES = /* @__PURE__ */ new Set([
-  "420420",
-  "410307",
-  "410310",
-  "420450",
-  "420451",
-  "412104",
-  "420421",
-  "412106",
-  "420422",
-  "412107"
-]);
-function isMeetingAccount(code) {
-  return MEETING_ACCOUNT_CODES.has(String(code ?? ""));
-}
-
 // src/browser/draft-guard.ts
 function listHasDoc(html, docId) {
   if (!/^\d+$/.test(String(docId))) return false;
-  return new RegExp(`doc_id=['"]?${docId}(?!\\d)`).test(html);
+  return new RegExp(`(?<![\\w])doc_id=['"]?${docId}(?!\\d)`).test(html);
 }
 function classifyDocLocation(inDrafts, inProgress) {
   if (inDrafts) return "drafts";
@@ -22087,21 +22095,30 @@ function applyDraftGuard(payload, docId, location2, reason) {
     data: { ...data, draft_confirmed: false }
   };
 }
-async function locateDocument(page, baseUrl, docId, timeoutMs = 3e4) {
+function draftViewUrl(origin, docId, listHtml, viewUrl) {
+  if (viewUrl && new RegExp(`[?&]doc_id=${docId}(?!\\d)`).test(viewUrl)) return viewUrl;
+  const href = listHtml.match(new RegExp(`document_view\\.php\\?[^"'\\s>]*(?<![\\w])doc_id=${docId}(?!\\d)[^"'\\s>]*`));
+  const code = href ? href[0].replace(/&amp;/g, "&").match(/[?&]approve_type=([\w-]+)/) : null;
+  return `${origin}/Document/document_view.php?doc_id=${docId}${code ? `&approve_type=${code[1]}` : ""}&type=drafts`;
+}
+async function locateDocument(page, baseUrl, docId, timeoutMs = 3e4, viewUrl) {
   const origin = new URL(baseUrl).origin;
   const listHtml = async (type) => {
     await page.goto(`${origin}/Document/document_list.php?type=${type}`, { waitUntil: "domcontentloaded", timeout: timeoutMs });
     await page.waitForTimeout(1e3);
     return String(await page.content());
   };
+  let landing = origin;
   try {
-    const inDrafts = listHasDoc(await listHtml("drafts"), docId);
+    const draftsHtml = await listHtml("drafts");
+    const inDrafts = listHasDoc(draftsHtml, docId);
+    if (inDrafts) landing = draftViewUrl(origin, docId, draftsHtml, viewUrl);
     const inProgress = inDrafts ? false : listHasDoc(await listHtml("progress"), docId);
     return { location: classifyDocLocation(inDrafts, inProgress) };
   } catch (err) {
     return { location: "neither", reason: `the lists could not be read: ${err instanceof Error ? err.message : String(err)}` };
   } finally {
-    await page.goto(origin, { waitUntil: "domcontentloaded", timeout: timeoutMs }).catch(() => null);
+    await page.goto(landing, { waitUntil: "domcontentloaded", timeout: timeoutMs }).catch(() => null);
   }
 }
 async function confirmDraftResult(page, baseUrl, mode, result, timeoutMs) {
@@ -22114,7 +22131,8 @@ async function confirmDraftResult(page, baseUrl, mode, result, timeoutMs) {
   }
   const docId = payload?.data?.docId;
   if (payload.error || !docId) return result;
-  const { location: location2, reason } = await locateDocument(page, baseUrl, String(docId), timeoutMs);
+  const viewUrl = typeof payload.data.finalUrl === "string" ? payload.data.finalUrl : void 0;
+  const { location: location2, reason } = await locateDocument(page, baseUrl, String(docId), timeoutMs, viewUrl);
   if (location2 !== "drafts") {
     audit({ action: "refusal", code: location2 === "progress" ? "SUBMITTED_NOT_DRAFT" : "DRAFT_NOT_CONFIRMED", docId: String(docId), mode, ok: false });
   }
@@ -22752,8 +22770,8 @@ var ipkSubmitFormSchema = {
   item_vendor: external_exports.string().optional().describe("Vendor/store name. English only - Korean text is refused before the form is touched."),
   item_control_no: external_exports.string().optional().describe("Card receipt control number"),
   purpose_minutes: external_exports.string().optional().describe("Meeting purpose and minutes"),
-  meeting_begin: external_exports.string().optional().describe("card_expense_rd Team Activities (account 412107): meeting start, 'YYYY-MM-DD HH:MM'. Required with account 412107."),
-  meeting_end: external_exports.string().optional().describe("card_expense_rd Team Activities (account 412107): meeting end, 'YYYY-MM-DD HH:MM'. Required with account 412107."),
+  meeting_begin: external_exports.string().optional().describe("card_expense_rd meeting accounts (e.g. Team Activities 412107): meeting start, 'YYYY-MM-DD HH:MM'. Required with every meeting account."),
+  meeting_end: external_exports.string().optional().describe("card_expense_rd meeting accounts (e.g. Team Activities 412107): meeting end, 'YYYY-MM-DD HH:MM'. Required with every meeting account."),
   // Travel settlement fields (AppFrm-054)
   province: external_exports.string().optional().describe("Province select value for AJAX cascade"),
   city: external_exports.string().optional().describe("City select value for AJAX cascade"),
@@ -23771,17 +23789,43 @@ async function submitCardExpenseRD(page, frame, _sessionManager, config3, params
   if (mode === "draft") {
     return await previewCardExpenseRD(page, frame, config3, { subject, effectiveBudgetCode, attachResult, fileCount: filePaths.length });
   }
-  const popupState = { aborted: false, submitted: false, subjectFixed: null };
-  let resolvePopup = () => {
+  const popupState = {
+    aborted: false,
+    submitted: false,
+    subjectFixed: null,
+    refusals: []
   };
-  const popupDone = new Promise((resolve4) => {
-    resolvePopup = resolve4;
+  const dialogs = /* @__PURE__ */ new Map();
+  const watchDialogs = (p) => {
+    if (!p || dialogs.has(p)) return;
+    const msgs = [];
+    dialogs.set(p, msgs);
+    p.on?.("dialog", (d) => {
+      msgs.push(String(d.message?.() ?? ""));
+      Promise.resolve(d.dismiss?.()).catch(() => {
+      });
+    });
+  };
+  const context = typeof page.context === "function" ? page.context() : null;
+  context?.on?.("page", watchDialogs);
+  const popupWait = page.waitForEvent("popup", { timeout: 25e3 }).catch(() => {
+    popupState.aborted = true;
+    return null;
   });
-  const onPopup = async (pop) => {
+  const handlePopup = async (pop) => {
+    watchDialogs(pop);
+    const refuse = (found) => {
+      popupState.refusals = found;
+      return pop.close().catch(() => {
+      });
+    };
     try {
       await pop.waitForLoadState("networkidle", { timeout: 15e3 });
       await pop.waitForTimeout(1500);
       if (popupState.aborted) return;
+      const body = await pop.evaluate(() => document.body ? document.body.innerText : "");
+      const found = [...dialogs.get(pop) ?? [], ...budgetPopupRefusals(body)];
+      if (found.length > 0) return await refuse(found);
       const current = await frame.evaluate(() => {
         const el = document.querySelector('input[name="subject"]');
         return el ? el.value : "";
@@ -23794,45 +23838,54 @@ async function submitCardExpenseRD(page, frame, _sessionManager, config3, params
         }, fixed);
         popupState.subjectFixed = fixed;
       }
+      const late2 = dialogs.get(pop) ?? [];
+      if (late2.length > 0) return await refuse([...late2]);
+      if (popupState.aborted) return;
       await pop.evaluate("submit_form()");
       popupState.submitted = true;
       await pop.waitForTimeout(4e3);
     } catch {
-    } finally {
-      resolvePopup();
     }
   };
-  page.once("popup", onPopup);
-  const popupTimer = setTimeout(resolvePopup, 25e3);
-  let run;
   try {
-    await frame.evaluate(installCardErStubs, false);
-    run = await frame.evaluate(runCheckFormRequest);
-  } catch (err) {
+    let run;
+    try {
+      await frame.evaluate(installCardErStubs, false);
+      run = await frame.evaluate(runCheckFormRequest);
+    } catch (err) {
+      popupState.aborted = true;
+      return textResult({
+        error: true,
+        code: "SUBMIT_FAILED",
+        message: `card_expense_rd submit trigger failed: ${err instanceof Error ? err.message : String(err)}`
+      });
+    }
+    if (run.alerts.length > 0 || run.pageError || !run.pressed) {
+      popupState.aborted = true;
+      return textResult({
+        error: true,
+        code: run.alerts.length > 0 ? "SUBMIT_REJECTED" : "SUBMIT_FAILED",
+        message: run.alerts.length > 0 ? `The form refused the submission: ${run.alerts.join(" / ")}. Nothing was filed.` : `The form did not reach its Evidence Check confirmation${run.pageError ? ` (${run.pageError})` : ""}. Nothing was filed.`,
+        validation_alerts: run.alerts,
+        native_confirms: run.confirms,
+        confirm_buttons: run.confirmButtons
+      });
+    }
+    const pop = await popupWait;
+    if (pop && !popupState.aborted) await handlePopup(pop);
+  } finally {
     popupState.aborted = true;
-    page.off("popup", onPopup);
-    clearTimeout(popupTimer);
+    context?.off?.("page", watchDialogs);
+  }
+  if (popupState.refusals.length > 0) {
+    audit({ action: "refusal", code: "BUDGET_CHECK_REFUSED", field: "card_expense_rd", ok: false });
     return textResult({
       error: true,
-      code: "SUBMIT_FAILED",
-      message: `card_expense_rd submit trigger failed: ${err instanceof Error ? err.message : String(err)}`
+      code: "BUDGET_CHECK_REFUSED",
+      message: `The budget check refused the submission: ${popupState.refusals.join(" / ")}. submit_form() was not called and the popup was closed. Nothing was filed.`,
+      budget_check_messages: popupState.refusals
     });
   }
-  if (run.alerts.length > 0 || run.pageError || !run.pressed) {
-    popupState.aborted = true;
-    page.off("popup", onPopup);
-    clearTimeout(popupTimer);
-    return textResult({
-      error: true,
-      code: run.alerts.length > 0 ? "SUBMIT_REJECTED" : "SUBMIT_FAILED",
-      message: run.alerts.length > 0 ? `The form refused the submission: ${run.alerts.join(" / ")}. Nothing was filed.` : `The form did not reach its Evidence Check confirmation${run.pageError ? ` (${run.pageError})` : ""}. Nothing was filed.`,
-      validation_alerts: run.alerts,
-      native_confirms: run.confirms,
-      confirm_buttons: run.confirmButtons
-    });
-  }
-  await popupDone;
-  clearTimeout(popupTimer);
   await page.waitForTimeout(2e3);
   try {
     await page.waitForLoadState("networkidle", { timeout: 1e4 });
@@ -23963,9 +24016,15 @@ async function previewCardExpenseRD(page, frame, config3, ctx) {
   let run = null;
   let runError = null;
   let screenshot = null;
-  await page.route("**/*", onRoute);
-  if (context) await context.route("**/*", onRoute);
+  let pageRouted = false;
+  let contextRouted = false;
   try {
+    await page.route("**/*", onRoute);
+    pageRouted = true;
+    if (context) {
+      await context.route("**/*", onRoute);
+      contextRouted = true;
+    }
     try {
       await frame.evaluate(installCardErStubs, true);
       run = await frame.evaluate(runCheckFormRequest);
@@ -23988,9 +24047,11 @@ async function previewCardExpenseRD(page, frame, config3, ctx) {
     } catch {
     }
   } finally {
-    await page.unroute("**/*", onRoute).catch(() => {
+    await page.goto("about:blank").catch(() => {
     });
-    if (context) await context.unroute("**/*", onRoute).catch(() => {
+    if (pageRouted) await page.unroute("**/*", onRoute).catch(() => {
+    });
+    if (contextRouted) await context.unroute("**/*", onRoute).catch(() => {
     });
   }
   const alerts = run?.alerts ?? [];
