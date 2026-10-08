@@ -2,7 +2,7 @@
 """
 RAPID 2026 Q1 Sampling - Travel Request Draft Submission (AppFrm-023)
 Based on:
-  - Approved email from Colleague (2026-03-18)
+  - Approved email from Colleague P (2026-03-18)
   - Previous Q3 travel request (doc_id=285752) as reference
 
 Form: AppFrm-023 (Domestic travel Request)
@@ -48,7 +48,7 @@ ITINERARY_TRANS = "Other Public Transportation"
 
 # Budget (changed from Q3: NN2509-0001 -> FS2214-0001)
 BUDGET_TYPE = "02"          # R&D
-BUDGET_CODE = "FS2214-0001" # 2022 GARDP FFS_Colleague (ARL)
+BUDGET_CODE = "FS2214-0001" # 2022 GARDP FFS_Colleague P (ARL)
 
 # Other settings (same as Q3)
 FIN_SUPPORT = "N"           # No financial support from organizer
@@ -63,30 +63,30 @@ ATTACHMENT_FILENAME = "[RAPID]_2026_Q1_sampling_request_approval_of_travel.pdf"
 
 # Email approval content for PDF generation
 EMAIL_APPROVAL = {
-    "from": "Colleague <Colleague@ip-korea.org>",
-    "to": "Colleague <Colleague@ip-korea.org>",
-    "cc": "Kyuwon Shim <kyuwon.shim@ip-korea.org>, Colleague <Colleague@ip-korea.org>",
+    "from": "Colleague C <colleague.x@ip-korea.org>",
+    "to": "Colleague P <colleague.n1@ip-korea.org>",
+    "cc": "Kyuwon Shim <kyuwon.shim@ip-korea.org>, Colleague S <colleague.p1@ip-korea.org>",
     "date_request": "Wed, 18 Mar 2026 08:57",
     "date_approval": "Wed, 18 Mar 2026 09:13",
     "subject": "[RAPID] 2026 Q1 sampling schedule and travel request",
     "body_request": (
         "Dear Dr. Jang,\n\n"
-        "This is Colleague from ARL.\n\n"
+        "This is Colleague C from ARL.\n\n"
         "We would like to proceed with sample collection for analysis of "
         "urban microbial communities and antimicrobial resistance in 2026.\n\n"
         "Date: 2026-03-26 (Thursday) 08:00 ~ 16:00 (8hrs)\n"
         "Locations: Bundang Seoul National Univ. Hospital & Gangnam Station & "
         "Seoul Station & Pangyo Hyundai Dept Store & Soongsil University\n"
-        "Participants: Colleague, Kyuwon Shim, Colleague\n"
-        "Project: [FS2214-0001] 2022 GARDP FFS_Colleague (ARL)\n\n"
+        "Participants: Colleague C, Kyuwon Shim, Colleague S\n"
+        "Project: [FS2214-0001] 2022 GARDP FFS_Colleague P (ARL)\n\n"
         "Please confirm so we can submit the travel request and proceed.\n\n"
-        "Best regards,\nColleague"
+        "Best regards,\nColleague C"
     ),
     "body_approval": (
         "Dear Dr. Wee,\n\n"
         "I have confirmed the sample collection travel details.\n"
         "Please proceed as planned.\n\n"
-        "Best regards,\nColleague"
+        "Best regards,\nColleague P"
     ),
 }
 
@@ -133,7 +133,7 @@ def generate_approval_pdf(output_path: str) -> str:
 
         # Approval reply
         story.append(Paragraph("<b>--- Approval Reply ---</b>", meta_style))
-        story.append(Paragraph(f"<b>From:</b> Colleague &lt;Colleague@ip-korea.org&gt;", meta_style))
+        story.append(Paragraph(f"<b>From:</b> Colleague P &lt;colleague.n1@ip-korea.org&gt;", meta_style))
         story.append(Paragraph(f"<b>Date:</b> {e['date_approval']}", meta_style))
         story.append(Spacer(1, 0.3*cm))
         for line in e['body_approval'].split('\n'):
@@ -152,7 +152,7 @@ def generate_approval_pdf(output_path: str) -> str:
             f"Date: {e['date_request']}\nSubject: {e['subject']}\n\n"
             f"{e['body_request']}\n\n{'='*50}\n\n"
             f"--- Approval Reply ---\n"
-            f"From: Colleague <Colleague@ip-korea.org>\n"
+            f"From: Colleague P <colleague.n1@ip-korea.org>\n"
             f"Date: {e['date_approval']}\n\n"
             f"{e['body_approval']}\n"
         )

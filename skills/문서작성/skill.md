@@ -87,18 +87,17 @@ After user confirms the draft:
 
 3. **Show the draft document number** to the user.
 
-4. **Submit for approval ONLY** if the user explicitly says "제출", "결재요청", "승인 올려":
-   ```
-   mcp tool: ipk_submit_form
-     <same params as above>
-     draft_only: false
-     confirm_submit: true
-   ```
+   Claude never submits the draft for approval — not even on request. The person
+   opens the saved draft in the groupware and presses its own [Approval Request] /
+   [결재요청] button themselves. (`src/policy/org-policy.ts` NO_FINAL_SUBMIT enforces
+   this: `ipk_submit_form` with `draft_only: false` is refused by the tool unless an
+   operator has separately set `IPK_ALLOW_SUBMIT=1`, and even then the tool still only
+   saves a draft and returns the click path — it never performs the final click itself.)
 
 ## Safety Rules
 
 - **ALWAYS draft first.** Never skip to approval request.
-- **NEVER submit for approval without explicit "제출해줘" / "결재요청해줘" from the user.**
+- **NEVER submit for approval.** That click belongs to the person, always.
 - For sick leave / special leave / paternity leave: remind about attachment requirement (진단서 / 증빙서류 / 출생증명서).
 - For travel by own vehicle: remind about 거리.pdf (Naver Maps screenshot) attachment.
 - For card expenses with toll: remind about 하이패스 영수증 attachment.

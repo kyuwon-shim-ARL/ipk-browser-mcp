@@ -388,7 +388,7 @@ if __name__ == "__main__":
         for i in range(5):
             hm.record_submission("leave", {
                 "leave_type": "annual",
-                "substitute": "Colleague",
+                "substitute": "Colleague C",
                 "destination": "Seoul",
                 "purpose": "personal",
                 "emergency_address": "Seoul, Korea",
@@ -398,7 +398,7 @@ if __name__ == "__main__":
         for i in range(3):
             hm.record_submission("leave", {
                 "leave_type": "compensatory",
-                "substitute": "Colleague",
+                "substitute": "Colleague C",
                 "destination": "Seoul",
                 "purpose": "child care",
                 "emergency_address": "Seoul, Korea",

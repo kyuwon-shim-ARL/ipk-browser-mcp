@@ -21718,15 +21718,16 @@ var ORG_POLICY = [
     }
   },
   {
-    id: "DRAFT_FIRST",
-    standard: "A document is saved as a draft and reviewed by a person before it is submitted for approval.",
-    passes: "draft_only is true, or confirm_submit is explicitly true.",
+    id: "NO_FINAL_SUBMIT",
+    standard: "A document is saved as a draft and reviewed by a person before it is submitted for approval. Submission itself (draft_only=false) is refused by default. A person who wants submission unlocked for this process must set env IPK_ALLOW_SUBMIT=1 - and even then the MCP does not perform the final approval-request click itself (see src/tools/ipk-submit.ts noFinalSubmitNote); it saves a draft and reports the click path for a person to press the button. (Future option, out of scope here: per-call MCP elicitation instead of the env switch.)",
+    passes: "draft_only is not false, or (confirm_submit is true AND env IPK_ALLOW_SUBMIT=1).",
     check(params) {
-      if (params.draft_only !== false || params.confirm_submit === true) return null;
+      if (params.draft_only !== false) return null;
+      if (params.confirm_submit === true && process.env.IPK_ALLOW_SUBMIT === "1") return null;
       return {
-        rule: "DRAFT_FIRST",
+        rule: "NO_FINAL_SUBMIT",
         fields: ["draft_only", "confirm_submit"],
-        message: "To submit for approval, set both draft_only=false AND confirm_submit=true"
+        message: "Submission is refused: set draft_only=true for a draft, or to unlock submission set confirm_submit=true AND the environment variable IPK_ALLOW_SUBMIT=1. Even then, this tool will not click the final approval-request button itself - it saves a draft and tells you where to click."
       };
     }
   },
@@ -21890,7 +21891,7 @@ function checkTravelRequestParams(p) {
     out.push({
       code: "CARD_NO_MALFORMED",
       fields: ["credit_card_no"],
-      message: "credit_card_no must be 16 digits (e.g. XXXX-XXXX-XXXX-XXXX)."
+      message: "credit_card_no must be 16 digits (e.g. 1234-5678-9012-3456)."
     });
   }
   return out;
@@ -21921,7 +21922,7 @@ function parseTravelRequestDoc(text) {
   const codes = budget ? [...budget.matchAll(/\[([A-Z]{2}\d{4}-\d{4})\]/g)].map((m) => m[1]) : [];
   if (codes.length) doc.budget_code = codes[codes.length - 1];
   const card = after("Institute Credit Card No");
-  if (card && /\d{4}/.test(card)) doc.credit_card_no = card;
+  if (card && /[\dX]{4}-[\dX]{4}-[\dX]{4}-[\dX]{4}/.test(card)) doc.credit_card_no = card;
   const cityLine = after("City & Transportation");
   if (cityLine) {
     const parts = cityLine.split(" - ").map(norm);
@@ -22736,7 +22737,7 @@ var ipkSubmitFormSchema = {
   budget_code_confirmed: external_exports.boolean().optional().describe("travel_request: pass true to file against a budget_code that differs from the writer's recent approved requests (the tool refuses otherwise, since an offered code can still be an empty pot)."),
   precedent_keyword: external_exports.string().optional().describe("travel_request: keyword to pick precedents by (e.g. 'RAPID'). Defaults to no keyword, i.e. the writer's most recent requests."),
   meals_served: external_exports.string().optional().describe("travel_request, required with bound_code '20': 'N' if no meals are provided on the trip, otherwise the number of meals served (1-30). The form refuses to save without an answer."),
-  credit_card_no: external_exports.string().optional().describe("travel_request: institute corporate card, 16 digits (e.g. 'XXXX-XXXX-XXXX-XXXX'). Only the traveler's own card, as shown on their previous approved requests."),
+  credit_card_no: external_exports.string().optional().describe("travel_request: institute corporate card, 16 digits (e.g. '1234-5678-9012-3456'). Only the traveler's own card, as shown on their previous approved requests."),
   end_time: external_exports.string().optional().describe("End hour for hourly leave (e.g. '17')"),
   purpose: external_exports.string().optional().describe("Purpose/reason. English only - Korean text is refused before the form is touched."),
   destination: external_exports.string().optional().describe("Destination. English only - Korean text is refused before the form is touched."),
@@ -22825,7 +22826,7 @@ var ipkSubmitFormSchema = {
   reimbursement: external_exports.number().optional().describe("Amount to reimburse traveler (KRW)"),
   corp_card_no: external_exports.string().optional().describe("Corporate card number (XXXX-XXXX-XXXX-XXXX)")
 };
-var ipkSubmitFormDescription = "Submit a form in IPK groupware. All 11 form types are fully implemented: leave (\uD734\uAC00/AppFrm-073), expense (\uACBD\uBE44/AppFrm-020), working (\uD734\uC77C\uADFC\uBB34/AppFrm-027), travel (\uCD9C\uC7A5\uBCF4\uACE0/AppFrm-076), travel_request (\uCD9C\uC7A5\uC2E0\uCCAD/AppFrm-023), budget_transfer (\uC608\uC0B0\uC804\uC6A9/AppFrm-039), card_expense (\uCE74\uB4DC\uACBD\uBE44/AppFrm-020), travel_settlement (\uCD9C\uC7A5\uC815\uC0B0/AppFrm-054), leave_return (\uB300\uCCB4\uD734\uC77C\uBC18\uB0A9/AppFrm-028), seminar (\uC138\uBBF8\uB098\uACF5\uC2DC/AppFrm-043), overseas_travel (\uD574\uC678\uCD9C\uC7A5/AppFrm-026). By default saves as draft (draft_only=true); a draft is reported only after it is found in the Drafts list (SUBMITTED_NOT_DRAFT / DRAFT_NOT_CONFIRMED otherwise). card_expense_rd has no draft (the groupware files it for approval): draft_only=true returns a no-save preview with the form's own validation. To actually submit for approval, set draft_only=false AND confirm_submit=true. For budget_transfer, use transfer_type='rnd' (AppFrm-039, default) or transfer_type='general' (AppFrm-053). Required params per form_type: leave: leave_type, start_date, end_date; expense: budget_code, amount, reason; working: budget_code, work_date, reason; travel: title, destination, start_date, end_date; travel_request: budget_code, title, destination, start_date, end_date; budget_transfer: from_account, to_account, amount, reason; card_expense: budget_code, amount, reason; travel_settlement: budget_code, title, destination, start_date, end_date; leave_return: leave_type, start_date, end_date; seminar: title, date, location; overseas_travel: budget_code, title, destination, start_date, end_date, purpose. Error recovery: NOT_LOGGED_IN\u2192call ipk_login first; FRAME_NOT_FOUND\u2192call ipk_navigate first; CONFIRMATION_REQUIRED\u2192set draft_only=true for safe draft mode; POLICY_VIOLATION/FORM_RULE_VIOLATION\u2192read the violations list, nothing was written; SESSION_EXPIRING\u2192re-login.";
+var ipkSubmitFormDescription = "Submit a form in IPK groupware. All 11 form types are fully implemented: leave (\uD734\uAC00/AppFrm-073), expense (\uACBD\uBE44/AppFrm-020), working (\uD734\uC77C\uADFC\uBB34/AppFrm-027), travel (\uCD9C\uC7A5\uBCF4\uACE0/AppFrm-076), travel_request (\uCD9C\uC7A5\uC2E0\uCCAD/AppFrm-023), budget_transfer (\uC608\uC0B0\uC804\uC6A9/AppFrm-039), card_expense (\uCE74\uB4DC\uACBD\uBE44/AppFrm-020), travel_settlement (\uCD9C\uC7A5\uC815\uC0B0/AppFrm-054), leave_return (\uB300\uCCB4\uD734\uC77C\uBC18\uB0A9/AppFrm-028), seminar (\uC138\uBBF8\uB098\uACF5\uC2DC/AppFrm-043), overseas_travel (\uD574\uC678\uCD9C\uC7A5/AppFrm-026). By default saves as draft (draft_only=true); a draft is reported only after it is found in the Drafts list (SUBMITTED_NOT_DRAFT / DRAFT_NOT_CONFIRMED otherwise). card_expense_rd has no draft (the groupware files it for approval): draft_only=true returns a no-save preview with the form's own validation. NO_FINAL_SUBMIT: draft_only=false is refused unless confirm_submit=true AND env IPK_ALLOW_SUBMIT=1. Even unlocked, for every form type except card_expense_rd this tool still only saves a draft and returns a no_final_submit note with the click path - it never performs the final approval-request click itself. For budget_transfer, use transfer_type='rnd' (AppFrm-039, default) or transfer_type='general' (AppFrm-053). Required params per form_type: leave: leave_type, start_date, end_date; expense: budget_code, amount, reason; working: budget_code, work_date, reason; travel: title, destination, start_date, end_date; travel_request: budget_code, title, destination, start_date, end_date; budget_transfer: from_account, to_account, amount, reason; card_expense: budget_code, amount, reason; travel_settlement: budget_code, title, destination, start_date, end_date; leave_return: leave_type, start_date, end_date; seminar: title, date, location; overseas_travel: budget_code, title, destination, start_date, end_date, purpose. Error recovery: NOT_LOGGED_IN\u2192call ipk_login first; FRAME_NOT_FOUND\u2192call ipk_navigate first; CONFIRMATION_REQUIRED\u2192set draft_only=true for safe draft mode; POLICY_VIOLATION/FORM_RULE_VIOLATION\u2192read the violations list, nothing was written; SESSION_EXPIRING\u2192re-login.";
 function attachmentSlotRefusal(params) {
   const v = checkAttachmentSlot(params);
   if (v.length === 0) return null;
@@ -22883,6 +22884,26 @@ var FORM_NAV_CONFIG = {
     waitMs: 1500
   }
 };
+function noFinalSubmitNote(result, requestedSubmit, mode) {
+  if (!requestedSubmit || mode !== "draft") return result;
+  const text = result?.content?.[0]?.text;
+  if (typeof text !== "string") return result;
+  let payload;
+  try {
+    payload = JSON.parse(text);
+  } catch {
+    return result;
+  }
+  const docId = payload?.data?.docId ?? payload?.docId;
+  const note = "NO_FINAL_SUBMIT: submission was requested, but this MCP never submits a document for approval itself - it saved a draft instead. Open the document" + (docId ? ` (doc_id: ${docId})` : "") + " and press the groupware's own [Approval Request] / [\uACB0\uC7AC\uC694\uCCAD] button to submit it.";
+  if (payload.data && typeof payload.data === "object") {
+    payload.data.no_final_submit = note;
+  } else {
+    payload.no_final_submit = note;
+  }
+  return textResult(payload);
+}
+var NO_DRAFT_STATE_FORMS = /* @__PURE__ */ new Set(["card_expense_rd"]);
 var FORM_HANDLERS = {
   leave: submitLeave,
   expense: submitExpense,
@@ -22921,7 +22942,7 @@ async function handleIpkSubmitForm(sessionManager2, config3, params) {
     }
     return textResult({
       error: true,
-      code: policy.some((v) => v.rule === "DRAFT_FIRST") ? "CONFIRMATION_REQUIRED" : "POLICY_VIOLATION",
+      code: policy.some((v) => v.rule === "NO_FINAL_SUBMIT") ? "CONFIRMATION_REQUIRED" : "POLICY_VIOLATION",
       message: policy.map((v) => `[${v.rule}] ${v.message}`).join("\n"),
       violations: policy
     });
@@ -22932,7 +22953,8 @@ async function handleIpkSubmitForm(sessionManager2, config3, params) {
       return textResult({ error: true, code: "INVALID_ATTACHMENT", message: attachErr });
     }
   }
-  const mode = params.draft_only !== false ? "draft" : "request";
+  const requestedSubmit = params.draft_only === false;
+  const mode = requestedSubmit && NO_DRAFT_STATE_FORMS.has(formType) ? "request" : "draft";
   const remainingMs = sessionManager2.getSessionRemainingMs();
   if (remainingMs < 5 * 60 * 1e3) {
     return textResult({
@@ -22984,14 +23006,22 @@ async function handleIpkSubmitForm(sessionManager2, config3, params) {
     const handler = FORM_HANDLERS[formType];
     if (handler) {
       const result2 = await handler(page, frame, sessionManager2, config3, params, mode);
-      return await confirmDraftResult(page, config3.baseUrl, mode, result2, config3.navTimeoutMs);
+      return noFinalSubmitNote(
+        await confirmDraftResult(page, config3.baseUrl, mode, result2, config3.navTimeoutMs),
+        requestedSubmit,
+        mode
+      );
     }
     const templateSchema = loadTemplateFieldSchema(formType);
     if (!templateSchema) {
       return textResult({ error: true, code: "UNKNOWN_FORM", message: `Unknown form type: ${formType}` });
     }
     const result = await submitGeneric(page, frame, sessionManager2, config3, params, mode, formType, templateSchema);
-    return await confirmDraftResult(page, config3.baseUrl, mode, result, config3.navTimeoutMs);
+    return noFinalSubmitNote(
+      await confirmDraftResult(page, config3.baseUrl, mode, result, config3.navTimeoutMs),
+      requestedSubmit,
+      mode
+    );
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return textResult({ error: true, code: "SUBMIT_ERROR", message: msg });

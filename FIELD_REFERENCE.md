@@ -106,10 +106,10 @@ Paternity Leave, 2025-11-24~2025-11-27, Seoul, Kyuwon Shim
 ### 예산 코드 예시
 | 코드 | 프로젝트명 |
 |-----|-----------|
-| FS2214-0001 | 2022 GARDP FFS_Colleague (ARL) |
+| FS2214-0001 | 2022 GARDP FFS_Colleague P (ARL) |
 | NN2509-0001 | 2025 GloPID-R Program |
 | NN2512-0001 | 2025 Mid-career Research Program |
-| RS_JSJ | 연구지원계정_Colleague |
+| RS_JSJ | 연구지원계정_Colleague P |
 
 ---
 
@@ -190,11 +190,11 @@ Application for Working on 2025-12-16, Kyuwon Shim
 ---
 
 ## 작성자별 통계 (269건)
-1. Colleague: 40건
-2. Colleague: 39건
-3. Colleague: 38건
-4. Colleague: 37건
-5. Colleague: 32건
+1. Colleague L: 40건
+2. Colleague P: 39건
+3. Colleague C: 38건
+4. Colleague N: 37건
+5. Colleague F: 32건
 6. **Kyuwon Shim: 31건**
-7. Colleague: 20건
-8. Colleague: 11건
+7. Colleague E: 20건
+8. Colleague V: 11건

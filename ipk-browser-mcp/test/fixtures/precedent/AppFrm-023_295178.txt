@@ -1,7 +1,7 @@
-Welcome, Kyuwon Shim    	Approved Cc(New) 0 | Approval 0 | Approval(Proxy) 0 | Finished 200 | Progress 1
+Welcome, Person A    	Approved Cc(New) 0 | Approval 0 | Approval(Proxy) 0 | Finished 200 | Progress 1
 
 
-   kyuwon.shim / Master ID / Research Division / Antibacterial Resistance Lab / Post-Doc / Post-Doc / G2 / Team Member	
+   person.a / Master ID / Research Division / Antibacterial Resistance Lab / Post-Doc / Post-Doc / G2 / Team Member	
 
 
 	Approval > Group Approved
@@ -32,7 +32,7 @@ a
 l	( 1 )	( 2 )	( 4 )
 A Person in Charge	Team Head (R)	CEO
 		
-Kyuwon Shim	Colleague	Colleague
+Person A	Person C	Person C
 2026-06-15	2026-06-16	2026-06-16
 	
 
@@ -47,7 +47,7 @@ e
 r	( 3 )
 Budget Holder
 
-Colleague
+Person C
 2026-06-16
 	
 T
@@ -61,19 +61,19 @@ r
 	( 5 )	( 6 )
 Budget Planning & Finance	Budget Planning & Finance
 	
-Suhyun Park	Sang-Sun Shin
+Person E	Person F
 2026-06-16	2026-06-16
 
 
 Cc		PA Exception	 
-Drafter	Antibacterial Resistance Lab - Team Member - Kyuwon Shim (00565)	Date	2026-06-15
+Drafter	Antibacterial Resistance Lab - Team Member - Person A (XXXXX)	Date	2026-06-15
 
 
 Subject	[Request] MetaSUB gCSD2026 & RAPID Q2 sampling
 
 
 	
-Traveler	Kyuwon Shim (00565 )
+Traveler	Person A (XXXXX)
 Budget Control No	[26002452]
 Travel with Invitation	No
 City & Transportation	Seoul (서울특별시) - Seoul (서울) - Other Public Transporation
@@ -116,7 +116,7 @@ Note(s) :
 
 
 
-Budget Account Code	R&D - 2026 GloPID-R Program(생명연 위탁)_2nd_Colleague_이월금 [EZ: NN2602-0000] [NN2602-0002] - Domestic Business Travel[410201]
+Budget Account Code	R&D - 2026 GloPID-R Program(생명연 위탁)_2nd_Person C_이월금 [EZ: NN2602-0000] [NN2602-0002] - Domestic Business Travel[410201]
 (Period : 2026-01-01~2026-12-31)
 
 
@@ -158,17 +158,17 @@ Attach Approved Document
 
 [ Attachment Document ]
 
-Opinion of approval	Kyuwon Shim (Antibacterial Resistance Lab - Team Member) 2026-06-15 08:58:55
+Opinion of approval	Person A (Antibacterial Resistance Lab - Team Member) 2026-06-15 08:58:55
 [No opinion]
-Colleague (Antibacterial Resistance Lab - Team Head (R)) 2026-06-16 06:47:00
+Person C (Antibacterial Resistance Lab - Team Head (R)) 2026-06-16 06:47:00
 [No opinion]
-Colleague (Antibacterial Resistance Lab - Team Head (R)) 2026-06-16 06:47:00
+Person C (Antibacterial Resistance Lab - Team Head (R)) 2026-06-16 06:47:00
 [No opinion]
-Sung Key Jang (CEO - CEO) 2026-06-16 06:47:00
+Person D (CEO - CEO) 2026-06-16 06:47:00
 [No opinion]
-Suhyun Park (Budget Planning & Finance - Team Member) 2026-06-16 08:16:55
+Person E (Budget Planning & Finance - Team Member) 2026-06-16 08:16:55
 [No opinion]
-Sang-Sun Shin (Budget Planning & Finance - Team Head (A)) 2026-06-16 09:58:34
+Person F (Budget Planning & Finance - Team Head (A)) 2026-06-16 09:58:34
 [No opinion]
 
 Document Modify History	

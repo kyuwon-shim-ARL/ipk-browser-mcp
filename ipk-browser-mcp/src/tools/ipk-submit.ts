@@ -609,7 +609,7 @@ export const ipkSubmitFormSchema = {
   budget_code_confirmed: z.boolean().optional().describe("travel_request: pass true to file against a budget_code that differs from the writer's recent approved requests (the tool refuses otherwise, since an offered code can still be an empty pot)."),
   precedent_keyword: z.string().optional().describe("travel_request: keyword to pick precedents by (e.g. 'RAPID'). Defaults to no keyword, i.e. the writer's most recent requests."),
   meals_served: z.string().optional().describe("travel_request, required with bound_code '20': 'N' if no meals are provided on the trip, otherwise the number of meals served (1-30). The form refuses to save without an answer."),
-  credit_card_no: z.string().optional().describe("travel_request: institute corporate card, 16 digits (e.g. 'XXXX-XXXX-XXXX-XXXX'). Only the traveler's own card, as shown on their previous approved requests."),
+  credit_card_no: z.string().optional().describe("travel_request: institute corporate card, 16 digits (e.g. '1234-5678-9012-3456'). Only the traveler's own card, as shown on their previous approved requests."),
   end_time: z.string().optional().describe("End hour for hourly leave (e.g. '17')"),
   purpose: z.string().optional().describe("Purpose/reason. English only - Korean text is refused before the form is touched."),
   destination: z.string().optional().describe("Destination. English only - Korean text is refused before the form is touched."),
@@ -711,7 +711,9 @@ export const ipkSubmitFormDescription =
   "card_expense (카드경비/AppFrm-020), travel_settlement (출장정산/AppFrm-054), leave_return (대체휴일반납/AppFrm-028), seminar (세미나공시/AppFrm-043), overseas_travel (해외출장/AppFrm-026). " +
   "By default saves as draft (draft_only=true); a draft is reported only after it is found in the Drafts list (SUBMITTED_NOT_DRAFT / DRAFT_NOT_CONFIRMED otherwise). " +
   "card_expense_rd has no draft (the groupware files it for approval): draft_only=true returns a no-save preview with the form's own validation. " +
-  "To actually submit for approval, set draft_only=false AND confirm_submit=true. " +
+  "NO_FINAL_SUBMIT: draft_only=false is refused unless confirm_submit=true AND env IPK_ALLOW_SUBMIT=1. " +
+  "Even unlocked, for every form type except card_expense_rd this tool still only saves a draft and " +
+  "returns a no_final_submit note with the click path - it never performs the final approval-request click itself. " +
   "For budget_transfer, use transfer_type='rnd' (AppFrm-039, default) or transfer_type='general' (AppFrm-053). " +
   "Required params per form_type: " +
   "leave: leave_type, start_date, end_date; " +
@@ -817,6 +819,39 @@ const FORM_NAV_CONFIG: Partial<Record<string, FormNavConfig>> = {
 };
 
 /** Per-form submit handlers. Looked up by formType — no switch/if needed. */
+/**
+ * NO_FINAL_SUBMIT (src/policy/org-policy.ts): when the person asked for an actual
+ * submission (draft_only=false) but the form was saved as a draft anyway because the MCP
+ * never performs the final approval-request click itself, say so and give the click path
+ * instead of letting a plain "draft saved" message read as success-as-requested.
+ */
+export function noFinalSubmitNote(result: any, requestedSubmit: boolean, mode: "draft" | "request") {
+  if (!requestedSubmit || mode !== "draft") return result;
+  const text = result?.content?.[0]?.text;
+  if (typeof text !== "string") return result;
+  let payload: any;
+  try {
+    payload = JSON.parse(text);
+  } catch {
+    return result;
+  }
+  const docId = payload?.data?.docId ?? payload?.docId;
+  const note =
+    "NO_FINAL_SUBMIT: submission was requested, but this MCP never submits a document for " +
+    "approval itself - it saved a draft instead. Open the document" +
+    (docId ? ` (doc_id: ${docId})` : "") +
+    " and press the groupware's own [Approval Request] / [결재요청] button to submit it.";
+  if (payload.data && typeof payload.data === "object") {
+    payload.data.no_final_submit = note;
+  } else {
+    payload.no_final_submit = note;
+  }
+  return textResult(payload);
+}
+
+/** Forms the groupware has no draft state for: saving IS the final submission. See noFinalSubmitNote. */
+const NO_DRAFT_STATE_FORMS = new Set(["card_expense_rd"]);
+
 type FormHandler = (
   page: any,
   frame: any,
@@ -881,7 +916,7 @@ export async function handleIpkSubmitForm(
     }
     return textResult({
       error: true,
-      code: policy.some((v) => v.rule === "DRAFT_FIRST") ? "CONFIRMATION_REQUIRED" : "POLICY_VIOLATION",
+      code: policy.some((v) => v.rule === "NO_FINAL_SUBMIT") ? "CONFIRMATION_REQUIRED" : "POLICY_VIOLATION",
       message: policy.map((v) => `[${v.rule}] ${v.message}`).join("\n"),
       violations: policy,
     });
@@ -895,7 +930,15 @@ export async function handleIpkSubmitForm(
     }
   }
 
-  const mode = params.draft_only !== false ? "draft" : "request";
+  // NO_FINAL_SUBMIT (src/policy/org-policy.ts): the org-policy check above already refused
+  // draft_only=false unless IPK_ALLOW_SUBMIT=1 + confirm_submit=true. Even then, the MCP
+  // itself never performs the final approval-request action for forms that have a real
+  // Drafts state - it always saves a draft and tells the person where to click. The one
+  // exception is card_expense_rd (AppFrm-021): the groupware has no draft state for it, so
+  // "save" and "submit for approval" are the same network action, and draft_only=true is a
+  // no-network preview rather than an actual draft (see submitCardExpenseRD).
+  const requestedSubmit = params.draft_only === false;
+  const mode: "draft" | "request" = requestedSubmit && NO_DRAFT_STATE_FORMS.has(formType) ? "request" : "draft";
 
   // Session expiry guard: warn if <5 min remaining before starting form fill
   const remainingMs = sessionManager.getSessionRemainingMs();
@@ -966,7 +1009,11 @@ export async function handleIpkSubmitForm(
     const handler = FORM_HANDLERS[formType];
     if (handler) {
       const result = await handler(page, frame, sessionManager, config, params, mode);
-      return await confirmDraftResult(page, config.baseUrl, mode, result, config.navTimeoutMs);
+      return noFinalSubmitNote(
+        await confirmDraftResult(page, config.baseUrl, mode, result, config.navTimeoutMs),
+        requestedSubmit,
+        mode
+      );
     }
 
     // Generic template-driven fallback for any unlisted form type
@@ -975,7 +1022,11 @@ export async function handleIpkSubmitForm(
       return textResult({ error: true, code: "UNKNOWN_FORM", message: `Unknown form type: ${formType}` });
     }
     const result = await submitGeneric(page, frame, sessionManager, config, params, mode, formType, templateSchema);
-    return await confirmDraftResult(page, config.baseUrl, mode, result, config.navTimeoutMs);
+    return noFinalSubmitNote(
+      await confirmDraftResult(page, config.baseUrl, mode, result, config.navTimeoutMs),
+      requestedSubmit,
+      mode
+    );
 
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
@@ -1087,7 +1138,7 @@ async function submitLeave(
     const selected = await popup.evaluate(
       (name: string) => {
         // Also fold "." and "_" to a space: config and callers routinely hold the login id
-        // ("Colleague") where the picker shows the display name ("Colleague"). Refusing
+        // ("colleague.x") where the picker shows the display name ("Colleague C"). Refusing
         // that would reject a real colleague. Genuine ambiguity is still caught below.
         const norm = (v: string) =>
           v.normalize("NFKC").replace(/[._]+/g, " ").replace(/\s+/g, " ").trim().toLocaleLowerCase();

@@ -452,63 +452,6 @@
       }
     ]
   },
-  "writer_profiles": {
-    "Kyuwon Shim": {
-      "total_docs": 7,
-      "low_confidence": false,
-      "common_purpose_category": "Participation in the conference/seminar",
-      "common_city_transportation": "Seoul (서울특별시) - Seoul (서울) - Other Public Transporation",
-      "transport_mode": "Other Public Transporation",
-      "budget_type": "R&D",
-      "travel_with_invitation": "No",
-      "avg_total_sum": 68207,
-      "avg_nights": 0.57
-    },
-    "Colleague": {
-      "total_docs": 37,
-      "low_confidence": false,
-      "common_purpose_category": "Participation in the conference/seminar",
-      "common_city_transportation": "Seoul (서울특별시) - Seoul (서울) - Own Vehicle - Gasoline",
-      "transport_mode": "Own Vehicle - Gasoline",
-      "budget_type": "R&D",
-      "travel_with_invitation": "No",
-      "avg_total_sum": 115284,
-      "avg_nights": 0.16
-    },
-    "Colleague": {
-      "total_docs": 10,
-      "low_confidence": false,
-      "common_purpose_category": "Participation in the conference/seminar",
-      "common_city_transportation": "Seoul (서울특별시) - Seoul (서울) - Other Public Transporation",
-      "transport_mode": "Other Public Transporation",
-      "budget_type": "R&D",
-      "travel_with_invitation": "No",
-      "avg_total_sum": 109168,
-      "avg_nights": 0.6
-    },
-    "Colleague": {
-      "total_docs": 7,
-      "low_confidence": false,
-      "common_purpose_category": "Simple visit to vendor & etc",
-      "common_city_transportation": "Seoul (서울특별시) - Seoul (서울) - Other Public Transporation",
-      "transport_mode": "Other Public Transporation",
-      "budget_type": "R&D",
-      "travel_with_invitation": "No",
-      "avg_total_sum": 105223,
-      "avg_nights": 0.29
-    },
-    "Colleague": {
-      "total_docs": 6,
-      "low_confidence": false,
-      "common_purpose_category": "Participation in the conference/seminar",
-      "common_city_transportation": "Seoul (서울특별시) - Seoul (서울) - Other Public Transporation",
-      "transport_mode": "Other Public Transporation",
-      "budget_type": "R&D",
-      "travel_with_invitation": "No",
-      "avg_total_sum": 146565,
-      "avg_nights": 0.83
-    }
-  },
   "account_code_from_budget_type": {
     "R&D": "410201",
     "General": "420312",

@@ -264,8 +264,8 @@ python ipk_gw.py meal --amount 15000 --attachment receipt.jpg
 MEAL_HISTORY = {
     "avg_amount": 15000,
     "frequent_participants": [
-        "Colleague",
-        "Colleague",
+        "Colleague C",
+        "Colleague L",
     ],
     "weekday_pattern": {
         "Friday": 40,  # 금요일이 가장 많음
@@ -371,7 +371,7 @@ $ python ipk_gw.py leave --date 2025-01-02
         {"date": "2024-12-21", "budget_code": "NN2512-0001", "reason": "experiment"},
     ],
     "patterns": {
-        "preferred_substitute": "Colleague",
+        "preferred_substitute": "Colleague C",
         "common_destinations": ["Seoul", "Busan"],
         "active_budget_codes": ["NN2512-0001"],
     }

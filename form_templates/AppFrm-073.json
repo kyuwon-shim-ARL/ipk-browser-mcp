@@ -95,7 +95,7 @@
       "dom_name": "substitute_name",
       "required": true,
       "source": "profile",
-      "note": "88% Colleague, 7% Colleague, 4% Colleague",
+      "note": "88% Colleague C, 7% Colleague H, 4% Colleague S",
       "widget_type": "text"
     },
     "substitute_payroll": {
@@ -179,23 +179,6 @@
       "template": "{leave_type}, {start_date}~{end_date}, {destination}, {writer_name}"
     }
   ],
-  "substitute_lookup": {
-    "Colleague": {
-      "payroll": "00528",
-      "position": "Antibacterial Resistance Lab/Team Member",
-      "contact": "031-8018-8195"
-    },
-    "Colleague": {
-      "payroll": "00577",
-      "position": "Antibacterial Resistance Lab/Team Member",
-      "contact": "031-8018-8014"
-    },
-    "Colleague": {
-      "payroll": "00542",
-      "position": "Antibacterial Resistance Lab/Team Member",
-      "contact": "031-8018-8014"
-    }
-  },
   "minimum_user_input": [
     "leave_type",
     "start_date",

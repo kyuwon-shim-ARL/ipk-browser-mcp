@@ -249,57 +249,6 @@
       "count": 3
     }
   ],
-  "writer_profiles": {
-    "Colleague": {
-      "total_docs": 33,
-      "avg_amount_krw": 4055896,
-      "equipment_purchases": 6,
-      "common_account_nos": [
-        "NN2503-0002",
-        "FS2226-0001",
-        "NN2508-0001"
-      ]
-    },
-    "Colleague": {
-      "total_docs": 14,
-      "avg_amount_krw": 4239403,
-      "equipment_purchases": 3
-    },
-    "Colleague": {
-      "total_docs": 13,
-      "avg_amount_krw": 1295256,
-      "equipment_purchases": 0
-    },
-    "Colleague": {
-      "total_docs": 12,
-      "avg_amount_krw": 436235,
-      "equipment_purchases": 0
-    },
-    "Colleague": {
-      "total_docs": 12,
-      "avg_amount_krw": 4471746,
-      "equipment_purchases": 1
-    },
-    "Colleague": {
-      "total_docs": 10,
-      "avg_amount_krw": 1786664,
-      "equipment_purchases": 0
-    },
-    "Colleague": {
-      "total_docs": 6,
-      "avg_amount_krw": 6815075,
-      "equipment_purchases": 1
-    },
-    "Kyuwon Shim": {
-      "total_docs": 4,
-      "avg_amount_krw": 2300000,
-      "equipment_purchases": 0,
-      "common_account_nos": [
-        "NN2512-0001",
-        "RS_JSJ"
-      ]
-    }
-  },
   "amount_stats": {
     "min_krw": 600,
     "max_krw": 30000000,

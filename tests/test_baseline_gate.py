@@ -186,7 +186,7 @@ def test_unknown_field_name_is_unavailable_not_a_pass():
 
 
 def test_non_text_fields_are_allowed_without_a_baseline():
-    assert check({"report_date": "2026-10-06", "report_leader": "Colleague", "purpose_field": "p" * 100}, _b()) == []
+    assert check({"report_date": "2026-10-06", "report_leader": "Colleague P", "purpose_field": "p" * 100}, _b()) == []
 
 
 def test_field_with_too_few_precedents_is_unavailable():

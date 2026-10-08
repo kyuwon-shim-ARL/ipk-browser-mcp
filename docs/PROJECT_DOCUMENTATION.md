@@ -191,7 +191,7 @@ IPK 그룹웨어는 2007년에 구축된 레거시 시스템으로, **다중 프
 
 **Output:**
 ```
-substitute_name: 'Colleague'
+substitute_name: 'Colleague C'
 substitute_payroll: '00528'
 substitute_position: 'Antibacterial Resistance Lab/Team Member'
 substitute_contact: '031-8018-8195'
@@ -344,7 +344,7 @@ document.querySelector('.validate[name="report_date"]').value = "2025-12-27";
 document.querySelector('.validate[name="report_name"]').value = "Kyuwon Shim";
 document.querySelector('.validate[name="report_post"]').value = "Researcher";
 document.querySelector('.validate[name="report_group"]').value = "Antibacterial Resistance Lab";
-document.querySelector('.validate[name="report_leader"]').value = "Colleague";
+document.querySelector('.validate[name="report_leader"]').value = "Colleague P";
 document.querySelector('.validate[name="start_day"]').value = "2025-03-01";
 document.querySelector('.validate[name="end_day"]').value = "2025-03-03";
 document.querySelector('.validate[name="report_dest"]').value = "Seoul";

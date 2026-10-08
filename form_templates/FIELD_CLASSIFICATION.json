@@ -267,7 +267,7 @@
           "field": "substitute_name",
           "type": "text",
           "confidence": 0.88,
-          "rule": "Kyuwon: Colleague (88%), Colleague (7%), Colleague (4%)",
+          "rule": "Kyuwon: Colleague C (88%), Colleague H (7%), Colleague S (4%)",
           "note": "Suggest top substitute but allow override"
         },
         {
@@ -377,7 +377,7 @@
           "field": "venue",
           "type": "text",
           "confidence": 0.88,
-          "rule": "Per-writer default from profile. Colleague: '4th floor meeting room'. 97% of docs have venue.",
+          "rule": "Per-writer default from profile. Colleague N: '4th floor meeting room'. 97% of docs have venue.",
           "note": "Suggest default but user should confirm"
         },
         {
@@ -391,7 +391,7 @@
           "field": "purpose_minutes",
           "type": "text",
           "confidence": 0.70,
-          "rule": "Per-writer default. Colleague: 'To discuss what we did and what we will do for projects'.",
+          "rule": "Per-writer default. Colleague N: 'To discuss what we did and what we will do for projects'.",
           "note": "Should be customized per meeting but default exists"
         }
       ],
@@ -422,7 +422,7 @@
         },
         {
           "field": "card_number",
-          "value": "XXXX-XXXX-XXXX-XXXX",
+          "value": "1234-5678-9012-3456",
           "coverage": 1.0,
           "note": "Lab-specific card. May change if card is reissued."
         },

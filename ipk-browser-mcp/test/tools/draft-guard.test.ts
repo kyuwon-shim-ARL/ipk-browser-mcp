@@ -5,6 +5,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { listHasDoc, classifyDocLocation, applyDraftGuard, confirmDraftResult, draftViewUrl } from "../../src/browser/draft-guard.js";
 import { textResult } from "../../src/util.js";
+import { noFinalSubmitNote } from "../../src/tools/ipk-submit.js";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -166,5 +167,35 @@ describe("ipk_submit_form dispatch", () => {
     expect(dispatch.match(/confirmDraftResult\(page, config\.baseUrl, mode, result/g)).toHaveLength(2);
     expect(dispatch).not.toMatch(/return await handler\(/);
     expect(dispatch).not.toMatch(/return await submitGeneric\(/);
+    // NO_FINAL_SUBMIT: every dispatch path also goes through noFinalSubmitNote.
+    expect(dispatch.match(/noFinalSubmitNote\(/g)).toHaveLength(2);
+  });
+
+  it("NO_FINAL_SUBMIT: forces draft mode for any form type not in NO_DRAFT_STATE_FORMS, even with draft_only=false", () => {
+    const src = readFileSync(join(__dirname, "..", "..", "src", "tools", "ipk-submit.ts"), "utf8");
+    expect(src).toMatch(/const NO_DRAFT_STATE_FORMS = new Set\(\["card_expense_rd"\]\);/);
+    expect(src).toMatch(
+      /const mode: "draft" \| "request" = requestedSubmit && NO_DRAFT_STATE_FORMS\.has\(formType\) \? "request" : "draft";/
+    );
+  });
+});
+
+describe("noFinalSubmitNote", () => {
+  it("leaves the result untouched when submission was not requested", () => {
+    const r = textResult({ error: false, data: { docId: "123" } });
+    expect(noFinalSubmitNote(r, false, "draft")).toBe(r);
+  });
+
+  it("leaves the result untouched for a real submission (mode request)", () => {
+    const r = textResult({ error: false, data: { docId: "123" } });
+    expect(noFinalSubmitNote(r, true, "request")).toBe(r);
+  });
+
+  it("adds the click-path note when submission was requested but the MCP only saved a draft", () => {
+    const r = textResult({ error: false, data: { docId: "123", message: "Leave draft saved" } });
+    const out = JSON.parse(noFinalSubmitNote(r, true, "draft").content[0].text);
+    expect(out.data.no_final_submit).toMatch(/never submits a document for approval itself/);
+    expect(out.data.no_final_submit).toMatch(/doc_id: 123/);
+    expect(out.data.no_final_submit).toMatch(/\[Approval Request\]/);
   });
 });

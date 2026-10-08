@@ -1,12 +1,11 @@
 {
   "form_code": "AppFrm-020",
   "form_name": "Card Expense Request",
-  "analysis_basis": "60 documents (53 Colleague, 4 Colleague, 1 each: Colleague, Colleague, Colleague)",
+  "analysis_basis": "60 documents (53 Colleague N, 4 Colleague L, 1 each: Colleague E, Colleague V, Colleague F)",
   "fixed_fields": {
     "saving_years": "5 years",
     "budget_type": "General",
     "payment": "Corporate Credit Card",
-    "card_number": "XXXX-XXXX-XXXX-XXXX",
     "item_cate_no": "none",
     "item_pc": "N/N"
   },
@@ -174,55 +173,6 @@
       "template": "[Card] ER_{expense_type}"
     }
   ],
-  "writer_profiles": {
-    "Colleague": {
-      "total_docs": 53,
-      "low_confidence": false,
-      "budget_code": "[GW17_ARRL] 과제수당_ARRL\n(Period : 2017-01-01~2033-12-31)",
-      "top_venue": "4th floor meeting room",
-      "top_account_code": "420421",
-      "top_description": "Team activities",
-      "top_purpose": "To discuss what we did and what we will do for projects",
-      "avg_amount_krw": 126171
-    },
-    "Colleague": {
-      "total_docs": 4,
-      "low_confidence": false,
-      "budget_code": "[GW17_ARRL] 과제수당_ARRL\n(Period : 2017-01-01~2033-12-31)",
-      "top_venue": "Nicolle",
-      "top_account_code": "420421",
-      "top_description": "Team activities",
-      "top_purpose": "Discussion on the experimental timeline and drug administration regimen for the tuberculosis mouse efficacy study.",
-      "avg_amount_krw": 18022
-    },
-    "Colleague": {
-      "total_docs": 1,
-      "low_confidence": true,
-      "budget_code": "[GW17_ARRL] 과제수당_ARRL\n(Period : 2017-01-01~2033-12-31)",
-      "top_venue": "URP 파스퇴르 cafe",
-      "top_account_code": "420420",
-      "top_description": "Conference: Meeting with External Specialists",
-      "avg_amount_krw": 12800
-    },
-    "Colleague": {
-      "total_docs": 1,
-      "low_confidence": true,
-      "budget_code": "[GW17_ARRL] 과제수당_ARRL\n(Period : 2017-01-01~2033-12-31)",
-      "top_venue": "4th floor",
-      "top_account_code": "420421",
-      "top_description": "Team activities",
-      "avg_amount_krw": 28100
-    },
-    "Colleague": {
-      "total_docs": 1,
-      "low_confidence": true,
-      "budget_code": "[GW17_ARRL] 과제수당_ARRL\n(Period : 2017-01-01~2033-12-31)",
-      "top_venue": "Job candidate selection",
-      "top_account_code": "420421",
-      "top_description": "Team activities",
-      "avg_amount_krw": 20900
-    }
-  },
   "minimum_user_input": [
     "subject",
     "item_date",

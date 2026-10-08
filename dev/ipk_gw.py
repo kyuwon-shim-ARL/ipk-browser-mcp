@@ -831,7 +831,9 @@ class IPKGroupware:
             report_date = datetime.now().strftime("%Y-%m-%d")
             # 직책 및 팀장 정보
             report_post = get_credential("user_position") or "Researcher"
-            report_leader = get_credential("group_leader") or "Colleague"
+            report_leader = get_credential("group_leader", "팀장/Group Leader 이름 (IPK_GROUP_LEADER로도 설정 가능)")
+            if not report_leader:
+                raise RuntimeError("group_leader credential missing - set IPK_GROUP_LEADER (no hard-coded default)")
             user_dept = self.user_info.get('dept') or get_credential("user_dept") or "Antibacterial Resistance Lab"
 
             # Travel form uses .validate class for required fields
@@ -981,12 +983,13 @@ def main():
             return
 
         if args.demo:
-            # 샘플 데이터 생성
+            # 샘플 데이터 생성 (대리자는 실제 동료 이름을 쓰지 않음 - IPK_SUBSTITUTE_NAME 또는 "N/A")
+            demo_substitute = get_credential("substitute_name") or "N/A"
             print("샘플 이력 데이터 생성 중...")
             for i in range(3):
                 hm.record_submission("leave", {
                     "leave_type": "annual",
-                    "substitute": "Colleague",
+                    "substitute": demo_substitute,
                     "destination": "Seoul",
                     "purpose": "personal",
                     "emergency_address": "Seoul, Korea",
@@ -995,7 +998,7 @@ def main():
             for i in range(2):
                 hm.record_submission("leave", {
                     "leave_type": "compensatory",
-                    "substitute": "Colleague",
+                    "substitute": demo_substitute,
                     "destination": "Seoul",
                     "purpose": "child care",
                     "emergency_address": "Seoul, Korea",
@@ -1048,7 +1051,7 @@ def main():
 
         print("\n[2/3] 휴가 대리자 정보 (휴가 신청시 필수)")
         print("  (팀원 중 한 명 지정, 나중에 변경 가능)")
-        sub_name = input("  대리자 이름 (예: Colleague): ") or "N/A"
+        sub_name = input("  대리자 이름 (팀원 중 한 명, 그룹웨어 표시 이름 그대로): ") or "N/A"
         sub_payroll = input("  대리자 사번 (모르면 Enter): ") or "N/A"
         sub_position = input("  대리자 직급 (예: Researcher): ") or "Researcher"
         sub_contact = input("  대리자 연락처 (예: 010-xxxx-xxxx): ") or "N/A"

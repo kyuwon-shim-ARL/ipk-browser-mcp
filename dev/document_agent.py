@@ -1148,8 +1148,8 @@ class SmartFormAgent:
             return accounts[0], 0.3
 
         if fname in ("substitute_name",):
-            # Hardcoded from classification: Kyuwon's default is Colleague (88%)
-            return "Colleague (00528)", 0.88
+            # Hardcoded from classification: Kyuwon's default is Colleague C (88%)
+            return "Colleague C (00528)", 0.88
 
         if fname == "address":
             val = profile.get("address")

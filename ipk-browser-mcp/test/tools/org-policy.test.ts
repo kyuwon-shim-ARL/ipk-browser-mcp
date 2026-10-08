@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, afterEach } from "vitest";
 import { ORG_POLICY, checkOrgPolicy, containsHangul } from "../../src/policy/org-policy.js";
 import { violations } from "../../bench/score.mjs";
 import { readFileSync } from "node:fs";
@@ -67,12 +67,25 @@ describe("ENGLISH_ONLY", () => {
   });
 });
 
-describe("DRAFT_FIRST", () => {
-  it("refuses a real submission without explicit confirmation", () => {
-    const v = checkOrgPolicy(travel({ draft_only: false }));
-    expect(v.map((x) => x.rule)).toEqual(["DRAFT_FIRST"]);
+describe("NO_FINAL_SUBMIT", () => {
+  const prevEnv = process.env.IPK_ALLOW_SUBMIT;
+  afterEach(() => {
+    if (prevEnv === undefined) delete process.env.IPK_ALLOW_SUBMIT;
+    else process.env.IPK_ALLOW_SUBMIT = prevEnv;
   });
-  it("allows a confirmed submission", () => {
+
+  it("refuses a real submission without explicit confirmation", () => {
+    delete process.env.IPK_ALLOW_SUBMIT;
+    const v = checkOrgPolicy(travel({ draft_only: false }));
+    expect(v.map((x) => x.rule)).toEqual(["NO_FINAL_SUBMIT"]);
+  });
+  it("refuses a confirmed submission when IPK_ALLOW_SUBMIT is not set", () => {
+    delete process.env.IPK_ALLOW_SUBMIT;
+    const v = checkOrgPolicy(travel({ draft_only: false, confirm_submit: true }));
+    expect(v.map((x) => x.rule)).toEqual(["NO_FINAL_SUBMIT"]);
+  });
+  it("allows a confirmed submission only once IPK_ALLOW_SUBMIT=1 is also set", () => {
+    process.env.IPK_ALLOW_SUBMIT = "1";
     expect(checkOrgPolicy(travel({ draft_only: false, confirm_submit: true }))).toEqual([]);
   });
 });

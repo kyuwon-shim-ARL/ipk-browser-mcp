@@ -64,11 +64,11 @@ describe("attachment slots", () => {
 
 describe("corporate card number", () => {
   it("splits 16 digits into the four copcard boxes", () => {
-    expect(parseCardNo("XXXX-XXXX-XXXX-XXXX")).toEqual(["5525", "7642", "1492", "9594"]);
-    expect(parseCardNo("XXXX-XXXX-XXXX-XXXX")).toEqual(["5525", "7642", "1492", "9594"]);
+    expect(parseCardNo("1234-5678-9012-3456")).toEqual(["1234", "5678", "9012", "3456"]);
+    expect(parseCardNo("1234567890123456")).toEqual(["1234", "5678", "9012", "3456"]);
   });
   it("rejects anything that is not 16 digits", () => {
-    expect(parseCardNo("5525-7642-1492")).toBeNull();
+    expect(parseCardNo("1234-5678-9012")).toBeNull();
     expect(parseCardNo("")).toBeNull();
   });
   it("a malformed credit_card_no is refused before the form is touched", () => {

@@ -44,3 +44,4 @@ Thumbs.db
 
 # Per-field rulebooks hold full corporate card numbers and doc_ids; repo is public
 form_rules/
+analysis_results/

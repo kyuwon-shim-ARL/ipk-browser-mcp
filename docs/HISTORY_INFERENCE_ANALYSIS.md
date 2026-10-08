@@ -47,15 +47,15 @@ $ python ipk_gw.py history --form leave --context leave_type=compensatory
       "timestamp": "2025-12-29T...",
       "form_type": "leave",
       "doc_id": "287234",
-      "fields": {"leave_type": "annual", "substitute": "Colleague", ...}
+      "fields": {"leave_type": "annual", "substitute": "Colleague C", ...}
     }
   ],
   "field_stats": {
     "leave": {
       "substitute": {
         "values": [...],
-        "counter": {"Colleague": 5},
-        "context_counter": {"annual": {"Colleague": 3}}
+        "counter": {"Colleague C": 5},
+        "context_counter": {"annual": {"Colleague C": 3}}
       }
     }
   }

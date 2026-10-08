@@ -108,7 +108,7 @@ def main():
             document.querySelector('.validate[name="report_name"]').value = "{user_name}";
             document.querySelector('.validate[name="report_post"]').value = "Researcher";
             document.querySelector('.validate[name="report_group"]').value = "{user_dept}";
-            document.querySelector('.validate[name="report_leader"]').value = "Colleague";
+            document.querySelector('.validate[name="report_leader"]').value = "Colleague P";
 
             // Travel dates and destination
             document.querySelector('.validate[name="start_day"]').value = "{START_DAY}";

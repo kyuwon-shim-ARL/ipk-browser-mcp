@@ -133,7 +133,7 @@
    ```python
    # 최소한의 이력 저장 구조
    history = {
-       "substitute": ["위규남", "위규남", "위규남"],  # 최근 3회
+       "substitute": ["Colleague X", "Colleague X", "Colleague X"],  # 최근 3회
        "destination": "101dong, ...",  # 최빈값
        "purpose": {"annual": "개인 사유", "comp": "child care"}
    }

@@ -63,7 +63,7 @@ export function checkAttachmentSlot(p: Record<string, any>): FormRuleViolation[]
   return out;
 }
 
-/** "XXXX-XXXX-XXXX-XXXX" or 16 bare digits -> the four copcard boxes; null otherwise. */
+/** "1234-5678-9012-3456" or 16 bare digits -> the four copcard boxes; null otherwise. */
 export function parseCardNo(s: string): [string, string, string, string] | null {
   const digits = String(s ?? "").replace(/[-\s]/g, "");
   if (!/^\d{16}$/.test(digits)) return null;
@@ -130,7 +130,7 @@ export function checkTravelRequestParams(p: Record<string, any>): FormRuleViolat
     out.push({
       code: "CARD_NO_MALFORMED",
       fields: ["credit_card_no"],
-      message: "credit_card_no must be 16 digits (e.g. XXXX-XXXX-XXXX-XXXX).",
+      message: "credit_card_no must be 16 digits (e.g. 1234-5678-9012-3456).",
     });
   }
 

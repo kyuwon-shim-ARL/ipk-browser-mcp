@@ -54,7 +54,7 @@ export function parseTravelRequestDoc(text: string): TravelRequestDoc {
   if (codes.length) doc.budget_code = codes[codes.length - 1];
 
   const card = after("Institute Credit Card No");
-  if (card && /\d{4}/.test(card)) doc.credit_card_no = card;
+  if (card && /[\dX]{4}-[\dX]{4}-[\dX]{4}-[\dX]{4}/.test(card)) doc.credit_card_no = card;
 
   const cityLine = after("City & Transportation");
   if (cityLine) {

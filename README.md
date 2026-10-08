@@ -152,6 +152,17 @@ npm run lint:security  # Check for unsafe evaluate patterns
 
 Requires Node.js >= 20.
 
+### Public leak guard (pre-commit)
+
+This is a public repo; `scripts/hooks/public_leak_guard.py` blocks a commit containing a
+real card number, a partially-masked card number, a name-keyed table (e.g.
+`writer_profiles`), or a new file outside the tracked path allowlist. It is not installed
+automatically (so it never fights a hook chain you already have). Enable it once with:
+
+```bash
+ln -s ../../scripts/hooks/public_leak_guard.py .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+```
+
 ## License
 
 MIT

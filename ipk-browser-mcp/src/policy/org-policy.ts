@@ -95,15 +95,26 @@ export const ORG_POLICY: PolicyRule[] = [
     },
   },
   {
-    id: "DRAFT_FIRST",
-    standard: "A document is saved as a draft and reviewed by a person before it is submitted for approval.",
-    passes: "draft_only is true, or confirm_submit is explicitly true.",
+    id: "NO_FINAL_SUBMIT",
+    standard:
+      "A document is saved as a draft and reviewed by a person before it is submitted for approval. " +
+      "Submission itself (draft_only=false) is refused by default. A person who wants submission " +
+      "unlocked for this process must set env IPK_ALLOW_SUBMIT=1 - and even then the MCP does not " +
+      "perform the final approval-request click itself (see src/tools/ipk-submit.ts noFinalSubmitNote); " +
+      "it saves a draft and reports the click path for a person to press the button. " +
+      "(Future option, out of scope here: per-call MCP elicitation instead of the env switch.)",
+    passes: "draft_only is not false, or (confirm_submit is true AND env IPK_ALLOW_SUBMIT=1).",
     check(params) {
-      if (params.draft_only !== false || params.confirm_submit === true) return null;
+      if (params.draft_only !== false) return null;
+      if (params.confirm_submit === true && process.env.IPK_ALLOW_SUBMIT === "1") return null;
       return {
-        rule: "DRAFT_FIRST",
+        rule: "NO_FINAL_SUBMIT",
         fields: ["draft_only", "confirm_submit"],
-        message: "To submit for approval, set both draft_only=false AND confirm_submit=true",
+        message:
+          "Submission is refused: set draft_only=true for a draft, or to unlock submission set " +
+          "confirm_submit=true AND the environment variable IPK_ALLOW_SUBMIT=1. Even then, this tool " +
+          "will not click the final approval-request button itself - it saves a draft and tells you " +
+          "where to click.",
       };
     },
   },

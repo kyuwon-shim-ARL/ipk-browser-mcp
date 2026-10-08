@@ -292,7 +292,18 @@ describe("card_expense_rd with draft_only=true is a no-save preview", () => {
 });
 
 describe("card_expense_rd submit path goes through Check_Form_Request", () => {
-  beforeEach(() => vi.clearAllMocks());
+  // NO_FINAL_SUBMIT (src/policy/org-policy.ts): a real submission (draft_only=false) is
+  // refused unless IPK_ALLOW_SUBMIT=1 is also set. card_expense_rd has no draft state, so
+  // this is the one form type whose "submit" path these tests exercise directly.
+  const prevAllowSubmit = process.env.IPK_ALLOW_SUBMIT;
+  beforeEach(() => {
+    vi.clearAllMocks();
+    process.env.IPK_ALLOW_SUBMIT = "1";
+  });
+  afterEach(() => {
+    if (prevAllowSubmit === undefined) delete process.env.IPK_ALLOW_SUBMIT;
+    else process.env.IPK_ALLOW_SUBMIT = prevAllowSubmit;
+  });
 
   it("stubs only $.confirm (no capture) and stops on the form's alerts", async () => {
     const run = { ...okRun(), alerts: ["Please insert meeting time"], pressed: null, submits: [] };
