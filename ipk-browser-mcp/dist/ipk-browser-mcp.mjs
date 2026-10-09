@@ -21702,6 +21702,24 @@ var FREE_TEXT_PARAMS = [
 var OVERSEAS_IT_VENDORS = /runpod|openai|chatgpt|anthropic|claude|google cloud|gcp|aws|amazon web|azure|github|vercel|huggingface|hugging face|lambda labs|vast\.ai|modal/i;
 var VAT_SPLITTING_FORMS = /* @__PURE__ */ new Set(["expense", "card_expense"]);
 var MEETING_ACCOUNT_LABEL = /team activit|meeting/i;
+var SEOUL_RE = /seoul|서울/i;
+var VENDOR_ATTACHMENT_REQUIREMENTS = {
+  runpod: [
+    { label: "signed invoice", match: /invoice/i },
+    { label: "card sales slip", match: /(cc[_-]?sales[_-]?slip|sales[_-]?slip|매출전표)/i },
+    { label: "daily usage screenshot", match: /daily[_-]?usage/i },
+    { label: "receipt", match: /receipt/i }
+  ]
+};
+function vendorAttachmentKey(params) {
+  const text = ["item_name", "seller_en", "item_vendor"].map((k) => typeof params[k] === "string" ? params[k] : "").join(" ").toLowerCase();
+  return Object.keys(VENDOR_ATTACHMENT_REQUIREMENTS).find((k) => text.includes(k)) ?? null;
+}
+function nightsBetween(start, end) {
+  const a = new Date(start).getTime();
+  const b = new Date(end).getTime();
+  return Math.round((b - a) / 864e5);
+}
 var ORG_POLICY = [
   {
     id: "ENGLISH_ONLY",
@@ -21770,6 +21788,77 @@ var ORG_POLICY = [
         rule: "OVERSEAS_IT_VAT_ZERO",
         fields,
         message: `${params.form_type} splits VAT as amount/1.1, but ${fields.join(", ")} names an overseas IT vendor that charges no Korean VAT. File it as card_expense_rd (amounts come from the card receipt) so VAT stays 0. Nothing was written to the form.`
+      };
+    }
+  },
+  {
+    id: "SEOUL_IS_OUTSIDE_METRO",
+    standard: "A travel_request to Seoul is filed bound_code '20' (Outside Metropolitan): IPK's Pangyo (Seongnam) HQ puts Seoul outside the metro boundary, not within it, however intuitive '\uC218\uB3C4\uAD8C=\uAD00\uB0B4' sounds. An AI4Sci Korea (Seoul Dragon City) request was drafted '19' and the person corrected it.",
+    passes: "When destination names Seoul (English or Hangul), bound_code is '20'.",
+    check(params) {
+      if (String(params.form_type) !== "travel_request") return null;
+      if (!SEOUL_RE.test(String(params.destination ?? ""))) return null;
+      if (String(params.bound_code ?? "") === "20") return null;
+      return {
+        rule: "SEOUL_IS_OUTSIDE_METRO",
+        fields: ["bound_code", "destination"],
+        message: `destination '${params.destination}' names Seoul; bound_code must be '20' (Outside Metropolitan), not '19' - IPK's Pangyo HQ classifies Seoul as outside the metro boundary. Nothing was written to the form.`
+      };
+    }
+  },
+  {
+    id: "VENDOR_ATTACHMENTS_REQUIRED",
+    standard: "A card ER for a vendor with known attachment requirements (RunPod: signed invoice, card sales slip, daily usage screenshot, receipt) carries all of them - an incomplete set has needed re-attaching before.",
+    passes: "When item_name/seller_en/item_vendor names a vendor in the requirements table, attachment_path(s) include a file matching every required kind.",
+    check(params) {
+      if (String(params.form_type) !== "card_expense_rd") return null;
+      const vendor = vendorAttachmentKey(params);
+      if (!vendor) return null;
+      const kinds = VENDOR_ATTACHMENT_REQUIREMENTS[vendor];
+      const paths = [params.attachment_path, ...Array.isArray(params.attachment_paths) ? params.attachment_paths : []].filter(Boolean);
+      const missing = kinds.filter((k) => !paths.some((p) => k.match.test(String(p))));
+      if (missing.length === 0) return null;
+      return {
+        rule: "VENDOR_ATTACHMENTS_REQUIRED",
+        fields: ["attachment_paths"],
+        message: `${vendor} card ER needs ${kinds.length} attachments (${kinds.map((k) => k.label).join(", ")}); missing: ${missing.map((k) => k.label).join(", ")}. Nothing was written to the form.`
+      };
+    }
+  },
+  {
+    id: "NO_REPORT_FOR_DAY_TRIP",
+    standard: "A domestic travel report (form_type 'travel', written onto the approved AppFrm-023 request at travel_report_write.php) is only filed for trips of 2 nights (2\uBC153\uC77C) or more - across the person's 15 domestic trips, all 5 of >=2 nights have a report and all 9 same-day trips do not, no exceptions.",
+    passes: "start_date/end_date are absent (nothing to compute yet), or span 2 nights or more.",
+    check(params) {
+      if (String(params.form_type) !== "travel") return null;
+      if (!params.start_date || !params.end_date) return null;
+      const nights = nightsBetween(String(params.start_date), String(params.end_date));
+      if (Number.isNaN(nights) || nights >= 2) return null;
+      return {
+        rule: "NO_REPORT_FOR_DAY_TRIP",
+        fields: ["start_date", "end_date"],
+        message: `start_date/end_date span ${nights} night(s); a domestic travel report is only filed for 2 nights (2\uBC153\uC77C) or more - a same-day or 1-night trip does not get one. Nothing was written to the form.`
+      };
+    }
+  },
+  {
+    id: "TRAVEL_REPORT_FIELDS_MIN_LENGTH",
+    standard: "travel_report_write.php's own Check_Form() rejects purpose_field, agenda_field and result_field under 100 characters - caught here, before the form is touched, using the same fallbacks submitTravel applies (agenda_field falls back to purpose, result_field to 'Expected outcomes: <purpose>').",
+    passes: "purpose_field, agenda_field and result_field (after submitTravel's own fallbacks) are each >=100 characters.",
+    check(params) {
+      if (String(params.form_type) !== "travel") return null;
+      const purpose = params.purpose || "Business travel";
+      const computed = {
+        purpose_field: String(purpose),
+        agenda_field: String(params.schedule || purpose),
+        result_field: String(params.reason || `Expected outcomes: ${purpose}`)
+      };
+      const short = Object.keys(computed).filter((k) => computed[k].length < 100);
+      if (short.length === 0) return null;
+      return {
+        rule: "TRAVEL_REPORT_FIELDS_MIN_LENGTH",
+        fields: short,
+        message: `${short.join(", ")} must each be >=100 characters (travel_report_write.php's own Check_Form() rejects shorter values); lengths: ${short.map((k) => `${k}=${computed[k].length}`).join(", ")}. Nothing was written to the form.`
       };
     }
   }

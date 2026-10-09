@@ -9,6 +9,7 @@ const travel = (over: Record<string, unknown> = {}) => ({
   subject: "[Request] 2026 Q3 RAPID Sample Collection",
   purpose: "Sample collection for urban microbial surveillance",
   destination: "Seoul Station, Gangnam Station",
+  bound_code: "20", // Seoul is out-of-metro for IPK (Pangyo) - see SEOUL_IS_OUTSIDE_METRO
   draft_only: true,
   ...over,
 });
@@ -39,7 +40,9 @@ describe("ENGLISH_ONLY", () => {
   });
 
   it("passes English text and ignores code-valued params", () => {
-    expect(checkOrgPolicy(travel({ budget_code: "NN2602-0001", bound_code: "19" }))).toEqual([]);
+    // Non-Seoul destination: isolates "code-valued params are not free text" from the
+    // separate SEOUL_IS_OUTSIDE_METRO rule, which would otherwise fire on bound_code '19'.
+    expect(checkOrgPolicy(travel({ budget_code: "NN2602-0001", bound_code: "19", destination: "Daejeon KRISS" }))).toEqual([]);
   });
 
   it("refuses Korean in a card_expense_rd team-activity venue/participants", () => {
@@ -105,9 +108,19 @@ describe("OVERSEAS_IT_VAT_ZERO", () => {
     expect(
       checkOrgPolicy({ form_type: "expense", item_vendor: "Baemin", amount: 33000, draft_only: true })
     ).toEqual([]);
+    // seller_en naming RunPod on card_expense_rd also triggers VENDOR_ATTACHMENTS_REQUIRED
+    // (separate rule, see that describe block) unless the attachments are present too.
     expect(
-      checkOrgPolicy({ form_type: "card_expense_rd", seller_en: "RunPod Inc.", trseq: "1", appr_no: "2", draft_only: true })
-    ).toEqual([]);
+      checkOrgPolicy({
+        form_type: "card_expense_rd", seller_en: "RunPod Inc.", trseq: "1", appr_no: "2", draft_only: true,
+        attachment_paths: [
+          "/home/u/data/attachments/260920_Runpod-invoice_signed.pdf",
+          "/home/u/data/attachments/260920_Runpod_CC_sales_slip.pdf",
+          "/home/u/data/attachments/260920_Runpod_daily_usage.png",
+          "/home/u/data/attachments/260920_Runpod-receipt.pdf",
+        ],
+      }).map((x) => x.rule)
+    ).not.toContain("OVERSEAS_IT_VAT_ZERO");
   });
 });
 
@@ -204,6 +217,141 @@ describe("bench scorer applies the same standard to the audit trail", () => {
       { action: "option_select", field: 'select[name="using_type[]"]', value: "1", label: "x", fromOfferedOptions: true, hidden: true, ok: true },
     ]);
     expect(v.map((x) => x.code)).toEqual(["SELECT_HIDDEN_BY_FORM"]);
+  });
+});
+
+describe("SEOUL_IS_OUTSIDE_METRO", () => {
+  it("refuses a Seoul travel_request filed as bound_code '19' (within metro)", () => {
+    const v = checkOrgPolicy(travel({ bound_code: "19" }));
+    expect(v.map((x) => x.rule)).toContain("SEOUL_IS_OUTSIDE_METRO");
+    expect(v.find((x) => x.rule === "SEOUL_IS_OUTSIDE_METRO")!.fields).toEqual(["bound_code", "destination"]);
+  });
+  it("refuses when bound_code is missing entirely", () => {
+    const v = checkOrgPolicy(travel({ bound_code: undefined }));
+    expect(v.map((x) => x.rule)).toContain("SEOUL_IS_OUTSIDE_METRO");
+  });
+  it("passes a Seoul trip filed as bound_code '20' (out of metro)", () => {
+    expect(checkOrgPolicy(travel({ bound_code: "20" }))).toEqual([]);
+  });
+  it("matches 서울 in Korean too (even though ENGLISH_ONLY will also fire)", () => {
+    const v = checkOrgPolicy(travel({ destination: "서울역", bound_code: "19" }));
+    expect(v.map((x) => x.rule)).toContain("SEOUL_IS_OUTSIDE_METRO");
+  });
+  it("does not fire for a non-Seoul destination", () => {
+    expect(checkOrgPolicy(travel({ destination: "Daejeon KRISS", bound_code: "19" }))).toEqual([]);
+  });
+  it("does not fire for other form types", () => {
+    expect(checkOrgPolicy({ form_type: "card_expense_rd", destination: "Seoul", bound_code: "19", trseq: "1", appr_no: "2", draft_only: true })).toEqual([]);
+  });
+});
+
+describe("VENDOR_ATTACHMENTS_REQUIRED (card_expense_rd)", () => {
+  const runpodEr = (over: Record<string, unknown> = {}) => ({
+    form_type: "card_expense_rd",
+    trseq: "1",
+    appr_no: "2",
+    item_name: "RunPod GPU usage",
+    draft_only: true,
+    ...over,
+  });
+  const ALL_FOUR = [
+    "/home/u/data/attachments/2609/runpod/260920_Runpod-invoice_signed.pdf",
+    "/home/u/data/attachments/2609/runpod/260920_Runpod_CC_sales_slip.pdf",
+    "/home/u/data/attachments/2609/runpod/260920_Runpod_daily_usage.png",
+    "/home/u/data/attachments/2609/runpod/260920_Runpod-receipt.pdf",
+  ];
+
+  it("passes a RunPod ER with all 4 attachment kinds", () => {
+    expect(checkOrgPolicy(runpodEr({ attachment_paths: ALL_FOUR }))).toEqual([]);
+  });
+  it("refuses a RunPod ER missing attachments, listing which kinds", () => {
+    const v = checkOrgPolicy(runpodEr({ attachment_paths: [ALL_FOUR[0], ALL_FOUR[2]] })); // invoice + daily_usage only
+    expect(v.map((x) => x.rule)).toEqual(["VENDOR_ATTACHMENTS_REQUIRED"]);
+    const missingPart = v[0].message.split("missing:")[1];
+    expect(missingPart).toMatch(/card sales slip/i);
+    expect(missingPart).toMatch(/receipt/i);
+    expect(missingPart).not.toMatch(/signed invoice/i); // present, not listed as missing
+    expect(missingPart).not.toMatch(/daily usage/i); // present, not listed as missing
+  });
+  it("refuses a RunPod ER with no attachments at all", () => {
+    const v = checkOrgPolicy(runpodEr());
+    expect(v.map((x) => x.rule)).toEqual(["VENDOR_ATTACHMENTS_REQUIRED"]);
+  });
+  it("matches the vendor via seller_en/item_vendor too, not just item_name", () => {
+    expect(checkOrgPolicy(runpodEr({ item_name: "GPU compute", seller_en: "RunPod Inc.", attachment_paths: ALL_FOUR }))).toEqual([]);
+    expect(checkOrgPolicy(runpodEr({ item_name: "GPU compute", seller_en: "RunPod Inc." })).map((x) => x.rule)).toEqual(["VENDOR_ATTACHMENTS_REQUIRED"]);
+  });
+  it("does not fire for a vendor with no configured attachment requirement", () => {
+    expect(checkOrgPolicy(runpodEr({ item_name: "Office supplies from Office Depot" }))).toEqual([]);
+  });
+  it("does not fire for other form types", () => {
+    // expense + RunPod also trips OVERSEAS_IT_VAT_ZERO (a separate, correct rule) - the
+    // point here is specifically that VENDOR_ATTACHMENTS_REQUIRED stays card_expense_rd-only.
+    expect(checkOrgPolicy({ form_type: "expense", item_vendor: "RunPod Inc.", amount: 1000, draft_only: true }).map((x) => x.rule)).not.toContain("VENDOR_ATTACHMENTS_REQUIRED");
+  });
+});
+
+describe("NO_REPORT_FOR_DAY_TRIP (travel = domestic travel report)", () => {
+  const report = (over: Record<string, unknown> = {}) => ({
+    form_type: "travel",
+    pdoc_id: "299953",
+    purpose: "x".repeat(100),
+    schedule: "x".repeat(100),
+    reason: "x".repeat(100),
+    start_date: "2026-09-14",
+    end_date: "2026-09-16", // 2 nights
+    draft_only: true,
+    ...over,
+  });
+
+  it("passes a 2-night (2박3일) trip", () => {
+    expect(checkOrgPolicy(report())).toEqual([]);
+  });
+  it("refuses a same-day (0-night) trip", () => {
+    const v = checkOrgPolicy(report({ end_date: "2026-09-14" }));
+    expect(v.map((x) => x.rule)).toContain("NO_REPORT_FOR_DAY_TRIP");
+  });
+  it("refuses a 1-night trip too (only 2N3D+ gets a report)", () => {
+    const v = checkOrgPolicy(report({ end_date: "2026-09-15" }));
+    expect(v.map((x) => x.rule)).toContain("NO_REPORT_FOR_DAY_TRIP");
+  });
+  it("does not fire when dates are absent (nothing to compute yet)", () => {
+    expect(checkOrgPolicy(report({ start_date: undefined, end_date: undefined })).map((x) => x.rule)).not.toContain("NO_REPORT_FOR_DAY_TRIP");
+  });
+  it("does not fire for other form types", () => {
+    expect(checkOrgPolicy(travel({ start_date: "2026-09-14", end_date: "2026-09-14" })).map((x) => x.rule)).not.toContain("NO_REPORT_FOR_DAY_TRIP");
+  });
+});
+
+describe("TRAVEL_REPORT_FIELDS_MIN_LENGTH (travel_report_write.php's own >=100 char rule)", () => {
+  const report = (over: Record<string, unknown> = {}) => ({
+    form_type: "travel",
+    pdoc_id: "299953",
+    purpose: "x".repeat(100),
+    schedule: "x".repeat(100),
+    reason: "x".repeat(100),
+    start_date: "2026-09-14",
+    end_date: "2026-09-16",
+    draft_only: true,
+    ...over,
+  });
+
+  it("passes when purpose/schedule/reason are each >=100 chars", () => {
+    expect(checkOrgPolicy(report())).toEqual([]);
+  });
+  it("refuses short fields, naming which ones (mirrors submitTravel's own fallbacks)", () => {
+    const v = checkOrgPolicy(report({ purpose: "short purpose", schedule: undefined, reason: undefined }));
+    // schedule falls back to purpose (agenda_field), reason falls back to "Expected outcomes: <purpose>" (result_field)
+    expect(v.map((x) => x.rule)).toEqual(["TRAVEL_REPORT_FIELDS_MIN_LENGTH"]);
+    expect(v[0].fields).toEqual(["purpose_field", "agenda_field", "result_field"]);
+  });
+  it("a short purpose still fails purpose_field even with long schedule/reason - schedule/reason only fall back TO purpose, not the reverse", () => {
+    const v = checkOrgPolicy(report({ purpose: "short", schedule: "x".repeat(100), reason: "y".repeat(100) }));
+    expect(v.map((x) => x.rule)).toEqual(["TRAVEL_REPORT_FIELDS_MIN_LENGTH"]);
+    expect(v[0].fields).toEqual(["purpose_field"]);
+  });
+  it("does not fire for other form types", () => {
+    expect(checkOrgPolicy(travel({ purpose: "short" })).map((x) => x.rule)).not.toContain("TRAVEL_REPORT_FIELDS_MIN_LENGTH");
   });
 });
 

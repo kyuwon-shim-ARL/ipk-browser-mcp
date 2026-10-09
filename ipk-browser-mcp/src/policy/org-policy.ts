@@ -77,6 +77,41 @@ const VAT_SPLITTING_FORMS = new Set(["expense", "card_expense"]);
 /** Labels of the meeting accounts, for when only account_code_label is given. */
 const MEETING_ACCOUNT_LABEL = /team activit|meeting/i;
 
+/** A destination naming Seoul, in English or Hangul - matched against travel_request's
+ *  free-text destination param (feedback_seoul_is_outside_metro.md). */
+const SEOUL_RE = /seoul|서울/i;
+
+/**
+ * Attachment kinds a vendor's card ER (card_expense_rd) needs, matched by filename -
+ * generalised so another vendor can be added as one more table entry. RunPod needs 4
+ * (feedback_runpod_er_attachments.md / CLAUDE.md Attachment Conventions, dir name
+ * convention invoice_signed.pdf / CC_sales_slip.pdf / daily_usage.png / receipt.pdf).
+ */
+const VENDOR_ATTACHMENT_REQUIREMENTS: Record<string, { label: string; match: RegExp }[]> = {
+  runpod: [
+    { label: "signed invoice", match: /invoice/i },
+    { label: "card sales slip", match: /(cc[_-]?sales[_-]?slip|sales[_-]?slip|매출전표)/i },
+    { label: "daily usage screenshot", match: /daily[_-]?usage/i },
+    { label: "receipt", match: /receipt/i },
+  ],
+};
+
+/** Which vendor (if any) a card_expense_rd's item_name/seller_en/item_vendor names. */
+function vendorAttachmentKey(params: Record<string, any>): string | null {
+  const text = ["item_name", "seller_en", "item_vendor"]
+    .map((k) => (typeof params[k] === "string" ? params[k] : ""))
+    .join(" ")
+    .toLowerCase();
+  return Object.keys(VENDOR_ATTACHMENT_REQUIREMENTS).find((k) => text.includes(k)) ?? null;
+}
+
+/** Whole days between two YYYY-MM-DD dates; NaN if either doesn't parse. */
+function nightsBetween(start: string, end: string): number {
+  const a = new Date(start).getTime();
+  const b = new Date(end).getTime();
+  return Math.round((b - a) / 86400000);
+}
+
 export const ORG_POLICY: PolicyRule[] = [
   {
     id: "ENGLISH_ONLY",
@@ -164,6 +199,86 @@ export const ORG_POLICY: PolicyRule[] = [
           `${params.form_type} splits VAT as amount/1.1, but ${fields.join(", ")} names an overseas IT vendor ` +
           `that charges no Korean VAT. File it as card_expense_rd (amounts come from the card receipt) ` +
           `so VAT stays 0. Nothing was written to the form.`,
+      };
+    },
+  },
+  {
+    id: "SEOUL_IS_OUTSIDE_METRO",
+    standard: "A travel_request to Seoul is filed bound_code '20' (Outside Metropolitan): IPK's Pangyo (Seongnam) HQ puts Seoul outside the metro boundary, not within it, however intuitive '수도권=관내' sounds. An AI4Sci Korea (Seoul Dragon City) request was drafted '19' and the person corrected it.",
+    passes: "When destination names Seoul (English or Hangul), bound_code is '20'.",
+    check(params) {
+      if (String(params.form_type) !== "travel_request") return null;
+      if (!SEOUL_RE.test(String(params.destination ?? ""))) return null;
+      if (String(params.bound_code ?? "") === "20") return null;
+      return {
+        rule: "SEOUL_IS_OUTSIDE_METRO",
+        fields: ["bound_code", "destination"],
+        message:
+          `destination '${params.destination}' names Seoul; bound_code must be '20' (Outside Metropolitan), ` +
+          `not '19' - IPK's Pangyo HQ classifies Seoul as outside the metro boundary. Nothing was written to the form.`,
+      };
+    },
+  },
+  {
+    id: "VENDOR_ATTACHMENTS_REQUIRED",
+    standard: "A card ER for a vendor with known attachment requirements (RunPod: signed invoice, card sales slip, daily usage screenshot, receipt) carries all of them - an incomplete set has needed re-attaching before.",
+    passes: "When item_name/seller_en/item_vendor names a vendor in the requirements table, attachment_path(s) include a file matching every required kind.",
+    check(params) {
+      if (String(params.form_type) !== "card_expense_rd") return null;
+      const vendor = vendorAttachmentKey(params);
+      if (!vendor) return null;
+      const kinds = VENDOR_ATTACHMENT_REQUIREMENTS[vendor];
+      const paths: string[] = [params.attachment_path, ...(Array.isArray(params.attachment_paths) ? params.attachment_paths : [])].filter(Boolean);
+      const missing = kinds.filter((k) => !paths.some((p) => k.match.test(String(p))));
+      if (missing.length === 0) return null;
+      return {
+        rule: "VENDOR_ATTACHMENTS_REQUIRED",
+        fields: ["attachment_paths"],
+        message:
+          `${vendor} card ER needs ${kinds.length} attachments (${kinds.map((k) => k.label).join(", ")}); ` +
+          `missing: ${missing.map((k) => k.label).join(", ")}. Nothing was written to the form.`,
+      };
+    },
+  },
+  {
+    id: "NO_REPORT_FOR_DAY_TRIP",
+    standard: "A domestic travel report (form_type 'travel', written onto the approved AppFrm-023 request at travel_report_write.php) is only filed for trips of 2 nights (2박3일) or more - across the person's 15 domestic trips, all 5 of >=2 nights have a report and all 9 same-day trips do not, no exceptions.",
+    passes: "start_date/end_date are absent (nothing to compute yet), or span 2 nights or more.",
+    check(params) {
+      if (String(params.form_type) !== "travel") return null;
+      if (!params.start_date || !params.end_date) return null;
+      const nights = nightsBetween(String(params.start_date), String(params.end_date));
+      if (Number.isNaN(nights) || nights >= 2) return null;
+      return {
+        rule: "NO_REPORT_FOR_DAY_TRIP",
+        fields: ["start_date", "end_date"],
+        message:
+          `start_date/end_date span ${nights} night(s); a domestic travel report is only filed for 2 nights ` +
+          `(2박3일) or more - a same-day or 1-night trip does not get one. Nothing was written to the form.`,
+      };
+    },
+  },
+  {
+    id: "TRAVEL_REPORT_FIELDS_MIN_LENGTH",
+    standard: "travel_report_write.php's own Check_Form() rejects purpose_field, agenda_field and result_field under 100 characters - caught here, before the form is touched, using the same fallbacks submitTravel applies (agenda_field falls back to purpose, result_field to 'Expected outcomes: <purpose>').",
+    passes: "purpose_field, agenda_field and result_field (after submitTravel's own fallbacks) are each >=100 characters.",
+    check(params) {
+      if (String(params.form_type) !== "travel") return null;
+      const purpose = params.purpose || "Business travel";
+      const computed: Record<string, string> = {
+        purpose_field: String(purpose),
+        agenda_field: String(params.schedule || purpose),
+        result_field: String(params.reason || `Expected outcomes: ${purpose}`),
+      };
+      const short = Object.keys(computed).filter((k) => computed[k].length < 100);
+      if (short.length === 0) return null;
+      return {
+        rule: "TRAVEL_REPORT_FIELDS_MIN_LENGTH",
+        fields: short,
+        message:
+          `${short.join(", ")} must each be >=100 characters (travel_report_write.php's own Check_Form() ` +
+          `rejects shorter values); lengths: ${short.map((k) => `${k}=${computed[k].length}`).join(", ")}. ` +
+          `Nothing was written to the form.`,
       };
     },
   },
