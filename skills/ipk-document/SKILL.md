@@ -1,3 +1,8 @@
+---
+name: ipk-document
+description: "Conversational IPK groupware form agent: classifies the request, collects fields and saves a draft via MCP tools. Use when the user says \"문서작성\", \"서류\", \"정산\", \"예산\", \"세미나\", \"해외출장\", or asks for any IPK form not covered by a per-form skill."
+---
+
 # /문서작성 - IPK Groupware Document Automation
 
 Conversational form agent that takes natural language input, classifies the form type, collects fields, and submits drafts via MCP tools.
@@ -99,7 +104,8 @@ After user confirms the draft:
    [결재요청] button themselves. (`src/policy/org-policy.ts` NO_FINAL_SUBMIT enforces
    this: `ipk_submit_form` with `draft_only: false` is refused by the tool unless an
    operator has separately set `IPK_ALLOW_SUBMIT=1`, and even then the tool still only
-   saves a draft and returns the click path — it never performs the final click itself.)
+   saves a draft and returns the click path — except card_expense_rd, whose save IS the
+   submit, so never suggest setting that switch.)
 
 ## Safety Rules
 

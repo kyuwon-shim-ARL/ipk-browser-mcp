@@ -15,7 +15,7 @@ subprocess stdio JSON-RPC bridge.
 User / Claude Code
      │
      ▼
-/문서작성 skill (skills/문서작성/skill.md)
+ipk-document skill (skills/ipk-document/SKILL.md, 문서작성)
      │  natural language input
      ▼
 Python subprocess (stdio JSON-RPC)
@@ -119,7 +119,7 @@ When adding a new IPK form (an `AppFrm-XXX` not yet in `form_templates/`), follo
                   │  selectors, iframe nesting, ajax cascade, submit_flow stages
                   ▼
 [2] Persist     form_templates/AppFrm-XXX.json     ← single source of truth
-                  │  (NOT skills/문서작성/skill.md — skill is workflow-only)
+                  │  (NOT skills/ipk-document/SKILL.md — skill is workflow-only)
                   ▼
 [3] Verify      tests/forms/test_<appfrm>_draft.py (E2E gate)
                   │  login → draft submit → document_view.php?...&type=drafts

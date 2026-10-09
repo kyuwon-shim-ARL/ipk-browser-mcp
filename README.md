@@ -49,7 +49,17 @@ Ask Claude naturally:
 "Submit annual leave for tomorrow"
 ```
 
-Or invoke the conversational `/문서작성` skill for guided form filling.
+Or invoke the conversational `/ipk-browser-mcp:ipk-document` (문서작성) skill for guided form filling, or one of the per-form skills below.
+
+## Skills
+
+| Skill | Form |
+|-------|------|
+| `/ipk-browser-mcp:ipk-document` (문서작성) | Conversational form agent — classifies and fills any supported form |
+| `/ipk-browser-mcp:ipk-card-er` | Corporate card expense report (AppFrm-021) |
+| `/ipk-browser-mcp:ipk-leave` | Leave / half-day / hourly leave request (AppFrm-073) |
+| `/ipk-browser-mcp:ipk-overtime` | Weekend/holiday work application (AppFrm-074) |
+| `/ipk-browser-mcp:ipk-travel` | Travel request / travel report (AppFrm-023 / AppFrm-076) |
 
 ## Updating the Plugin
 

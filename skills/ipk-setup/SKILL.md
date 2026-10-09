@@ -1,3 +1,8 @@
+---
+name: ipk-setup
+description: "Configure IPK groupware credentials for the ipk-browser MCP. Use when the user says \"ipk setup\", \"setup ipk\", \"configure ipk\", \"ipk 설정\"."
+---
+
 # IPK Browser MCP Setup
 
 Configure IPK Groupware credentials securely.
