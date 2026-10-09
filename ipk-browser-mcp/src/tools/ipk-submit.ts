@@ -9,6 +9,7 @@ import { checkFieldRules, FieldRulesUnavailable, type Rulebook } from "../policy
 import { loadProfile, type Profile } from "../profile/profile.js";
 import { checkTravelRequestParams, checkAttachmentSlot, slotSelector, parseCardNo, type TravelDocSlot } from "../forms/travel-request.js";
 import { checkWorkingRows, type WorkingRow } from "../forms/working.js";
+import { findOwnApprovedTravelRequest, buildDomesticReportFields, readReportContentFields, reportIsEmpty, REPORT_CONTENT_FIELDS } from "../forms/travel-report.js";
 import { fetchTravelRequestPrecedents, readDraftText, diffAgainstPractice, type PrecedentSet } from "../precedent/fetch.js";
 import { parseTravelRequestDoc } from "../precedent/travel-request-doc.js";
 import { normalizeCardSubject, isPreviewBlockedRequest, summarizeCapturedForm, isMeetingAccount, budgetPopupRefusals } from "../forms/card-er.js";
@@ -22,6 +23,7 @@ import {
   setFormMode,
   submitForm,
   serializeFormFields,
+  submitTravelReportDraft,
 } from "../browser/iframe-helper.js";
 import type { CascadeStep } from "../browser/iframe-helper.js";
 import {
@@ -744,11 +746,16 @@ export const ipkSubmitFormSchema = {
   details: z.string().optional().describe("Details. English only - Korean text is refused before the form is touched."),
   budget_type: z.string().optional().describe("expense/travel_request budget type: 01=General, 02=R&D"),
 
-  // Travel fields
-  title: z.string().optional().describe("Travel title. English only - Korean text is refused before the form is touched."),
+  // Travel fields (domestic report, written onto the approved AppFrm-023 request)
+  title: z.string().optional().describe("overseas report (AppFrm-076) subject. Not used by the domestic report, which has no subject field."),
   organization: z.string().optional().describe("Organization/institution"),
   attendees: z.string().optional().describe("Attendees"),
   schedule: z.string().optional().describe("Schedule details"),
+  request_doc_id: z.string().optional().describe("travel: doc_id of the already-approved travel request this reports on. Auto-looked-up from this person's own approved AppFrm-023/AppFrm-026 documents (optionally narrowed by keyword) when omitted and exactly one match exists; refused (not guessed) when 0 or >1 match."),
+  request_keyword: z.string().optional().describe("travel: keyword to narrow the request_doc_id auto-lookup (e.g. 'RAPID'), passed to document_list.php's own search."),
+  report_kind: z.enum(["domestic", "overseas"]).optional().describe("travel: 'domestic' (default) writes onto the approved AppFrm-023 request at travel_report_write.php. 'overseas' uses the standalone AppFrm-076 form instead. Auto-detected as 'overseas' when the resolved request is AppFrm-026."),
+  persons_met: z.string().optional().describe("travel (domestic report): who was met / contact info for this trip - the counterparty, never this person's own name. Left blank (with a warning) if omitted."),
+  overwrite_report: z.boolean().optional().describe("travel (domestic report): the linked request already has a report written (its content fields are non-empty) - pass true to replace it. Refused otherwise (REPORT_ALREADY_EXISTS) rather than silently overwriting."),
 
   // Budget transfer fields
   from_budget_code: z.string().optional().describe("Source budget code to transfer FROM"),
@@ -834,7 +841,7 @@ export const ipkSubmitFormDescription =
   "leave: leave_type, start_date, end_date; " +
   "expense: budget_code, amount, reason; " +
   "working: reason, rows ([{date, hours}], weekend/holiday overtime - AppFrm-074, hours 1-12, weekly total <=12); " +
-  "travel: title, destination, start_date, end_date; " +
+  "travel: purpose, start_date, end_date (domestic default - writes onto the approved AppFrm-023 request at travel_report_write.php; request_doc_id auto-looked-up if omitted; 0-night trips and reports with purpose/agenda/result under 100 chars are refused; pass report_kind='overseas' for the standalone AppFrm-076 form instead, which also needs title/destination); " +
   "travel_request: budget_code, title, destination, start_date, end_date; " +
   "budget_transfer: from_account, to_account, amount, reason; " +
   "card_expense: budget_code, amount, reason; " +
@@ -870,8 +877,51 @@ function attachmentSlotRefusal(params: Record<string, any>) {
 /** Precedent read for a call, keyed on its params so caller input and handler state never mix. */
 const PRECEDENT_FOR = new WeakMap<Record<string, any>, PrecedentSet>();
 
+/** Which page submitTravel's domestic/overseas branch navigates to, resolved during
+ *  beforeNavigate (async - the request_doc_id auto-lookup is a network call) and read
+ *  back by customUrl/waitSelector, same WeakMap-keyed-on-params pattern as PRECEDENT_FOR. */
+const TRAVEL_REPORT_ROUTE = new WeakMap<Record<string, any>, { kind: "domestic" | "overseas"; requestDocId: string }>();
+
 /** Navigation overrides for forms that cannot use the standard navigateToForm path. */
 const FORM_NAV_CONFIG: Partial<Record<string, FormNavConfig>> = {
+  travel: {
+    // Resolves request_doc_id (explicit or auto-looked-up) and the domestic/overseas
+    // route before any page is loaded, same reasoning as travel_request's precedent
+    // lookup below: this needs the network, so it can't be the sync `validate` hook.
+    beforeNavigate: async (page, params, config) => {
+      let docId = params.request_doc_id ? String(params.request_doc_id) : undefined;
+      let formCode: "AppFrm-023" | "AppFrm-026" = params.report_kind === "overseas" ? "AppFrm-026" : "AppFrm-023";
+
+      if (!docId) {
+        const found = await findOwnApprovedTravelRequest(page, {
+          baseUrl: config.baseUrl,
+          keyword: params.request_keyword || params.title || params.destination,
+        });
+        if ("error" in found) {
+          audit({ action: "refusal", code: "TRAVEL_REQUEST_NOT_FOUND", field: "request_doc_id", ok: false });
+          return {
+            code: "TRAVEL_REQUEST_NOT_FOUND",
+            message: `${found.error}. Pass request_doc_id explicitly (the approved AppFrm-023/AppFrm-026 document this reports on).`,
+          };
+        }
+        docId = found.docId;
+        if (params.report_kind !== "domestic") formCode = found.formCode; // auto-detect overseas from the matched request
+      }
+
+      const kind: "domestic" | "overseas" = params.report_kind === "overseas" || formCode === "AppFrm-026" ? "overseas" : "domestic";
+      TRAVEL_REPORT_ROUTE.set(params, { kind, requestDocId: docId });
+    },
+    customUrl: (params, config) => {
+      const route = TRAVEL_REPORT_ROUTE.get(params);
+      const origin = new URL(config.baseUrl).origin;
+      if (route?.kind === "domestic") {
+        return `${origin}/Document/travel_report_write.php?doc_id=${encodeURIComponent(route.requestDocId)}&approve_type=AppFrm-023&pop=Y`;
+      }
+      return `${origin}/Document/document_write.php?approve_type=AppFrm-076`;
+    },
+    waitSelector: 'input[name="report_date"], input[name="subject"]',
+    waitMs: 2000,
+  },
   travel_request: {
     // Combinations the form itself would undo (src/forms/travel-request.ts), refused
     // before any page is loaded so the caller learns all of them at once.
@@ -1613,19 +1663,133 @@ async function submitTravel(
   mode: "draft" | "request"
 ) {
   const userInfo = sessionManager.getUserInfo()!;
-
-  // A travel report reports on an approved travel request; pdoc_id is the link. Without it
-  // the report describes no trip, and the groupware accepts it happily - a hollow document
-  // that someone then has to find and delete.
-  const parentRef = params.pdoc_id || params.approved_doc_ref || "";
-  if (!parentRef) {
-    throw new Error(
-      "PARENT_DOC_REQUIRED: travel needs the approved travel request it reports on. " +
-        "Pass pdoc_id. The form will accept a report without one, which is why this is " +
-        "checked here."
-    );
+  const route = TRAVEL_REPORT_ROUTE.get(params);
+  // FORM_NAV_CONFIG.travel.beforeNavigate always sets this before the page is opened
+  // (or refuses first) - absent here only means that hook didn't run, i.e. a bug.
+  if (!route) {
+    throw new Error("TRAVEL_ROUTE_UNRESOLVED: request_doc_id/report_kind were not resolved before navigation - this is a bug, not a caller error.");
   }
-  await selectExistingOption(frame, 'select[name="pdoc_id"]', String(parentRef), "pdoc_id");
+
+  if (route.kind === "domestic") {
+    return submitDomesticTravelReport(page, frame, sessionManager, config, params, route.requestDocId);
+  }
+  return submitOverseasTravelReport(page, frame, sessionManager, config, params, route.requestDocId, mode);
+}
+
+/**
+ * Domestic travel report: written onto the approved AppFrm-023 request at
+ * travel_report_write.php (see src/forms/travel-report.ts's doc comment). No subject,
+ * destination or period fields exist here - they are inherited, read-only text on the
+ * page. Always a draft (NO_FINAL_SUBMIT; the page itself only ever showed a [ Draft ]
+ * control, see submitTravelReportDraft's doc comment) - mode is not a parameter here.
+ */
+async function submitDomesticTravelReport(
+  page: any,
+  frame: any,
+  sessionManager: SessionManager,
+  config: Config,
+  params: Record<string, any>,
+  requestDocId: string
+) {
+  const userInfo = sessionManager.getUserInfo()!;
+  const profile = loadProfile() ?? undefined;
+  const reportPost = process.env.IPK_USER_POSITION || "";
+  const reportLeader = profile?.approval_line?.group_leader || process.env.IPK_GROUP_LEADER || "";
+  const userDept = userInfo.dept || process.env.IPK_USER_DEPT || "";
+
+  const fields = buildDomesticReportFields(params, userInfo, { reportPost, reportLeader, userDept }, todayStr());
+
+  // Overwrite guard: this request may already have a report (precedent: the first live
+  // check filled a document that already held one). Refuse rather than silently replace
+  // someone's prior work, unless the caller explicitly asks to.
+  const existing = await readReportContentFields(frame);
+  if (!reportIsEmpty(existing) && params.overwrite_report !== true) {
+    const filled = REPORT_CONTENT_FIELDS.filter((k) => (existing[k] ?? "").trim().length > 0)
+      .map((k) => `${k} (${existing[k].length} chars)`);
+    audit({ action: "refusal", code: "REPORT_ALREADY_EXISTS", field: "requestDocId", ok: false });
+    return textResult({
+      error: true,
+      code: "REPORT_ALREADY_EXISTS",
+      message: `Approved request ${requestDocId} already has a report: ${filled.join(", ")}. Pass overwrite_report: true to replace it.`,
+    });
+  }
+  const overwrittenLengths = !reportIsEmpty(existing)
+    ? Object.fromEntries(REPORT_CONTENT_FIELDS.map((k) => [k, (existing[k] ?? "").length]))
+    : undefined;
+
+  // Fields this person's own context couldn't supply - reported, never silently guessed.
+  const warnings: string[] = [];
+  if (!reportLeader) warnings.push("report_leader: not set (profile.approval_line.group_leader / IPK_GROUP_LEADER are both empty) - left blank.");
+  if (!reportPost) warnings.push("report_post: not set (IPK_USER_POSITION is empty) - left blank.");
+  if (!fields.person_field) warnings.push("person_field (counterparty met): not set (pass persons_met) - left blank.");
+
+  const schema: Record<string, TemplateFieldSchema> = Object.fromEntries(
+    Object.keys(fields).map((name) => [name, { type: "text", dom_name: name, required: false, dom_selector: `[name="${name}"]` }])
+  );
+  await genericFillForm(frame, schema, fields);
+
+  if (params.attachment_path) {
+    await attachFile(frame, params.attachment_path);
+    await page.waitForTimeout(1000);
+  }
+  await page.waitForTimeout(1000);
+
+  const { dialogs } = await submitTravelReportDraft(page, frame);
+
+  // No new document is created (this writes onto the approved request's own record), so
+  // there is no doc_id to extract from a redirect - confirm persistence by re-reading
+  // the same page fresh instead (memory's own verification method).
+  const origin = new URL(config.baseUrl).origin;
+  await page.goto(`${origin}/Document/travel_report_write.php?doc_id=${encodeURIComponent(requestDocId)}&approve_type=AppFrm-023&pop=Y`, {
+    waitUntil: "domcontentloaded", timeout: config.navTimeoutMs,
+  });
+  await page.waitForTimeout(1000);
+  const verifyFrame = page.mainFrame();
+  const afterReload: Record<string, string> = await verifyFrame.evaluate((names: string[]) => {
+    const out: Record<string, string> = {};
+    for (const n of names) {
+      const el = document.querySelector(`[name="${n}"]`) as HTMLInputElement | HTMLTextAreaElement | null;
+      if (el) out[n] = el.value;
+    }
+    return out;
+  }, Object.keys(fields));
+  const saved = Object.entries(fields).every(([k, v]) => afterReload[k] === v);
+
+  return textResult({
+    error: false,
+    data: {
+      success: true,
+      // Deliberately not `docId`: confirmDraftResult looks that up in the Drafts/Progress
+      // lists, which don't apply here (this attaches to an already-approved document).
+      attached_to_doc_id: requestDocId,
+      mode: "draft",
+      formType: "travel",
+      report_kind: "domestic",
+      saved_confirmed: saved,
+      overwritten_old_lengths: overwrittenLengths,
+      warning: warnings.length > 0 ? warnings.join(" | ") : undefined,
+      message: saved
+        ? `Domestic travel report draft saved onto approved request ${requestDocId}.`
+        : `Report was filled and Check_Form('D') was called, but re-reading the page afterward did not show all the values saved - check manually.` +
+          (dialogs.length ? ` The form said: ${dialogs.join(" / ")}` : ""),
+    },
+  });
+}
+
+/** Overseas travel report: a standalone form (AppFrm-076) with its own subject/pdoc_id/
+ *  start_day/end_day, selected explicitly with report_kind: "overseas" (or auto-detected
+ *  when the resolved request is AppFrm-026). */
+async function submitOverseasTravelReport(
+  page: any,
+  frame: any,
+  sessionManager: SessionManager,
+  config: Config,
+  params: Record<string, any>,
+  requestDocId: string,
+  mode: "draft" | "request"
+) {
+  const userInfo = sessionManager.getUserInfo()!;
+  await selectExistingOption(frame, 'select[name="pdoc_id"]', requestDocId, "pdoc_id");
 
   const title = params.title || "Business Travel";
   const destination = params.destination || "";
@@ -1650,8 +1814,10 @@ async function submitTravel(
     report_post:      { type: "text", dom_name: "report_post", dom_selector: '.validate[name="report_post"]' },
     report_group:     { type: "text", dom_name: "report_group", dom_selector: '.validate[name="report_group"]' },
     report_leader:    { type: "text", dom_name: "report_leader", dom_selector: '.validate[name="report_leader"]' },
-    start_date:       { type: "date", dom_name: "start_date", required: true, dom_selector: '[name="start_date"]' },
-    end_date:         { type: "date", dom_name: "end_date", required: true, dom_selector: '[name="end_date"]' },
+    // Live-confirmed field names on AppFrm-076, 2026-10-09: start_day/end_day, not
+    // start_date/end_date - the old names silently never landed on anything.
+    start_date:       { type: "date", dom_name: "start_day", required: true, dom_selector: '[name="start_day"]' },
+    end_date:         { type: "date", dom_name: "end_day", required: true, dom_selector: '[name="end_day"]' },
     report_dest:      { type: "text", dom_name: "report_dest", required: true, dom_selector: '.validate[name="report_dest"]' },
     purpose_field:    { type: "text", dom_name: "purpose_field", required: true, dom_selector: '.validate[name="purpose_field"]' },
     date_field:       { type: "text", dom_name: "date_field", dom_selector: '.validate[name="date_field"]' },
@@ -1704,6 +1870,7 @@ async function submitTravel(
       docId,
       mode,
       formType: "travel",
+      report_kind: "overseas",
       subject: title,
       message: docId
         ? `Travel ${mode === "draft" ? "draft saved" : "submitted"} (doc_id: ${docId})`

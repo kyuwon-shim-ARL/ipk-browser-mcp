@@ -445,3 +445,31 @@ export async function serializeFormFields(
   }, knownNames);
 }
 
+/**
+ * Save a domestic travel report (travel_report_write.php) as a draft. Confirmed live
+ * (2026-10-09): the page's only save control is `[ Draft ]` -> `Check_Form('D')` - no
+ * final-submit button was present. Unlike submitForm's Check_Form_Request/form1.submit
+ * paths, this doesn't create a new document (it writes onto the already-approved
+ * AppFrm-023 request) and does not redirect to document_view.php, so there is no new
+ * doc_id to extract here - the caller confirms persistence by re-reading the fields
+ * (see src/forms/travel-report.ts's doc comment and src/tools/ipk-submit.ts
+ * submitTravel's domestic branch).
+ */
+export async function submitTravelReportDraft(page: Page, frame: Frame): Promise<{ dialogs: string[] }> {
+  const dialogs: string[] = [];
+  const onDialog = (d: import("playwright").Dialog) => {
+    dialogs.push(d.message().replace(/\s+/g, " ").trim());
+    d.accept().catch(() => {});
+  };
+  page.on("dialog", onDialog);
+  try {
+    await frame.evaluate(() => {
+      (window as any).Check_Form("D");
+    });
+    await page.waitForTimeout(1500);
+  } finally {
+    page.off("dialog", onDialog);
+  }
+  return { dialogs };
+}
+

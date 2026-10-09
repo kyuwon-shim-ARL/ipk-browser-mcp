@@ -1,0 +1,33 @@
+{
+  "form_code": "AppFrm-023",
+  "form_name": "Domestic Travel Report (attached to an approved request)",
+  "note": "Documentation only - NOT wired into FORM_REGISTRY: this is not a standalone AppFrm-XXX document type, it is travel_report_write.php?doc_id=<approved AppFrm-023 doc_id>&approve_type=AppFrm-023&pop=Y, writing onto the request's own record. The registry's FormType -> single appFrmCode/templateFile shape doesn't fit an attached sub-page, so src/forms/travel-report.ts and src/tools/ipk-submit.ts submitDomesticTravelReport define this field set inline; this file exists only as a readable record of the live-confirmed DOM, same convention as the other form_templates/*.json files. Confirmed live 2026-10-09.",
+  "field_schema": {
+    "doc_id": {"type": "hidden", "widget_type": "hidden", "dom_name": "doc_id", "required": true, "source": "inherited", "note": "the approved request's own doc_id, from the URL"},
+    "w_mode": {"type": "hidden", "widget_type": "hidden", "dom_name": "w_mode", "required": false, "source": "inherited"},
+    "mode": {"type": "hidden", "widget_type": "hidden", "dom_name": "mode", "required": false, "source": "inherited"},
+    "pop": {"type": "hidden", "widget_type": "hidden", "dom_name": "pop", "required": false, "source": "inherited"},
+    "approve_type": {"type": "hidden", "widget_type": "hidden", "dom_name": "approve_type", "required": false, "source": "inherited"},
+    "budget_code": {"type": "hidden", "widget_type": "hidden", "dom_name": "budget_code", "required": false, "source": "inherited"},
+    "report_date": {"type": "date", "widget_type": "text", "dom_name": "report_date", "required": true, "source": "user_input"},
+    "report_name": {"type": "text", "widget_type": "text", "dom_name": "report_name", "required": true, "source": "user_input", "note": "this person's own name"},
+    "report_post": {"type": "text", "widget_type": "text", "dom_name": "report_post", "required": false, "source": "user_input", "note": "never guessed - empty unless IPK_USER_POSITION is set"},
+    "report_group": {"type": "text", "widget_type": "text", "dom_name": "report_group", "required": false, "source": "user_input"},
+    "report_leader": {"type": "text", "widget_type": "text", "dom_name": "report_leader", "required": false, "source": "user_input", "note": "never guessed - empty unless IPK_GROUP_LEADER is set"},
+    "report_dest": {"type": "textarea", "widget_type": "textarea", "dom_name": "report_dest", "required": false, "source": "inherited", "note": "prefilled from the request; NOT a form input to fill"},
+    "purpose_field": {"type": "text", "widget_type": "text", "dom_name": "purpose_field", "required": true, "source": "user_input", "note": ">=100 chars, enforced by the page's own Check_Form()"},
+    "date_field": {"type": "text", "widget_type": "text", "dom_name": "date_field", "required": false, "source": "user_input"},
+    "org_field": {"type": "text", "widget_type": "text", "dom_name": "org_field", "required": false, "source": "user_input"},
+    "person_field": {"type": "text", "widget_type": "text", "dom_name": "person_field", "required": false, "source": "user_input"},
+    "discuss_field": {"type": "text", "widget_type": "text", "dom_name": "discuss_field", "required": false, "source": "user_input"},
+    "agenda_field": {"type": "text", "widget_type": "text", "dom_name": "agenda_field", "required": true, "source": "user_input", "note": ">=100 chars, enforced by the page's own Check_Form()"},
+    "result_field": {"type": "text", "widget_type": "text", "dom_name": "result_field", "required": true, "source": "user_input", "note": ">=100 chars, enforced by the page's own Check_Form()"},
+    "other_field": {"type": "text", "widget_type": "text", "dom_name": "other_field", "required": false, "source": "user_input"},
+    "conclusion_field": {"type": "text", "widget_type": "text", "dom_name": "conclusion_field", "required": true, "source": "user_input"},
+    "gift_p": {"type": "radio", "widget_type": "radio", "dom_name": "gift_p", "required": false, "source": "user_input", "note": "default N, not set by submitDomesticTravelReport"},
+    "gift_r": {"type": "radio", "widget_type": "radio", "dom_name": "gift_r", "required": false, "source": "user_input", "note": "default N, not set by submitDomesticTravelReport"}
+  },
+  "submit_flow": {
+    "note": "Only save control confirmed live is '[ Draft ]' -> javascript:Check_Form('D'); no final-submit button was present on the page actually inspected. No subject/start_day/end_day/pdoc_id fields exist here - compare form_templates/AppFrm-076.json for the separate standalone overseas-report form."
+  }
+}
