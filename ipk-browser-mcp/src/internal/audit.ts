@@ -26,7 +26,9 @@ export type AuditAction =
   /** saved a draft or submitted for approval */
   | "submit"
   /** opened a form */
-  | "navigate" | "precedent";
+  | "navigate" | "precedent"
+  /** card_expense_rd: attachment kind/attestation review (blocks/warnings/flagged exceptions) */
+  | "attachment_review";
 
 export interface AuditEvent {
   ts: string;

@@ -5,6 +5,7 @@ import { textResult } from "../util.js";
 import { validateAttachmentPath } from "../security/attachment-path.js";
 import { audit, beginRun } from "../internal/audit.js";
 import { checkOrgPolicy } from "../policy/org-policy.js";
+import { reviewAttachments, ATTACHMENT_KINDS, type AttachmentInput, type AttestationException } from "../policy/attachment-review.js";
 import { checkFieldRules, FieldRulesUnavailable, type Rulebook } from "../policy/field-rules.js";
 import { loadProfile, type Profile } from "../profile/profile.js";
 import { checkTravelRequestParams, checkAttachmentSlot, slotSelector, parseCardNo, type TravelDocSlot } from "../forms/travel-request.js";
@@ -353,16 +354,21 @@ function loadTemplateFieldSchema(formType: string): Record<string, TemplateField
   const registry = FORM_REGISTRY[formType as keyof typeof FORM_REGISTRY];
   if (!registry) return null;
 
-  const projectRoot = path.resolve(__dirname, "..", "..");
-  const templatePath = path.join(projectRoot, "form_templates", registry.templateFile);
-
-  try {
-    const raw = fs.readFileSync(templatePath, "utf-8");
-    const template = JSON.parse(raw);
-    return template.field_schema || null;
-  } catch {
-    return null;
+  // Same two-levels-up convention as loadPublicRulebook's form_templates/ lookup
+  // (dist/ipk-browser-mcp.mjs -> repo root). Running the TS source directly (vitest, no
+  // bundling) sits one directory deeper (src/tools/ -> ipk-browser-mcp/, not repo root),
+  // so that candidate is tried too rather than only ever working after a build.
+  for (const projectRoot of [path.resolve(__dirname, "..", ".."), path.resolve(__dirname, "..", "..", "..")]) {
+    const templatePath = path.join(projectRoot, "form_templates", registry.templateFile);
+    try {
+      const raw = fs.readFileSync(templatePath, "utf-8");
+      const template = JSON.parse(raw);
+      return template.field_schema || null;
+    } catch {
+      continue;
+    }
   }
+  return null;
 }
 
 /**
@@ -472,6 +478,71 @@ export async function checkFieldRulesAgainstForm(
   if (result.blocks.length === 0) return null;
   for (const v of result.blocks) audit({ action: "refusal", code: "FIELD_RULE_VIOLATION", field: v.field, ok: false });
   return { code: "FORM_RULE_VIOLATION", message: result.blocks.map((v) => `[${v.field}] ${v.message}`).join("\n"), violations: result.blocks };
+}
+
+/**
+ * dry_run: runs the full pipeline (param validation, org-policy, navigation, fill,
+ * field-rules on the serialized form - everything checkFieldRulesAgainstForm would run)
+ * and STOPS here, before any save/draft/submit call. Called from the one chokepoint in
+ * each submit* handler right before its save helper (setFormMode/submitForm,
+ * submitTravelReportDraft, or card_expense_rd's own preview) - see
+ * test/tools/dry-run.test.ts's save-helper-never-called spies for the structural
+ * guarantee. Never writes anything: at most reads the DOM (serializeFormFields) and
+ * takes a screenshot (same read-only call every other screenshot path uses).
+ *
+ * Unlike checkFieldRulesAgainstForm, this never refuses on a field-rule block - a block
+ * found here is exactly the kind of thing dry_run exists to surface, not hide behind a
+ * refusal. (Domestic travel report: dry_run also means REPORT_ALREADY_EXISTS does not
+ * refuse either - submitDomesticTravelReport checks dry_run before its own overwrite
+ * guard for the same reason; see its own dry_run branch.)
+ */
+async function buildDryRunPreview(page: any, frame: any, config: Config, formType: string): Promise<Record<string, any>> {
+  const pub = loadPublicRulebook(formType);
+  const book = pub ? mergeRulebook(pub, loadFieldRulesOptions(formType).privatePack) : null;
+  const knownNames = book ? Object.keys(book.fields) : [];
+  const serialized = (await serializeFormFields(frame, knownNames)) ?? {};
+
+  let fieldRuleResult: { blocks: unknown[]; warnings: unknown[] } = { blocks: [], warnings: [] };
+  if (book) {
+    const { profile } = loadFieldRulesOptions(formType);
+    const env = {
+      IPK_GROUP_LEADER: process.env.IPK_GROUP_LEADER,
+      IPK_SUBSTITUTE_NAME: process.env.IPK_SUBSTITUTE_NAME,
+      IPK_EMERGENCY_ADDRESS: process.env.IPK_EMERGENCY_ADDRESS,
+      IPK_EMERGENCY_TELEPHONE: process.env.IPK_EMERGENCY_TELEPHONE,
+    };
+    try {
+      fieldRuleResult = checkFieldRules(book, serialized, { profile, env, unknownFields: "warn" });
+    } catch (e) {
+      if (e instanceof FieldRulesUnavailable) {
+        fieldRuleResult = { blocks: [{ field: "(form)", scope: "form", message: e.message }], warnings: [] };
+      } else {
+        throw e;
+      }
+    }
+  }
+
+  let screenshot: string | undefined;
+  try {
+    fs.mkdirSync(config.screenshotDir, { recursive: true, mode: 0o700 });
+    const filename = `dry-run-${formType}-${new Date().toISOString().replace(/[:.]/g, "-")}.png`;
+    const filepath = path.join(config.screenshotDir, filename);
+    await page.screenshot({ path: filepath, fullPage: true });
+    screenshot = filepath;
+    const ttlMs = config.screenshotTtlMinutes * 60 * 1000;
+    setTimeout(() => { try { if (fs.existsSync(filepath)) fs.unlinkSync(filepath); } catch { /* ignore */ } }, ttlMs);
+  } catch { /* screenshot is best-effort; dry_run still reports fields/rules without it */ }
+
+  return {
+    dry_run: true,
+    form: formType,
+    url: typeof frame.url === "function" ? frame.url() : "",
+    fields: serialized,
+    field_rule_result: fieldRuleResult,
+    warnings: (fieldRuleResult.warnings as { message: string }[]).map((w) => w.message),
+    screenshot,
+    message: `dry_run: ${formType} filled and checked, nothing saved. ${(fieldRuleResult.blocks as unknown[]).length} field-rule block(s), ${(fieldRuleResult.warnings as unknown[]).length} warning(s).`,
+  };
 }
 
 
@@ -699,8 +770,36 @@ export const ipkSubmitFormSchema = {
   item_name: z.string().optional().describe("Item name for card_expense_rd row (English). e.g. 'Google Cloud Gemini API service'."),
   seller_en: z.string().optional().describe("English vendor name for card_expense_rd row. e.g. 'Google Cloud Korea LLC'."),
   account_code_label: z.string().optional().describe("Substring/regex to auto-pick account code from Sel_account popup options (e.g. 'IT Software'). If account_code is also given, account_code wins."),
-  attachment_paths: z.array(z.string()).optional().describe("Multiple attachment file paths for card_expense_rd. Each file is uploaded to a separate slot."),
+  attachment_paths: z.array(z.string()).optional().describe("Multiple attachment file paths for card_expense_rd. Each file is uploaded to a separate slot. For accounts with a kind requirement (e.g. 410306), use attachments[] instead - this legacy param is refused there without a kind."),
+  attachments: z.array(z.object({
+    path: z.string(),
+    kind: z.enum(ATTACHMENT_KINDS),
+    quotes: z.array(z.string()).optional().describe("Text the agent itself read from this file, quoted verbatim - not guessed from the filename. Required to clear program/fee_table/society_receipt attestation on accounts that need it (e.g. 410306)."),
+  })).optional().describe("card_expense_rd attachments with a kind label each (card_slip, society_receipt, invoice, permission, fee_table, program, usage, receipt, other). One file = one kind; a duplicate kind is refused. Replaces attachment_path(s) for accounts with a kind requirement."),
+  attestation_exception: z.array(z.object({
+    kind: z.enum(ATTACHMENT_KINDS),
+    date: z.string().optional().describe("YYYY-MM-DD, for a program date that cannot be quoted (e.g. a weekday-only schedule grid)."),
+    reason: z.string(),
+    person_confirmed: z.literal(true),
+  })).optional().describe("Exempts one attestation gap (e.g. a fee table with no single total line) instead of blocking - requires person_confirmed:true. Recorded in the audit and flagged in the result; never a silent pass."),
+  // card_expense_rd event-block fields (account 410306 and others that open the Event
+  // Name/Organizer/Date/Attendee block) - DOM names from form_rules/AppFrm-021.json and
+  // submit_ai4sci_registration_er.py:41-58 (301306, 2026-10-07 session).
+  event_name: z.string().optional().describe("card_expense_rd event block: org_name (e.g. conference/event name). English only."),
+  event_type: z.string().optional().describe("card_expense_rd event block: dmex_se_cd code (e.g. '01')."),
+  organizer: z.string().optional().describe("card_expense_rd event block: organizer_nm. English only."),
+  event_start: z.string().optional().describe("card_expense_rd event block: edu_start_day (YYYY-MM-DD)."),
+  event_end: z.string().optional().describe("card_expense_rd event block: edu_end_day (YYYY-MM-DD)."),
+  notes: z.string().optional().describe("card_expense_rd: written to the form's 'notes' field (alongside p_reason/reason, which the form also calls Notes in some accounts)."),
   draft_only: z.boolean().default(true).describe("Save as draft (true) or submit for approval (false). Defaults to true for safety."),
+  dry_run: z.boolean().default(false).optional().describe(
+    "Preview only, for every wired form type - safe, never saves/drafts/submits anything. Runs the full pipeline " +
+    "(param validation, org-policy, navigation, filling the form, field-rules checked against the live DOM) and " +
+    "stops before the save click. Returns { dry_run, form, url, fields (serialized DOM), field_rule_result " +
+    "(blocks/warnings - never causes a refusal under dry_run), warnings, screenshot }. For the domestic travel " +
+    "report, dry_run also skips the REPORT_ALREADY_EXISTS refusal and reports existing_report_lengths instead, " +
+    "since nothing is written either way."
+  ),
   confirm_submit: z.boolean().default(false).describe("Must be true to actually submit for approval. Ignored when draft_only=true."),
 
   // Leave fields
@@ -833,6 +932,7 @@ export const ipkSubmitFormDescription =
   "card_expense (카드경비/AppFrm-020), travel_settlement (출장정산/AppFrm-054), leave_return (대체휴일반납/AppFrm-028), seminar (세미나공시/AppFrm-043), overseas_travel (해외출장/AppFrm-026). " +
   "By default saves as draft (draft_only=true); a draft is reported only after it is found in the Drafts list (SUBMITTED_NOT_DRAFT / DRAFT_NOT_CONFIRMED otherwise). " +
   "card_expense_rd has no draft (the groupware files it for approval): draft_only=true returns a no-save preview with the form's own validation. " +
+  "dry_run=true is safe to use on any wired form type (leave, working, travel_request, travel [domestic/overseas], travel_settlement, budget_transfer, expense, card_expense, card_expense_rd): it fills and checks the form exactly as a real call would, then stops before any save/draft/submit action - never creates, modifies or overwrites a document. " +
   "NO_FINAL_SUBMIT: draft_only=false is refused unless confirm_submit=true AND env IPK_ALLOW_SUBMIT=1. " +
   "Even unlocked, for every form type except card_expense_rd this tool still only saves a draft and " +
   "returns a no_final_submit note with the click path - it never performs the final approval-request click itself. " +
@@ -1032,6 +1132,11 @@ const FORM_HANDLERS: Record<string, FormHandler> = {
   working: submitWorking,
   travel: submitTravel,
   travel_request: submitTravelRequest,
+  // budget_transfer was missing here (pre-existing, found 2026-10-10 while wiring
+  // dry_run: submitBudgetTransfer was dead code, every real call silently fell through
+  // to the generic submitGeneric fallback instead - no dedicated field handling, no
+  // field-rules check, and no dry_run). Restored.
+  budget_transfer: submitBudgetTransfer,
   card_expense: submitCardExpense,
   card_expense_rd: submitCardExpenseRD,
   travel_settlement: submitTravelSettlement,
@@ -1388,6 +1493,8 @@ async function submitLeave(
 
   await page.waitForTimeout(1000);
 
+  if (params.dry_run) return textResult({ error: false, data: await buildDryRunPreview(page, frame, config, "leave") });
+
   // Per-field rulebooks (rules/public/AppFrm-073.json) against the form's own fields,
   // right before the save click - see checkFieldRulesAgainstForm.
   const leaveRuleRefusal = await checkFieldRulesAgainstForm(frame, "leave");
@@ -1508,6 +1615,8 @@ async function submitExpense(
   }
 
   await page.waitForTimeout(1000);
+
+  if (params.dry_run) return textResult({ error: false, data: await buildDryRunPreview(page, frame, config, "expense") });
 
   await setFormMode(frame, mode);
   const docId = await submitForm(page, frame, "check_form_request");
@@ -1630,6 +1739,8 @@ async function submitWorking(
 
   await page.waitForTimeout(500);
 
+  if (params.dry_run) return textResult({ error: false, data: await buildDryRunPreview(page, frame, config, "working") });
+
   // Per-field rulebook (rules/public/AppFrm-074.json) against the form's own fields,
   // right before the save click - see checkFieldRulesAgainstForm.
   const workingRuleRefusal = await checkFieldRulesAgainstForm(frame, "working");
@@ -1701,9 +1812,11 @@ async function submitDomesticTravelReport(
 
   // Overwrite guard: this request may already have a report (precedent: the first live
   // check filled a document that already held one). Refuse rather than silently replace
-  // someone's prior work, unless the caller explicitly asks to.
+  // someone's prior work, unless the caller explicitly asks to - but not under dry_run,
+  // which never writes anything, so there is nothing to protect; it reports the existing
+  // lengths instead (below) rather than refusing.
   const existing = await readReportContentFields(frame);
-  if (!reportIsEmpty(existing) && params.overwrite_report !== true) {
+  if (!reportIsEmpty(existing) && params.overwrite_report !== true && !params.dry_run) {
     const filled = REPORT_CONTENT_FIELDS.filter((k) => (existing[k] ?? "").trim().length > 0)
       .map((k) => `${k} (${existing[k].length} chars)`);
     audit({ action: "refusal", code: "REPORT_ALREADY_EXISTS", field: "requestDocId", ok: false });
@@ -1733,6 +1846,22 @@ async function submitDomesticTravelReport(
     await page.waitForTimeout(1000);
   }
   await page.waitForTimeout(1000);
+
+  if (params.dry_run) {
+    const preview = await buildDryRunPreview(page, frame, config, "travel");
+    return textResult({
+      error: false,
+      data: {
+        ...preview,
+        report_kind: "domestic",
+        attached_to_doc_id: requestDocId,
+        // Lengths of whatever was already on this request before this (never-saved) fill -
+        // the overwrite guard is skipped under dry_run since nothing is written to protect.
+        existing_report_lengths: overwrittenLengths,
+        warning: [warnings.join(" | "), (preview.warnings as string[]).join(" | ")].filter(Boolean).join(" | ") || undefined,
+      },
+    });
+  }
 
   const { dialogs } = await submitTravelReportDraft(page, frame);
 
@@ -1858,6 +1987,8 @@ async function submitOverseasTravelReport(
   }
 
   await page.waitForTimeout(1000);
+
+  if (params.dry_run) return textResult({ error: false, data: await buildDryRunPreview(page, frame, config, "travel") });
 
   await setFormMode(frame, mode);
   // Travel form uses form1.submit() instead of Check_Form_Request
@@ -2008,6 +2139,8 @@ async function submitTravelRequest(
 
   await page.waitForTimeout(1000);
 
+  if (params.dry_run) return textResult({ error: false, data: await buildDryRunPreview(page, frame, config, "travel_request") });
+
   // Per-field rulebooks (rules/public/AppFrm-023.json) against the form's own fields,
   // right before the save click - see checkFieldRulesAgainstForm.
   const travelRequestRuleRefusal = await checkFieldRulesAgainstForm(frame, "travel_request");
@@ -2134,6 +2267,8 @@ async function submitBudgetTransfer(
   }
 
   await page.waitForTimeout(1000);
+
+  if (params.dry_run) return textResult({ error: false, data: await buildDryRunPreview(page, frame, config, "budget_transfer") });
 
   // Per-field rulebooks (rules/public/AppFrm-039.json) against the form's own fields,
   // right before the save click - see checkFieldRulesAgainstForm.
@@ -2265,6 +2400,8 @@ async function submitCardExpense(
   }
 
   await page.waitForTimeout(1000);
+  if (params.dry_run) return textResult({ error: false, data: await buildDryRunPreview(page, frame, config, "card_expense") });
+
   await setFormMode(frame, mode);
   const docId = await submitForm(page, frame, "check_form_request");
 
@@ -2381,10 +2518,24 @@ async function submitCardExpenseRD(
     (args: {
       subject: string; itemName: string; sellerEn: string; pReason: string;
       venue: string; participants: string; purposeMinutes: string;
-      meetingBegin: string; meetingEnd: string;
+      meetingBegin: string; meetingEnd: string; notes: string;
+      event: Record<string, string>;
     }) => {
       const subjectEl = document.querySelector('input[name="subject"]') as HTMLInputElement | null;
       if (subjectEl) subjectEl.value = args.subject;
+      if (args.notes) {
+        const notesEl = (document.getElementById("notes") ||
+          document.querySelector('[name="notes"]')) as HTMLInputElement | HTMLTextAreaElement | null;
+        if (notesEl) notesEl.value = args.notes;
+      }
+      // Event block (account 410306 etc.) - set only the fields given, by id (matching
+      // the live form) with a name-attribute fallback.
+      for (const [k, v] of Object.entries(args.event)) {
+        if (!v) continue;
+        const el = (document.getElementById(k) ||
+          document.querySelector(`[name="${k}"]`)) as HTMLInputElement | null;
+        if (el) el.value = v;
+      }
       const items = document.querySelectorAll('input[name="item_name[]"]') as NodeListOf<HTMLInputElement>;
       const qtys = document.querySelectorAll('input[name="item_qty[]"]') as NodeListOf<HTMLInputElement>;
       const sellers = document.querySelectorAll('input[name="seller[]"]') as NodeListOf<HTMLInputElement>;
@@ -2426,6 +2577,15 @@ async function submitCardExpenseRD(
       purposeMinutes: params.purpose_minutes || params.purpose || "",
       meetingBegin: params.meeting_begin || "",
       meetingEnd: params.meeting_end || "",
+      notes: params.notes || pReason,
+      event: {
+        org_name: params.event_name || "",
+        dmex_se_cd: params.event_type || "",
+        organizer_nm: params.organizer || "",
+        edu_start_day: params.event_start || "",
+        edu_end_day: params.event_end || "",
+        edu_member: params.attendees || "",
+      },
     }
   );
 
@@ -2518,12 +2678,49 @@ async function submitCardExpenseRD(
     });
   }
 
-  // Step 3: Attach file(s)
-  const filePaths: string[] = Array.isArray(params.attachment_paths)
+  // Step 2c: Attachment kind/attestation review (P1). Runs on the RESOLVED account
+  // (filedAccount, just set above) so it sees what the document will actually carry,
+  // and before any upload - dry_run reaches this too, since dry_run returns later, at the
+  // existing dry_run branch below.
+  const labeledAttachments: AttachmentInput[] = Array.isArray(params.attachments) ? params.attachments : [];
+  const legacyAttachmentPaths: string[] = Array.isArray(params.attachment_paths)
     ? params.attachment_paths
     : params.attachment_path
       ? [params.attachment_path]
       : [];
+  // RunPod's filename-matched 4-file rule stays in org-policy.ts's VENDOR_ATTACHMENTS_REQUIRED
+  // (unchanged, runs earlier at the pre-navigation checkOrgPolicy dispatch). This review only
+  // covers accounts keyed by the resolved account code (e.g. 410306).
+  const attachmentReview = reviewAttachments({
+    accountCode: filedAccount,
+    attachments: labeledAttachments,
+    legacyPaths: labeledAttachments.length === 0 ? legacyAttachmentPaths : [],
+    eventStart: params.event_start,
+    eventEnd: params.event_end,
+    totalAmount: prefilled.amount ? Number(prefilled.amount) : undefined,
+    issuerName: params.organizer || params.seller_en || prefilled.vender_kor || undefined,
+    exceptions: params.attestation_exception as AttestationException[] | undefined,
+  });
+  audit({
+    action: "attachment_review",
+    field: "card_expense_rd",
+    ok: attachmentReview.blocks.length === 0,
+    value: JSON.stringify({ blocks: attachmentReview.blocks, warnings: attachmentReview.warnings, flagged: attachmentReview.flagged, records: attachmentReview.auditRecords }),
+  });
+  if (attachmentReview.blocks.length > 0) {
+    return textResult({
+      error: true,
+      code: "ATTACHMENT_REVIEW_BLOCKED",
+      message: attachmentReview.blocks.join("\n"),
+      blocks: attachmentReview.blocks,
+      warnings: attachmentReview.warnings,
+    });
+  }
+
+  // Step 3: Attach file(s)
+  const filePaths: string[] = labeledAttachments.length > 0
+    ? labeledAttachments.map((a) => a.path)
+    : legacyAttachmentPaths;
   if (filePaths.length === 0) {
     return textResult({
       error: true,
@@ -2542,6 +2739,18 @@ async function submitCardExpenseRD(
   // Set file_attach_cnt = N then upload N files into doc_attach_file[]
   const attachResult = await attachmentHelper.attachFiles(frame, filePaths);
   await page.waitForTimeout(500);
+
+  // dry_run: AppFrm-021 has no real draft state, so its own preview IS the no-save path
+  // ("card_expense_rd's existing preview can be the same path") - route there directly,
+  // before the field-rules refusal below, since dry_run never refuses on a field-rule
+  // block (previewCardExpenseRD's network-cut guarantee is the same one, or stronger,
+  // than buildDryRunPreview's elsewhere).
+  if (params.dry_run) {
+    const preview = await previewCardExpenseRD(page, frame, config, { subject, effectiveBudgetCode, attachResult, fileCount: filePaths.length });
+    const parsed = JSON.parse(preview.content[0].text);
+    if (parsed.data) parsed.data.dry_run = true;
+    return textResult(parsed);
+  }
 
   // Per-field rulebooks (rules/public/AppFrm-021.json) against the form's own fields,
   // right before the preview-or-submit branch - see checkFieldRulesAgainstForm. Checked
@@ -3031,6 +3240,8 @@ async function submitTravelSettlement(
   }
 
   await page.waitForTimeout(1000);
+
+  if (params.dry_run) return textResult({ error: false, data: await buildDryRunPreview(page, frame, config, "travel_settlement") });
 
   // Per-field rulebooks (rules/public/AppFrm-054.json) against the form's own fields,
   // right before the save click - see checkFieldRulesAgainstForm.

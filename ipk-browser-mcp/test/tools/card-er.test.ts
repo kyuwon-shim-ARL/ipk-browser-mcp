@@ -299,6 +299,30 @@ describe("card_expense_rd with draft_only=true is a no-save preview", () => {
   });
 });
 
+describe("card_expense_rd with dry_run=true", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("uses the same no-network preview path as draft_only=true, tagged dry_run:true, and never reaches the real submit's popup orchestration", async () => {
+    const h = makeHarness(okRun());
+    const out = parse(await handleIpkSubmitForm(h.session, h.config, params({ dry_run: true })));
+
+    expect(out.error).toBe(false);
+    expect(out.data.dry_run).toBe(true);
+    expect(out.data.mode).toBe("preview");
+    expect(out.data.saved).toBe(false);
+    expect(out.data.docId).toBeNull();
+
+    // Never reached the real-submit popup machinery (page.waitForEvent/once/on("popup")).
+    expect(h.page.waitForEvent).not.toHaveBeenCalled();
+    expect(h.page.once).not.toHaveBeenCalled();
+    expect(h.page.on).not.toHaveBeenCalledWith("popup", expect.anything());
+
+    // Still network-cut, like the ordinary preview (nothing could have been written).
+    expect(h.page.route).toHaveBeenCalledWith("**/*", expect.any(Function));
+    expect(h.page.unroute).toHaveBeenCalledWith("**/*", expect.any(Function));
+  });
+});
+
 describe("card_expense_rd submit path goes through Check_Form_Request", () => {
   // NO_FINAL_SUBMIT (src/policy/org-policy.ts): a real submission (draft_only=false) is
   // refused unless IPK_ALLOW_SUBMIT=1 is also set. card_expense_rd has no draft state, so

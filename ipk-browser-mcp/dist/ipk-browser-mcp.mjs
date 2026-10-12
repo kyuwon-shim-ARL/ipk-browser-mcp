@@ -6794,12 +6794,12 @@ var require_dist = __commonJS({
         throw new Error(`Unknown format "${name}"`);
       return f;
     };
-    function addFormats(ajv, list, fs9, exportName) {
+    function addFormats(ajv, list, fs10, exportName) {
       var _a;
       var _b;
       (_a = (_b = ajv.opts.code).formats) !== null && _a !== void 0 ? _a : _b.formats = (0, codegen_1._)`require("ajv-formats/dist/formats").${exportName}`;
       for (const f of list)
-        ajv.addFormat(f, fs9[f]);
+        ajv.addFormat(f, fs10[f]);
     }
     module.exports = exports = formatsPlugin;
     Object.defineProperty(exports, "__esModule", { value: true });
@@ -6852,7 +6852,7 @@ __export(attachment_exports, {
   attachFiles: () => attachFiles,
   clearAllAttachments: () => clearAllAttachments
 });
-import * as fs5 from "fs";
+import * as fs6 from "fs";
 async function attachFiles(ctx, filePaths) {
   const result = { attached: 0, skipped: [] };
   const valid = [];
@@ -6862,7 +6862,7 @@ async function attachFiles(ctx, filePaths) {
       result.skipped.push({ path: p, reason: pathErr });
       continue;
     }
-    if (!fs5.existsSync(p)) {
+    if (!fs6.existsSync(p)) {
       result.skipped.push({ path: p, reason: "file not found on local fs" });
     } else {
       valid.push(p);
@@ -21270,8 +21270,8 @@ var CONFIG_DIR = `${process.env.HOME}/.config/ipk-browser-mcp`;
 var ENV_FILE = `${CONFIG_DIR}/.env`;
 function loadDotenv() {
   try {
-    const { readFileSync: readFileSync5 } = __require("fs");
-    const content = readFileSync5(ENV_FILE, "utf-8");
+    const { readFileSync: readFileSync6 } = __require("fs");
+    const content = readFileSync6(ENV_FILE, "utf-8");
     const vars = {};
     for (const line of content.split("\n")) {
       const trimmed = line.trim();
@@ -21579,7 +21579,7 @@ async function handleIpkLogin(sessionManager2, params) {
 }
 
 // src/tools/ipk-submit.ts
-import * as fs6 from "fs";
+import * as fs7 from "fs";
 init_attachment_path();
 
 // src/internal/audit.ts
@@ -21666,6 +21666,219 @@ function isMeetingAccount(code) {
 var BUDGET_REFUSAL = /not enough budget|insufficient budget|budget (?:is )?exceeded|exceeds? (?:the )?budget/i;
 function budgetPopupRefusals(bodyText) {
   return String(bodyText ?? "").split(/\r?\n/).map((l) => l.trim()).filter((l) => BUDGET_REFUSAL.test(l));
+}
+
+// src/policy/attachment-review.ts
+import * as fs4 from "fs";
+import * as crypto from "crypto";
+var ATTACHMENT_KINDS = [
+  "card_slip",
+  "society_receipt",
+  "invoice",
+  "permission",
+  "fee_table",
+  "program",
+  "usage",
+  "receipt",
+  "other"
+];
+var ACCOUNT_ATTACHMENTS_REQUIRED = {
+  "410306": {
+    kinds: ["card_slip", "society_receipt", "permission", "fee_table", "program"],
+    evidenceDocs: ["293384", "296590", "301306"]
+  }
+};
+var VENDOR_ATTACHMENTS_REQUIRED = {
+  runpod: {
+    kinds: ["invoice", "card_slip", "usage", "receipt"],
+    evidenceDocs: ["RunPod ER precedent"]
+  }
+};
+var FILENAME_HINTS = {
+  card_slip: /(cc[_-]?sales[_-]?slip|sales[_-]?slip|매출전표)/i,
+  invoice: /invoice/i,
+  usage: /daily[_-]?usage|usage/i,
+  receipt: /receipt/i,
+  society_receipt: /receipt/i,
+  program: /program/i,
+  permission: /permission|invitation/i,
+  fee_table: /fee|table|registration/i
+};
+var ISSUER_STOPWORDS = /\b(korea|society|association|conference|학회|협회)\b/gi;
+function requirementFor(params) {
+  if (params.accountCode && ACCOUNT_ATTACHMENTS_REQUIRED[params.accountCode]) {
+    return ACCOUNT_ATTACHMENTS_REQUIRED[params.accountCode];
+  }
+  if (params.vendorKey && VENDOR_ATTACHMENTS_REQUIRED[params.vendorKey]) {
+    return VENDOR_ATTACHMENTS_REQUIRED[params.vendorKey];
+  }
+  return null;
+}
+var MONTHS = {
+  jan: 1,
+  feb: 2,
+  mar: 3,
+  apr: 4,
+  may: 5,
+  jun: 6,
+  jul: 7,
+  aug: 8,
+  sep: 9,
+  sept: 9,
+  oct: 10,
+  nov: 11,
+  dec: 12
+};
+var MONTH_ALT = "jan|feb|mar|apr|may|jun|jul|aug|sept|sep|oct|nov|dec";
+function extractDateCandidates(text) {
+  const out = [];
+  const push = (month, day, year) => {
+    if (month >= 1 && month <= 12 && day >= 1 && day <= 31) out.push({ month, day, year });
+  };
+  for (const m of text.matchAll(new RegExp(`\\b(\\d{1,2})\\/(${MONTH_ALT})\\.?\\/(\\d{4})`, "gi"))) {
+    push(MONTHS[m[2].toLowerCase()], Number(m[1]), Number(m[3]));
+  }
+  for (const m of text.matchAll(/\b(\d{4})-(\d{1,2})-(\d{1,2})\b/g)) {
+    push(Number(m[2]), Number(m[3]), Number(m[1]));
+  }
+  for (const m of text.matchAll(/(\d{1,2})\s*월\s*(\d{1,2})\s*일/g)) {
+    push(Number(m[1]), Number(m[2]));
+  }
+  for (const m of text.matchAll(new RegExp(`\\b(${MONTH_ALT})[a-z]*\\.?\\s+(\\d{1,2})(?:\\s*,?\\s*(\\d{4}))?`, "gi"))) {
+    push(MONTHS[m[1].toLowerCase()], Number(m[2]), m[3] ? Number(m[3]) : void 0);
+  }
+  for (const m of text.matchAll(new RegExp(`\\b(\\d{1,2})\\s+(${MONTH_ALT})[a-z]*\\.?(?:\\s*,?\\s*(\\d{4}))?`, "gi"))) {
+    push(MONTHS[m[2].toLowerCase()], Number(m[1]), m[3] ? Number(m[3]) : void 0);
+  }
+  for (const m of text.matchAll(/\b(\d{1,2})\.(\d{1,2})\.(?!\d)/g)) {
+    push(Number(m[2]), Number(m[1]));
+  }
+  for (const m of text.matchAll(/\b(\d{1,2})\/(\d{1,2})\b(?!\/)/g)) {
+    push(Number(m[1]), Number(m[2]));
+  }
+  for (const m of text.matchAll(/\b(\d{1,2})\.(\d{1,2})\b(?!\.)/g)) {
+    push(Number(m[1]), Number(m[2]));
+  }
+  return out;
+}
+function quoteMatchesDate(quote, month, day, targetYear) {
+  const candidates = extractDateCandidates(quote);
+  return candidates.some((c) => {
+    if (c.month !== month || c.day !== day) return false;
+    if (c.year !== void 0 && targetYear !== void 0 && c.year !== targetYear) return false;
+    return true;
+  });
+}
+function quoteMatchesAmount(quote, amount) {
+  const normalized = quote.replace(/[,\s]/g, "");
+  const nums = normalized.match(/\d+/g) || [];
+  return nums.some((n) => Number(n) === amount);
+}
+function issuerCoreTokens(name) {
+  const stripped = name.replace(ISSUER_STOPWORDS, " ").replace(/\b(19|20)\d{2}\b/g, " ");
+  return stripped.split(/[\s()\-,./]+/).map((t) => t.trim()).filter((t) => t.length >= 2);
+}
+function quoteMatchesIssuer(quote, issuerName) {
+  const tokens = issuerCoreTokens(issuerName);
+  if (tokens.length === 0) return true;
+  const lowerQuote = quote.toLowerCase();
+  return tokens.some((t) => lowerQuote.includes(t.toLowerCase()));
+}
+function datesBetween(start, end) {
+  if (!start || !end) return [];
+  const a = /* @__PURE__ */ new Date(`${start}T00:00:00Z`);
+  const b = /* @__PURE__ */ new Date(`${end}T00:00:00Z`);
+  if (Number.isNaN(a.getTime()) || Number.isNaN(b.getTime()) || b < a) return [];
+  const out = [];
+  for (let t = a.getTime(); t <= b.getTime(); t += 864e5) {
+    out.push(new Date(t).toISOString().slice(0, 10));
+  }
+  return out;
+}
+function sha256OfFile(filePath) {
+  try {
+    const buf = fs4.readFileSync(filePath);
+    return crypto.createHash("sha256").update(buf).digest("hex");
+  } catch {
+    return null;
+  }
+}
+function exceptionFor(exceptions, kind, date3) {
+  return (exceptions || []).find((e) => e.kind === kind && e.person_confirmed === true && (date3 === void 0 || e.date === date3));
+}
+function reviewAttachments(params) {
+  const blocks = [];
+  const warnings = [];
+  const flagged = [];
+  const auditRecords = [];
+  const req = requirementFor(params);
+  const attachments = params.attachments || [];
+  if (req) {
+    if (attachments.length === 0 && (params.legacyPaths || []).length > 0) {
+      blocks.push(
+        `This account requires labeled attachments (${req.kinds.join(", ")}) - attachment_path(s) without a kind are refused. Use attachments: [{path, kind}].`
+      );
+    } else if (attachments.length === 0) {
+      blocks.push(`This account requires attachments (${req.kinds.join(", ")}) but none were given.`);
+    } else {
+      const seen = /* @__PURE__ */ new Map();
+      for (const a of attachments) seen.set(a.kind, (seen.get(a.kind) || 0) + 1);
+      for (const [kind, count2] of seen) {
+        if (count2 > 1) blocks.push(`kind '${kind}' is claimed by ${count2} attachments - one file = one kind.`);
+      }
+      const present = new Set(attachments.map((a) => a.kind));
+      const missing = req.kinds.filter((k) => !present.has(k));
+      if (missing.length > 0) {
+        blocks.push(`Missing required attachment kind(s): ${missing.join(", ")}.`);
+      }
+    }
+  }
+  for (const a of attachments) {
+    const hint = FILENAME_HINTS[a.kind];
+    if (hint && !hint.test(a.path)) {
+      warnings.push(`${a.path}: filename doesn't look like '${a.kind}' - check the label.`);
+    }
+    const quotes = a.quotes || [];
+    if (a.kind === "program" && params.eventStart && params.eventEnd) {
+      const targetYear = Number(params.eventStart.slice(0, 4));
+      for (const dateStr of datesBetween(params.eventStart, params.eventEnd)) {
+        const [, mo, da] = dateStr.split("-").map(Number);
+        const matched = quotes.some((q) => quoteMatchesDate(q, mo, da, targetYear));
+        if (!matched) {
+          const exc = exceptionFor(params.exceptions, "program", dateStr);
+          if (exc) {
+            flagged.push({ kind: "program", reason: `${dateStr}: attestation_exception (${exc.reason})` });
+          } else {
+            blocks.push(`program: no quote covers ${dateStr}. Quote the program's own text for this date, or provide attestation_exception.`);
+          }
+        }
+      }
+    }
+    if (a.kind === "fee_table" && params.totalAmount !== void 0) {
+      const matched = quotes.some((q) => quoteMatchesAmount(q, params.totalAmount));
+      if (!matched) {
+        const exc = exceptionFor(params.exceptions, "fee_table");
+        if (exc) {
+          flagged.push({ kind: "fee_table", reason: `attestation_exception (${exc.reason})` });
+        } else {
+          blocks.push(`fee_table: no quote contains the total amount (${params.totalAmount}). Quote the fee table's total, or provide attestation_exception.`);
+        }
+      }
+    }
+    if (a.kind === "society_receipt" && params.issuerName) {
+      const matched = quotes.some((q) => quoteMatchesIssuer(q, params.issuerName));
+      if (!matched) {
+        const exc = exceptionFor(params.exceptions, "society_receipt");
+        if (exc) {
+          flagged.push({ kind: "society_receipt", reason: `attestation_exception (${exc.reason})` });
+        } else {
+          blocks.push(`society_receipt: no quote names the issuer ('${params.issuerName}'). Quote the receipt's issuer line, or provide attestation_exception.`);
+        }
+      }
+    }
+    auditRecords.push({ path: a.path, sha256: sha256OfFile(a.path), kind: a.kind, quote: quotes[0] ?? null });
+  }
+  return { blocks, warnings, flagged, auditRecords };
 }
 
 // src/policy/org-policy.ts
@@ -21826,6 +22039,32 @@ var ORG_POLICY = [
     }
   },
   {
+    id: "ACCOUNT_ATTACHMENTS_REQUIRED",
+    standard: "A card ER on an account with a known attachment-kind requirement (410306 Participating in Conferences: card sales slip, society/organizer receipt, invitation/permission, fee table, program) carries every required kind, and the attestation quotes required for program/fee_table/ society_receipt attachments actually say what the document claims (event dates, total amount, issuer) - see src/policy/attachment-review.ts for the table and the quote checks.",
+    passes: "When item_account_code names an account in ACCOUNT_ATTACHMENTS_REQUIRED (attachment-review.ts), attachments[] (not legacy attachment_path(s)) supplies one labeled file per required kind, no kind duplicated, and every attestation quote reviewAttachments requires is present (or excused via a confirmed attestation_exception). This check is pre-navigation and best-effort on item_account_code alone - the resolved-account check inside submitCardExpenseRD (after Sel_account/Check_Item, before upload) is the actual enforcement point, since account_code_label and the account picker's own defaults are only known once the form is loaded.",
+    check(params) {
+      if (String(params.form_type) !== "card_expense_rd") return null;
+      const accountCode = typeof params.item_account_code === "string" ? params.item_account_code : null;
+      if (!accountCode) return null;
+      const result = reviewAttachments({
+        accountCode,
+        attachments: Array.isArray(params.attachments) ? params.attachments : [],
+        legacyPaths: Array.isArray(params.attachments) && params.attachments.length > 0 ? [] : [params.attachment_path, ...Array.isArray(params.attachment_paths) ? params.attachment_paths : []].filter(Boolean),
+        eventStart: params.event_start,
+        eventEnd: params.event_end,
+        totalAmount: typeof params.amount === "number" ? params.amount : void 0,
+        issuerName: params.organizer || params.seller_en || void 0,
+        exceptions: params.attestation_exception
+      });
+      if (result.blocks.length === 0) return null;
+      return {
+        rule: "ACCOUNT_ATTACHMENTS_REQUIRED",
+        fields: ["attachments"],
+        message: result.blocks.join("\n")
+      };
+    }
+  },
+  {
     id: "NO_REPORT_FOR_DAY_TRIP",
     standard: "A domestic travel report (form_type 'travel', written onto the approved AppFrm-023 request at travel_report_write.php) is only filed for trips of 2 nights (2\uBC153\uC77C) or more - across the person's 15 domestic trips, all 5 of >=2 nights have a report and all 9 same-day trips do not, no exceptions.",
     passes: "start_date/end_date are absent (nothing to compute yet), or span 2 nights or more.",
@@ -21889,7 +22128,7 @@ function checkOrgPolicy(params) {
 }
 
 // src/profile/profile.ts
-import * as fs4 from "fs";
+import * as fs5 from "fs";
 import * as path3 from "path";
 var PROFILE_SCHEMA_VERSION = 1;
 function emptyProfile(user) {
@@ -21909,17 +22148,17 @@ function profilePath(home) {
 }
 function loadProfile(home) {
   try {
-    return JSON.parse(fs4.readFileSync(profilePath(home), "utf-8"));
+    return JSON.parse(fs5.readFileSync(profilePath(home), "utf-8"));
   } catch {
     return null;
   }
 }
 function saveProfile(profile, home) {
   const dir = profileDir(home);
-  fs4.mkdirSync(dir, { recursive: true });
+  fs5.mkdirSync(dir, { recursive: true });
   const p = profilePath(home);
-  fs4.writeFileSync(p, JSON.stringify(profile, null, 2) + "\n", { mode: 384 });
-  fs4.chmodSync(p, 384);
+  fs5.writeFileSync(p, JSON.stringify(profile, null, 2) + "\n", { mode: 384 });
+  fs5.chmodSync(p, 384);
   return p;
 }
 function maskCardNumber(number3) {
@@ -23052,15 +23291,17 @@ async function genericFillForm(frame, fieldSchema, userData, hooks, opts) {
 function loadTemplateFieldSchema(formType) {
   const registry2 = FORM_REGISTRY[formType];
   if (!registry2) return null;
-  const projectRoot = path4.resolve(__dirname, "..", "..");
-  const templatePath = path4.join(projectRoot, "form_templates", registry2.templateFile);
-  try {
-    const raw = fs6.readFileSync(templatePath, "utf-8");
-    const template = JSON.parse(raw);
-    return template.field_schema || null;
-  } catch {
-    return null;
+  for (const projectRoot of [path4.resolve(__dirname, "..", ".."), path4.resolve(__dirname, "..", "..", "..")]) {
+    const templatePath = path4.join(projectRoot, "form_templates", registry2.templateFile);
+    try {
+      const raw = fs7.readFileSync(templatePath, "utf-8");
+      const template = JSON.parse(raw);
+      return template.field_schema || null;
+    } catch {
+      continue;
+    }
   }
+  return null;
 }
 function loadPublicRulebook(formType) {
   const registry2 = FORM_REGISTRY[formType];
@@ -23068,7 +23309,7 @@ function loadPublicRulebook(formType) {
   for (const projectRoot of [path4.resolve(__dirname, "..", ".."), path4.resolve(__dirname, "..", "..", "..")]) {
     const rulesPath = path4.join(projectRoot, "rules", "public", `${registry2.appFrmCode}.json`);
     try {
-      return JSON.parse(fs6.readFileSync(rulesPath, "utf-8"));
+      return JSON.parse(fs7.readFileSync(rulesPath, "utf-8"));
     } catch {
       continue;
     }
@@ -23077,7 +23318,7 @@ function loadPublicRulebook(formType) {
 }
 function loadJsonIfPresent(p) {
   try {
-    return JSON.parse(fs6.readFileSync(p, "utf-8"));
+    return JSON.parse(fs7.readFileSync(p, "utf-8"));
   } catch {
     return null;
   }
@@ -23126,6 +23367,57 @@ async function checkFieldRulesAgainstForm(frame, formType) {
   if (result.blocks.length === 0) return null;
   for (const v of result.blocks) audit({ action: "refusal", code: "FIELD_RULE_VIOLATION", field: v.field, ok: false });
   return { code: "FORM_RULE_VIOLATION", message: result.blocks.map((v) => `[${v.field}] ${v.message}`).join("\n"), violations: result.blocks };
+}
+async function buildDryRunPreview(page, frame, config3, formType) {
+  const pub = loadPublicRulebook(formType);
+  const book = pub ? mergeRulebook(pub, loadFieldRulesOptions(formType).privatePack) : null;
+  const knownNames = book ? Object.keys(book.fields) : [];
+  const serialized = await serializeFormFields(frame, knownNames) ?? {};
+  let fieldRuleResult = { blocks: [], warnings: [] };
+  if (book) {
+    const { profile } = loadFieldRulesOptions(formType);
+    const env2 = {
+      IPK_GROUP_LEADER: process.env.IPK_GROUP_LEADER,
+      IPK_SUBSTITUTE_NAME: process.env.IPK_SUBSTITUTE_NAME,
+      IPK_EMERGENCY_ADDRESS: process.env.IPK_EMERGENCY_ADDRESS,
+      IPK_EMERGENCY_TELEPHONE: process.env.IPK_EMERGENCY_TELEPHONE
+    };
+    try {
+      fieldRuleResult = checkFieldRules(book, serialized, { profile, env: env2, unknownFields: "warn" });
+    } catch (e) {
+      if (e instanceof FieldRulesUnavailable) {
+        fieldRuleResult = { blocks: [{ field: "(form)", scope: "form", message: e.message }], warnings: [] };
+      } else {
+        throw e;
+      }
+    }
+  }
+  let screenshot;
+  try {
+    fs7.mkdirSync(config3.screenshotDir, { recursive: true, mode: 448 });
+    const filename = `dry-run-${formType}-${(/* @__PURE__ */ new Date()).toISOString().replace(/[:.]/g, "-")}.png`;
+    const filepath = path4.join(config3.screenshotDir, filename);
+    await page.screenshot({ path: filepath, fullPage: true });
+    screenshot = filepath;
+    const ttlMs = config3.screenshotTtlMinutes * 60 * 1e3;
+    setTimeout(() => {
+      try {
+        if (fs7.existsSync(filepath)) fs7.unlinkSync(filepath);
+      } catch {
+      }
+    }, ttlMs);
+  } catch {
+  }
+  return {
+    dry_run: true,
+    form: formType,
+    url: typeof frame.url === "function" ? frame.url() : "",
+    fields: serialized,
+    field_rule_result: fieldRuleResult,
+    warnings: fieldRuleResult.warnings.map((w) => w.message),
+    screenshot,
+    message: `dry_run: ${formType} filled and checked, nothing saved. ${fieldRuleResult.blocks.length} field-rule block(s), ${fieldRuleResult.warnings.length} warning(s).`
+  };
 }
 async function attachFile(frame, filePath, explicitTarget) {
   const err = validateAttachmentPath(filePath);
@@ -23299,8 +23591,31 @@ var ipkSubmitFormSchema = {
   item_name: external_exports.string().optional().describe("Item name for card_expense_rd row (English). e.g. 'Google Cloud Gemini API service'."),
   seller_en: external_exports.string().optional().describe("English vendor name for card_expense_rd row. e.g. 'Google Cloud Korea LLC'."),
   account_code_label: external_exports.string().optional().describe("Substring/regex to auto-pick account code from Sel_account popup options (e.g. 'IT Software'). If account_code is also given, account_code wins."),
-  attachment_paths: external_exports.array(external_exports.string()).optional().describe("Multiple attachment file paths for card_expense_rd. Each file is uploaded to a separate slot."),
+  attachment_paths: external_exports.array(external_exports.string()).optional().describe("Multiple attachment file paths for card_expense_rd. Each file is uploaded to a separate slot. For accounts with a kind requirement (e.g. 410306), use attachments[] instead - this legacy param is refused there without a kind."),
+  attachments: external_exports.array(external_exports.object({
+    path: external_exports.string(),
+    kind: external_exports.enum(ATTACHMENT_KINDS),
+    quotes: external_exports.array(external_exports.string()).optional().describe("Text the agent itself read from this file, quoted verbatim - not guessed from the filename. Required to clear program/fee_table/society_receipt attestation on accounts that need it (e.g. 410306).")
+  })).optional().describe("card_expense_rd attachments with a kind label each (card_slip, society_receipt, invoice, permission, fee_table, program, usage, receipt, other). One file = one kind; a duplicate kind is refused. Replaces attachment_path(s) for accounts with a kind requirement."),
+  attestation_exception: external_exports.array(external_exports.object({
+    kind: external_exports.enum(ATTACHMENT_KINDS),
+    date: external_exports.string().optional().describe("YYYY-MM-DD, for a program date that cannot be quoted (e.g. a weekday-only schedule grid)."),
+    reason: external_exports.string(),
+    person_confirmed: external_exports.literal(true)
+  })).optional().describe("Exempts one attestation gap (e.g. a fee table with no single total line) instead of blocking - requires person_confirmed:true. Recorded in the audit and flagged in the result; never a silent pass."),
+  // card_expense_rd event-block fields (account 410306 and others that open the Event
+  // Name/Organizer/Date/Attendee block) - DOM names from form_rules/AppFrm-021.json and
+  // submit_ai4sci_registration_er.py:41-58 (301306, 2026-10-07 session).
+  event_name: external_exports.string().optional().describe("card_expense_rd event block: org_name (e.g. conference/event name). English only."),
+  event_type: external_exports.string().optional().describe("card_expense_rd event block: dmex_se_cd code (e.g. '01')."),
+  organizer: external_exports.string().optional().describe("card_expense_rd event block: organizer_nm. English only."),
+  event_start: external_exports.string().optional().describe("card_expense_rd event block: edu_start_day (YYYY-MM-DD)."),
+  event_end: external_exports.string().optional().describe("card_expense_rd event block: edu_end_day (YYYY-MM-DD)."),
+  notes: external_exports.string().optional().describe("card_expense_rd: written to the form's 'notes' field (alongside p_reason/reason, which the form also calls Notes in some accounts)."),
   draft_only: external_exports.boolean().default(true).describe("Save as draft (true) or submit for approval (false). Defaults to true for safety."),
+  dry_run: external_exports.boolean().default(false).optional().describe(
+    "Preview only, for every wired form type - safe, never saves/drafts/submits anything. Runs the full pipeline (param validation, org-policy, navigation, filling the form, field-rules checked against the live DOM) and stops before the save click. Returns { dry_run, form, url, fields (serialized DOM), field_rule_result (blocks/warnings - never causes a refusal under dry_run), warnings, screenshot }. For the domestic travel report, dry_run also skips the REPORT_ALREADY_EXISTS refusal and reports existing_report_lengths instead, since nothing is written either way."
+  ),
   confirm_submit: external_exports.boolean().default(false).describe("Must be true to actually submit for approval. Ignored when draft_only=true."),
   // Leave fields
   leave_type: external_exports.string().optional().describe("Leave type: annual, compensatory, sick, paternity, etc."),
@@ -23420,7 +23735,7 @@ var ipkSubmitFormSchema = {
   reimbursement: external_exports.number().optional().describe("Amount to reimburse traveler (KRW)"),
   corp_card_no: external_exports.string().optional().describe("Corporate card number (XXXX-XXXX-XXXX-XXXX)")
 };
-var ipkSubmitFormDescription = "Submit a form in IPK groupware. All 11 form types are fully implemented: leave (\uD734\uAC00/AppFrm-073), expense (\uACBD\uBE44/AppFrm-020), working (\uD734\uC77C\uADFC\uBB34/AppFrm-074), travel (\uCD9C\uC7A5\uBCF4\uACE0/AppFrm-076), travel_request (\uCD9C\uC7A5\uC2E0\uCCAD/AppFrm-023), budget_transfer (\uC608\uC0B0\uC804\uC6A9/AppFrm-039), card_expense (\uCE74\uB4DC\uACBD\uBE44/AppFrm-020), travel_settlement (\uCD9C\uC7A5\uC815\uC0B0/AppFrm-054), leave_return (\uB300\uCCB4\uD734\uC77C\uBC18\uB0A9/AppFrm-028), seminar (\uC138\uBBF8\uB098\uACF5\uC2DC/AppFrm-043), overseas_travel (\uD574\uC678\uCD9C\uC7A5/AppFrm-026). By default saves as draft (draft_only=true); a draft is reported only after it is found in the Drafts list (SUBMITTED_NOT_DRAFT / DRAFT_NOT_CONFIRMED otherwise). card_expense_rd has no draft (the groupware files it for approval): draft_only=true returns a no-save preview with the form's own validation. NO_FINAL_SUBMIT: draft_only=false is refused unless confirm_submit=true AND env IPK_ALLOW_SUBMIT=1. Even unlocked, for every form type except card_expense_rd this tool still only saves a draft and returns a no_final_submit note with the click path - it never performs the final approval-request click itself. For budget_transfer, use transfer_type='rnd' (AppFrm-039, default) or transfer_type='general' (AppFrm-053). Required params per form_type: leave: leave_type, start_date, end_date; expense: budget_code, amount, reason; working: reason, rows ([{date, hours}], weekend/holiday overtime - AppFrm-074, hours 1-12, weekly total <=12); travel: purpose, start_date, end_date (domestic default - writes onto the approved AppFrm-023 request at travel_report_write.php; request_doc_id auto-looked-up if omitted; 0-night trips and reports with purpose/agenda/result under 100 chars are refused; pass report_kind='overseas' for the standalone AppFrm-076 form instead, which also needs title/destination); travel_request: budget_code, title, destination, start_date, end_date; budget_transfer: from_account, to_account, amount, reason; card_expense: budget_code, amount, reason; travel_settlement: budget_code, title, destination, start_date, end_date; leave_return: leave_type, start_date, end_date; seminar: title, date, location; overseas_travel: budget_code, title, destination, start_date, end_date, purpose. Error recovery: NOT_LOGGED_IN\u2192call ipk_login first; FRAME_NOT_FOUND\u2192call ipk_navigate first; CONFIRMATION_REQUIRED\u2192set draft_only=true for safe draft mode; POLICY_VIOLATION/FORM_RULE_VIOLATION\u2192read the violations list, nothing was written; SESSION_EXPIRING\u2192re-login.";
+var ipkSubmitFormDescription = "Submit a form in IPK groupware. All 11 form types are fully implemented: leave (\uD734\uAC00/AppFrm-073), expense (\uACBD\uBE44/AppFrm-020), working (\uD734\uC77C\uADFC\uBB34/AppFrm-074), travel (\uCD9C\uC7A5\uBCF4\uACE0/AppFrm-076), travel_request (\uCD9C\uC7A5\uC2E0\uCCAD/AppFrm-023), budget_transfer (\uC608\uC0B0\uC804\uC6A9/AppFrm-039), card_expense (\uCE74\uB4DC\uACBD\uBE44/AppFrm-020), travel_settlement (\uCD9C\uC7A5\uC815\uC0B0/AppFrm-054), leave_return (\uB300\uCCB4\uD734\uC77C\uBC18\uB0A9/AppFrm-028), seminar (\uC138\uBBF8\uB098\uACF5\uC2DC/AppFrm-043), overseas_travel (\uD574\uC678\uCD9C\uC7A5/AppFrm-026). By default saves as draft (draft_only=true); a draft is reported only after it is found in the Drafts list (SUBMITTED_NOT_DRAFT / DRAFT_NOT_CONFIRMED otherwise). card_expense_rd has no draft (the groupware files it for approval): draft_only=true returns a no-save preview with the form's own validation. dry_run=true is safe to use on any wired form type (leave, working, travel_request, travel [domestic/overseas], travel_settlement, budget_transfer, expense, card_expense, card_expense_rd): it fills and checks the form exactly as a real call would, then stops before any save/draft/submit action - never creates, modifies or overwrites a document. NO_FINAL_SUBMIT: draft_only=false is refused unless confirm_submit=true AND env IPK_ALLOW_SUBMIT=1. Even unlocked, for every form type except card_expense_rd this tool still only saves a draft and returns a no_final_submit note with the click path - it never performs the final approval-request click itself. For budget_transfer, use transfer_type='rnd' (AppFrm-039, default) or transfer_type='general' (AppFrm-053). Required params per form_type: leave: leave_type, start_date, end_date; expense: budget_code, amount, reason; working: reason, rows ([{date, hours}], weekend/holiday overtime - AppFrm-074, hours 1-12, weekly total <=12); travel: purpose, start_date, end_date (domestic default - writes onto the approved AppFrm-023 request at travel_report_write.php; request_doc_id auto-looked-up if omitted; 0-night trips and reports with purpose/agenda/result under 100 chars are refused; pass report_kind='overseas' for the standalone AppFrm-076 form instead, which also needs title/destination); travel_request: budget_code, title, destination, start_date, end_date; budget_transfer: from_account, to_account, amount, reason; card_expense: budget_code, amount, reason; travel_settlement: budget_code, title, destination, start_date, end_date; leave_return: leave_type, start_date, end_date; seminar: title, date, location; overseas_travel: budget_code, title, destination, start_date, end_date, purpose. Error recovery: NOT_LOGGED_IN\u2192call ipk_login first; FRAME_NOT_FOUND\u2192call ipk_navigate first; CONFIRMATION_REQUIRED\u2192set draft_only=true for safe draft mode; POLICY_VIOLATION/FORM_RULE_VIOLATION\u2192read the violations list, nothing was written; SESSION_EXPIRING\u2192re-login.";
 function attachmentSlotRefusal(params) {
   const v = checkAttachmentSlot(params);
   if (v.length === 0) return null;
@@ -23541,6 +23856,11 @@ var FORM_HANDLERS = {
   working: submitWorking,
   travel: submitTravel,
   travel_request: submitTravelRequest,
+  // budget_transfer was missing here (pre-existing, found 2026-10-10 while wiring
+  // dry_run: submitBudgetTransfer was dead code, every real call silently fell through
+  // to the generic submitGeneric fallback instead - no dedicated field handling, no
+  // field-rules check, and no dry_run). Restored.
+  budget_transfer: submitBudgetTransfer,
   card_expense: submitCardExpense,
   card_expense_rd: submitCardExpenseRD,
   travel_settlement: submitTravelSettlement,
@@ -23792,6 +24112,7 @@ async function submitLeave(page, frame, sessionManager2, config3, params, mode) 
     await page.waitForTimeout(1e3);
   }
   await page.waitForTimeout(1e3);
+  if (params.dry_run) return textResult({ error: false, data: await buildDryRunPreview(page, frame, config3, "leave") });
   const leaveRuleRefusal = await checkFieldRulesAgainstForm(frame, "leave");
   if (leaveRuleRefusal) return textResult({ error: true, ...leaveRuleRefusal });
   await setFormMode(frame, mode);
@@ -23884,6 +24205,7 @@ async function submitExpense(page, frame, sessionManager2, config3, params, mode
     await page.waitForTimeout(1e3);
   }
   await page.waitForTimeout(1e3);
+  if (params.dry_run) return textResult({ error: false, data: await buildDryRunPreview(page, frame, config3, "expense") });
   await setFormMode(frame, mode);
   const docId = await submitForm(page, frame, "check_form_request");
   return textResult({
@@ -23963,6 +24285,7 @@ async function submitWorking(page, frame, sessionManager2, config3, params, mode
     }
   }
   await page.waitForTimeout(500);
+  if (params.dry_run) return textResult({ error: false, data: await buildDryRunPreview(page, frame, config3, "working") });
   const workingRuleRefusal = await checkFieldRulesAgainstForm(frame, "working");
   if (workingRuleRefusal) return textResult({ error: true, ...workingRuleRefusal });
   await setFormMode(frame, mode);
@@ -23999,7 +24322,7 @@ async function submitDomesticTravelReport(page, frame, sessionManager2, config3,
   const userDept = userInfo.dept || process.env.IPK_USER_DEPT || "";
   const fields = buildDomesticReportFields(params, userInfo, { reportPost, reportLeader, userDept }, todayStr());
   const existing = await readReportContentFields(frame);
-  if (!reportIsEmpty(existing) && params.overwrite_report !== true) {
+  if (!reportIsEmpty(existing) && params.overwrite_report !== true && !params.dry_run) {
     const filled = REPORT_CONTENT_FIELDS.filter((k) => (existing[k] ?? "").trim().length > 0).map((k) => `${k} (${existing[k].length} chars)`);
     audit({ action: "refusal", code: "REPORT_ALREADY_EXISTS", field: "requestDocId", ok: false });
     return textResult({
@@ -24022,6 +24345,21 @@ async function submitDomesticTravelReport(page, frame, sessionManager2, config3,
     await page.waitForTimeout(1e3);
   }
   await page.waitForTimeout(1e3);
+  if (params.dry_run) {
+    const preview = await buildDryRunPreview(page, frame, config3, "travel");
+    return textResult({
+      error: false,
+      data: {
+        ...preview,
+        report_kind: "domestic",
+        attached_to_doc_id: requestDocId,
+        // Lengths of whatever was already on this request before this (never-saved) fill -
+        // the overwrite guard is skipped under dry_run since nothing is written to protect.
+        existing_report_lengths: overwrittenLengths,
+        warning: [warnings.join(" | "), preview.warnings.join(" | ")].filter(Boolean).join(" | ") || void 0
+      }
+    });
+  }
   const { dialogs } = await submitTravelReportDraft(page, frame);
   const origin = new URL(config3.baseUrl).origin;
   await page.goto(`${origin}/Document/travel_report_write.php?doc_id=${encodeURIComponent(requestDocId)}&approve_type=AppFrm-023&pop=Y`, {
@@ -24118,6 +24456,7 @@ async function submitOverseasTravelReport(page, frame, sessionManager2, config3,
     await page.waitForTimeout(1e3);
   }
   await page.waitForTimeout(1e3);
+  if (params.dry_run) return textResult({ error: false, data: await buildDryRunPreview(page, frame, config3, "travel") });
   await setFormMode(frame, mode);
   const docId = await submitForm(page, frame, "form_submit");
   return textResult({
@@ -24228,6 +24567,7 @@ async function submitTravelRequest(page, frame, sessionManager2, config3, params
     ["end_tm", params.end_tm]
   ]);
   await page.waitForTimeout(1e3);
+  if (params.dry_run) return textResult({ error: false, data: await buildDryRunPreview(page, frame, config3, "travel_request") });
   const travelRequestRuleRefusal = await checkFieldRulesAgainstForm(frame, "travel_request");
   if (travelRequestRuleRefusal) return textResult({ error: true, ...travelRequestRuleRefusal });
   await setFormMode(frame, mode);
@@ -24259,6 +24599,102 @@ async function submitTravelRequest(page, frame, sessionManager2, config3, params
       subject,
       message: docId ? `Travel request ${mode === "draft" ? "draft saved" : "submitted"} (doc_id: ${docId})` : `Travel request ${mode} completed`,
       precedent
+    }
+  });
+}
+async function submitBudgetTransfer(page, frame, sessionManager2, config3, params, mode) {
+  const userInfo = sessionManager2.getUserInfo();
+  const transferType = params.transfer_type || "rnd";
+  const fromBudget = params.from_budget_code || "";
+  const toBudget = params.to_budget_code || "";
+  const amount = params.transfer_amount || params.amount || 0;
+  const reason = params.reason || params.purpose || "Budget reallocation";
+  const title = params.title || `Budget Transfer: ${fromBudget} -> ${toBudget}`;
+  if (amount !== void 0 && amount !== 0 && (typeof amount !== "number" || amount <= 0 || !Number.isFinite(amount))) {
+    return textResult({
+      error: true,
+      code: "INVALID_AMOUNT",
+      message: "Transfer amount must be a positive number"
+    });
+  }
+  const subject = `[Budget Transfer] ${title}`;
+  const budgetTypeValue = transferType === "rnd" ? "02" : "01";
+  const cascadeSchema = {
+    subject: { type: "text", dom_name: "subject", required: true },
+    budget_type: { type: "select", dom_name: "budget_type" }
+  };
+  await genericFillForm(frame, cascadeSchema, { subject, budget_type: budgetTypeValue });
+  await page.waitForTimeout(1e3);
+  const fieldSchema = {
+    from_budget: {
+      type: "text",
+      dom_name: null,
+      dom_selectors: [
+        'select[name="budget_code"]',
+        'select[name="from_budget_code"]',
+        'select[name="budget_code_from"]',
+        'input[name="from_budget"]',
+        'input[name="budget_code_from"]'
+      ]
+    },
+    to_budget: {
+      type: "text",
+      dom_name: null,
+      dom_selectors: [
+        'select[name="to_budget_code"]',
+        'select[name="budget_code_to"]',
+        'input[name="to_budget"]',
+        'input[name="budget_code_to"]'
+      ]
+    },
+    amount: {
+      type: "text",
+      dom_name: null,
+      dom_selectors: [
+        'input[name="amount"]',
+        'input[name="transfer_amount"]',
+        'input[name="item_amount[]"]',
+        'input[name="total_amt"]'
+      ]
+    },
+    reason: {
+      type: "text",
+      dom_name: null,
+      dom_selectors: [
+        'textarea[name="reason"]',
+        'textarea[name="p_reason"]',
+        'textarea[name="contents1"]',
+        'input[name="sub_subject"]'
+      ]
+    }
+  };
+  await genericFillForm(frame, fieldSchema, {
+    from_budget: fromBudget || void 0,
+    to_budget: toBudget || void 0,
+    amount: amount || void 0,
+    reason
+  });
+  if (params.attachment_path) {
+    await attachFile(frame, params.attachment_path);
+    await page.waitForTimeout(1e3);
+  }
+  await page.waitForTimeout(1e3);
+  if (params.dry_run) return textResult({ error: false, data: await buildDryRunPreview(page, frame, config3, "budget_transfer") });
+  const budgetTransferRuleRefusal = await checkFieldRulesAgainstForm(frame, "budget_transfer");
+  if (budgetTransferRuleRefusal) return textResult({ error: true, ...budgetTransferRuleRefusal });
+  await setFormMode(frame, mode);
+  const docId = await submitForm(page, frame, "check_form_request");
+  return textResult({
+    error: false,
+    data: {
+      success: true,
+      docId,
+      mode,
+      formType: "budget_transfer",
+      subject,
+      transferType,
+      message: docId ? `Budget transfer ${mode === "draft" ? "draft saved" : "submitted"} (doc_id: ${docId})` : `Budget transfer ${mode} completed`,
+      note: "Field selectors are best-effort. After first use, verify the form was filled correctly via screenshot tool and report any missing fields."
     }
   });
 }
@@ -24348,6 +24784,7 @@ async function submitCardExpense(page, frame, sessionManager2, config3, params, 
     await page.waitForTimeout(1e3);
   }
   await page.waitForTimeout(1e3);
+  if (params.dry_run) return textResult({ error: false, data: await buildDryRunPreview(page, frame, config3, "card_expense") });
   await setFormMode(frame, mode);
   const docId = await submitForm(page, frame, "check_form_request");
   return textResult({
@@ -24413,6 +24850,15 @@ async function submitCardExpenseRD(page, frame, _sessionManager, config3, params
     (args) => {
       const subjectEl = document.querySelector('input[name="subject"]');
       if (subjectEl) subjectEl.value = args.subject;
+      if (args.notes) {
+        const notesEl = document.getElementById("notes") || document.querySelector('[name="notes"]');
+        if (notesEl) notesEl.value = args.notes;
+      }
+      for (const [k, v] of Object.entries(args.event)) {
+        if (!v) continue;
+        const el = document.getElementById(k) || document.querySelector(`[name="${k}"]`);
+        if (el) el.value = v;
+      }
       const items = document.querySelectorAll('input[name="item_name[]"]');
       const qtys = document.querySelectorAll('input[name="item_qty[]"]');
       const sellers = document.querySelectorAll('input[name="seller[]"]');
@@ -24455,7 +24901,16 @@ async function submitCardExpenseRD(page, frame, _sessionManager, config3, params
       participants: params.participants || "",
       purposeMinutes: params.purpose_minutes || params.purpose || "",
       meetingBegin: params.meeting_begin || "",
-      meetingEnd: params.meeting_end || ""
+      meetingEnd: params.meeting_end || "",
+      notes: params.notes || pReason,
+      event: {
+        org_name: params.event_name || "",
+        dmex_se_cd: params.event_type || "",
+        organizer_nm: params.organizer || "",
+        edu_start_day: params.event_start || "",
+        edu_end_day: params.event_end || "",
+        edu_member: params.attendees || ""
+      }
     }
   );
   let accountSet = false;
@@ -24540,7 +24995,34 @@ async function submitCardExpenseRD(page, frame, _sessionManager, config3, params
       }
     });
   }
-  const filePaths = Array.isArray(params.attachment_paths) ? params.attachment_paths : params.attachment_path ? [params.attachment_path] : [];
+  const labeledAttachments = Array.isArray(params.attachments) ? params.attachments : [];
+  const legacyAttachmentPaths = Array.isArray(params.attachment_paths) ? params.attachment_paths : params.attachment_path ? [params.attachment_path] : [];
+  const attachmentReview = reviewAttachments({
+    accountCode: filedAccount,
+    attachments: labeledAttachments,
+    legacyPaths: labeledAttachments.length === 0 ? legacyAttachmentPaths : [],
+    eventStart: params.event_start,
+    eventEnd: params.event_end,
+    totalAmount: prefilled.amount ? Number(prefilled.amount) : void 0,
+    issuerName: params.organizer || params.seller_en || prefilled.vender_kor || void 0,
+    exceptions: params.attestation_exception
+  });
+  audit({
+    action: "attachment_review",
+    field: "card_expense_rd",
+    ok: attachmentReview.blocks.length === 0,
+    value: JSON.stringify({ blocks: attachmentReview.blocks, warnings: attachmentReview.warnings, flagged: attachmentReview.flagged, records: attachmentReview.auditRecords })
+  });
+  if (attachmentReview.blocks.length > 0) {
+    return textResult({
+      error: true,
+      code: "ATTACHMENT_REVIEW_BLOCKED",
+      message: attachmentReview.blocks.join("\n"),
+      blocks: attachmentReview.blocks,
+      warnings: attachmentReview.warnings
+    });
+  }
+  const filePaths = labeledAttachments.length > 0 ? labeledAttachments.map((a) => a.path) : legacyAttachmentPaths;
   if (filePaths.length === 0) {
     return textResult({
       error: true,
@@ -24556,6 +25038,12 @@ async function submitCardExpenseRD(page, frame, _sessionManager, config3, params
   }
   const attachResult = await attachmentHelper.attachFiles(frame, filePaths);
   await page.waitForTimeout(500);
+  if (params.dry_run) {
+    const preview = await previewCardExpenseRD(page, frame, config3, { subject, effectiveBudgetCode, attachResult, fileCount: filePaths.length });
+    const parsed = JSON.parse(preview.content[0].text);
+    if (parsed.data) parsed.data.dry_run = true;
+    return textResult(parsed);
+  }
   const cardRdRuleRefusal = await checkFieldRulesAgainstForm(frame, "card_expense_rd");
   if (cardRdRuleRefusal) return textResult({ error: true, ...cardRdRuleRefusal });
   void _sessionManager;
@@ -24807,7 +25295,7 @@ async function previewCardExpenseRD(page, frame, config3, ctx) {
       runError = err instanceof Error ? err.message : String(err);
     }
     try {
-      fs6.mkdirSync(config3.screenshotDir, { recursive: true, mode: 448 });
+      fs7.mkdirSync(config3.screenshotDir, { recursive: true, mode: 448 });
       const file = path4.join(config3.screenshotDir, `card-er-preview-${(/* @__PURE__ */ new Date()).toISOString().replace(/[:.]/g, "-")}.png`);
       const vp = page.viewportSize();
       try {
@@ -24929,6 +25417,7 @@ async function submitTravelSettlement(page, frame, sessionManager2, config3, par
     await page.waitForTimeout(1e3);
   }
   await page.waitForTimeout(1e3);
+  if (params.dry_run) return textResult({ error: false, data: await buildDryRunPreview(page, frame, config3, "travel_settlement") });
   const settlementRuleRefusal = await checkFieldRulesAgainstForm(frame, "travel_settlement");
   if (settlementRuleRefusal) return textResult({ error: true, ...settlementRuleRefusal });
   await setFormMode(frame, mode);
@@ -25634,7 +26123,7 @@ async function handleIpkGetContent(sessionManager2, config3, params) {
 }
 
 // src/tools/screenshot.ts
-import * as fs7 from "fs";
+import * as fs8 from "fs";
 import * as path5 from "path";
 var screenshotSchema = {
   filename: external_exports.string().optional().describe("Custom filename (without path). Default: auto-generated timestamp."),
@@ -25647,7 +26136,7 @@ async function handleScreenshot(sessionManager2, config3, params) {
   }
   const page = sessionManager2.getPage();
   try {
-    fs7.mkdirSync(config3.screenshotDir, { recursive: true, mode: 448 });
+    fs8.mkdirSync(config3.screenshotDir, { recursive: true, mode: 448 });
     const timestamp = (/* @__PURE__ */ new Date()).toISOString().replace(/[:.]/g, "-");
     const filename = params.filename || `ipk-${timestamp}.png`;
     const filepath = path5.join(config3.screenshotDir, filename);
@@ -25658,8 +26147,8 @@ async function handleScreenshot(sessionManager2, config3, params) {
     const ttlMs = config3.screenshotTtlMinutes * 60 * 1e3;
     setTimeout(() => {
       try {
-        if (fs7.existsSync(filepath)) {
-          fs7.unlinkSync(filepath);
+        if (fs8.existsSync(filepath)) {
+          fs8.unlinkSync(filepath);
         }
       } catch {
       }
@@ -25680,16 +26169,16 @@ async function handleScreenshot(sessionManager2, config3, params) {
 }
 function cleanupExpiredScreenshots(config3) {
   try {
-    if (!fs7.existsSync(config3.screenshotDir)) return;
+    if (!fs8.existsSync(config3.screenshotDir)) return;
     const now = Date.now();
     const ttlMs = config3.screenshotTtlMinutes * 60 * 1e3;
-    const files = fs7.readdirSync(config3.screenshotDir);
+    const files = fs8.readdirSync(config3.screenshotDir);
     for (const file of files) {
       if (!file.endsWith(".png")) continue;
       const filepath = path5.join(config3.screenshotDir, file);
-      const stat = fs7.statSync(filepath);
+      const stat = fs8.statSync(filepath);
       if (now - stat.mtimeMs > ttlMs) {
-        fs7.unlinkSync(filepath);
+        fs8.unlinkSync(filepath);
       }
     }
   } catch {
@@ -25697,7 +26186,7 @@ function cleanupExpiredScreenshots(config3) {
 }
 
 // src/tools/ipk-inspect.ts
-import * as fs8 from "fs";
+import * as fs9 from "fs";
 import * as path6 from "path";
 import { fileURLToPath as fileURLToPath2 } from "url";
 var __filename2 = fileURLToPath2(import.meta.url);
@@ -25760,7 +26249,7 @@ async function handleIpkInspectForm(sessionManager2, config3, params) {
       const projectRoot = path6.resolve(__dirname2, "..", "..");
       const templatePath = path6.join(projectRoot, "form_templates", `${formCode}.json`);
       try {
-        const raw = fs8.readFileSync(templatePath, "utf-8");
+        const raw = fs9.readFileSync(templatePath, "utf-8");
         const template = JSON.parse(raw);
         const fieldSchema = template.field_schema || {};
         const templateKeys = new Set(Object.keys(fieldSchema));

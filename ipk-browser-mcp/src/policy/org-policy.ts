@@ -13,6 +13,7 @@
  * scorer applies the same standard to the audit trail (bench/score.mjs, M6).
  */
 import { isMeetingAccount } from "../forms/card-er.js";
+import { reviewAttachments } from "./attachment-review.js";
 
 export interface PolicyViolation {
   rule: string;
@@ -237,6 +238,46 @@ export const ORG_POLICY: PolicyRule[] = [
         message:
           `${vendor} card ER needs ${kinds.length} attachments (${kinds.map((k) => k.label).join(", ")}); ` +
           `missing: ${missing.map((k) => k.label).join(", ")}. Nothing was written to the form.`,
+      };
+    },
+  },
+  {
+    id: "ACCOUNT_ATTACHMENTS_REQUIRED",
+    standard:
+      "A card ER on an account with a known attachment-kind requirement (410306 Participating in " +
+      "Conferences: card sales slip, society/organizer receipt, invitation/permission, fee table, " +
+      "program) carries every required kind, and the attestation quotes required for program/fee_table/ " +
+      "society_receipt attachments actually say what the document claims (event dates, total amount, " +
+      "issuer) - see src/policy/attachment-review.ts for the table and the quote checks.",
+    passes:
+      "When item_account_code names an account in ACCOUNT_ATTACHMENTS_REQUIRED (attachment-review.ts), " +
+      "attachments[] (not legacy attachment_path(s)) supplies one labeled file per required kind, " +
+      "no kind duplicated, and every attestation quote reviewAttachments requires is present (or excused " +
+      "via a confirmed attestation_exception). This check is pre-navigation and best-effort on " +
+      "item_account_code alone - the resolved-account check inside submitCardExpenseRD (after " +
+      "Sel_account/Check_Item, before upload) is the actual enforcement point, since account_code_label " +
+      "and the account picker's own defaults are only known once the form is loaded.",
+    check(params) {
+      if (String(params.form_type) !== "card_expense_rd") return null;
+      const accountCode = typeof params.item_account_code === "string" ? params.item_account_code : null;
+      if (!accountCode) return null; // resolved later, inside the handler
+      const result = reviewAttachments({
+        accountCode,
+        attachments: Array.isArray(params.attachments) ? params.attachments : [],
+        legacyPaths: Array.isArray(params.attachments) && params.attachments.length > 0
+          ? []
+          : [params.attachment_path, ...(Array.isArray(params.attachment_paths) ? params.attachment_paths : [])].filter(Boolean),
+        eventStart: params.event_start,
+        eventEnd: params.event_end,
+        totalAmount: typeof params.amount === "number" ? params.amount : undefined,
+        issuerName: params.organizer || params.seller_en || undefined,
+        exceptions: params.attestation_exception,
+      });
+      if (result.blocks.length === 0) return null;
+      return {
+        rule: "ACCOUNT_ATTACHMENTS_REQUIRED",
+        fields: ["attachments"],
+        message: result.blocks.join("\n"),
       };
     },
   },

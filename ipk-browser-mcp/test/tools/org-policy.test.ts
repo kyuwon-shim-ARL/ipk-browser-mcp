@@ -291,6 +291,49 @@ describe("VENDOR_ATTACHMENTS_REQUIRED (card_expense_rd)", () => {
   });
 });
 
+describe("ACCOUNT_ATTACHMENTS_REQUIRED (card_expense_rd, delegates to attachment-review.ts)", () => {
+  const er410306 = (over: Record<string, unknown> = {}) => ({
+    form_type: "card_expense_rd",
+    trseq: "1",
+    appr_no: "2",
+    item_account_code: "410306",
+    draft_only: true,
+    ...over,
+  });
+
+  it("refuses when no attachments[] are given for a 410306 ER (numeric account code present)", () => {
+    const v = checkOrgPolicy(er410306());
+    expect(v.map((x) => x.rule)).toEqual(["ACCOUNT_ATTACHMENTS_REQUIRED"]);
+    expect(v[0].message).toMatch(/card_slip/);
+  });
+
+  it("passes with all 5 kinds and their attestation quotes present", () => {
+    const v = checkOrgPolicy(er410306({
+      event_start: "2026-09-27", event_end: "2026-09-27", amount: 650000, organizer: "Some Conference Committee",
+      attachments: [
+        { path: "/x/slip.pdf", kind: "card_slip" },
+        { path: "/x/receipt.pdf", kind: "society_receipt", quotes: ["Issued by Some Conference Committee"] },
+        { path: "/x/permission.pdf", kind: "permission" },
+        { path: "/x/fee.pdf", kind: "fee_table", quotes: ["Total: KRW 650,000"] },
+        { path: "/x/program.pdf", kind: "program", quotes: ["Sep 27"] },
+      ],
+    }));
+    expect(v).toEqual([]);
+  });
+
+  it("does not fire without a numeric item_account_code (resolved later, inside the handler)", () => {
+    expect(checkOrgPolicy(er410306({ item_account_code: undefined, account_code_label: "Participating in Conferences" }))).toEqual([]);
+  });
+
+  it("does not fire for an account with no configured requirement", () => {
+    expect(checkOrgPolicy(er410306({ item_account_code: "410318" }))).toEqual([]);
+  });
+
+  it("does not fire for other form types", () => {
+    expect(checkOrgPolicy({ form_type: "expense", item_account_code: "410306", amount: 1000, draft_only: true }).map((x) => x.rule)).not.toContain("ACCOUNT_ATTACHMENTS_REQUIRED");
+  });
+});
+
 describe("NO_REPORT_FOR_DAY_TRIP (travel = domestic travel report)", () => {
   const report = (over: Record<string, unknown> = {}) => ({
     form_type: "travel",

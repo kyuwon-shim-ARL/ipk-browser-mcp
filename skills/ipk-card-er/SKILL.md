@@ -52,8 +52,18 @@ If the meal ER follows an overtime approval, link the overtime document: look it
 Confirm required files are available (ask the user only for files they must supply themselves — never fabricate financial documents):
 - Overseas IT subscriptions (AppFrm-021 R&D ER via card, `form_type: card_expense_rd`): invoice (signed), card statement, daily usage log (if applicable), receipt.
 - Domestic card expenses: the receipt/screenshot for the transaction.
+- Conference participation fees (account 410306): card sales slip, society/organizer receipt, invitation/permission letter, fee table, program — all five, every time.
 
-Pass file paths via `attachment_path` / `attachment_paths`.
+**Accounts with a kind requirement (410306 and others as added) take `attachments: [{path, kind, quotes}]`, not `attachment_path`/`attachment_paths`.** Label every file with one `kind` from the closed list (`card_slip`, `society_receipt`, `invoice`, `permission`, `fee_table`, `program`, `usage`, `receipt`, `other`) — one file, one kind, no duplicates.
+
+**Open each file yourself and quote the facts** — don't infer from the filename:
+- `program`: quote text covering every date of the event (`event_start`..`event_end`), e.g. `"Day 0 · Sep 27 (Sun)"`. A missing day blocks the submission.
+- `fee_table`: quote the line containing the total amount charged.
+- `society_receipt`: quote the line naming the issuing organizer/society.
+
+If a file genuinely can't be quoted this way (e.g. a weekday-only schedule grid with no dated line, or a member/non-member fee grid with no single total), use `attestation_exception: [{kind, date?, reason, person_confirmed: true}]` — only after confirming with the person, never on your own judgment. It's recorded and flagged, never a silent pass.
+
+The tool blocks the submission (dry_run shows the same blocks, without saving anything) when a required kind is missing, duplicated, or its attestation quote doesn't check out. A filename that doesn't match its claimed kind only warns.
 
 ### 6. Submit (draft/preview only)
 
