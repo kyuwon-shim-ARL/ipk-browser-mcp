@@ -93,6 +93,46 @@ export async function attachFiles(
 }
 
 /**
+ * Upload into AppFrm-021's "Additional document" revision widget
+ * (`input[name="trans_attach_file[]"]`, up to 3 fixed slots, no count-select - unlike
+ * doc_attach_file[] above). Used only by ipk_revise_attachments. Same validate-first
+ * discipline as attachFiles(): every path goes through validateAttachmentPath() before
+ * any setInputFiles call.
+ */
+export async function attachRevisionFiles(
+  ctx: FrameLike,
+  filePaths: string[]
+): Promise<AttachResult> {
+  const result: AttachResult = { attached: 0, skipped: [] };
+  const valid: string[] = [];
+  for (const p of filePaths.slice(0, 3)) {
+    const pathErr = validateAttachmentPath(p);
+    if (pathErr) {
+      result.skipped.push({ path: p, reason: pathErr });
+      continue;
+    }
+    if (!fs.existsSync(p)) {
+      result.skipped.push({ path: p, reason: "file not found on local fs" });
+    } else {
+      valid.push(p);
+    }
+  }
+  const fileLocators = ctx.locator('input[name="trans_attach_file[]"]');
+  for (let i = 0; i < valid.length; i++) {
+    try {
+      await fileLocators.nth(i).setInputFiles(valid[i]);
+      result.attached += 1;
+    } catch (err) {
+      result.skipped.push({
+        path: valid[i],
+        reason: `setInputFiles failed: ${err instanceof Error ? err.message : String(err)}`,
+      });
+    }
+  }
+  return result;
+}
+
+/**
  * Delete ALL existing attachments from an IPK form (any form type).
  *
  * IPK's del_file(orderNo) is synchronous: each call submits form1 with

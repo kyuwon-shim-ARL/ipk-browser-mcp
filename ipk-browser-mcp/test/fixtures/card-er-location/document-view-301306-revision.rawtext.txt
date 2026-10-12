@@ -1,0 +1,133 @@
+[ Close ] [ Print ]
+R&D Expense Request (ER)
+Document No	
+Saving years	
+1 year
+3 years
+5 years
+10 years
+30 years
+Semi - Permanent
+Permanent
+	
+To Be Approved	    Urgent / Confidential	
+Payment Date	to be determined	
+
+
+A
+p
+p
+r
+o
+v
+a
+l	( 1 )	( 2 )	( 4 )
+A Person in Charge	Team Head (R)	CEO
+		
+Kyuwon Shim	Approver A	Approver A
+2026-10-08	2026-10-12	2026-10-12
+	
+
+
+C
+o
+s
+i
+g
+n
+e
+r	( 3 )
+Budget Holder
+
+Approver A
+2026-10-12
+	
+T
+a
+k
+e
+o
+v
+e
+r
+	( 5 )	( 6 )
+Budget Planning & Finance	Budget Planning & Finance
+[Sign]	[Sign]
+Team Member	Team Head (A)
+ 	 
+
+
+Cc		PA Exception	No
+Drafter	Antibacterial Resistance Lab - Team Member - Kyuwon Shim (XXXXX)	Date	2026-10-08
+
+
+Subject	[Card] Registration fee for AI4Sci 2026
+
+
+	
+Budget Type	R&D	Budget Code	  [EZ: NN0000-0000] [NN0000-0001] 2026 Mid-career Research Program_2nd_Approver A
+(Period : 2026-03-01~2027-02-28)
+
+
+Payment	Corporate Credit Card	Card Number	1234-****-5678-9012
+
+
+No	Date of
+Invoice	Cate No	Account Code	Description	Qty	Amount
+excl. VAT	VAT	Total Amount	P/C	Control No	Payee/Vendor	PGM
+1	2026-09-28	none	[410306]
+Participating in Conferences	registration fee	1	590,910	59,090	650,000	N/N	00000000-00	REDACTED_VENDOR	-
+Total	
+650,000 KRW
+
+Notes	On-site registration fee for AI4Sci Korea 2026
+
+
+
+
+
+
+
+Event Name	 AI for Science Conference 2026 (AI4Sci Korea)
+Organizer	  [Domestic] AI4Sci Korea 2026 Organizing Committee (AiFrenz, KSAIF, GIST)
+Date/Time	  2026-09-27 ~2026-10-01
+Attendee	 Kyuwon Shim,,
+
+
+Withholdings (NO)
+	
+
+
+File Attachment List	260928_AI4Sci-CC_sales_slip.pdf [170184Bytes] [Delete]
+260928_AI4Sci-registration_receipt.pdf [5081998Bytes] [Delete]
+260911_AI4Sci-invitation_permission.pdf [6666064Bytes] [Delete]
+260927_AI4Sci-conference_program.pdf [1731692Bytes] [Delete]
+
+Attach Approved Document	
+
+[ Attachment Document ]
+
+Opinion of approval	Kyuwon Shim (Antibacterial Resistance Lab - Team Member) 2026-10-08 17:02:56
+[No opinion]
+Approver A (Antibacterial Resistance Lab - Team Head (R)) 2026-10-12 07:13:12
+[No opinion]
+Approver A (Antibacterial Resistance Lab - Team Head (R)) 2026-10-12 07:13:12
+[No opinion]
+Approver A (CEO - CEO) 2026-10-12 07:13:12
+[No opinion]
+
+========================================
+Approver B (BPF - Team Member) 2026-10-12 07:46:45
+1.27day program table missing, please attach. 2. fee table please attach.
+Kyuwon Shim (ARL - Team Member) 2026-10-12 14:41:30
+1. 27day program table added. 2. fee table attached.
+
+Document Modify History	Kyuwon Shim (kyuwon.shim) - 2026-10-08 17:02:56
+Kyuwon Shim (kyuwon.shim) - 2026-10-08 16:01:06
+
+Additional document
+&Transfer Receipt	260927_AI4Sci-conference_program_revised.pdf [537701Bytes] [Delete]
+260927_AI4Sci-conference_program_registration_fee.png [102243Bytes] [Delete]
+
+
+[ Close ] [ Print ]

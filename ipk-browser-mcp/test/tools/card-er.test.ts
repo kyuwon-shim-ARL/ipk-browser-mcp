@@ -687,4 +687,17 @@ describe("card_expense_rd draft_only=true real-save gate", () => {
     expect(h.page.waitForEvent).toHaveBeenCalledWith("popup", expect.objectContaining({ timeout: 25000 }));
     expect(h.evaluated).toContain("runCheckFormRequest");
   });
+
+  // A: if the location-check post-processing throws AFTER the form's own submit click
+  // already ran (so the document may well have been filed), the outer SUBMIT_ERROR catch
+  // must not lose the doc_id or the repossess hint - a bare "something broke" message
+  // after a click that may have filed the document is exactly the wrong failure mode.
+  it("a throw inside the post-save location check still returns doc_id and the repossess hint, not a bare SUBMIT_ERROR", async () => {
+    const h = harnessForRealSave("301999", SYNTHETIC_POSITIVE_TEXT, ["301999"]);
+    h.session.getUserInfo = () => { throw new Error("boom: profile lookup failed"); };
+    const out = parse(await handleIpkSubmitForm(h.session, h.config, params({ allow_card_er_save: true, first_live_save: true })));
+    expect(out.error).toBe(true);
+    expect(out.docId).toBe("301999");
+    expect(out.message).toMatch(/Document Repossess/i);
+  });
 });

@@ -8,6 +8,7 @@ import { checkOrgPolicy } from "../policy/org-policy.js";
 import { reviewAttachments, ATTACHMENT_KINDS, type AttachmentInput, type AttestationException } from "../policy/attachment-review.js";
 import {
   determineCardErLocation, readApprovalLineFromDocumentView, readWaitingListDocIds, isDocIdInWaitingList,
+  type CardErLocationResult,
 } from "../browser/card-er-location.js";
 import { checkFieldRules, FieldRulesUnavailable, type Rulebook } from "../policy/field-rules.js";
 import { loadProfile, type Profile } from "../profile/profile.js";
@@ -2937,7 +2938,7 @@ async function submitCardExpenseRD(
   const docId = m ? m[1] : null;
 
   if (runRealDraftSave) {
-    return await finishCardErDraftSave(page, frame, _sessionManager, {
+    return await finishCardErDraftSave(page, frame, _sessionManager, config, {
       docId, subject: popupState.subjectFixed ?? subject, effectiveBudgetCode, attachResult, fileCount: filePaths.length,
     });
   }
@@ -2977,6 +2978,7 @@ async function finishCardErDraftSave(
   page: any,
   frame: any,
   sessionManager: SessionManager,
+  config: Config,
   args: { docId: string | null; subject: string; effectiveBudgetCode: string | null; attachResult: { attached: number; skipped: unknown[] }; fileCount: number }
 ) {
   const { docId, subject, effectiveBudgetCode, attachResult, fileCount } = args;
@@ -2988,34 +2990,59 @@ async function finishCardErDraftSave(
     });
   }
 
-  const draftedByName: string = sessionManager.getUserInfo?.()?.name || "";
-  const documentViewText: string = await frame.evaluate(() => (document.body ? document.body.innerText : "")).catch(() => "");
-  const approvalLine = await readApprovalLineFromDocumentView(frame, draftedByName);
-
-  const origin = new URL("https://gw.ip-korea.org").origin;
-  let waitingListText = "";
-  let waitingListDocIds: string[] | "unreadable" = "unreadable";
+  // (A) The form's own submit click already ran by the time this function is called - the
+  // document may well have been filed regardless of what happens below. Any throw past
+  // this point must still carry docId and the repossess hint, never fall through to the
+  // generic SUBMIT_ERROR catch in handleIpkSubmitForm, which has no docId to report.
   try {
-    await page.goto(`${origin}/Document/document_list.php?type=appr`, { waitUntil: "domcontentloaded", timeout: 15000 });
-    waitingListDocIds = await readWaitingListDocIds(frame);
-    waitingListText = await frame.evaluate(() => (document.body ? document.body.innerText : "")).catch(() => "");
-  } catch {
-    // waitingListDocIds stays "unreadable" - determineCardErLocation reports DRAFT_NOT_CONFIRMED
+    const draftedByName: string = sessionManager.getUserInfo?.()?.name || "";
+    const documentViewText: string = await frame.evaluate(() => (document.body ? document.body.innerText : "")).catch(() => "");
+    const approvalLine = await readApprovalLineFromDocumentView(frame, draftedByName);
+
+    const origin = new URL(config.baseUrl).origin;
+    let waitingListText = "";
+    let waitingListDocIds: string[] | "unreadable" = "unreadable";
+    try {
+      await page.goto(`${origin}/Document/document_list.php?type=appr`, { waitUntil: "domcontentloaded", timeout: 15000 });
+      waitingListDocIds = await readWaitingListDocIds(frame);
+      waitingListText = await frame.evaluate(() => (document.body ? document.body.innerText : "")).catch(() => "");
+    } catch {
+      // waitingListDocIds stays "unreadable" - determineCardErLocation reports DRAFT_NOT_CONFIRMED
+    }
+    const inWaitingList = isDocIdInWaitingList(waitingListDocIds, docId);
+
+    const location = determineCardErLocation({ inWaitingList, approvalLine });
+
+    // Local-only cache, never the repo - see function doc comment.
+    try {
+      const cacheDir = path.join(process.env.HOME || "/tmp", ".cache", "ipk-mcp", "card-er-location", docId);
+      fs.mkdirSync(cacheDir, { recursive: true, mode: 0o700 });
+      fs.writeFileSync(path.join(cacheDir, "document_view.rawtext.txt"), documentViewText, "utf8");
+      fs.writeFileSync(path.join(cacheDir, "waiting_list.rawtext.txt"), waitingListText, "utf8");
+    } catch {
+      // caching is best-effort - never block reporting the outcome on it
+    }
+
+    return finishCardErDraftSaveResult(location, { docId, subject, effectiveBudgetCode, attachResult, fileCount });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return textResult({
+      error: true,
+      code: "SUBMIT_ERROR",
+      docId,
+      message:
+        `The save click already ran for doc_id ${docId}, but checking where it landed failed: ${msg}. ` +
+        "The document may have been filed for approval - open document_view.php for this doc_id and check " +
+        "whether [Document Repossess] is offered before assuming nothing happened.",
+    });
   }
-  const inWaitingList = isDocIdInWaitingList(waitingListDocIds, docId);
+}
 
-  const location = determineCardErLocation({ inWaitingList, approvalLine });
-
-  // Local-only cache, never the repo - see function doc comment.
-  try {
-    const cacheDir = path.join(process.env.HOME || "/tmp", ".cache", "ipk-mcp", "card-er-location", docId);
-    fs.mkdirSync(cacheDir, { recursive: true, mode: 0o700 });
-    fs.writeFileSync(path.join(cacheDir, "document_view.rawtext.txt"), documentViewText, "utf8");
-    fs.writeFileSync(path.join(cacheDir, "waiting_list.rawtext.txt"), waitingListText, "utf8");
-  } catch {
-    // caching is best-effort - never block reporting the outcome on it
-  }
-
+function finishCardErDraftSaveResult(
+  location: CardErLocationResult,
+  args: { docId: string; subject: string; effectiveBudgetCode: string | null; attachResult: { attached: number; skipped: unknown[] }; fileCount: number }
+) {
+  const { docId, subject, effectiveBudgetCode, attachResult, fileCount } = args;
   audit({
     action: "draft_save",
     docId,

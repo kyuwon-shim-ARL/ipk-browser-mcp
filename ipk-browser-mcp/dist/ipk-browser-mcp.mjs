@@ -6850,6 +6850,7 @@ var init_attachment_path = __esm({
 var attachment_exports = {};
 __export(attachment_exports, {
   attachFiles: () => attachFiles,
+  attachRevisionFiles: () => attachRevisionFiles,
   clearAllAttachments: () => clearAllAttachments
 });
 import * as fs6 from "fs";
@@ -6880,6 +6881,35 @@ async function attachFiles(ctx, filePaths) {
   }, valid.length);
   await ctx.waitForTimeout(300);
   const fileLocators = ctx.locator('input[name="doc_attach_file[]"]');
+  for (let i = 0; i < valid.length; i++) {
+    try {
+      await fileLocators.nth(i).setInputFiles(valid[i]);
+      result.attached += 1;
+    } catch (err) {
+      result.skipped.push({
+        path: valid[i],
+        reason: `setInputFiles failed: ${err instanceof Error ? err.message : String(err)}`
+      });
+    }
+  }
+  return result;
+}
+async function attachRevisionFiles(ctx, filePaths) {
+  const result = { attached: 0, skipped: [] };
+  const valid = [];
+  for (const p of filePaths.slice(0, 3)) {
+    const pathErr = validateAttachmentPath(p);
+    if (pathErr) {
+      result.skipped.push({ path: p, reason: pathErr });
+      continue;
+    }
+    if (!fs6.existsSync(p)) {
+      result.skipped.push({ path: p, reason: "file not found on local fs" });
+    } else {
+      valid.push(p);
+    }
+  }
+  const fileLocators = ctx.locator('input[name="trans_attach_file[]"]');
   for (let i = 0; i < valid.length; i++) {
     try {
       await fileLocators.nth(i).setInputFiles(valid[i]);
@@ -25252,7 +25282,7 @@ async function submitCardExpenseRD(page, frame, _sessionManager, config3, params
   const m = finalUrl.match(/[?&]doc_id=(\d+)/);
   const docId = m ? m[1] : null;
   if (runRealDraftSave) {
-    return await finishCardErDraftSave(page, frame, _sessionManager, {
+    return await finishCardErDraftSave(page, frame, _sessionManager, config3, {
       docId,
       subject: popupState.subjectFixed ?? subject,
       effectiveBudgetCode,
@@ -25277,7 +25307,7 @@ async function submitCardExpenseRD(page, frame, _sessionManager, config3, params
     }
   });
 }
-async function finishCardErDraftSave(page, frame, sessionManager2, args) {
+async function finishCardErDraftSave(page, frame, sessionManager2, config3, args) {
   const { docId, subject, effectiveBudgetCode, attachResult, fileCount } = args;
   if (!docId) {
     return textResult({
@@ -25286,27 +25316,41 @@ async function finishCardErDraftSave(page, frame, sessionManager2, args) {
       message: "The save appeared to go through but doc_id could not be read from the URL - nothing can be confirmed. Check In Progress manually before retrying."
     });
   }
-  const draftedByName = sessionManager2.getUserInfo?.()?.name || "";
-  const documentViewText = await frame.evaluate(() => document.body ? document.body.innerText : "").catch(() => "");
-  const approvalLine = await readApprovalLineFromDocumentView(frame, draftedByName);
-  const origin = new URL("https://gw.ip-korea.org").origin;
-  let waitingListText = "";
-  let waitingListDocIds = "unreadable";
   try {
-    await page.goto(`${origin}/Document/document_list.php?type=appr`, { waitUntil: "domcontentloaded", timeout: 15e3 });
-    waitingListDocIds = await readWaitingListDocIds(frame);
-    waitingListText = await frame.evaluate(() => document.body ? document.body.innerText : "").catch(() => "");
-  } catch {
+    const draftedByName = sessionManager2.getUserInfo?.()?.name || "";
+    const documentViewText = await frame.evaluate(() => document.body ? document.body.innerText : "").catch(() => "");
+    const approvalLine = await readApprovalLineFromDocumentView(frame, draftedByName);
+    const origin = new URL(config3.baseUrl).origin;
+    let waitingListText = "";
+    let waitingListDocIds = "unreadable";
+    try {
+      await page.goto(`${origin}/Document/document_list.php?type=appr`, { waitUntil: "domcontentloaded", timeout: 15e3 });
+      waitingListDocIds = await readWaitingListDocIds(frame);
+      waitingListText = await frame.evaluate(() => document.body ? document.body.innerText : "").catch(() => "");
+    } catch {
+    }
+    const inWaitingList = isDocIdInWaitingList(waitingListDocIds, docId);
+    const location2 = determineCardErLocation({ inWaitingList, approvalLine });
+    try {
+      const cacheDir = path4.join(process.env.HOME || "/tmp", ".cache", "ipk-mcp", "card-er-location", docId);
+      fs7.mkdirSync(cacheDir, { recursive: true, mode: 448 });
+      fs7.writeFileSync(path4.join(cacheDir, "document_view.rawtext.txt"), documentViewText, "utf8");
+      fs7.writeFileSync(path4.join(cacheDir, "waiting_list.rawtext.txt"), waitingListText, "utf8");
+    } catch {
+    }
+    return finishCardErDraftSaveResult(location2, { docId, subject, effectiveBudgetCode, attachResult, fileCount });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return textResult({
+      error: true,
+      code: "SUBMIT_ERROR",
+      docId,
+      message: `The save click already ran for doc_id ${docId}, but checking where it landed failed: ${msg}. The document may have been filed for approval - open document_view.php for this doc_id and check whether [Document Repossess] is offered before assuming nothing happened.`
+    });
   }
-  const inWaitingList = isDocIdInWaitingList(waitingListDocIds, docId);
-  const location2 = determineCardErLocation({ inWaitingList, approvalLine });
-  try {
-    const cacheDir = path4.join(process.env.HOME || "/tmp", ".cache", "ipk-mcp", "card-er-location", docId);
-    fs7.mkdirSync(cacheDir, { recursive: true, mode: 448 });
-    fs7.writeFileSync(path4.join(cacheDir, "document_view.rawtext.txt"), documentViewText, "utf8");
-    fs7.writeFileSync(path4.join(cacheDir, "waiting_list.rawtext.txt"), waitingListText, "utf8");
-  } catch {
-  }
+}
+function finishCardErDraftSaveResult(location2, args) {
+  const { docId, subject, effectiveBudgetCode, attachResult, fileCount } = args;
   audit({
     action: "draft_save",
     docId,
@@ -26687,6 +26731,211 @@ async function handleIpkProfileInit(sessionManager2, config3, _params = {}, deps
   });
 }
 
+// src/tools/ipk-revise-attachments.ts
+init_attachment_path();
+init_attachment();
+
+// src/forms/document-view.ts
+var HEADER_RE = /^(.+?)\s*\((.*)\)\s+(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})$/;
+function parseApprovalOpinions(bodyText) {
+  const lines = bodyText.split(/\r?\n/);
+  const startIdx = lines.findIndex((l) => l.trim() === "Opinion of approval" || l.trim().startsWith("Opinion of approval	"));
+  if (startIdx === -1) return [];
+  const endIdx = lines.findIndex((l, i) => i > startIdx && l.trim().startsWith("Document Modify History"));
+  const slice = lines.slice(startIdx, endIdx === -1 ? lines.length : endIdx);
+  const firstLine = slice[0].replace(/^Opinion of approval\t?/, "");
+  const body = [firstLine, ...slice.slice(1)].filter((l) => !/^=+$/.test(l.trim()));
+  const out = [];
+  for (let i = 0; i < body.length - 1; i++) {
+    const m = HEADER_RE.exec(body[i].trim());
+    if (!m) continue;
+    const text = (body[i + 1] ?? "").trim();
+    out.push({ name: m[1].trim(), role: m[2].trim(), date: m[3].trim(), text, hasOpinion: text !== "[No opinion]" && text !== "" });
+    i++;
+  }
+  return out;
+}
+function parseAdditionalDocuments(bodyText) {
+  const lines = bodyText.split(/\r?\n/);
+  const startIdx = lines.findIndex((l) => l.trim() === "Additional document");
+  if (startIdx === -1) return [];
+  const out = [];
+  for (let i = startIdx + 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (line === "" || line === "[ Close ] [ Print ]") break;
+    const m = /([^\t[\]]+\.[a-zA-Z0-9]+)\s*\[\d+Bytes\]/.exec(line);
+    if (m) out.push(m[1].trim());
+  }
+  return out;
+}
+function parseAccountCode(bodyText) {
+  const m = /\[(\d{6})\]/.exec(bodyText);
+  return m ? m[1] : null;
+}
+function parseEventDates(bodyText) {
+  const m = /Date\/Time\t\s*(\d{4}-\d{2}-\d{2})\s*~\s*(\d{4}-\d{2}-\d{2})/.exec(bodyText);
+  return m ? { start: m[1], end: m[2] } : null;
+}
+function parseTotalAmount(bodyText) {
+  const m = /Total\t\s*\n?\s*([\d,]+)\s*KRW/.exec(bodyText);
+  return m ? Number(m[1].replace(/,/g, "")) : null;
+}
+function parseOrganizer(bodyText) {
+  const m = /Organizer\t\s*(?:\[[^\]]*\]\s*)?([^\n]+)/.exec(bodyText);
+  return m ? m[1].trim() : null;
+}
+
+// src/tools/ipk-revise-attachments.ts
+var ipkReviseAttachmentsSchema = {
+  doc_id: external_exports.string().describe("The document to revise (e.g. '301306')."),
+  attachments: external_exports.array(external_exports.object({
+    path: external_exports.string(),
+    kind: external_exports.enum(ATTACHMENT_KINDS),
+    quotes: external_exports.array(external_exports.string()).optional().describe("Text the agent itself read from this file, quoted verbatim - required for program/fee_table/society_receipt attestation on accounts that need it.")
+  })).min(1).max(3).describe("1-3 files to add (the Additional document widget has 3 slots). One file = one kind."),
+  attestation_exception: external_exports.array(external_exports.object({
+    kind: external_exports.enum(ATTACHMENT_KINDS),
+    date: external_exports.string().optional(),
+    reason: external_exports.string(),
+    person_confirmed: external_exports.literal(true)
+  })).optional(),
+  dry_run: external_exports.boolean().default(true).describe("Default true: reads the document's own opinions, existing Additional documents, and what this call would upload - never writes anything. Set false (with confirm_submit:true) to actually upload."),
+  confirm_submit: external_exports.boolean().default(false).describe("Must be true for dry_run:false to actually write - attach_file_trans() saves immediately, there is no draft to undo short of deleting the file by hand.")
+};
+var ipkReviseAttachmentsDescription = "Add files to a card ER (AppFrm-021) returned for revision, via its Additional document widget. Shows the document's own returned opinions and existing Additional documents. dry_run=true (default) never writes anything. A real write needs dry_run=false AND confirm_submit=true. Never calls [Document Repossess] or [Revision Complete] (doc_revision_pop.php) - those remain the person's own actions.";
+async function readBodyText(frame) {
+  try {
+    return await frame.evaluate(() => document.body ? document.body.innerText : "");
+  } catch {
+    return "";
+  }
+}
+async function handleIpkReviseAttachments(sessionManager2, config3, params) {
+  if (!sessionManager2.isLoggedIn()) {
+    return textResult({
+      error: true,
+      code: "NOT_LOGGED_IN",
+      message: sessionManager2.getLoginState() === "expired" ? "Browser session expired after 30 minutes idle. Call ipk_login again." : "Call ipk_login first"
+    });
+  }
+  const docId = String(params.doc_id || "");
+  if (!docId) return textResult({ error: true, code: "DOC_ID_REQUIRED", message: "doc_id is required." });
+  const attachments = Array.isArray(params.attachments) ? params.attachments : [];
+  if (attachments.length === 0) {
+    return textResult({ error: true, code: "ATTACHMENTS_REQUIRED", message: "Provide 1-3 {path, kind} attachments." });
+  }
+  if (attachments.length > 3) {
+    return textResult({ error: true, code: "TOO_MANY_FILES", message: "At most 3 files per revision call (the Additional document widget has 3 slots)." });
+  }
+  for (const a of attachments) {
+    const err = validateAttachmentPath(a.path);
+    if (err) return textResult({ error: true, code: "INVALID_ATTACHMENT", message: `${a.path}: ${err}` });
+  }
+  const page = sessionManager2.getPage();
+  const frame = await navigateInFrame(
+    page,
+    `/Document/document_view.php?doc_id=${docId}&approve_type=AppFrm-021&pop_view=y`,
+    config3
+  ).catch(() => null);
+  if (!frame) {
+    return textResult({ error: true, code: "NAVIGATION_FAILED", message: "Could not open the document (main_menu frame not found)." });
+  }
+  const bodyText = await readBodyText(frame);
+  const opinions = parseApprovalOpinions(bodyText);
+  const existingAdditionalDocuments = parseAdditionalDocuments(bodyText);
+  const accountCode = parseAccountCode(bodyText);
+  const eventDates = parseEventDates(bodyText);
+  const totalAmount = parseTotalAmount(bodyText);
+  const organizer = parseOrganizer(bodyText);
+  const review = reviewAttachments({
+    attachments,
+    eventStart: eventDates?.start,
+    eventEnd: eventDates?.end,
+    totalAmount: totalAmount ?? void 0,
+    issuerName: organizer ?? void 0,
+    exceptions: params.attestation_exception
+  });
+  if (review.blocks.length > 0) {
+    return textResult({
+      error: true,
+      code: "ATTACHMENT_REVIEW_BLOCKED",
+      message: review.blocks.join("\n"),
+      blocks: review.blocks,
+      warnings: review.warnings
+    });
+  }
+  if (params.dry_run !== false) {
+    return textResult({
+      error: false,
+      data: {
+        dry_run: true,
+        doc_id: docId,
+        opinions,
+        existing_additional_documents: existingAdditionalDocuments,
+        account_code: accountCode,
+        would_upload: attachments.map((a) => ({ path: a.path, kind: a.kind })),
+        warnings: review.warnings,
+        flagged: review.flagged,
+        message: `dry_run: would add ${attachments.length} file(s) to doc ${docId}'s Additional document slots. Nothing uploaded.`
+      }
+    });
+  }
+  if (params.confirm_submit !== true) {
+    return textResult({
+      error: true,
+      code: "REVISE_CONFIRM_REQUIRED",
+      message: "A real upload needs confirm_submit:true - attach_file_trans() saves immediately, with no draft to undo. Review the dry_run output first."
+    });
+  }
+  const delNo = await frame.evaluate(() => {
+    const el = document.querySelector('input[name="del_no"]');
+    return el ? el.value : "";
+  }).catch(() => "");
+  if (delNo) {
+    return textResult({
+      error: true,
+      code: "DEL_NO_NOT_EMPTY",
+      message: `del_no is unexpectedly '${delNo}' before upload - refusing to risk a delete alongside the attach. Reload the document and retry.`
+    });
+  }
+  const uploadResult = await attachRevisionFiles(frame, attachments.map((a) => a.path));
+  const attached = uploadResult.attached;
+  const skipped = uploadResult.skipped;
+  await frame.evaluate(() => {
+    const w = window;
+    if (typeof w.attach_file_trans === "function") {
+      w.attach_file_trans();
+      return;
+    }
+    const modeEl = document.querySelector('input[name="mode"]');
+    if (modeEl) modeEl.value = "tran_file";
+    const form = document.form1;
+    if (form && typeof form.submit === "function") form.submit();
+  }).catch(() => void 0);
+  await page.waitForTimeout(1500).catch(() => void 0);
+  const afterText = await readBodyText(frame);
+  const afterDocs = parseAdditionalDocuments(afterText);
+  audit({
+    action: "upload",
+    docId,
+    field: "trans_attach_file[]",
+    value: JSON.stringify(attachments.map((a) => ({ path: a.path, kind: a.kind }))),
+    validated: true,
+    ok: attached === attachments.length
+  });
+  return textResult({
+    error: false,
+    data: {
+      doc_id: docId,
+      attached,
+      skipped,
+      existing_additional_documents_before: existingAdditionalDocuments,
+      existing_additional_documents_after: afterDocs,
+      message: `${attached}/${attachments.length} file(s) added to doc ${docId}'s Additional document slots.`
+    }
+  });
+}
+
 // src/index.ts
 var config2 = loadConfig();
 var sessionManager = new SessionManager(config2);
@@ -26718,6 +26967,9 @@ server.tool("ipk_inspect_form", ipkInspectFormDescription, ipkInspectFormSchema,
 });
 server.tool("ipk_profile_init", ipkProfileInitDescription, ipkProfileInitSchema, async (params) => {
   return handleIpkProfileInit(sessionManager, config2, params);
+});
+server.tool("ipk_revise_attachments", ipkReviseAttachmentsDescription, ipkReviseAttachmentsSchema, async (params) => {
+  return handleIpkReviseAttachments(sessionManager, config2, params);
 });
 var transport = new StdioServerTransport();
 await server.connect(transport);

@@ -24,6 +24,47 @@ SAVE_MARKERS = re.compile(
     r"|\.submit_(?:leave|overtime_meal|work_request|travel_request)\("  # ipk_gw helpers that save
 )
 GATED = re.compile(r"\b(?:gate|skip)\(")
+
+# card_expense_rd (AppFrm-021, mker=Y) bypass check (plan v6 P0, 2026-10-12): a script that
+# both names AppFrm-021/mker=Y AND carries a save marker is blocked outright - unlike the
+# SAVE_MARKERS check above, an uncaught baseline_gate call does NOT exempt it. baseline_gate
+# answers "does this match colleagues' precedent", not "did this go through the location
+# check / attachment review the MCP tool (ipk_submit_form / ipk_revise_attachments) runs".
+# submit_ai4sci_registration_er.py (301306) calls baseline_gate.gate() correctly and would
+# still bypass the card-er-location.ts / attachment-review.ts checks if left to the SAVE_MARKERS
+# check alone.
+CARD_ER_CONTEXT = re.compile(r"AppFrm-021|mker=Y")
+CARD_ER_SAVE_MARKERS = re.compile(
+    r"form1\.submit\(|Check_Form\(|Check_Form_Request\(|attach_file_trans\("
+    r"|\btran_file\b|\bmode1\b|submit_form\("
+)
+
+# Non-executing commands are exempt from every check in this file: writing or grepping a
+# .md/plan file (including a heredoc) never runs code, however many SAVE_MARKERS words its
+# own prose happens to contain - this is what the plan document itself talks about.
+#
+# The exemption must NOT apply when the command also executes code anywhere in it: a
+# redirect target ending in .md says nothing about what ran - `uv run python
+# submit_ai4sci_registration_er.py > /tmp/log.md` really did run the script, it just also
+# redirected stdout to a .md path (2026-10-12 probe, confirmed this bypassed the
+# first version of this check). So "no executor token anywhere in the command" is checked
+# first and separately from "every redirect target is .md" - both must hold.
+MD_ONLY_REDIRECT = re.compile(r"[>]{1,2}\s*['\"]?([\w./-]+)")
+EXTRA_EXECUTORS = re.compile(r"(?:^|[\s;&|(])(?:node|npx|bash\s+-c|sh\s+-c)\b")
+
+
+def executes_code(cmd: str) -> bool:
+    """Any interpreter/script execution anywhere in the command - deliberately not
+    scoped to a single pipeline segment: an executor anywhere (before or after a | ; &&
+    ||) means code ran somewhere, which is all this check needs to know."""
+    return bool(INTERPRETER.search(cmd) or EXECUTED.search(cmd) or EXTRA_EXECUTORS.search(cmd))
+
+
+def targets_only_markdown(cmd: str) -> bool:
+    if executes_code(cmd):
+        return False
+    targets = MD_ONLY_REDIRECT.findall(cmd)
+    return bool(targets) and all(t.lower().endswith(".md") for t in targets)
 GATE_IMPORT = re.compile(r"\bbaseline_gate\b")
 SCRIPT_NAMES = re.compile(r"^(?:submit|fix|attach)_")
 
@@ -124,6 +165,20 @@ def command_needs_block(cmd: str) -> bool:
     return not (GATE_IMPORT.search(cmd) and GATED.search(cmd))
 
 
+def card_er_script_needs_block(text: str) -> bool:
+    """AppFrm-021/mker=Y + a save marker in a script's actual code - never exempted by
+    baseline_gate (see CARD_ER_CONTEXT comment above)."""
+    code = _code_without_comments_and_docstrings(text)
+    return bool(CARD_ER_CONTEXT.search(code) and CARD_ER_SAVE_MARKERS.search(code))
+
+
+def card_er_command_needs_block(cmd: str) -> bool:
+    """Same check for code written straight into the command (heredoc, -c)."""
+    if not INTERPRETER.search(cmd):
+        return False
+    return bool(CARD_ER_CONTEXT.search(cmd) and CARD_ER_SAVE_MARKERS.search(cmd))
+
+
 def resolve_script(token: str, cwd: Path, cmd: str) -> Path | None:
     p = Path(token)
     if p.is_absolute():
@@ -146,16 +201,40 @@ def main() -> int:
         return 0
     cmd = (data.get("tool_input") or {}).get("command", "")
     cwd = Path(data.get("cwd") or ".")
+
+    # Non-executing commands (writing/grepping a .md/plan file, including a heredoc) are
+    # exempt from everything below - they run no code, however many SAVE_MARKERS words
+    # their own prose contains.
+    if targets_only_markdown(cmd):
+        return 0
+
     problems = []
+    card_er_problems = []
     scripts = executed_scripts(cmd)
     for s in scripts:
         p = resolve_script(s, cwd, cmd)
-        if p and script_needs_block(p.read_text(errors="ignore")):
-            problems.append(f"{p}: saves a draft without an uncaught baseline_gate.gate()/skip()")
+        if p:
+            text = p.read_text(errors="ignore")
+            if script_needs_block(text):
+                problems.append(f"{p}: saves a draft without an uncaught baseline_gate.gate()/skip()")
+            if card_er_script_needs_block(text):
+                card_er_problems.append(f"{p}: names AppFrm-021/mker=Y and carries a card ER save marker")
     for s in unresolved_blocks(scripts, cwd, cmd):
         problems.append(f"{s}: script not found, so it could not be checked")
     if command_needs_block(cmd):
         problems.append("the command itself contains code that saves a draft without baseline_gate")
+    if card_er_command_needs_block(cmd):
+        card_er_problems.append("the command itself names AppFrm-021/mker=Y and carries a card ER save marker")
+
+    if card_er_problems:
+        print(
+            "BLOCKED (card ER save path):\n  " + "\n  ".join(card_er_problems)
+            + "\nA card_expense_rd (AppFrm-021) save bypasses the location check and attachment review "
+            "the MCP tool runs. Use ipk_submit_form (form_type: card_expense_rd) or "
+            "ipk_revise_attachments instead of a direct script.",
+            file=sys.stderr,
+        )
+        return 2
     if problems:
         print(
             "BLOCKED (baseline gate):\n  " + "\n  ".join(problems)

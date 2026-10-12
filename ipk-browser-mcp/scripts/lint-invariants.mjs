@@ -62,18 +62,25 @@ for (const rule of RULES) {
 }
 
 // setInputFiles must be funnelled through the two audited helpers, so that
-// validateAttachmentPath cannot be bypassed by a new upload site.
-const UPLOAD_ALLOWLIST = new Set(["src/tools/ipk-submit.ts", "src/internal/primitives/attachment.ts"]);
+// validateAttachmentPath cannot be bypassed by a new upload site. attachment.ts allows 2
+// (attachFiles for doc_attach_file[], attachRevisionFiles for trans_attach_file[] - the
+// AppFrm-021 revision widget, added for ipk_revise_attachments) - both validate every path
+// before any setInputFiles call; see the "every file validates first" check below.
+const UPLOAD_ALLOWLIST = new Map([
+  ["src/tools/ipk-submit.ts", 1],
+  ["src/internal/primitives/attachment.ts", 2],
+]);
 const UPLOAD_CALL = /setInputFiles\s*\(|\[\s*["'`]setInputFiles["'`]\s*\]\s*\(/g;
 for (const file of files) {
   const hits = [...file.text.matchAll(UPLOAD_CALL)];
   if (hits.length === 0) continue;
   const r = rel(file.path);
-  if (!UPLOAD_ALLOWLIST.has(r)) {
+  const expected = UPLOAD_ALLOWLIST.get(r);
+  if (expected === undefined) {
     console.error(`FAIL single-upload-path: ${r} calls setInputFiles outside the audited helpers.`);
     failures++;
-  } else if (hits.length > 1) {
-    console.error(`FAIL single-upload-path: ${r} has ${hits.length} setInputFiles calls; expected exactly 1.`);
+  } else if (hits.length > expected) {
+    console.error(`FAIL single-upload-path: ${r} has ${hits.length} setInputFiles calls; expected exactly ${expected}.`);
     failures++;
   }
 }

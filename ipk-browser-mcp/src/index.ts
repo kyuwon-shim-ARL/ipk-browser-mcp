@@ -13,6 +13,7 @@ import { ipkGetContentSchema, ipkGetContentDescription, handleIpkGetContent } fr
 import { screenshotSchema, screenshotDescription, handleScreenshot, cleanupExpiredScreenshots } from "./tools/screenshot.js";
 import { ipkInspectFormSchema, ipkInspectFormDescription, handleIpkInspectForm } from "./tools/ipk-inspect.js";
 import { ipkProfileInitSchema, ipkProfileInitDescription, handleIpkProfileInit } from "./tools/ipk-profile.js";
+import { ipkReviseAttachmentsSchema, ipkReviseAttachmentsDescription, handleIpkReviseAttachments } from "./tools/ipk-revise-attachments.js";
 
 declare const __PACKAGE_VERSION__: string;
 
@@ -65,6 +66,11 @@ server.tool("ipk_inspect_form", ipkInspectFormDescription, ipkInspectFormSchema,
 // Tool 8: ipk_profile_init
 server.tool("ipk_profile_init", ipkProfileInitDescription, ipkProfileInitSchema, async (params) => {
   return handleIpkProfileInit(sessionManager, config, params as Record<string, unknown>);
+});
+
+// Tool 9: ipk_revise_attachments
+server.tool("ipk_revise_attachments", ipkReviseAttachmentsDescription, ipkReviseAttachmentsSchema, async (params) => {
+  return handleIpkReviseAttachments(sessionManager, config, params as Record<string, any>);
 });
 
 // Start server

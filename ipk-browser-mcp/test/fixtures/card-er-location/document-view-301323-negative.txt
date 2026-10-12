@@ -42,7 +42,7 @@ Budget Planning & Finance	Budget Planning & Finance
 Team Member	Team Head (A)
 
 
-Drafter	Antibacterial Resistance Lab - Team Member - Kyuwon Shim (00565)	Date	2026-10-08
+Drafter	Antibacterial Resistance Lab - Team Member - Kyuwon Shim (XXXXX)	Date	2026-10-08
 Subject	[Card] ER_research update and planning
 Document Modify History	Kyuwon Shim (kyuwon.shim) - 2026-10-12 14:47:00
 Opinion of approval	Kyuwon Shim (Antibacterial Resistance Lab - Team Member) 2026-10-12 14:51:23
