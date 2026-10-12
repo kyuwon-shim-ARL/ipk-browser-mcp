@@ -167,8 +167,12 @@ describe("ipk_submit_form dispatch", () => {
     expect(dispatch.match(/confirmDraftResult\(page, config\.baseUrl, mode, result/g)).toHaveLength(2);
     expect(dispatch).not.toMatch(/return await handler\(/);
     expect(dispatch).not.toMatch(/return await submitGeneric\(/);
-    // NO_FINAL_SUBMIT: every dispatch path also goes through noFinalSubmitNote.
-    expect(dispatch.match(/noFinalSubmitNote\(/g)).toHaveLength(2);
+    // NO_FINAL_SUBMIT: every dispatch path also goes through noFinalSubmitNote - 3 call
+    // sites: the generic handler, the per-form handler through confirmDraftResult, and
+    // NO_DRAFT_STATE_FORMS (card_expense_rd) bypassing confirmDraftResult (its own
+    // card-er-location.ts check already ran inside the handler - see test/browser/card-er-location.test.ts).
+    expect(dispatch.match(/noFinalSubmitNote\(/g)).toHaveLength(3);
+    expect(dispatch).toMatch(/NO_DRAFT_STATE_FORMS\.has\(formType\)/);
   });
 
   it("NO_FINAL_SUBMIT: forces draft mode for any form type not in NO_DRAFT_STATE_FORMS, even with draft_only=false", () => {

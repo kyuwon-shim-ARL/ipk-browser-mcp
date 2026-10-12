@@ -1,0 +1,48 @@
+NEGATIVE fixture - doc 301323, card_expense_rd (AppFrm-021), captured 2026-10-12 read-only
+(ipk_navigate + ipk_get_content, no clicks). At capture time the groupware's own "Approval"
+counter was 0 and this document's status (document_list.php?type=progress row) read
+"Team Head (R)" - past the drafter, waiting on the next approver. Names redacted to roles;
+the card number is already masked by the groupware itself (not redacted by this tool).
+
+Approval line (3 named steps, step numbers as shown on the page):
+  ( 1 ) A Person in Charge   -> Drafter: Kyuwon Shim (this account) - dated 2026-10-12, no [Sign] button
+  ( 2 ) Team Head (R)        -> Approver A - [ Sign ] button present, no date (pending)
+  ( 4 ) CEO                  -> Approver B - [ Sign ] button present, no date (pending)
+Cosigner ( 3 ) Budget Holder -> Approver A (same person, different role slot) - [ Sign ] present
+Takeover ( 5 )/( 6 ) Budget Planning & Finance - Team Member / Team Head (A) - [Sign]/[Sign]
+
+Markers this fixture establishes for the DRAFTER_TURN != true case:
+  - [Sign] appears on a step OTHER than the drafter's own row.
+  - The drafter's own row (step 1) carries a date, i.e. is already actioned - the drafter
+    is not the one with a pending action here.
+  - doc_id 301323 is absent from document_list.php?type=appr (the "waiting for my approval"
+    list - see waiting-list-empty.txt), consistent with "not my turn right now".
+
+Raw extracted text (own name only, colleague names replaced with "Approver A"/"Approver B"):
+
+[ Close ] [ Print ]
+R&D Expense Request (ER)
+Document No
+
+Approval	( 1 )	( 2 )	( 4 )
+A Person in Charge	Team Head (R)	CEO
+	[ Sign ]	[ Sign ]
+Kyuwon Shim	Approver A	Approver B
+2026-10-08
+
+Cosigner	( 3 )
+Budget Holder
+[ Sign ]
+Approver A
+
+
+Takeover	( 5 )	( 6 )
+Budget Planning & Finance	Budget Planning & Finance
+[Sign]	[Sign]
+Team Member	Team Head (A)
+
+
+Drafter	Antibacterial Resistance Lab - Team Member - Kyuwon Shim (00565)	Date	2026-10-08
+Subject	[Card] ER_research update and planning
+Document Modify History	Kyuwon Shim (kyuwon.shim) - 2026-10-12 14:47:00
+Opinion of approval	Kyuwon Shim (Antibacterial Resistance Lab - Team Member) 2026-10-12 14:51:23

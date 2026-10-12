@@ -21610,7 +21610,7 @@ function toolDraftedDocIds() {
       if (!l) continue;
       try {
         const e = JSON.parse(l);
-        if (e.action === "submit" && e.docId) out.add(String(e.docId));
+        if ((e.action === "submit" || e.action === "draft_save") && e.docId) out.add(String(e.docId));
       } catch {
       }
     }
@@ -22125,6 +22125,82 @@ function checkOrgPolicy(params) {
     if (v) out.push(v);
   }
   return out;
+}
+
+// src/browser/card-er-location.ts
+function readApprovalLineFromBodyText(bodyText, draftedByName) {
+  const lines = bodyText.split(/\r?\n/);
+  const approvalIdx = lines.findIndex((l) => l.trim() === "Approval" || /^Approval\t/.test(l.trim()));
+  if (approvalIdx === -1) return null;
+  const block = [];
+  for (let i = approvalIdx + 1; i < lines.length && block.length < 6; i++) {
+    const raw = lines[i];
+    if (raw.trim() === "" && !raw.includes("	")) continue;
+    if (/^(Cosigner|Takeover|Drafter|Cc)\b/.test(raw.trim())) break;
+    block.push(raw);
+  }
+  if (block.length < 2) return null;
+  const signRowIdx = block.findIndex((r) => /\[\s*(Sign|Approve)\s*\]/i.test(r));
+  const namesRowIdx = block.findIndex((r, idx) => idx !== 0 && idx !== signRowIdx && r.includes(draftedByName));
+  if (namesRowIdx === -1) return null;
+  const namesRow = block[namesRowIdx].split("	");
+  const draftedCol = namesRow.findIndex((n) => n.trim() === draftedByName);
+  if (draftedCol === -1) return null;
+  const signRow = signRowIdx >= 0 ? block[signRowIdx].split("	") : [];
+  const ownActionPending = /\[\s*(Sign|Approve)\s*\]/i.test((signRow[draftedCol] || "").trim());
+  const datesRow = namesRowIdx + 1 < block.length ? block[namesRowIdx + 1].split("	") : [];
+  const firstUntimedCol = datesRow.findIndex((d) => d.trim() === "");
+  const firstUntimedStepIsDrafter = firstUntimedCol !== -1 && firstUntimedCol === draftedCol;
+  const repossessOffered = /document\s*repossess|\brepossess\b/i.test(bodyText);
+  return { ownActionPending, repossessOffered, firstUntimedStepIsDrafter };
+}
+async function readApprovalLineFromDocumentView(frame, draftedByName) {
+  try {
+    const bodyText = await frame.evaluate(() => document.body ? document.body.innerText : "");
+    return readApprovalLineFromBodyText(bodyText, draftedByName);
+  } catch {
+    return null;
+  }
+}
+async function readWaitingListDocIds(frame) {
+  try {
+    const ids = await frame.evaluate(() => {
+      const out = [];
+      const links = document.querySelectorAll("a[href*='doc_id=']");
+      for (const link of links) {
+        const m = (link.getAttribute("href") || "").match(/doc_id=([^&]+)/);
+        if (m) out.push(m[1]);
+      }
+      return out;
+    });
+    return Array.isArray(ids) ? ids : "unreadable";
+  } catch {
+    return "unreadable";
+  }
+}
+function isDocIdInWaitingList(docIds, docId) {
+  return docIds === "unreadable" ? "unreadable" : docIds.includes(docId);
+}
+function determineCardErLocation(inputs) {
+  if (inputs.inWaitingList === "unreadable") {
+    return { outcome: "DRAFT_NOT_CONFIRMED", reason: "Could not read the 'waiting for my approval' list (document_list.php?type=appr)." };
+  }
+  if (inputs.approvalLine === null) {
+    return { outcome: "DRAFT_NOT_CONFIRMED", reason: "Could not read the document's approval line." };
+  }
+  const { ownActionPending, repossessOffered, firstUntimedStepIsDrafter } = inputs.approvalLine;
+  if (inputs.inWaitingList && ownActionPending && !repossessOffered && firstUntimedStepIsDrafter) {
+    return { outcome: "AT_DRAFTER_TURN", reason: "The document is at the drafter's own approval turn - the save behaved like a draft." };
+  }
+  const reasons = [];
+  if (!inputs.inWaitingList) reasons.push("doc_id is not in the 'waiting for my approval' list");
+  if (!ownActionPending) reasons.push("no pending action on the drafter's own row");
+  if (repossessOffered) reasons.push("[Document Repossess] is offered (already past the drafter)");
+  if (!firstUntimedStepIsDrafter) reasons.push("the first untimed step in the approval line is not the drafter's");
+  return {
+    outcome: "DRAFT_WENT_TO_APPROVAL",
+    reason: `The document has moved past the drafter's turn: ${reasons.join("; ")}. Use [Document Repossess] to pull it back.`
+  };
 }
 
 // src/profile/profile.ts
@@ -23612,6 +23688,8 @@ var ipkSubmitFormSchema = {
   event_start: external_exports.string().optional().describe("card_expense_rd event block: edu_start_day (YYYY-MM-DD)."),
   event_end: external_exports.string().optional().describe("card_expense_rd event block: edu_end_day (YYYY-MM-DD)."),
   notes: external_exports.string().optional().describe("card_expense_rd: written to the form's 'notes' field (alongside p_reason/reason, which the form also calls Notes in some accounts)."),
+  allow_card_er_save: external_exports.boolean().optional().describe("card_expense_rd with draft_only=true: opt in to a real save through the form's own flow instead of the no-save preview. Also requires first_live_save=true (see its description) - without that, this alone is refused (CARD_ER_SAVE_NO_FIXTURE_YET). Also disabled outright by env IPK_CARD_ER_SAVE=0."),
+  first_live_save: external_exports.boolean().optional().describe("card_expense_rd: pairs with allow_card_er_save=true to run the real save AND run the location check afterwards AND write the raw document_view/waiting-list pages to ~/.cache/ipk-mcp/card-er-location/<doc_id>/ for a person to redact and commit as the real positive fixture (plan v6.1). This is the one-time capture step - once that fixture is committed, the gate is expected to change; it does not yet."),
   draft_only: external_exports.boolean().default(true).describe("Save as draft (true) or submit for approval (false). Defaults to true for safety."),
   dry_run: external_exports.boolean().default(false).optional().describe(
     "Preview only, for every wired form type - safe, never saves/drafts/submits anything. Runs the full pipeline (param validation, org-policy, navigation, filling the form, field-rules checked against the live DOM) and stops before the save click. Returns { dry_run, form, url, fields (serialized DOM), field_rule_result (blocks/warnings - never causes a refusal under dry_run), warnings, screenshot }. For the domestic travel report, dry_run also skips the REPORT_ALREADY_EXISTS refusal and reports existing_report_lengths instead, since nothing is written either way."
@@ -23957,6 +24035,9 @@ async function handleIpkSubmitForm(sessionManager2, config3, params) {
     const handler = FORM_HANDLERS[formType];
     if (handler) {
       const result2 = await handler(page, frame, sessionManager2, config3, params, mode);
+      if (NO_DRAFT_STATE_FORMS.has(formType)) {
+        return noFinalSubmitNote(result2, requestedSubmit, mode);
+      }
       return noFinalSubmitNote(
         await confirmDraftResult(page, config3.baseUrl, mode, result2, config3.navTimeoutMs),
         requestedSubmit,
@@ -25046,8 +25127,23 @@ async function submitCardExpenseRD(page, frame, _sessionManager, config3, params
   }
   const cardRdRuleRefusal = await checkFieldRulesAgainstForm(frame, "card_expense_rd");
   if (cardRdRuleRefusal) return textResult({ error: true, ...cardRdRuleRefusal });
-  void _sessionManager;
-  if (mode === "draft") {
+  const cardErSaveRequested = mode === "draft" && params.allow_card_er_save === true;
+  const runRealDraftSave = cardErSaveRequested && params.first_live_save === true && process.env.IPK_CARD_ER_SAVE !== "0";
+  if (mode === "draft" && !runRealDraftSave) {
+    if (cardErSaveRequested) {
+      if (process.env.IPK_CARD_ER_SAVE === "0") {
+        return textResult({
+          error: true,
+          code: "CARD_ER_SAVE_DISABLED",
+          message: "allow_card_er_save is refused: env IPK_CARD_ER_SAVE=0 disables it. Nothing was saved."
+        });
+      }
+      return textResult({
+        error: true,
+        code: "CARD_ER_SAVE_NO_FIXTURE_YET",
+        message: "allow_card_er_save is refused without first_live_save=true: this is the one-time capture step for the location check's real positive fixture (plan v6.1). Use draft_only=true's ordinary preview for now. Nothing was saved."
+      });
+    }
     return await previewCardExpenseRD(page, frame, config3, { subject, effectiveBudgetCode, attachResult, fileCount: filePaths.length });
   }
   const popupState = {
@@ -25155,6 +25251,15 @@ async function submitCardExpenseRD(page, frame, _sessionManager, config3, params
   const finalUrl = frame.url && typeof frame.url === "function" ? frame.url() : page.url();
   const m = finalUrl.match(/[?&]doc_id=(\d+)/);
   const docId = m ? m[1] : null;
+  if (runRealDraftSave) {
+    return await finishCardErDraftSave(page, frame, _sessionManager, {
+      docId,
+      subject: popupState.subjectFixed ?? subject,
+      effectiveBudgetCode,
+      attachResult,
+      fileCount: filePaths.length
+    });
+  }
   audit({ action: "submit", docId, mode: "request", confirmed: true, ok: docId !== null });
   return textResult({
     error: false,
@@ -25170,6 +25275,76 @@ async function submitCardExpenseRD(page, frame, _sessionManager, config3, params
       skipped_attachments: attachResult.skipped,
       message: docId ? `R&D card ER submitted for approval (doc_id: ${docId}, ${attachResult.attached}/${filePaths.length} files attached)` : popupState.submitted ? "R&D card ER submit attempted but doc_id not found in URL \u2014 check In Progress manually" : "R&D card ER: the budget check popup never filed the form \u2014 check In Progress before retrying"
     }
+  });
+}
+async function finishCardErDraftSave(page, frame, sessionManager2, args) {
+  const { docId, subject, effectiveBudgetCode, attachResult, fileCount } = args;
+  if (!docId) {
+    return textResult({
+      error: true,
+      code: "DRAFT_NOT_CONFIRMED",
+      message: "The save appeared to go through but doc_id could not be read from the URL - nothing can be confirmed. Check In Progress manually before retrying."
+    });
+  }
+  const draftedByName = sessionManager2.getUserInfo?.()?.name || "";
+  const documentViewText = await frame.evaluate(() => document.body ? document.body.innerText : "").catch(() => "");
+  const approvalLine = await readApprovalLineFromDocumentView(frame, draftedByName);
+  const origin = new URL("https://gw.ip-korea.org").origin;
+  let waitingListText = "";
+  let waitingListDocIds = "unreadable";
+  try {
+    await page.goto(`${origin}/Document/document_list.php?type=appr`, { waitUntil: "domcontentloaded", timeout: 15e3 });
+    waitingListDocIds = await readWaitingListDocIds(frame);
+    waitingListText = await frame.evaluate(() => document.body ? document.body.innerText : "").catch(() => "");
+  } catch {
+  }
+  const inWaitingList = isDocIdInWaitingList(waitingListDocIds, docId);
+  const location2 = determineCardErLocation({ inWaitingList, approvalLine });
+  try {
+    const cacheDir = path4.join(process.env.HOME || "/tmp", ".cache", "ipk-mcp", "card-er-location", docId);
+    fs7.mkdirSync(cacheDir, { recursive: true, mode: 448 });
+    fs7.writeFileSync(path4.join(cacheDir, "document_view.rawtext.txt"), documentViewText, "utf8");
+    fs7.writeFileSync(path4.join(cacheDir, "waiting_list.rawtext.txt"), waitingListText, "utf8");
+  } catch {
+  }
+  audit({
+    action: "draft_save",
+    docId,
+    mode: "draft",
+    confirmed: true,
+    ok: location2.outcome === "AT_DRAFTER_TURN",
+    code: location2.outcome
+  });
+  const base = {
+    docId,
+    outcome: location2.outcome,
+    reason: location2.reason,
+    formType: "card_expense_rd",
+    subject,
+    budgetCode: effectiveBudgetCode,
+    attached: attachResult.attached,
+    skipped_attachments: attachResult.skipped,
+    cached_at: path4.join(process.env.HOME || "/tmp", ".cache", "ipk-mcp", "card-er-location", docId)
+  };
+  if (location2.outcome === "AT_DRAFTER_TURN") {
+    return textResult({
+      error: false,
+      data: { ...base, success: true, message: `saved at your turn \u2014 press [Approve] to send (doc_id: ${docId}, ${attachResult.attached}/${fileCount} files attached)` }
+    });
+  }
+  if (location2.outcome === "DRAFT_WENT_TO_APPROVAL") {
+    return textResult({
+      error: true,
+      code: "DRAFT_WENT_TO_APPROVAL",
+      message: `doc_id ${docId} has already moved past the drafter's turn: ${location2.reason} To pull it back: open the document (document_view.php), use [Document Repossess], then re-open it with Edit and Save again.`,
+      ...base
+    });
+  }
+  return textResult({
+    error: true,
+    code: "DRAFT_NOT_CONFIRMED",
+    message: `doc_id ${docId} was saved but its location could not be confirmed: ${location2.reason} Check In Progress manually.`,
+    ...base
   });
 }
 function installCardErStubs(preview) {

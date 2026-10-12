@@ -6,6 +6,9 @@ import { validateAttachmentPath } from "../security/attachment-path.js";
 import { audit, beginRun } from "../internal/audit.js";
 import { checkOrgPolicy } from "../policy/org-policy.js";
 import { reviewAttachments, ATTACHMENT_KINDS, type AttachmentInput, type AttestationException } from "../policy/attachment-review.js";
+import {
+  determineCardErLocation, readApprovalLineFromDocumentView, readWaitingListDocIds, isDocIdInWaitingList,
+} from "../browser/card-er-location.js";
 import { checkFieldRules, FieldRulesUnavailable, type Rulebook } from "../policy/field-rules.js";
 import { loadProfile, type Profile } from "../profile/profile.js";
 import { checkTravelRequestParams, checkAttachmentSlot, slotSelector, parseCardNo, type TravelDocSlot } from "../forms/travel-request.js";
@@ -791,6 +794,8 @@ export const ipkSubmitFormSchema = {
   event_start: z.string().optional().describe("card_expense_rd event block: edu_start_day (YYYY-MM-DD)."),
   event_end: z.string().optional().describe("card_expense_rd event block: edu_end_day (YYYY-MM-DD)."),
   notes: z.string().optional().describe("card_expense_rd: written to the form's 'notes' field (alongside p_reason/reason, which the form also calls Notes in some accounts)."),
+  allow_card_er_save: z.boolean().optional().describe("card_expense_rd with draft_only=true: opt in to a real save through the form's own flow instead of the no-save preview. Also requires first_live_save=true (see its description) - without that, this alone is refused (CARD_ER_SAVE_NO_FIXTURE_YET). Also disabled outright by env IPK_CARD_ER_SAVE=0."),
+  first_live_save: z.boolean().optional().describe("card_expense_rd: pairs with allow_card_er_save=true to run the real save AND run the location check afterwards AND write the raw document_view/waiting-list pages to ~/.cache/ipk-mcp/card-er-location/<doc_id>/ for a person to redact and commit as the real positive fixture (plan v6.1). This is the one-time capture step - once that fixture is committed, the gate is expected to change; it does not yet."),
   draft_only: z.boolean().default(true).describe("Save as draft (true) or submit for approval (false). Defaults to true for safety."),
   dry_run: z.boolean().default(false).optional().describe(
     "Preview only, for every wired form type - safe, never saves/drafts/submits anything. Runs the full pipeline " +
@@ -1284,6 +1289,13 @@ export async function handleIpkSubmitForm(
     const handler = FORM_HANDLERS[formType];
     if (handler) {
       const result = await handler(page, frame, sessionManager, config, params, mode);
+      // card_expense_rd never has a Drafts/Progress-folder draft to confirm (NO_DRAFT_STATE_FORMS) -
+      // confirmDraftResult's Drafts/Progress heuristic doesn't apply to it even when a real
+      // save under allow_card_er_save produces a docId (card-er-location.ts's own location
+      // check already ran inside the handler for that path).
+      if (NO_DRAFT_STATE_FORMS.has(formType)) {
+        return noFinalSubmitNote(result, requestedSubmit, mode);
+      }
       return noFinalSubmitNote(
         await confirmDraftResult(page, config.baseUrl, mode, result, config.navTimeoutMs),
         requestedSubmit,
@@ -2431,11 +2443,18 @@ async function submitCardExpense(
  *  - account_code (or account_code_label for auto-pick from Sel_account popup)
  *  - At least 1 attachment_path (or attachment_paths array for multi-file)
  *
- * There is no draft for this form: the server ignores mode1='draft' on mker=Y and files
- * the document for approval (doc 301323, 2026-10-08). So:
- *  - mode "draft" (the default) is a PREVIEW. The form is filled, then the page's own
- *    Check_Form_Request('insert') runs with the network cut (route abort) and submit /
- *    window.open stubbed, so its validation and normalisation run and nothing is sent.
+ * There is no draft FOLDER for this form - a save through the form's own flow
+ * (budget_check_er popup -> Request/Update) lands the document directly in the approval
+ * chain, at the drafter's own turn (not in limbo). The 2026-10-08 instant-filing incident
+ * (doc 301323) was an older handler's direct POST bypassing that flow, not something the
+ * form's own flow does (plan v6 P0-pre item 1, 2026-10-12 correction). So:
+ *  - mode "draft" (the default) is a PREVIEW, UNLESS params.allow_card_er_save is set (see
+ *    the gate right before previewCardExpenseRD is called below) - currently always
+ *    refused, since the location check that would confirm "still at the drafter's turn"
+ *    afterwards has no committed live positive fixture yet (plan v6.1). The preview fills
+ *    the form, then the page's own Check_Form_Request('insert') runs with the network cut
+ *    (route abort) and submit/window.open stubbed, so its validation and normalisation run
+ *    and nothing is sent.
  *  - mode "request" (draft_only=false + confirm_submit=true) also goes through
  *    Check_Form_Request, with only the $.confirm "Evidence Check" modal answered "Next",
  *    then the budget_check_er popup's submit_form() files it.
@@ -2760,9 +2779,35 @@ async function submitCardExpenseRD(
   if (cardRdRuleRefusal) return textResult({ error: true, ...cardRdRuleRefusal });
 
   // Step 4: run the form's own Check_Form_Request('insert') - preview or submit.
-  // Mark _sessionManager as intentionally unused for tsc strictness
-  void _sessionManager;
-  if (mode === "draft") {
+  //
+  // draft_only=true's real-save path (plan v6 P0-pre item 3/v6.1): saving through the
+  // form's own flow lands the document at the drafter's own turn, not in limbo - so it is
+  // safe to let draft_only=true reach the same code mode "request" runs, PROVIDED the
+  // card-er-location.ts location check confirms that turn afterwards. Gated on BOTH
+  // allow_card_er_save and first_live_save (per call) and the outer IPK_CARD_ER_SAVE!=="0"
+  // kill switch - first_live_save is the one-time capture step (it also writes the raw
+  // document_view/waiting-list pages to the local cache, never the repo, for a person to
+  // redact into the committed fixture); without it this still refuses.
+  const cardErSaveRequested = mode === "draft" && params.allow_card_er_save === true;
+  const runRealDraftSave = cardErSaveRequested && params.first_live_save === true && process.env.IPK_CARD_ER_SAVE !== "0";
+  if (mode === "draft" && !runRealDraftSave) {
+    if (cardErSaveRequested) {
+      if (process.env.IPK_CARD_ER_SAVE === "0") {
+        return textResult({
+          error: true,
+          code: "CARD_ER_SAVE_DISABLED",
+          message: "allow_card_er_save is refused: env IPK_CARD_ER_SAVE=0 disables it. Nothing was saved.",
+        });
+      }
+      return textResult({
+        error: true,
+        code: "CARD_ER_SAVE_NO_FIXTURE_YET",
+        message:
+          "allow_card_er_save is refused without first_live_save=true: this is the one-time " +
+          "capture step for the location check's real positive fixture (plan v6.1). Use " +
+          "draft_only=true's ordinary preview for now. Nothing was saved.",
+      });
+    }
     return await previewCardExpenseRD(page, frame, config, { subject, effectiveBudgetCode, attachResult, fileCount: filePaths.length });
   }
 
@@ -2890,8 +2935,14 @@ async function submitCardExpenseRD(
   const finalUrl: string = (frame.url && typeof frame.url === "function") ? frame.url() : page.url();
   const m = finalUrl.match(/[?&]doc_id=(\d+)/);
   const docId = m ? m[1] : null;
-  audit({ action: "submit", docId, mode: "request", confirmed: true, ok: docId !== null });
 
+  if (runRealDraftSave) {
+    return await finishCardErDraftSave(page, frame, _sessionManager, {
+      docId, subject: popupState.subjectFixed ?? subject, effectiveBudgetCode, attachResult, fileCount: filePaths.length,
+    });
+  }
+
+  audit({ action: "submit", docId, mode: "request", confirmed: true, ok: docId !== null });
   return textResult({
     error: false,
     data: {
@@ -2910,6 +2961,103 @@ async function submitCardExpenseRD(
           ? "R&D card ER submit attempted but doc_id not found in URL — check In Progress manually"
           : "R&D card ER: the budget check popup never filed the form — check In Progress before retrying",
     },
+  });
+}
+
+/**
+ * Post-save for the allow_card_er_save + first_live_save path only (plan v6 P0-pre item
+ * 3/v6.1). Runs the card-er-location.ts location check against the document_view page the
+ * save left the frame on and the live "waiting for my approval" list
+ * (document_list.php?type=appr - confirmed live 2026-10-12), writes the raw pages this
+ * check read to ~/.cache/ipk-mcp/card-er-location/<doc_id>/ (local only, never the repo -
+ * for a person to redact and commit as the real positive fixture), and returns the mapped
+ * outcome. Never runs for the ordinary mode "request" submit path above.
+ */
+async function finishCardErDraftSave(
+  page: any,
+  frame: any,
+  sessionManager: SessionManager,
+  args: { docId: string | null; subject: string; effectiveBudgetCode: string | null; attachResult: { attached: number; skipped: unknown[] }; fileCount: number }
+) {
+  const { docId, subject, effectiveBudgetCode, attachResult, fileCount } = args;
+  if (!docId) {
+    return textResult({
+      error: true,
+      code: "DRAFT_NOT_CONFIRMED",
+      message: "The save appeared to go through but doc_id could not be read from the URL - nothing can be confirmed. Check In Progress manually before retrying.",
+    });
+  }
+
+  const draftedByName: string = sessionManager.getUserInfo?.()?.name || "";
+  const documentViewText: string = await frame.evaluate(() => (document.body ? document.body.innerText : "")).catch(() => "");
+  const approvalLine = await readApprovalLineFromDocumentView(frame, draftedByName);
+
+  const origin = new URL("https://gw.ip-korea.org").origin;
+  let waitingListText = "";
+  let waitingListDocIds: string[] | "unreadable" = "unreadable";
+  try {
+    await page.goto(`${origin}/Document/document_list.php?type=appr`, { waitUntil: "domcontentloaded", timeout: 15000 });
+    waitingListDocIds = await readWaitingListDocIds(frame);
+    waitingListText = await frame.evaluate(() => (document.body ? document.body.innerText : "")).catch(() => "");
+  } catch {
+    // waitingListDocIds stays "unreadable" - determineCardErLocation reports DRAFT_NOT_CONFIRMED
+  }
+  const inWaitingList = isDocIdInWaitingList(waitingListDocIds, docId);
+
+  const location = determineCardErLocation({ inWaitingList, approvalLine });
+
+  // Local-only cache, never the repo - see function doc comment.
+  try {
+    const cacheDir = path.join(process.env.HOME || "/tmp", ".cache", "ipk-mcp", "card-er-location", docId);
+    fs.mkdirSync(cacheDir, { recursive: true, mode: 0o700 });
+    fs.writeFileSync(path.join(cacheDir, "document_view.rawtext.txt"), documentViewText, "utf8");
+    fs.writeFileSync(path.join(cacheDir, "waiting_list.rawtext.txt"), waitingListText, "utf8");
+  } catch {
+    // caching is best-effort - never block reporting the outcome on it
+  }
+
+  audit({
+    action: "draft_save",
+    docId,
+    mode: "draft",
+    confirmed: true,
+    ok: location.outcome === "AT_DRAFTER_TURN",
+    code: location.outcome,
+  });
+
+  const base = {
+    docId,
+    outcome: location.outcome,
+    reason: location.reason,
+    formType: "card_expense_rd",
+    subject,
+    budgetCode: effectiveBudgetCode,
+    attached: attachResult.attached,
+    skipped_attachments: attachResult.skipped,
+    cached_at: path.join(process.env.HOME || "/tmp", ".cache", "ipk-mcp", "card-er-location", docId),
+  };
+
+  if (location.outcome === "AT_DRAFTER_TURN") {
+    return textResult({
+      error: false,
+      data: { ...base, success: true, message: `saved at your turn — press [Approve] to send (doc_id: ${docId}, ${attachResult.attached}/${fileCount} files attached)` },
+    });
+  }
+  if (location.outcome === "DRAFT_WENT_TO_APPROVAL") {
+    return textResult({
+      error: true,
+      code: "DRAFT_WENT_TO_APPROVAL",
+      message:
+        `doc_id ${docId} has already moved past the drafter's turn: ${location.reason} ` +
+        "To pull it back: open the document (document_view.php), use [Document Repossess], then re-open it with Edit and Save again.",
+      ...base,
+    });
+  }
+  return textResult({
+    error: true,
+    code: "DRAFT_NOT_CONFIRMED",
+    message: `doc_id ${docId} was saved but its location could not be confirmed: ${location.reason} Check In Progress manually.`,
+    ...base,
   });
 }
 

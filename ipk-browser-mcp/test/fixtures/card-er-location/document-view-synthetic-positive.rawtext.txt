@@ -1,0 +1,5 @@
+Approval	( 1 )	( 2 )	( 4 )
+A Person in Charge	Team Head (R)	CEO
+[ Sign ]
+Kyuwon Shim	Approver A	Approver B
+	 	 

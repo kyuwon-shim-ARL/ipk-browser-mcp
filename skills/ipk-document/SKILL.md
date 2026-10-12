@@ -104,8 +104,12 @@ After user confirms the draft:
    [결재요청] button themselves. (`src/policy/org-policy.ts` NO_FINAL_SUBMIT enforces
    this: `ipk_submit_form` with `draft_only: false` is refused by the tool unless an
    operator has separately set `IPK_ALLOW_SUBMIT=1`, and even then the tool still only
-   saves a draft and returns the click path — except card_expense_rd, whose save IS the
-   submit, so never suggest setting that switch.)
+   saves a draft and returns the click path — except card_expense_rd, whose save under
+   `draft_only: false` IS the submit, so never suggest setting that switch. A separate
+   `allow_card_er_save` param exists for `draft_only: true` to reach a real save that lands
+   at the drafter's own turn instead of a no-save preview, but it is currently always
+   refused — the location check it depends on has no committed live positive fixture yet
+   (plan v6.1). Don't suggest it either until that changes.)
 
 ## Safety Rules
 

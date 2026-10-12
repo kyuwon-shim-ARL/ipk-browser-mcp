@@ -28,7 +28,10 @@ export type AuditAction =
   /** opened a form */
   | "navigate" | "precedent"
   /** card_expense_rd: attachment kind/attestation review (blocks/warnings/flagged exceptions) */
-  | "attachment_review";
+  | "attachment_review"
+  /** card_expense_rd only: a save via allow_card_er_save that landed at (or past) the
+   *  drafter's own turn - never a submit to the next approver by itself. */
+  | "draft_save";
 
 export interface AuditEvent {
   ts: string;
@@ -111,7 +114,7 @@ export function toolDraftedDocIds(): Set<string> {
       if (!l) continue;
       try {
         const e = JSON.parse(l);
-        if (e.action === "submit" && e.docId) out.add(String(e.docId));
+        if ((e.action === "submit" || e.action === "draft_save") && e.docId) out.add(String(e.docId));
       } catch {
         // a torn line is not a document
       }

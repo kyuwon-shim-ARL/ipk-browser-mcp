@@ -1,0 +1,10 @@
+Captured 2026-10-12, read-only (ipk_navigate + ipk_get_content, no clicks), live groupware,
+document_list.php?type=appr - the "waiting for my approval" list. At capture time the
+account's own counter line read "Approval 0" and this list was empty - this fixture proves
+the type param, not a positive case (see the synthetic positive fixture in the same dir).
+
+Breadcrumb: "Approval >" (matches the "Approval" counter tab, as opposed to type=progress's
+"Approval > Progress" breadcrumb for "my own docs still moving through approval").
+
+Table body: "document not found." (0 rows) - the groupware's own empty-state text, not an
+error.

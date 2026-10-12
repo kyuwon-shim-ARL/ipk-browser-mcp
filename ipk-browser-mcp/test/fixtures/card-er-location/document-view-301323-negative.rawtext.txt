@@ -1,0 +1,10 @@
+Approval	( 1 )	( 2 )	( 4 )
+A Person in Charge	Team Head (R)	CEO
+	[ Sign ]	[ Sign ]
+Kyuwon Shim	Approver A	Approver B
+2026-10-08
+Cosigner	( 3 )
+Budget Holder
+[ Sign ]
+Approver A
+

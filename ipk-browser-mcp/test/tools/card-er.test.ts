@@ -566,3 +566,125 @@ describe("isMeetingAccount", () => {
     for (const c of ["410318", "", null, undefined]) expect(isMeetingAccount(c as any)).toBe(false);
   });
 });
+
+// ── allow_card_er_save + first_live_save (plan v6 P0-pre item 3/v6.1) ──────
+
+describe("card_expense_rd draft_only=true real-save gate", () => {
+  const prevAllowSubmit = process.env.IPK_ALLOW_SUBMIT;
+  const prevCardErSave = process.env.IPK_CARD_ER_SAVE;
+  const prevHome = process.env.HOME;
+  let tmpHome: string;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    delete process.env.IPK_ALLOW_SUBMIT; // draft_only stays true throughout this block
+    delete process.env.IPK_CARD_ER_SAVE;
+    tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "ipk-card-er-save-home-"));
+    process.env.HOME = tmpHome; // never write the real cache dir from a test
+  });
+  afterEach(() => {
+    if (prevAllowSubmit === undefined) delete process.env.IPK_ALLOW_SUBMIT; else process.env.IPK_ALLOW_SUBMIT = prevAllowSubmit;
+    if (prevCardErSave === undefined) delete process.env.IPK_CARD_ER_SAVE; else process.env.IPK_CARD_ER_SAVE = prevCardErSave;
+    if (prevHome === undefined) delete process.env.HOME; else process.env.HOME = prevHome;
+    fs.rmSync(tmpHome, { recursive: true, force: true });
+  });
+
+  it("first_live_save without allow_card_er_save -> refused, nothing saved", async () => {
+    const h = makeHarness(okRun());
+    const out = parse(await handleIpkSubmitForm(h.session, h.config, params({ first_live_save: true })));
+    expect(out.error).toBe(false); // no allow_card_er_save: ordinary preview, not a refusal
+    expect(out.data.mode).toBe("preview");
+    expect(h.page.waitForEvent).not.toHaveBeenCalled(); // never reached the real-submit machinery
+  });
+
+  it("allow_card_er_save alone (no first_live_save) -> CARD_ER_SAVE_NO_FIXTURE_YET, nothing saved", async () => {
+    const h = makeHarness(okRun());
+    const out = parse(await handleIpkSubmitForm(h.session, h.config, params({ allow_card_er_save: true })));
+    expect(out.error).toBe(true);
+    expect(out.code).toBe("CARD_ER_SAVE_NO_FIXTURE_YET");
+    expect(h.page.waitForEvent).not.toHaveBeenCalled();
+  });
+
+  it("IPK_CARD_ER_SAVE=0 refuses even with both flags set, nothing saved", async () => {
+    process.env.IPK_CARD_ER_SAVE = "0";
+    const h = makeHarness(okRun());
+    const out = parse(await handleIpkSubmitForm(h.session, h.config, params({ allow_card_er_save: true, first_live_save: true })));
+    expect(out.error).toBe(true);
+    expect(out.code).toBe("CARD_ER_SAVE_DISABLED");
+    expect(h.page.waitForEvent).not.toHaveBeenCalled();
+  });
+
+  /** Both flags set: the harness is wired so frame.evaluate's innerText-matching calls
+   *  return `documentViewText` before frame.goto("...type=appr") runs and `waitingListText`
+   *  after - mirroring the real call order (read document_view, then navigate, then read
+   *  the waiting list). doc_id is read from frame.url(), overridden per test. */
+  function harnessForRealSave(docId: string | null, documentViewText: string, waitingListIds: string[] | null) {
+    const h = makeHarness(okRun(), async () => makePopup());
+    h.session.getUserInfo = () => ({ name: "Kyuwon Shim" }); // matches the fixtures' drafter name
+    h.frame.url = vi.fn(() => docId ? `https://gw.ip-korea.org/Document/document_view.php?doc_id=${docId}` : "https://gw.ip-korea.org/Document/document_write.php");
+    let navigated = false;
+    h.page.goto = vi.fn(async (url: string) => { if (String(url).includes("type=appr")) navigated = true; return null; });
+    const baseEvaluate = h.frame.evaluate.getMockImplementation()!;
+    h.frame.evaluate = vi.fn(async (fn: any, arg?: any) => {
+      const src = String(fn);
+      if (src.includes("innerText")) return navigated ? "" : documentViewText;
+      if (src.includes("a[href*=")) {
+        if (waitingListIds === null) throw new Error("list unreadable");
+        return waitingListIds;
+      }
+      return baseEvaluate(fn, arg);
+    });
+    return h;
+  }
+
+  const SYNTHETIC_POSITIVE_TEXT = fs.readFileSync(
+    path.join(__dirname, "..", "fixtures", "card-er-location", "document-view-synthetic-positive.rawtext.txt"), "utf8"
+  );
+  const NEGATIVE_TEXT = fs.readFileSync(
+    path.join(__dirname, "..", "fixtures", "card-er-location", "document-view-301323-negative.rawtext.txt"), "utf8"
+  );
+
+  it("[SYNTHETIC fixture] AT_DRAFTER_TURN: doc in the waiting list + own action pending -> success, 'press [Approve]' wording, action draft_save", async () => {
+    const h = harnessForRealSave("301999", SYNTHETIC_POSITIVE_TEXT, ["301999"]);
+    const out = parse(await handleIpkSubmitForm(h.session, h.config, params({ allow_card_er_save: true, first_live_save: true })));
+    expect(out.error).toBe(false);
+    expect(out.data.outcome).toBe("AT_DRAFTER_TURN");
+    expect(out.data.message).toMatch(/press \[Approve\]/);
+    expect(out.data.docId).toBe("301999");
+    // cache written outside the repo, under the overridden HOME
+    const cacheDir = path.join(tmpHome, ".cache", "ipk-mcp", "card-er-location", "301999");
+    expect(fs.existsSync(path.join(cacheDir, "document_view.rawtext.txt"))).toBe(true);
+    expect(fs.existsSync(path.join(cacheDir, "waiting_list.rawtext.txt"))).toBe(true);
+    expect(fs.readFileSync(path.join(cacheDir, "document_view.rawtext.txt"), "utf8")).toBe(SYNTHETIC_POSITIVE_TEXT);
+  });
+
+  it("[REAL fixture: 301323] DRAFT_WENT_TO_APPROVAL: not in waiting list + past-drafter approval line -> error, repossess steps", async () => {
+    const h = harnessForRealSave("301323", NEGATIVE_TEXT, []);
+    const out = parse(await handleIpkSubmitForm(h.session, h.config, params({ allow_card_er_save: true, first_live_save: true })));
+    expect(out.error).toBe(true);
+    expect(out.code).toBe("DRAFT_WENT_TO_APPROVAL");
+    expect(out.message).toMatch(/Document Repossess/);
+  });
+
+  it("unreadable waiting list -> DRAFT_NOT_CONFIRMED, never a silent success", async () => {
+    const h = harnessForRealSave("301999", SYNTHETIC_POSITIVE_TEXT, null);
+    const out = parse(await handleIpkSubmitForm(h.session, h.config, params({ allow_card_er_save: true, first_live_save: true })));
+    expect(out.error).toBe(true);
+    expect(out.code).toBe("DRAFT_NOT_CONFIRMED");
+  });
+
+  it("no doc_id in the final URL -> DRAFT_NOT_CONFIRMED without ever reading the location", async () => {
+    const h = harnessForRealSave(null, SYNTHETIC_POSITIVE_TEXT, ["301999"]);
+    const out = parse(await handleIpkSubmitForm(h.session, h.config, params({ allow_card_er_save: true, first_live_save: true })));
+    expect(out.error).toBe(true);
+    expect(out.code).toBe("DRAFT_NOT_CONFIRMED");
+    expect(h.page.goto).not.toHaveBeenCalledWith(expect.stringContaining("type=appr"));
+  });
+
+  it("the real-save path does call the request branch's popup/submit machinery (unlike the ordinary preview)", async () => {
+    const h = harnessForRealSave("301999", SYNTHETIC_POSITIVE_TEXT, ["301999"]);
+    await handleIpkSubmitForm(h.session, h.config, params({ allow_card_er_save: true, first_live_save: true }));
+    expect(h.page.waitForEvent).toHaveBeenCalledWith("popup", expect.objectContaining({ timeout: 25000 }));
+    expect(h.evaluated).toContain("runCheckFormRequest");
+  });
+});
