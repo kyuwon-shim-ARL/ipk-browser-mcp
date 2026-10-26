@@ -131,6 +131,35 @@ export function parseTotalAmount(bodyText: string): number | null {
   return m ? Number(m[1].replace(/,/g, "")) : null;
 }
 
+export interface CardErItemRow {
+  item_name: string;
+  qty: number;
+  excl: number;
+  vat: number;
+  total: number;
+}
+
+/**
+ * The card ER item table rows: "<account>\t<description>\t<qty>\t<excl. VAT>\t<VAT>\t<total>\t<P/C>..."
+ * (doc 302242, 2026-10-26). A row is recognised by four numeric cells followed by the P/C
+ * cell ("N/N"); the cell before them is the description.
+ */
+export function parseCardErItemRows(bodyText: string): CardErItemRow[] {
+  const num = (c: string) => /^\d[\d,]*$/.test(c.trim());
+  const val = (c: string) => Number(c.trim().replace(/,/g, ""));
+  const out: CardErItemRow[] = [];
+  for (const line of bodyText.split(/\r?\n/)) {
+    const cells = line.split("\t");
+    for (let i = 1; i + 5 < cells.length; i++) {
+      if ([1, 2, 3, 4].every((k) => num(cells[i + k])) && /^[YN]\/[YN]$/.test(cells[i + 5].trim())) {
+        out.push({ item_name: cells[i].trim(), qty: val(cells[i + 1]), excl: val(cells[i + 2]), vat: val(cells[i + 3]), total: val(cells[i + 4]) });
+        break;
+      }
+    }
+  }
+  return out;
+}
+
 /** "Organizer\t  [Domestic] AI4Sci Korea 2026 Organizing Committee (...)" -> the name
  *  after the optional "[Domestic]"/"[Overseas]" tag. */
 export function parseOrganizer(bodyText: string): string | null {

@@ -1,77 +1,41 @@
+/**
+ * Shim: MCP server, stdio transport, config and the SessionManager (the logged-in
+ * browser). Tool handlers live in dist/handlers.mjs (src/handlers.ts), which is
+ * re-imported when it changes, so `npm run build` takes effect on the next tool call
+ * without a /mcp reconnect while the browser session survives. Do not import
+ * src/tools/** here - anything imported here is frozen until reconnect.
+ */
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { z } from "zod";
+import { fileURLToPath } from "url";
 
 import { loadConfig } from "./types.js";
 import { SessionManager } from "./browser/session.js";
-
-import { ipkLoginSchema, ipkLoginDescription, handleIpkLogin } from "./tools/ipk-login.js";
-import { ipkSubmitFormSchema, ipkSubmitFormDescription, handleIpkSubmitForm } from "./tools/ipk-submit.js";
-import { ipkFetchApprovalsSchema, ipkFetchApprovalsDescription, handleIpkFetchApprovals } from "./tools/ipk-fetch.js";
-import { ipkNavigateSchema, ipkNavigateDescription, handleIpkNavigate } from "./tools/ipk-navigate.js";
-import { ipkGetContentSchema, ipkGetContentDescription, handleIpkGetContent } from "./tools/ipk-content.js";
-import { screenshotSchema, screenshotDescription, handleScreenshot, cleanupExpiredScreenshots } from "./tools/screenshot.js";
-import { ipkInspectFormSchema, ipkInspectFormDescription, handleIpkInspectForm } from "./tools/ipk-inspect.js";
-import { ipkProfileInitSchema, ipkProfileInitDescription, handleIpkProfileInit } from "./tools/ipk-profile.js";
-import { ipkReviseAttachmentsSchema, ipkReviseAttachmentsDescription, handleIpkReviseAttachments } from "./tools/ipk-revise-attachments.js";
+import { HandlerReloader, dispatchToolCall, toolFingerprint, type Registration } from "./hot-reload.js";
 
 declare const __PACKAGE_VERSION__: string;
 
 const config = loadConfig();
 const sessionManager = new SessionManager(config);
+const ctx = { sessionManager, config };
 
-// Clean up old screenshots on startup
-cleanupExpiredScreenshots(config);
+const reloader = new HandlerReloader(fileURLToPath(new URL("./handlers.mjs", import.meta.url)));
+const initial = await reloader.load();
+initial.startup?.(ctx);
 
 const server = new McpServer({
   name: "ipk-browser",
   version: __PACKAGE_VERSION__,
 });
 
-// Tool 1: ipk_login
-server.tool("ipk_login", ipkLoginDescription, ipkLoginSchema, async (params) => {
-  return handleIpkLogin(sessionManager, params);
-});
-
-// Tool 2: ipk_submit_form
-server.tool("ipk_submit_form", ipkSubmitFormDescription, ipkSubmitFormSchema, async (params) => {
-  return handleIpkSubmitForm(sessionManager, config, params as Record<string, any>);
-});
-
-// Tool 3: ipk_fetch_approvals
-server.tool("ipk_fetch_approvals", ipkFetchApprovalsDescription, ipkFetchApprovalsSchema, async (params) => {
-  return handleIpkFetchApprovals(sessionManager, config, params);
-});
-
-// Tool 4: ipk_navigate
-server.tool("ipk_navigate", ipkNavigateDescription, ipkNavigateSchema, async (params) => {
-  return handleIpkNavigate(sessionManager, config, params);
-});
-
-// Tool 5: ipk_get_content
-server.tool("ipk_get_content", ipkGetContentDescription, ipkGetContentSchema, async (params) => {
-  return handleIpkGetContent(sessionManager, config, params);
-});
-
-// Tool 6: screenshot
-server.tool("screenshot", screenshotDescription, screenshotSchema, async (params) => {
-  return handleScreenshot(sessionManager, config, params);
-});
-
-// Tool 7: ipk_inspect_form
-server.tool("ipk_inspect_form", ipkInspectFormDescription, ipkInspectFormSchema, async (params) => {
-  return handleIpkInspectForm(sessionManager, config, params as { form_code: string; compare_template?: boolean });
-});
-
-// Tool 8: ipk_profile_init
-server.tool("ipk_profile_init", ipkProfileInitDescription, ipkProfileInitSchema, async (params) => {
-  return handleIpkProfileInit(sessionManager, config, params as Record<string, unknown>);
-});
-
-// Tool 9: ipk_revise_attachments
-server.tool("ipk_revise_attachments", ipkReviseAttachmentsDescription, ipkReviseAttachmentsSchema, async (params) => {
-  return handleIpkReviseAttachments(sessionManager, config, params as Record<string, any>);
-});
+for (const def of initial.tools) {
+  const fp = toolFingerprint(def);
+  const reg: Registration = { connectFp: fp, currentFp: fp };
+  const registered = server.tool(def.name, def.description, def.schema as any, async (params: unknown) =>
+    dispatchToolCall(def.name, params, reloader, ctx, reg)
+  );
+  reg.update = (u) => registered.update({ description: u.description, paramsSchema: u.paramsSchema as any });
+}
 
 // Start server
 const transport = new StdioServerTransport();

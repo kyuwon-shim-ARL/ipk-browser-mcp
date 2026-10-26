@@ -2,3 +2,4 @@ node_modules/
 # dist/ is committed for plugin distribution
 *.js.map
 .credentials
+dist/.handlers.*.tmp.mjs

@@ -10,6 +10,7 @@ import {
   parseOrganizer,
   parseFileAttachmentList,
   parseTakeoverDepartments,
+  parseCardErItemRows,
 } from "../../src/forms/document-view.js";
 
 // Real document_view.php?doc_id=301306 (AppFrm-021, 2026-10-12, still in revision - returned
@@ -93,5 +94,31 @@ describe("parseAccountCode / parseEventDates / parseTotalAmount / parseOrganizer
     expect(parseEventDates("nothing here")).toBeNull();
     expect(parseTotalAmount("nothing here")).toBeNull();
     expect(parseOrganizer("nothing here")).toBeNull();
+  });
+});
+
+describe("parseCardErItemRows (document_view item table, doc 302242 2026-10-26)", () => {
+  const text = [
+    "No\tDate of",
+    "Invoice\tCate No\tAccount Code\tDescription\tQty\tAmount",
+    "excl. VAT\tVAT\tTotal Amount\tP/C\tControl No\tPayee/Vendor\tPGM",
+    "1\t2026-10-19\tISBN978-0123695208\t[410318]",
+    "IT Software (IT Subscription)\tclaude ai_max\t1\t247,394\t0\t272,133\tN/N\t-01\tANTHROPIC* CLAUDE SUB\t-",
+    "Total\t",
+    "272,133 KRW",
+  ].join("\n");
+  it("reads description, qty, excl. VAT, VAT and total of each row", () => {
+    expect(parseCardErItemRows(text)).toEqual([
+      { item_name: "claude ai_max", qty: 1, excl: 247394, vat: 0, total: 272133 },
+    ]);
+  });
+  it("a description with parentheses and digits is kept whole", () => {
+    const t = "IT Software (IT Subscription)\tRunPod GPU Compute Credits (2026-10-16)\t1\t249,307\t0\t274,237\tN/N\t-01\tRUNPOD.IO\t-";
+    expect(parseCardErItemRows(t)).toEqual([
+      { item_name: "RunPod GPU Compute Credits (2026-10-16)", qty: 1, excl: 249307, vat: 0, total: 274237 },
+    ]);
+  });
+  it("no item table is []", () => {
+    expect(parseCardErItemRows("Approval > Drafts\nNotes\tx")).toEqual([]);
   });
 });
