@@ -145,3 +145,16 @@ def test_shipped_rulebooks_are_valid():
     files = [f for f in os.listdir(d) if f.endswith(".json")] if os.path.isdir(d) else []
     for f in files:
         assert validate_rulebook(load_rulebook(f[:-5])) == [], f
+
+
+def test_a_conditional_can_require_a_pattern_instead_of_a_fixed_value():
+    """RunPod's item name carries the charge date (own precedent 300654), so it is a pattern, not one value."""
+    book = json.loads(json.dumps(BOOK))
+    book["fields"]["item"] = {"label": "Item", "scope": "org", "visibility": "public", "dept": "ARL", "checks": [{"type": "max_len", "max": 21}],
+                              "why": "colleague p75", "evidence": ["1"]}
+    book["conditional"].append({"when": {"field": "subject", "regex": "(?i)runpod"},
+                                "then": {"field": "item", "regex": r"^RunPod GPU Compute Credits \(\d{4}-\d{2}-\d{2}\)$"},
+                                "visibility": "public", "why": "own precedent", "evidence": ["300654"]})
+    assert validate_rulebook(book) == []
+    assert check_rules(book, dict(GOOD, item="RunPod GPU Compute Credits (2026-10-16)")) == []
+    assert check_rules(book, dict(GOOD, item="RunPod credits"))

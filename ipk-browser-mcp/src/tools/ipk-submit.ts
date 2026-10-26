@@ -13,7 +13,7 @@ import { checkWorkingRows, type WorkingRow } from "../forms/working.js";
 import { findOwnApprovedTravelRequest, buildDomesticReportFields, readReportContentFields, reportIsEmpty, REPORT_CONTENT_FIELDS } from "../forms/travel-report.js";
 import { fetchTravelRequestPrecedents, readDraftText, diffAgainstPractice, type PrecedentSet } from "../precedent/fetch.js";
 import { parseTravelRequestDoc } from "../precedent/travel-request-doc.js";
-import { normalizeCardSubject, isPreviewBlockedRequest, summarizeCapturedForm, isMeetingAccount, budgetPopupRefusals } from "../forms/card-er.js";
+import { normalizeCardSubject, isPreviewBlockedRequest, summarizeCapturedForm, isMeetingAccount, isOvertimeAccount, isOverseasItSubscription, budgetPopupRefusals } from "../forms/card-er.js";
 import { cardErAuthorizationPath, consumeCardErDraftAuthorization, type CardErDraftAuthorization } from "../forms/card-er-authorization.js";
 import { detectSubmittedOnDocumentView } from "../browser/card-er-location.js";
 import { confirmDraftResult, listHasDoc } from "../browser/draft-guard.js";
@@ -483,6 +483,46 @@ export async function checkFieldRulesAgainstForm(
 }
 
 /**
+ * The non-refusing counterpart to checkFieldRulesAgainstForm: same rulebook load,
+ * serialization and checkFieldRules call, but returns the raw { blocks, warnings }
+ * instead of collapsing a block into a refusal (or a clean result into null). Used by
+ * buildDryRunPreview and by card_expense_rd's dry_run path, which cannot use
+ * buildDryRunPreview itself (its own preview, previewCardExpenseRD, is what unloads the
+ * page under the network cut - see that function's "card_expense_rd has no draft state"
+ * note). Returns null when no rulebook ships for this form yet, same as
+ * checkFieldRulesAgainstForm / loadPublicRulebook.
+ */
+async function checkFieldRulesRaw(frame: any, formType: string): Promise<{ blocks: unknown[]; warnings: unknown[] } | null> {
+  const pub = loadPublicRulebook(formType);
+  if (!pub) return null;
+  const book = mergeRulebook(pub, loadFieldRulesOptions(formType).privatePack);
+  const knownNames = Object.keys(book.fields);
+  const serialized = (await serializeFormFields(frame, knownNames)) ?? {};
+  if (Object.keys(serialized).length === 0) {
+    // Mirror checkFieldRulesAgainstForm's fail-closed refusal: an unreadable form is
+    // exactly the case this gate exists for, so dry_run must surface it too, not report
+    // a clean field_rule_result for a form it never actually read.
+    return { blocks: [{ field: "(form)", scope: "form", message: "form fields unreadable" }], warnings: [] };
+  }
+
+  const { profile } = loadFieldRulesOptions(formType);
+  const env = {
+    IPK_GROUP_LEADER: process.env.IPK_GROUP_LEADER,
+    IPK_SUBSTITUTE_NAME: process.env.IPK_SUBSTITUTE_NAME,
+    IPK_EMERGENCY_ADDRESS: process.env.IPK_EMERGENCY_ADDRESS,
+    IPK_EMERGENCY_TELEPHONE: process.env.IPK_EMERGENCY_TELEPHONE,
+  };
+  try {
+    return checkFieldRules(book, serialized, { profile, env, unknownFields: "warn" });
+  } catch (e) {
+    if (e instanceof FieldRulesUnavailable) {
+      return { blocks: [{ field: "(form)", scope: "form", message: e.message }], warnings: [] };
+    }
+    throw e;
+  }
+}
+
+/**
  * dry_run: runs the full pipeline (param validation, org-policy, navigation, fill,
  * field-rules on the serialized form - everything checkFieldRulesAgainstForm would run)
  * and STOPS here, before any save/draft/submit call. Called from the one chokepoint in
@@ -504,25 +544,7 @@ async function buildDryRunPreview(page: any, frame: any, config: Config, formTyp
   const knownNames = book ? Object.keys(book.fields) : [];
   const serialized = (await serializeFormFields(frame, knownNames)) ?? {};
 
-  let fieldRuleResult: { blocks: unknown[]; warnings: unknown[] } = { blocks: [], warnings: [] };
-  if (book) {
-    const { profile } = loadFieldRulesOptions(formType);
-    const env = {
-      IPK_GROUP_LEADER: process.env.IPK_GROUP_LEADER,
-      IPK_SUBSTITUTE_NAME: process.env.IPK_SUBSTITUTE_NAME,
-      IPK_EMERGENCY_ADDRESS: process.env.IPK_EMERGENCY_ADDRESS,
-      IPK_EMERGENCY_TELEPHONE: process.env.IPK_EMERGENCY_TELEPHONE,
-    };
-    try {
-      fieldRuleResult = checkFieldRules(book, serialized, { profile, env, unknownFields: "warn" });
-    } catch (e) {
-      if (e instanceof FieldRulesUnavailable) {
-        fieldRuleResult = { blocks: [{ field: "(form)", scope: "form", message: e.message }], warnings: [] };
-      } else {
-        throw e;
-      }
-    }
-  }
+  const fieldRuleResult: { blocks: unknown[]; warnings: unknown[] } = (await checkFieldRulesRaw(frame, formType)) ?? { blocks: [], warnings: [] };
 
   let screenshot: string | undefined;
   try {
@@ -874,6 +896,9 @@ export const ipkSubmitFormSchema = {
   purpose_minutes: z.string().optional().describe("Meeting purpose and minutes"),
   meeting_begin: z.string().optional().describe("card_expense_rd meeting accounts (e.g. Team Activities 412107): meeting start, 'YYYY-MM-DD HH:MM'. Required with every meeting account."),
   meeting_end: z.string().optional().describe("card_expense_rd meeting accounts (e.g. Team Activities 412107): meeting end, 'YYYY-MM-DD HH:MM'. Required with every meeting account."),
+  overtime_begin: z.string().optional().describe("card_expense_rd Overtime Meals account (412103): overtime start, 'YYYY-MM-DD HH:MM'. Required with the 412103 account."),
+  overtime_end: z.string().optional().describe("card_expense_rd Overtime Meals account (412103): overtime end, 'YYYY-MM-DD HH:MM'. Required with the 412103 account."),
+  overtime_purpose: z.string().optional().describe("card_expense_rd Overtime Meals account (412103): purpose of the overtime (English). Required with the 412103 account."),
 
   // Travel settlement fields (AppFrm-054)
   province: z.string().optional().describe("Province select value for AJAX cascade"),
@@ -2540,7 +2565,9 @@ async function submitCardExpenseRD(
       if (items[1]) items[1].value = args.itemName;
       if (qtys[1] && !qtys[1].value) qtys[1].value = "1";
       if (sellers[1]) sellers[1].value = args.sellerEn;
-      if (itemDescs[1]) itemDescs[1].value = args.itemName;
+      // Hidden Cate No: the account picker (pr_account_sel.php Check_Item) leaves it ''
+      // for every account and the view prints that as 'none' - never copy item_name here.
+      if (itemDescs[1]) itemDescs[1].value = "";
       const pr = document.querySelectorAll('textarea[name="p_reason"]') as NodeListOf<HTMLTextAreaElement>;
       pr.forEach((t) => { t.value = args.pReason; });
 
@@ -2675,6 +2702,53 @@ async function submitCardExpenseRD(
     });
   }
 
+  // Step 2b-ii: Do what the account picker's Check_Item does for the Overtime Meals
+  // account (412103) - show #overtime_info and fill it, as the time/member popups would.
+  // Attendees default to the logged-in writer (precedent doc 297084 carries just the
+  // writer's own name); item_name is left as-is for 412103 (unlike meeting accounts).
+  if (isOvertimeAccount(filedAccount)) {
+    const userInfo = _sessionManager.getUserInfo();
+    const ovMember = userInfo?.name || "";
+    const ovMemberId = userInfo?.username || "";
+    await frame.evaluate(
+      (args: { begin: string; end: string; purpose: string; member: string; memberId: string }) => {
+        const info = document.getElementById("overtime_info") as HTMLElement | null;
+        if (info) info.style.display = "";
+        const begin = document.getElementById("overtime_start_day") as HTMLInputElement | null;
+        if (begin) begin.value = args.begin;
+        const end = document.getElementById("overtime_end_day") as HTMLInputElement | null;
+        if (end) end.value = args.end;
+        const member = document.getElementById("ov_member") as HTMLInputElement | null;
+        if (member) member.value = args.member;
+        const memberId = document.getElementById("ov_member_id") as HTMLInputElement | null;
+        if (memberId) memberId.value = args.memberId;
+        const purpose = document.getElementById("ov_purpose") as HTMLInputElement | null;
+        if (purpose) purpose.value = args.purpose;
+      },
+      {
+        begin: params.overtime_begin || "",
+        end: params.overtime_end || "",
+        purpose: params.overtime_purpose || "",
+        member: ovMember,
+        memberId: ovMemberId,
+      }
+    );
+  }
+
+  // Step 2b-iii: the form splits total/11 into VAT on every card row; overseas IT
+  // subscriptions carry none (rules/public/AppFrm-021.json conditional, precedent 300654).
+  if (isOverseasItSubscription(itemName)) {
+    // Amount excl. VAT is its own field (item_amount_ral1[]) and keeps the form's 10/11
+    // split unless set too: drafts 302242-302244 (2026-10-26) showed 247,394 / 0 / 272,133.
+    await frame.evaluate(() => {
+      const vat = document.getElementsByName("item_amount_vat[]")[1] as HTMLInputElement | undefined;
+      const total = document.getElementsByName("item_amount[]")[1] as HTMLInputElement | undefined;
+      const excl = document.getElementsByName("item_amount_ral1[]")[1] as HTMLInputElement | undefined;
+      if (vat) vat.value = "0";
+      if (excl && total) excl.value = total.value;
+    });
+  }
+
   // Step 2c: Attachment kind/attestation review (P1). Runs on the RESOLVED account
   // (filedAccount, just set above) so it sees what the document will actually carry,
   // and before any upload - dry_run reaches this too, since dry_run returns later, at the
@@ -2739,13 +2813,26 @@ async function submitCardExpenseRD(
 
   // dry_run: AppFrm-021 has no real draft state, so its own preview IS the no-save path
   // ("card_expense_rd's existing preview can be the same path") - route there directly,
-  // before the field-rules refusal below, since dry_run never refuses on a field-rule
-  // block (previewCardExpenseRD's network-cut guarantee is the same one, or stronger,
-  // than buildDryRunPreview's elsewhere).
+  // since dry_run never refuses on a field-rule block (previewCardExpenseRD's
+  // network-cut guarantee is the same one, or stronger, than buildDryRunPreview's
+  // elsewhere). The field-rules check itself still has to run BEFORE previewCardExpenseRD
+  // is called: that function unloads the form to about:blank once it's done (see its own
+  // comment), so the frame is gone by the time this function would otherwise reach the
+  // refusal check below. Without this, a dry_run looked clean while the same values were
+  // blocked on the very next (non-dry_run) call - 2026-10-23, item_desc[] 'Kyuwon Shim'
+  // != 'none' only surfaced after dry_run.
   if (params.dry_run) {
+    const dryRunFieldRuleResult = (await checkFieldRulesRaw(frame, "card_expense_rd")) ?? { blocks: [], warnings: [] };
     const preview = await previewCardExpenseRD(page, frame, config, { subject, effectiveBudgetCode, attachResult, fileCount: filePaths.length });
     const parsed = JSON.parse(preview.content[0].text);
-    if (parsed.data) parsed.data.dry_run = true;
+    if (parsed.data) {
+      parsed.data.dry_run = true;
+      parsed.data.field_rule_result = dryRunFieldRuleResult;
+    } else {
+      // previewCardExpenseRD errored (no `data`) - still surface the field-rule check
+      // that already ran, so a dry_run error result doesn't silently drop it.
+      parsed.field_rule_result = dryRunFieldRuleResult;
+    }
     return textResult(parsed);
   }
 

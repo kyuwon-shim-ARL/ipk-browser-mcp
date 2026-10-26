@@ -12,7 +12,7 @@
  * criterion. The submit handler runs it before touching the form; the benchmark
  * scorer applies the same standard to the audit trail (bench/score.mjs, M6).
  */
-import { isMeetingAccount } from "../forms/card-er.js";
+import { isMeetingAccount, isOvertimeAccount } from "../forms/card-er.js";
 import { reviewAttachments } from "./attachment-review.js";
 
 export interface PolicyViolation {
@@ -67,6 +67,7 @@ export const FREE_TEXT_PARAMS = [
   "conference_or_journal",
   "country",
   "conference_name",
+  "overtime_purpose",
 ] as const;
 
 /** Vendors billed from abroad: no Korean VAT is charged, so none may be split out. */
@@ -77,6 +78,12 @@ const VAT_SPLITTING_FORMS = new Set(["expense", "card_expense"]);
 
 /** Labels of the meeting accounts, for when only account_code_label is given. */
 const MEETING_ACCOUNT_LABEL = /team activit|meeting/i;
+
+/** Label of the Overtime Meals account, for when only account_code_label is given. */
+const OVERTIME_ACCOUNT_LABEL = /overtime meal/i;
+
+/** 'YYYY-MM-DD HH:MM', as cal_select.php's time picker writes it. */
+const OVERTIME_TIME_RE = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/;
 
 /** A destination naming Seoul, in English or Hangul - matched against travel_request's
  *  free-text destination param (feedback_seoul_is_outside_metro.md). */
@@ -206,6 +213,30 @@ export const ORG_POLICY: PolicyRule[] = [
     },
   },
   {
+    id: "OVERTIME_MEAL_FIELDS_REQUIRED",
+    standard: "A card ER on the Overtime Meals account (412103) records the overtime time range and purpose - the page's own Check_Form validation refuses a 412103 row without them ('Please insert Overtime info'), and precedent doc 297084 carries Date/Time and Purpose from the overtime application.",
+    passes: "When card_expense_rd is filed with item_account_code 412103 (isOvertimeAccount), or with no code and an Overtime Meals account_code_label, overtime_begin and overtime_end are both non-empty and match 'YYYY-MM-DD HH:MM', overtime_begin is before overtime_end, and overtime_purpose is non-empty.",
+    check(params) {
+      if (String(params.form_type) !== "card_expense_rd") return null;
+      const byCode = isOvertimeAccount(params.item_account_code);
+      const byLabel = !params.item_account_code && OVERTIME_ACCOUNT_LABEL.test(String(params.account_code_label ?? ""));
+      if (!byCode && !byLabel) return null;
+      const fields: string[] = [];
+      if (typeof params.overtime_begin !== "string" || !OVERTIME_TIME_RE.test(params.overtime_begin)) fields.push("overtime_begin");
+      if (typeof params.overtime_end !== "string" || !OVERTIME_TIME_RE.test(params.overtime_end)) fields.push("overtime_end");
+      if (typeof params.overtime_purpose !== "string" || params.overtime_purpose.trim() === "") fields.push("overtime_purpose");
+      if (fields.length === 0 && params.overtime_begin >= params.overtime_end) fields.push("overtime_begin/overtime_end order");
+      if (fields.length === 0) return null;
+      return {
+        rule: "OVERTIME_MEAL_FIELDS_REQUIRED",
+        fields,
+        message:
+          `Overtime Meals account ${params.item_account_code || params.account_code_label} requires ${fields.join(", ")}. Provide overtime_begin and ` +
+          `overtime_end as 'YYYY-MM-DD HH:MM' (begin before end) and overtime_purpose. Nothing was written to the form.`,
+      };
+    },
+  },
+  {
     id: "OVERSEAS_IT_VAT_ZERO",
     standard: "Overseas IT subscriptions (RunPod, OpenAI, Google Cloud, ...) carry no Korean VAT: VAT=0 and the ex-VAT amount equals the total. Splitting VAT out double-taxes the item and the document is sent back.",
     passes: "An expense whose vendor or description names an overseas IT vendor is not filed through a form that derives VAT as amount/1.1.",
@@ -251,7 +282,11 @@ export const ORG_POLICY: PolicyRule[] = [
       const vendor = vendorAttachmentKey(params);
       if (!vendor) return null;
       const kinds = VENDOR_ATTACHMENT_REQUIREMENTS[vendor];
-      const paths: string[] = [params.attachment_path, ...(Array.isArray(params.attachment_paths) ? params.attachment_paths : [])].filter(Boolean);
+      const paths: string[] = [
+        params.attachment_path,
+        ...(Array.isArray(params.attachment_paths) ? params.attachment_paths : []),
+        ...(Array.isArray(params.attachments) ? params.attachments.map((a: { path?: string }) => a?.path) : []),
+      ].filter(Boolean);
       const missing = kinds.filter((k) => !paths.some((p) => k.match.test(String(p))));
       if (missing.length === 0) return null;
       return {

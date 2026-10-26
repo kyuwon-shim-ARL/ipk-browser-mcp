@@ -115,6 +115,9 @@ def check_rules(book: dict, draft: dict[str, str]) -> list[str]:
         w, t = c["when"], c["then"]
         if t["field"] in draft:
             got = str(draft[t["field"]])
-            if t.get("form_values", {}).get(got, got) != t["value"]:
+            if "regex" in t:  # a pattern, for a value that varies per case (e.g. a date in the item name)
+                if not re.search(t["regex"], got):
+                    out.append(f"{t['field']}: must match /{t['regex']}/ when {w['field']} matches /{w['regex']}/ - {c.get('why', '')}")
+            elif t.get("form_values", {}).get(got, got) != t["value"]:
                 out.append(f"{t['field']}: must be '{t['value']}' when {w['field']} matches /{w['regex']}/ - {c.get('why', '')}")
     return out

@@ -662,6 +662,22 @@
     "292927"
    ],
    "visibility": "public"
+  },
+  {
+   "when": {
+    "field": "item_name[]",
+    "regex": "(?i)runpod"
+   },
+   "then": {
+    "field": "item_name[]",
+    "regex": "^RunPod GPU Compute Credits \\(\\d{4}-\\d{2}-\\d{2}\\)$"
+   },
+   "why": "The RunPod item name carries the charge date (user's own approved RunPod ERs; skill ipk-runpod-er), which exceeds the colleague p75 length.",
+   "evidence": [
+    "300654",
+    "memory:feedback_runpod_er_attachments.md"
+   ],
+   "visibility": "public"
   }
  ],
  "ignore": [

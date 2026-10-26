@@ -88,7 +88,10 @@
       "Other Public Transporation",
       "Own Vehicle - Gasoline",
       "Own Vehicle - Diesel"
-     ]
+     ],
+     "form_values": {
+      "03": "Other Public Transporation"
+     }
     }
    ],
    "why": "Only these three transport categories appear in 30 approved docs (the option label is spelled 'Transporation'); which one is per trip (Seoul: 9 own vehicle, 7 public among colleagues). Options load by cascade, so pass the selected option's shown text (or the code for budget_code), not its internal value.",
@@ -339,11 +342,11 @@
    "scope": "org",
    "checks": [
     {
-     "type": "fixed",
-     "value": "Domestic Business Travel[410201]"
+     "type": "pattern",
+     "regex": "^(410201\\|\\d+|Domestic Business Travel\\[410201\\])$"
     }
    ],
-   "why": "Every one of the 30 docs, across all pots and writers, charges account 410201 Domestic Business Travel. Options load by cascade, so pass the selected option's shown text (or the code for budget_code), not its internal value.",
+   "why": "Every one of the 30 docs, across all pots and writers, charges account 410201 Domestic Business Travel. Options load by cascade, so pass the selected option's shown text (or the code for budget_code), not its internal value. The DOM value is '410201|<budget seq>' (e.g. '410201|9' on NN2602-0002, 2026-10-26 dry run); the label is what the view shows.",
    "evidence": [
     "300868",
     "300497",
@@ -420,7 +423,12 @@
    },
    "then": {
     "field": "purpose_type",
-    "value": "Simple visit to vendor & etc"
+    "value": "Simple visit to vendor & etc",
+    "form_values": {
+     "1": "Participation in the conference/seminar",
+     "5": "Simple visit to vendor & etc",
+     "3": "Technical meeting"
+    }
    },
    "why": "Sampling trips are 'Simple visit to vendor & etc' on all 5 docs (own and colleague).",
    "evidence": [
@@ -439,7 +447,12 @@
    },
    "then": {
     "field": "purpose_type",
-    "value": "Participation in the conference/seminar"
+    "value": "Participation in the conference/seminar",
+    "form_values": {
+     "1": "Participation in the conference/seminar",
+     "5": "Simple visit to vendor & etc",
+     "3": "Technical meeting"
+    }
    },
    "why": "Colleagues file every symposium/conference/seminar/workshop as participation (11 of 11); the user's 296021 (NIH Weekly Conference) used 'Simple visit', which diverges from org practice.",
    "evidence": [

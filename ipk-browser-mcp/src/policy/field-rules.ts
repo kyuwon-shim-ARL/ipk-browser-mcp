@@ -49,7 +49,7 @@ export interface RuleField {
 
 export interface Conditional {
   when: { field: string; regex: string };
-  then: { field: string; value: string; form_values?: Record<string, string> };
+  then: { field: string; value?: string; regex?: string; form_values?: Record<string, string> };
   why?: string;
   evidence?: string[];
   visibility?: "public" | "private" | "local";
@@ -323,12 +323,17 @@ export function checkFieldRules(book: Rulebook, draft: Record<string, unknown>, 
   for (const c of matched) {
     if (c.then.field in draft) {
       const got = toValues(draft[c.then.field]).filter((g) => g !== "");
-      const mismatched = got.length > 0 && got.some((g) => (c.then.form_values?.[g] ?? g) !== c.then.value);
+      // then.regex: a pattern, for a value that varies per case (e.g. a date in the item name).
+      const pattern = c.then.regex !== undefined ? toRegExp(c.then.regex) : null;
+      const mismatched = got.length > 0 && got.some((g) =>
+        pattern ? !pattern.test(g) : (c.then.form_values?.[g] ?? g) !== c.then.value
+      );
       if (mismatched) {
+        const want = pattern ? `match /${c.then.regex}/` : `be '${c.then.value}'`;
         blocks.push({
           field: c.then.field,
           scope: fields[c.then.field]?.scope ?? "org",
-          message: `${c.then.field}: must be '${c.then.value}' when ${c.when.field} matches /${c.when.regex}/${c.why ? ` - ${c.why}` : ""}`,
+          message: `${c.then.field}: must ${want} when ${c.when.field} matches /${c.when.regex}/${c.why ? ` - ${c.why}` : ""}`,
         });
       }
     }

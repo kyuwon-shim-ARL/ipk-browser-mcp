@@ -167,3 +167,45 @@ describe("checkFieldRules - public-only rulebook with a profile (B2 case b, B4 s
     expect(unconfigured.warnings.some((v) => v.field === "approver")).toBe(true);
   });
 });
+
+describe("AppFrm-021 item_desc[] (Cate No) - the shipped public rulebook", () => {
+  // pr_account_sel.php Check_Item sets item_desc[] to '' for every account; the document
+  // view prints an empty Cate No as 'none'. The form value to accept is therefore ''.
+  const book021 = JSON.parse(
+    readFileSync(join(__dirname, "..", "..", "..", "rules", "public", "AppFrm-021.json"), "utf-8"),
+  ) as Rulebook;
+
+  it("accepts the empty value the account picker leaves", () => {
+    const r = checkFieldRules(book021, { "item_desc[]": "" });
+    expect(r.blocks.filter((v) => v.field === "item_desc[]")).toEqual([]);
+  });
+
+  it("blocks a name copied into the hidden Cate No field", () => {
+    const r = checkFieldRules(book021, { "item_desc[]": "Kyuwon Shim" });
+    expect(r.blocks.some((v) => v.field === "item_desc[]")).toBe(true);
+  });
+});
+
+describe("conditional then.regex (RunPod item name carries the charge date - own precedent 300654)", () => {
+  const book = {
+    form: "AppFrm-999",
+    fields: {
+      "item_name[]": { label: "Item", scope: "org", checks: [{ type: "max_len", max: 21 }], why: "p75", evidence: ["1"] },
+    },
+    conditional: [
+      {
+        when: { field: "item_name[]", regex: "(?i)runpod" },
+        then: { field: "item_name[]", regex: "^RunPod GPU Compute Credits \\(\\d{4}-\\d{2}-\\d{2}\\)$" },
+        why: "own precedent",
+      },
+    ],
+  } as unknown as Rulebook;
+
+  it("accepts a value matching the pattern even past the field's own length check", () => {
+    expect(checkFieldRules(book, { "item_name[]": "RunPod GPU Compute Credits (2026-10-16)" }).blocks).toEqual([]);
+  });
+
+  it("blocks a value the pattern does not match", () => {
+    expect(checkFieldRules(book, { "item_name[]": "RunPod credits" }).blocks.length).toBeGreaterThan(0);
+  });
+});

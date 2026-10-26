@@ -78,6 +78,29 @@ export function isMeetingAccount(code: string | null | undefined): boolean {
 }
 
 /**
+ * Overtime Meals (412103): the form's own Check_Form validation refuses a row with this
+ * account code unless the hidden #overtime_info block (overtime_start_day, ov_member,
+ * ov_purpose) is filled - "Please insert Overtime info". Precedent doc 297084 shows
+ * Date/Time, Attendees (login name) and Purpose carried over from the overtime application.
+ */
+export const OVERTIME_ACCOUNT_CODES = new Set(["412103"]);
+
+export function isOvertimeAccount(code: string | null | undefined): boolean {
+  return OVERTIME_ACCOUNT_CODES.has(String(code ?? ""));
+}
+
+/**
+ * Overseas IT subscriptions carry no Korean VAT: the form's own VAT auto-split (total/11)
+ * must be zeroed. Same vendor list as the rules/public/AppFrm-021.json conditional on
+ * item_amount_vat[] (memory feedback_overseas_it_vat_zero; precedent 300654).
+ */
+const OVERSEAS_IT_SUBSCRIPTION = /runpod|google cloud|gemini|chatgpt|openai|claude|anthropic|foxit/i;
+
+export function isOverseasItSubscription(itemName: string | null | undefined): boolean {
+  return OVERSEAS_IT_SUBSCRIPTION.test(String(itemName ?? ""));
+}
+
+/**
  * Lines of the budget_check_er popup that mean it must not be filed. "not enough budget"
  * is the live wording on that page; the rest are the same refusal phrased otherwise.
  */

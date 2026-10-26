@@ -22,7 +22,7 @@ vi.mock("../../src/internal/primitives/attachment.js", () => ({
 
 import { handleIpkSubmitForm, installCardErStubs, runCheckFormRequest } from "../../src/tools/ipk-submit.js";
 import { checkOrgPolicy } from "../../src/policy/org-policy.js";
-import { normalizeCardSubject, isPreviewBlockedRequest, summarizeCapturedForm, isMeetingAccount, budgetPopupRefusals } from "../../src/forms/card-er.js";
+import { normalizeCardSubject, isPreviewBlockedRequest, summarizeCapturedForm, isMeetingAccount, isOvertimeAccount, isOverseasItSubscription, budgetPopupRefusals } from "../../src/forms/card-er.js";
 
 // ── pure helpers ───────────────────────────────────────────────────
 
@@ -324,6 +324,40 @@ describe("card_expense_rd with dry_run=true", () => {
     expect(h.page.route).toHaveBeenCalledWith("**/*", expect.any(Function));
     expect(h.page.unroute).toHaveBeenCalledWith("**/*", expect.any(Function));
   });
+
+  // 2026-10-23: a dry_run looked clean while the same values were blocked on the very
+  // next (non-dry_run) call, because dry_run returned via previewCardExpenseRD before
+  // checkFieldRulesAgainstForm ever ran. item_desc[] must be "none" (rules/public/AppFrm-021.json,
+  // all 28 precedent card-row docs show "none"); simulate the form carrying a non-"none"
+  // value there and assert dry_run now surfaces that as a block, not silently.
+  it("carries field_rule_result with a block when a rule is violated, before the preview runs", async () => {
+    const h = makeHarness(okRun());
+    const baseEvaluate = h.frame.evaluate.getMockImplementation()!;
+    // previewCardExpenseRD unloads the form to about:blank (page.goto) once it has run
+    // (see its own finally block). Make the mocked serialization go empty only AFTER
+    // that happens, so this test actually fails if checkFieldRulesRaw is ever moved to
+    // run after the preview instead of before it - the exact regression it guards.
+    let previewRan = false;
+    h.page.goto = vi.fn(async (url: string) => {
+      if (url === "about:blank") previewRan = true;
+      return null;
+    });
+    h.frame.evaluate = vi.fn(async (fn: any, arg?: any) => {
+      const src = String(fn);
+      if (src.includes("knownSet")) {
+        return previewRan ? {} : { subject: "[Card] test subject", "item_desc[]": "Kyuwon Shim" };
+      }
+      return baseEvaluate(fn, arg);
+    });
+
+    const out = parse(await handleIpkSubmitForm(h.session, h.config, params({ dry_run: true })));
+
+    expect(out.error).toBe(false);
+    expect(out.data.dry_run).toBe(true);
+    expect(out.data.field_rule_result).toBeDefined();
+    expect(out.data.field_rule_result.blocks.length).toBeGreaterThan(0);
+    expect(out.data.field_rule_result.blocks.some((b: any) => b.field === "item_desc[]")).toBe(true);
+  });
 });
 
 describe("card_expense_rd with draft_only=false is refused outright (CARD_ER_NO_SUBMIT)", () => {
@@ -510,6 +544,15 @@ describe("isMeetingAccount", () => {
   });
   it("does not treat IT subscriptions or empty as meetings", () => {
     for (const c of ["410318", "", null, undefined]) expect(isMeetingAccount(c as any)).toBe(false);
+  });
+});
+
+describe("isOvertimeAccount", () => {
+  it("treats Overtime Meals 412103 as overtime", () => {
+    expect(isOvertimeAccount("412103")).toBe(true);
+  });
+  it("does not treat other accounts or empty as overtime", () => {
+    for (const c of ["410318", "412107", "", null, undefined]) expect(isOvertimeAccount(c as any)).toBe(false);
   });
 });
 
@@ -775,6 +818,19 @@ describe("card_expense_rd allow_card_er_save needs a one-time authorization", ()
     expect(out.error).toBe(false);
     expect(out.data.dry_run).toBe(true);
     expect(readAuth()).toEqual(authFor());
+  });
+});
+
+describe("isOverseasItSubscription (VAT 0 - rules/public/AppFrm-021.json conditional)", () => {
+  it("matches the overseas IT vendors the rulebook names", () => {
+    for (const n of ["claude ai_max", "RunPod GPU Compute Credits (2026-10-16)", "Google Cloud Gemini API", "ChatGPT Plus"]) {
+      expect(isOverseasItSubscription(n)).toBe(true);
+    }
+  });
+  it("does not match domestic or other items", () => {
+    for (const n of ["Kyuwon Shim", "Microsoft 365", "FedEx shipping", ""]) {
+      expect(isOverseasItSubscription(n)).toBe(false);
+    }
   });
 });
 

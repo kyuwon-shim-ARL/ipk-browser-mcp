@@ -232,6 +232,50 @@ describe("TEAM_ACTIVITY_FIELDS_REQUIRED (every meeting account)", () => {
   });
 });
 
+const overtimeCardRD = (over: Record<string, any> = {}) => ({
+  form_type: "card_expense_rd",
+  trseq: "0069AKW950001",
+  appr_no: "21580194",
+  item_account_code: "412103",
+  overtime_begin: "2026-07-10 16:29",
+  overtime_end: "2026-07-10 22:33",
+  overtime_purpose: "Molecular embedding model training deadline",
+  draft_only: true,
+  ...over,
+});
+
+describe("OVERTIME_MEAL_FIELDS_REQUIRED (412103)", () => {
+  it("passes a complete overtime-meal card_expense_rd", () => {
+    expect(checkOrgPolicy(overtimeCardRD())).toEqual([]);
+  });
+  it("refuses when overtime fields are missing", () => {
+    const v = checkOrgPolicy(overtimeCardRD({ overtime_begin: undefined, overtime_end: undefined, overtime_purpose: undefined }));
+    expect(v.map((x) => x.rule)).toEqual(["OVERTIME_MEAL_FIELDS_REQUIRED"]);
+    expect(v[0].fields).toEqual(["overtime_begin", "overtime_end", "overtime_purpose"]);
+  });
+  it("refuses a malformed time", () => {
+    const v = checkOrgPolicy(overtimeCardRD({ overtime_begin: "2026-07-10" }));
+    expect(v.map((x) => x.rule)).toEqual(["OVERTIME_MEAL_FIELDS_REQUIRED"]);
+    expect(v[0].fields).toEqual(["overtime_begin"]);
+  });
+  it("refuses when begin is not before end", () => {
+    const v = checkOrgPolicy(overtimeCardRD({ overtime_begin: "2026-07-10 22:33", overtime_end: "2026-07-10 16:29" }));
+    expect(v.map((x) => x.rule)).toEqual(["OVERTIME_MEAL_FIELDS_REQUIRED"]);
+    expect(v[0].fields).toEqual(["overtime_begin/overtime_end order"]);
+  });
+  it("fires when the account is picked by label instead of code", () => {
+    const v = checkOrgPolicy(overtimeCardRD({ item_account_code: undefined, account_code_label: "Overtime Meals", overtime_purpose: undefined }));
+    expect(v.map((x) => x.rule)).toEqual(["OVERTIME_MEAL_FIELDS_REQUIRED"]);
+    expect(v[0].fields).toEqual(["overtime_purpose"]);
+  });
+  it("does not fire for a non-overtime account code on card_expense_rd", () => {
+    expect(checkOrgPolicy(overtimeCardRD({ item_account_code: "410318", overtime_begin: undefined, overtime_end: undefined, overtime_purpose: undefined }))).toEqual([]);
+  });
+  it("does not fire for other form types", () => {
+    expect(checkOrgPolicy(travel({ item_account_code: "412103" }))).toEqual([]);
+  });
+});
+
 describe("bench scorer applies the same standard to the audit trail", () => {
   it("counts a Korean field_write as an M6 policy violation", () => {
     const events = [
@@ -299,6 +343,12 @@ describe("VENDOR_ATTACHMENTS_REQUIRED (card_expense_rd)", () => {
 
   it("passes a RunPod ER with all 4 attachment kinds", () => {
     expect(checkOrgPolicy(runpodEr({ attachment_paths: ALL_FOUR }))).toEqual([]);
+  });
+
+  it("reads labeled attachments[] too, not only legacy attachment_paths (2026-10-26)", () => {
+    const labeled = ALL_FOUR.map((path, i) => ({ path, kind: ["invoice", "card_slip", "usage", "receipt"][i] }));
+    expect(checkOrgPolicy(runpodEr({ attachments: labeled }))).toEqual([]);
+    expect(checkOrgPolicy(runpodEr({ attachments: labeled.slice(1) })).map((x) => x.rule)).toEqual(["VENDOR_ATTACHMENTS_REQUIRED"]);
   });
   it("refuses a RunPod ER missing attachments, listing which kinds", () => {
     const v = checkOrgPolicy(runpodEr({ attachment_paths: [ALL_FOUR[0], ALL_FOUR[2]] })); // invoice + daily_usage only
