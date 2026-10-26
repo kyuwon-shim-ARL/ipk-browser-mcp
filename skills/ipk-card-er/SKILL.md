@@ -35,7 +35,7 @@ Before drafting, pull several of the department's recently approved card ERs of 
 
 | Purpose | account_code | account_str |
 |---|---|---|
-| Overtime meal | 410903 | Meal Allowance |
+| Overtime meal | 412103 | Overtime Meals |
 | IT subscription | 410318 | IT Software (IT Subscription) |
 | Team activities | ask the person — org policy requires the department's specific team-activity account and card; don't guess |
 
@@ -76,11 +76,11 @@ mcp tool: ipk_submit_form
   draft_only: true   (always — see Safety)
 ```
 
-**card_expense_rd (mker=Y) has no draft state: saving = submitting for approval.** `draft_only: true` instead returns a no-save **preview** — the filled form's own validation, the `[Card]`-prefixed subject, and a screenshot — without saving anything. Show this preview to the person; they decide whether to save (which immediately submits) themselves.
+**card_expense_rd (mker=Y) is preview-only in this tool — it is never saved or submitted here.** Both `draft_only: true` and `draft_only: false` return a no-save **preview**: the filled form's own validation, the `[Card]`-prefixed subject, and a screenshot. Show this preview to the person; they press the form's own `[Draft]` button (saves to their own drafts — server behaviour still being verified) or `[Request]` button (submits) themselves.
 
 For plain `card_expense` (AppFrm-020), `draft_only: true` does save an actual draft — confirm it shows up in the Drafts list before reporting it saved.
 
 ## Safety
 
-- Claude never submits for approval. `draft_only: false` is refused by the tool unless `confirm_submit: true` **and** the operator has set `IPK_ALLOW_SUBMIT=1`. For every other form it then still only saves a draft. **card_expense_rd is the exception: with that switch on, saving really does submit for approval.** So for card ERs always use `draft_only: true` (preview) and let the person save it themselves; never suggest setting `IPK_ALLOW_SUBMIT`.
+- Claude never submits for approval. `draft_only: false` is refused by the tool unless `confirm_submit: true` **and** the operator has set `IPK_ALLOW_SUBMIT=1`. For every other form it then still only saves a draft. **card_expense_rd is refused outright regardless of those flags** — it is preview-only. So for card ERs always use `draft_only: true` (preview) and let the person press `[Draft]`/`[Request]` in the browser themselves.
 - Never invent amounts, vendors, or receipts. Only use files and figures the user actually provided or the groupware itself returned.

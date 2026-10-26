@@ -50,7 +50,7 @@ mcp tool: ipk_submit_form
 
 ### 6. Meal ER linkage (optional)
 
-If the person also wants a meal expense ER for this overtime, draft that separately via `/ipk-card-er` (account 410903, Meal Allowance) and link this overtime document's doc_id into the ER form's document-select field — not the other way around.
+If the person also wants a meal expense ER for this overtime, draft that separately via `/ipk-card-er` (account 412103, Overtime Meals) and link this overtime document's doc_id into the ER form's document-select field — not the other way around.
 
 ### 7. Verify and report
 
