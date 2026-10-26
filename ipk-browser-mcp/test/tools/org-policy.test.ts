@@ -93,6 +93,42 @@ describe("NO_FINAL_SUBMIT", () => {
   });
 });
 
+describe("CARD_ER_NO_SUBMIT", () => {
+  const prevEnv = process.env.IPK_ALLOW_SUBMIT;
+  afterEach(() => {
+    if (prevEnv === undefined) delete process.env.IPK_ALLOW_SUBMIT;
+    else process.env.IPK_ALLOW_SUBMIT = prevEnv;
+  });
+
+  const cardEr = (over: Record<string, unknown> = {}) => ({
+    form_type: "card_expense_rd",
+    trseq: "1",
+    appr_no: "2",
+    subject: "Google Cloud usage fee",
+    draft_only: true,
+    ...over,
+  });
+
+  it("refuses card_expense_rd submission even with confirm_submit=true AND IPK_ALLOW_SUBMIT=1", () => {
+    process.env.IPK_ALLOW_SUBMIT = "1";
+    const v = checkOrgPolicy(cardEr({ draft_only: false, confirm_submit: true }));
+    expect(v.map((x) => x.rule)).toContain("CARD_ER_NO_SUBMIT");
+  });
+  it("refuses it with no flags set too", () => {
+    delete process.env.IPK_ALLOW_SUBMIT;
+    const v = checkOrgPolicy(cardEr({ draft_only: false }));
+    expect(v.map((x) => x.rule)).toContain("CARD_ER_NO_SUBMIT");
+  });
+  it("does not fire for draft_only=true", () => {
+    const v = checkOrgPolicy(cardEr({ draft_only: true }));
+    expect(v.map((x) => x.rule)).not.toContain("CARD_ER_NO_SUBMIT");
+  });
+  it("does not fire for other form types", () => {
+    const v = checkOrgPolicy(travel({ draft_only: false, confirm_submit: true }));
+    expect(v.map((x) => x.rule)).not.toContain("CARD_ER_NO_SUBMIT");
+  });
+});
+
 describe("OVERSEAS_IT_VAT_ZERO", () => {
   it("refuses an expense form that would split VAT for an overseas IT vendor", () => {
     const v = checkOrgPolicy({

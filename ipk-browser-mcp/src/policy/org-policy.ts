@@ -155,6 +155,28 @@ export const ORG_POLICY: PolicyRule[] = [
     },
   },
   {
+    id: "CARD_ER_NO_SUBMIT",
+    standard:
+      "card_expense_rd (AppFrm-021) is never submitted for approval by this tool, no matter " +
+      "what confirm_submit or IPK_ALLOW_SUBMIT are set to: the real-save path submitted doc " +
+      "302098 for approval on 2026-10-23 instead of behaving as a draft. The person reviews " +
+      "the preview/screenshot and presses the groupware's own [Request] button themselves.",
+    passes: "form_type is not card_expense_rd, or draft_only is not false.",
+    check(params) {
+      if (String(params.form_type) !== "card_expense_rd") return null;
+      if (params.draft_only !== false) return null;
+      return {
+        rule: "CARD_ER_NO_SUBMIT",
+        fields: ["form_type", "draft_only"],
+        message:
+          "card_expense_rd submission is refused outright - regardless of confirm_submit or " +
+          "env IPK_ALLOW_SUBMIT: this path submitted doc 302098 for approval on 2026-10-23. " +
+          "Run dry_run=true (or draft_only=true) to get the filled-form preview/screenshot, " +
+          "review it, then press [Request] in the browser yourself. Nothing was saved.",
+      };
+    },
+  },
+  {
     id: "TEAM_ACTIVITY_FIELDS_REQUIRED",
     standard: "A card ER on a meeting account (Team Activities 412107 and the other accounts the account picker treats as meetings) records venue, meeting time, participants and purpose - the page requires venue and meeting time for every meeting account, and precedent documents always carry participants and purpose.",
     passes: "When card_expense_rd is filed with a meeting item_account_code (isMeetingAccount), or with no code and a Team Activities / meeting account_code_label, venue, meeting_begin, meeting_end, participants and purpose_minutes (or purpose) are all non-empty.",

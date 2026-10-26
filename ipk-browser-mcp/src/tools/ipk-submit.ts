@@ -6,10 +6,6 @@ import { validateAttachmentPath } from "../security/attachment-path.js";
 import { audit, beginRun } from "../internal/audit.js";
 import { checkOrgPolicy } from "../policy/org-policy.js";
 import { reviewAttachments, ATTACHMENT_KINDS, type AttachmentInput, type AttestationException } from "../policy/attachment-review.js";
-import {
-  determineCardErLocation, readApprovalLineFromDocumentView, readWaitingListDocIds, isDocIdInWaitingList,
-  type CardErLocationResult,
-} from "../browser/card-er-location.js";
 import { checkFieldRules, FieldRulesUnavailable, type Rulebook } from "../policy/field-rules.js";
 import { loadProfile, type Profile } from "../profile/profile.js";
 import { checkTravelRequestParams, checkAttachmentSlot, slotSelector, parseCardNo, type TravelDocSlot } from "../forms/travel-request.js";
@@ -18,7 +14,9 @@ import { findOwnApprovedTravelRequest, buildDomesticReportFields, readReportCont
 import { fetchTravelRequestPrecedents, readDraftText, diffAgainstPractice, type PrecedentSet } from "../precedent/fetch.js";
 import { parseTravelRequestDoc } from "../precedent/travel-request-doc.js";
 import { normalizeCardSubject, isPreviewBlockedRequest, summarizeCapturedForm, isMeetingAccount, budgetPopupRefusals } from "../forms/card-er.js";
-import { confirmDraftResult } from "../browser/draft-guard.js";
+import { cardErAuthorizationPath, consumeCardErDraftAuthorization, type CardErDraftAuthorization } from "../forms/card-er-authorization.js";
+import { detectSubmittedOnDocumentView } from "../browser/card-er-location.js";
+import { confirmDraftResult, listHasDoc } from "../browser/draft-guard.js";
 import {
   navigateToForm,
   setFieldValue,
@@ -795,9 +793,8 @@ export const ipkSubmitFormSchema = {
   event_start: z.string().optional().describe("card_expense_rd event block: edu_start_day (YYYY-MM-DD)."),
   event_end: z.string().optional().describe("card_expense_rd event block: edu_end_day (YYYY-MM-DD)."),
   notes: z.string().optional().describe("card_expense_rd: written to the form's 'notes' field (alongside p_reason/reason, which the form also calls Notes in some accounts)."),
-  allow_card_er_save: z.boolean().optional().describe("card_expense_rd with draft_only=true: opt in to a real save through the form's own flow instead of the no-save preview. Also requires first_live_save=true (see its description) - without that, this alone is refused (CARD_ER_SAVE_NO_FIXTURE_YET). Also disabled outright by env IPK_CARD_ER_SAVE=0."),
-  first_live_save: z.boolean().optional().describe("card_expense_rd: pairs with allow_card_er_save=true to run the real save AND run the location check afterwards AND write the raw document_view/waiting-list pages to ~/.cache/ipk-mcp/card-er-location/<doc_id>/ for a person to redact and commit as the real positive fixture (plan v6.1). This is the one-time capture step - once that fixture is committed, the gate is expected to change; it does not yet."),
-  draft_only: z.boolean().default(true).describe("Save as draft (true) or submit for approval (false). Defaults to true for safety."),
+  allow_card_er_save: z.boolean().optional().describe("card_expense_rd only: refused (CARD_ER_SAVE_REFUSED) unless ~/.config/ipk-browser-mcp/card-er-draft-authorizations.json holds a one-time authorization for THIS transaction - { \"<appr_no>\": { \"trseq\": \"<trseq>\", \"authorized_at\": \"<ISO>\", \"note\": \"...\" } }, matched on both appr_no and trseq, written by a person outside the tool. The tool consumes the entry before clicking (one entry = one attempt), then runs the form's own [Draft] link (mode1='draft' + Check_Form_Request + budget popup submit_form()) and reads document_view back: SUBMITTED_NOT_DRAFT / DRAFT_SAVED / DRAFT_NOT_CONFIRMED. The server may still file it for approval (doc 302098, 2026-10-23); the tool never retries or repossesses. Without an authorization: dry_run=true, review the screenshot, press [Draft] yourself."),
+  draft_only: z.boolean().default(true).describe("Save as draft (true) or submit for approval (false). Defaults to true for safety. For card_expense_rd, draft_only=true is a no-save preview unless allow_card_er_save has a one-time authorization (see allow_card_er_save); draft_only=false is refused outright (CARD_ER_NO_SUBMIT)."),
   dry_run: z.boolean().default(false).optional().describe(
     "Preview only, for every wired form type - safe, never saves/drafts/submits anything. Runs the full pipeline " +
     "(param validation, org-policy, navigation, filling the form, field-rules checked against the live DOM) and " +
@@ -937,10 +934,13 @@ export const ipkSubmitFormDescription =
   "leave (휴가/AppFrm-073), expense (경비/AppFrm-020), working (휴일근무/AppFrm-074), travel (출장보고/AppFrm-076), travel_request (출장신청/AppFrm-023), budget_transfer (예산전용/AppFrm-039), " +
   "card_expense (카드경비/AppFrm-020), travel_settlement (출장정산/AppFrm-054), leave_return (대체휴일반납/AppFrm-028), seminar (세미나공시/AppFrm-043), overseas_travel (해외출장/AppFrm-026). " +
   "By default saves as draft (draft_only=true); a draft is reported only after it is found in the Drafts list (SUBMITTED_NOT_DRAFT / DRAFT_NOT_CONFIRMED otherwise). " +
-  "card_expense_rd has no draft (the groupware files it for approval): draft_only=true returns a no-save preview with the form's own validation. " +
+  "card_expense_rd (AppFrm-021, mker=Y) is never submitted by this tool, and is saved only through a one-time per-transaction authorization. " +
+  "draft_only=true returns a no-save preview that fills and checks the form with the form's own validation; " +
+  "draft_only=false is refused outright (CARD_ER_NO_SUBMIT), regardless of confirm_submit/IPK_ALLOW_SUBMIT. " +
+  "allow_card_er_save=true runs the form's own [Draft] link only when ~/.config/ipk-browser-mcp/card-er-draft-authorizations.json has an entry for this appr_no+trseq (consumed before the click), and reports SUBMITTED_NOT_DRAFT if the server filed it anyway (as it did with doc 302098 on 2026-10-23); otherwise CARD_ER_SAVE_REFUSED and the person presses [Draft]/[Request] themselves. " +
   "dry_run=true is safe to use on any wired form type (leave, working, travel_request, travel [domestic/overseas], travel_settlement, budget_transfer, expense, card_expense, card_expense_rd): it fills and checks the form exactly as a real call would, then stops before any save/draft/submit action - never creates, modifies or overwrites a document. " +
-  "NO_FINAL_SUBMIT: draft_only=false is refused unless confirm_submit=true AND env IPK_ALLOW_SUBMIT=1. " +
-  "Even unlocked, for every form type except card_expense_rd this tool still only saves a draft and " +
+  "NO_FINAL_SUBMIT: draft_only=false is refused unless confirm_submit=true AND env IPK_ALLOW_SUBMIT=1 (and for card_expense_rd it is refused outright regardless, CARD_ER_NO_SUBMIT). " +
+  "Even unlocked, this tool still only saves a draft and " +
   "returns a no_final_submit note with the click path - it never performs the final approval-request click itself. " +
   "For budget_transfer, use transfer_type='rnd' (AppFrm-039, default) or transfer_type='general' (AppFrm-053). " +
   "Required params per form_type: " +
@@ -1120,7 +1120,7 @@ export function noFinalSubmitNote(result: any, requestedSubmit: boolean, mode: "
   return textResult(payload);
 }
 
-/** Forms the groupware has no draft state for: saving IS the final submission. See noFinalSubmitNote. */
+/** Forms this tool treats as having no draft: draft_only=false files them for approval. card_expense_rd does have a [Draft] button, but its server-side draft behaviour is unverified (doc 302098, 2026-10-23). See noFinalSubmitNote. */
 const NO_DRAFT_STATE_FORMS = new Set(["card_expense_rd"]);
 
 type FormHandler = (
@@ -2429,16 +2429,13 @@ async function submitCardExpense(
  * chain, at the drafter's own turn (not in limbo). The 2026-10-08 instant-filing incident
  * (doc 301323) was an older handler's direct POST bypassing that flow, not something the
  * form's own flow does (plan v6 P0-pre item 1, 2026-10-12 correction). So:
- *  - mode "draft" (the default) is a PREVIEW, UNLESS params.allow_card_er_save is set (see
- *    the gate right before previewCardExpenseRD is called below) - currently always
- *    refused, since the location check that would confirm "still at the drafter's turn"
- *    afterwards has no committed live positive fixture yet (plan v6.1). The preview fills
+ *  - mode "draft" (the default) is a PREVIEW, UNLESS params.allow_card_er_save is set AND a
+ *    one-time authorization for this appr_no+trseq is consumed (see the gate right before
+ *    previewCardExpenseRD is called below, and saveCardExpenseRDDraft). The preview fills
  *    the form, then the page's own Check_Form_Request('insert') runs with the network cut
  *    (route abort) and submit/window.open stubbed, so its validation and normalisation run
  *    and nothing is sent.
- *  - mode "request" (draft_only=false + confirm_submit=true) also goes through
- *    Check_Form_Request, with only the $.confirm "Evidence Check" modal answered "Next",
- *    then the budget_check_er popup's submit_form() files it.
+ *  - mode "request" (draft_only=false) is refused outright (CARD_ER_NO_SUBMIT).
  * Neither path posts form1 by hand: that skipped the form's validation and its "[Card] "
  * subject prefix.
  *
@@ -2757,316 +2754,65 @@ async function submitCardExpenseRD(
   // even in preview (draft) mode: AppFrm-021 has no real draft state, so preview is the
   // only chance to catch this before the "submit" branch actually files the document.
   const cardRdRuleRefusal = await checkFieldRulesAgainstForm(frame, "card_expense_rd");
-  if (cardRdRuleRefusal) return textResult({ error: true, ...cardRdRuleRefusal });
+  if (cardRdRuleRefusal) {
+    return textResult({
+      error: true,
+      ...cardRdRuleRefusal,
+      field_rule_result: { blocks: cardRdRuleRefusal.violations, warnings: [] },
+    });
+  }
 
-  // Step 4: run the form's own Check_Form_Request('insert') - preview or submit.
+  // Step 4: run the form's own Check_Form_Request('insert') - preview, or (one authorized
+  // transaction at a time) the form's own [Draft] flow.
   //
-  // draft_only=true's real-save path (plan v6 P0-pre item 3/v6.1): saving through the
-  // form's own flow lands the document at the drafter's own turn, not in limbo - so it is
-  // safe to let draft_only=true reach the same code mode "request" runs, PROVIDED the
-  // card-er-location.ts location check confirms that turn afterwards. Gated on BOTH
-  // allow_card_er_save and first_live_save (per call) and the outer IPK_CARD_ER_SAVE!=="0"
-  // kill switch - first_live_save is the one-time capture step (it also writes the raw
-  // document_view/waiting-list pages to the local cache, never the repo, for a person to
-  // redact into the committed fixture); without it this still refuses.
-  const cardErSaveRequested = mode === "draft" && params.allow_card_er_save === true;
-  const runRealDraftSave = cardErSaveRequested && params.first_live_save === true && process.env.IPK_CARD_ER_SAVE !== "0";
-  if (mode === "draft" && !runRealDraftSave) {
-    if (cardErSaveRequested) {
-      if (process.env.IPK_CARD_ER_SAVE === "0") {
-        return textResult({
-          error: true,
-          code: "CARD_ER_SAVE_DISABLED",
-          message: "allow_card_er_save is refused: env IPK_CARD_ER_SAVE=0 disables it. Nothing was saved.",
-        });
-      }
+  // A real save through the [Draft] flow submitted doc 302098 for approval on 2026-10-23
+  // (src/forms/card-er.ts notes doc 301323, where mode1='draft' was ignored the same way),
+  // so allow_card_er_save is refused unless a person has authorized THIS card transaction
+  // in ~/.config/ipk-browser-mcp/card-er-draft-authorizations.json (appr_no + trseq). The
+  // entry is consumed before anything is clicked: one entry, at most one save.
+  if (mode === "draft" && params.allow_card_er_save === true) {
+    const authFile = cardErAuthorizationPath();
+    let authorization: CardErDraftAuthorization | null = null;
+    try {
+      authorization = consumeCardErDraftAuthorization(params.appr_no, params.trseq, authFile);
+    } catch (err) {
       return textResult({
         error: true,
-        code: "CARD_ER_SAVE_NO_FIXTURE_YET",
+        code: "CARD_ER_SAVE_REFUSED",
         message:
-          "allow_card_er_save is refused without first_live_save=true: this is the one-time " +
-          "capture step for the location check's real positive fixture (plan v6.1). Use " +
-          "draft_only=true's ordinary preview for now. Nothing was saved.",
+          `The authorization for appr_no ${params.appr_no} could not be consumed (${err instanceof Error ? err.message : String(err)}), ` +
+          "so the save was refused. Nothing was clicked and nothing was filed.",
       });
     }
+    if (!authorization) {
+      return textResult({
+        error: true,
+        code: "CARD_ER_SAVE_REFUSED",
+        message:
+          `allow_card_er_save is refused without a one-time authorization for this card transaction: ${authFile} ` +
+          `has no entry "${params.appr_no}" with trseq "${params.trseq}". A person adds ` +
+          '{ "<appr_no>": { "trseq": "<trseq>", "authorized_at": "<ISO>", "note": "..." } } to that file; the tool ' +
+          "consumes the entry before clicking, so each entry allows one save attempt. The [Draft] path submitted doc " +
+          "302098 for approval on 2026-10-23 instead of saving a draft and may do so again. Without an authorization, " +
+          "run dry_run=true, review the screenshot, then press [Draft] in the browser yourself. Nothing was saved.",
+      });
+    }
+    audit({ action: "draft_save", code: "AUTHORIZATION_CONSUMED", field: "card_expense_rd", mode: "draft", value: JSON.stringify({ appr_no: String(params.appr_no), ...authorization }), ok: true });
+    return await saveCardExpenseRDDraft(page, frame, config, { subject, effectiveBudgetCode, attachResult, fileCount: filePaths.length });
+  }
+  if (mode === "draft") {
     return await previewCardExpenseRD(page, frame, config, { subject, effectiveBudgetCode, attachResult, fileCount: filePaths.length });
   }
 
-  // Submit: only the $.confirm "Evidence Check" modal is answered (Next); submit and
-  // window.open are the page's own, so the budget_check_er popup opens as it does by hand.
-  //
-  // The popup is awaited with waitForEvent, not a free-standing listener: a popup that
-  // shows up after this returns has nothing left to call submit_form() on it.
-  const popupState = {
-    aborted: false,
-    submitted: false,
-    subjectFixed: null as string | null,
-    refusals: [] as string[],
-  };
-  // Native dialogs (alert/confirm) are caught from the moment a page exists - the context
-  // "page" event fires before the popup's scripts run - and dismissed; any one is a refusal.
-  const dialogs = new Map<any, string[]>();
-  const watchDialogs = (p: any) => {
-    if (!p || dialogs.has(p)) return;
-    const msgs: string[] = [];
-    dialogs.set(p, msgs);
-    p.on?.("dialog", (d: any) => {
-      msgs.push(String(d.message?.() ?? ""));
-      Promise.resolve(d.dismiss?.()).catch(() => {});
-    });
-  };
-  const context = typeof page.context === "function" ? page.context() : null;
-  context?.on?.("page", watchDialogs);
-  const popupWait: Promise<any> = page.waitForEvent("popup", { timeout: 25000 }).catch(() => {
-    popupState.aborted = true;
-    return null;
-  });
-
-  const handlePopup = async (pop: any) => {
-    watchDialogs(pop);
-    const refuse = (found: string[]) => {
-      popupState.refusals = found;
-      return pop.close().catch(() => {});
-    };
-    try {
-      await pop.waitForLoadState("networkidle", { timeout: 15000 });
-      await pop.waitForTimeout(1500);
-      if (popupState.aborted) return;
-      const body: string = await pop.evaluate(() => (document.body ? document.body.innerText : ""));
-      const found = [...(dialogs.get(pop) ?? []), ...budgetPopupRefusals(body)];
-      if (found.length > 0) return await refuse(found);
-      // The page prefixes "[Card] " itself when pay_kind is 01; keep exactly one.
-      const current: string = await frame.evaluate(() => {
-        const el = document.querySelector('input[name="subject"]') as HTMLInputElement | null;
-        return el ? el.value : "";
-      });
-      const fixed = normalizeCardSubject(current);
-      if (fixed !== current) {
-        await frame.evaluate((v: string) => {
-          const el = document.querySelector('input[name="subject"]') as HTMLInputElement | null;
-          if (el) el.value = v;
-        }, fixed);
-        popupState.subjectFixed = fixed;
-      }
-      const late = dialogs.get(pop) ?? [];
-      if (late.length > 0) return await refuse([...late]);
-      if (popupState.aborted) return;
-      await pop.evaluate("submit_form()");
-      popupState.submitted = true;
-      await pop.waitForTimeout(4000);
-    } catch {
-      // popup may close mid-evaluation; the parent navigation is what matters
-    }
-  };
-
-  try {
-    let run: CardErRun;
-    try {
-      await frame.evaluate(installCardErStubs, false);
-      run = await frame.evaluate(runCheckFormRequest);
-    } catch (err) {
-      popupState.aborted = true;
-      return textResult({
-        error: true,
-        code: "SUBMIT_FAILED",
-        message: `card_expense_rd submit trigger failed: ${err instanceof Error ? err.message : String(err)}`,
-      });
-    }
-    // No confirmation pressed means the flow is not the one this was built against; nothing
-    // is filed rather than letting an unanswered page decide.
-    if (run.alerts.length > 0 || run.pageError || !run.pressed) {
-      popupState.aborted = true;
-      return textResult({
-        error: true,
-        code: run.alerts.length > 0 ? "SUBMIT_REJECTED" : "SUBMIT_FAILED",
-        message: run.alerts.length > 0
-          ? `The form refused the submission: ${run.alerts.join(" / ")}. Nothing was filed.`
-          : `The form did not reach its Evidence Check confirmation${run.pageError ? ` (${run.pageError})` : ""}. Nothing was filed.`,
-        validation_alerts: run.alerts,
-        native_confirms: run.confirms,
-        confirm_buttons: run.confirmButtons,
-      });
-    }
-
-    const pop = await popupWait;
-    if (pop && !popupState.aborted) await handlePopup(pop);
-  } finally {
-    popupState.aborted = true;
-    context?.off?.("page", watchDialogs);
-  }
-
-  if (popupState.refusals.length > 0) {
-    audit({ action: "refusal", code: "BUDGET_CHECK_REFUSED", field: "card_expense_rd", ok: false });
-    return textResult({
-      error: true,
-      code: "BUDGET_CHECK_REFUSED",
-      message: `The budget check refused the submission: ${popupState.refusals.join(" / ")}. submit_form() was not called and the popup was closed. Nothing was filed.`,
-      budget_check_messages: popupState.refusals,
-    });
-  }
-
-  await page.waitForTimeout(2000);
-  try {
-    await page.waitForLoadState("networkidle", { timeout: 10000 });
-  } catch {
-    // navigation may have already settled
-  }
-
-  // After submit, frame URL should be document_view.php?doc_id=...
-  const finalUrl: string = (frame.url && typeof frame.url === "function") ? frame.url() : page.url();
-  const m = finalUrl.match(/[?&]doc_id=(\d+)/);
-  const docId = m ? m[1] : null;
-
-  if (runRealDraftSave) {
-    return await finishCardErDraftSave(page, frame, _sessionManager, config, {
-      docId, subject: popupState.subjectFixed ?? subject, effectiveBudgetCode, attachResult, fileCount: filePaths.length,
-    });
-  }
-
-  audit({ action: "submit", docId, mode: "request", confirmed: true, ok: docId !== null });
-  return textResult({
-    error: false,
-    data: {
-      success: docId !== null,
-      docId,
-      mode,
-      formType: "card_expense_rd",
-      subject: popupState.subjectFixed ?? subject,
-      budgetCode: effectiveBudgetCode,
-      finalUrl,
-      attached: attachResult.attached,
-      skipped_attachments: attachResult.skipped,
-      message: docId
-        ? `R&D card ER submitted for approval (doc_id: ${docId}, ${attachResult.attached}/${filePaths.length} files attached)`
-        : popupState.submitted
-          ? "R&D card ER submit attempted but doc_id not found in URL — check In Progress manually"
-          : "R&D card ER: the budget check popup never filed the form — check In Progress before retrying",
-    },
-  });
-}
-
-/**
- * Post-save for the allow_card_er_save + first_live_save path only (plan v6 P0-pre item
- * 3/v6.1). Runs the card-er-location.ts location check against the document_view page the
- * save left the frame on and the live "waiting for my approval" list
- * (document_list.php?type=appr - confirmed live 2026-10-12), writes the raw pages this
- * check read to ~/.cache/ipk-mcp/card-er-location/<doc_id>/ (local only, never the repo -
- * for a person to redact and commit as the real positive fixture), and returns the mapped
- * outcome. Never runs for the ordinary mode "request" submit path above.
- */
-async function finishCardErDraftSave(
-  page: any,
-  frame: any,
-  sessionManager: SessionManager,
-  config: Config,
-  args: { docId: string | null; subject: string; effectiveBudgetCode: string | null; attachResult: { attached: number; skipped: unknown[] }; fileCount: number }
-) {
-  const { docId, subject, effectiveBudgetCode, attachResult, fileCount } = args;
-  if (!docId) {
-    return textResult({
-      error: true,
-      code: "DRAFT_NOT_CONFIRMED",
-      message: "The save appeared to go through but doc_id could not be read from the URL - nothing can be confirmed. Check In Progress manually before retrying.",
-    });
-  }
-
-  // (A) The form's own submit click already ran by the time this function is called - the
-  // document may well have been filed regardless of what happens below. Any throw past
-  // this point must still carry docId and the repossess hint, never fall through to the
-  // generic SUBMIT_ERROR catch in handleIpkSubmitForm, which has no docId to report.
-  try {
-    const draftedByName: string = sessionManager.getUserInfo?.()?.name || "";
-    const documentViewText: string = await frame.evaluate(() => (document.body ? document.body.innerText : "")).catch(() => "");
-    const approvalLine = await readApprovalLineFromDocumentView(frame, draftedByName);
-
-    const origin = new URL(config.baseUrl).origin;
-    let waitingListText = "";
-    let waitingListDocIds: string[] | "unreadable" = "unreadable";
-    try {
-      await page.goto(`${origin}/Document/document_list.php?type=appr`, { waitUntil: "domcontentloaded", timeout: 15000 });
-      waitingListDocIds = await readWaitingListDocIds(frame);
-      waitingListText = await frame.evaluate(() => (document.body ? document.body.innerText : "")).catch(() => "");
-    } catch {
-      // waitingListDocIds stays "unreadable" - determineCardErLocation reports DRAFT_NOT_CONFIRMED
-    }
-    const inWaitingList = isDocIdInWaitingList(waitingListDocIds, docId);
-
-    const location = determineCardErLocation({ inWaitingList, approvalLine });
-
-    // Local-only cache, never the repo - see function doc comment.
-    try {
-      const cacheDir = path.join(process.env.HOME || "/tmp", ".cache", "ipk-mcp", "card-er-location", docId);
-      fs.mkdirSync(cacheDir, { recursive: true, mode: 0o700 });
-      fs.writeFileSync(path.join(cacheDir, "document_view.rawtext.txt"), documentViewText, "utf8");
-      fs.writeFileSync(path.join(cacheDir, "waiting_list.rawtext.txt"), waitingListText, "utf8");
-    } catch {
-      // caching is best-effort - never block reporting the outcome on it
-    }
-
-    return finishCardErDraftSaveResult(location, { docId, subject, effectiveBudgetCode, attachResult, fileCount });
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    return textResult({
-      error: true,
-      code: "SUBMIT_ERROR",
-      docId,
-      message:
-        `The save click already ran for doc_id ${docId}, but checking where it landed failed: ${msg}. ` +
-        "The document may have been filed for approval - open document_view.php for this doc_id and check " +
-        "whether [Document Repossess] is offered before assuming nothing happened.",
-    });
-  }
-}
-
-function finishCardErDraftSaveResult(
-  location: CardErLocationResult,
-  args: { docId: string; subject: string; effectiveBudgetCode: string | null; attachResult: { attached: number; skipped: unknown[] }; fileCount: number }
-) {
-  const { docId, subject, effectiveBudgetCode, attachResult, fileCount } = args;
-  audit({
-    action: "draft_save",
-    docId,
-    mode: "draft",
-    confirmed: true,
-    ok: location.outcome === "AT_DRAFTER_TURN",
-    code: location.outcome,
-  });
-
-  const base = {
-    docId,
-    outcome: location.outcome,
-    reason: location.reason,
-    formType: "card_expense_rd",
-    subject,
-    budgetCode: effectiveBudgetCode,
-    attached: attachResult.attached,
-    skipped_attachments: attachResult.skipped,
-    cached_at: path.join(process.env.HOME || "/tmp", ".cache", "ipk-mcp", "card-er-location", docId),
-  };
-
-  if (location.outcome === "AT_DRAFTER_TURN") {
-    return textResult({
-      error: false,
-      data: { ...base, success: true, message: `saved at your turn — press [Approve] to send (doc_id: ${docId}, ${attachResult.attached}/${fileCount} files attached)` },
-    });
-  }
-  if (location.outcome === "DRAFT_WENT_TO_APPROVAL") {
-    return textResult({
-      error: true,
-      code: "DRAFT_WENT_TO_APPROVAL",
-      message:
-        `doc_id ${docId} has already moved past the drafter's turn: ${location.reason} ` +
-        "To pull it back: open the document (document_view.php), use [Document Repossess], then re-open it with Edit and Save again.",
-      ...base,
-    });
-  }
+  // Second layer behind org-policy's CARD_ER_NO_SUBMIT: the request (submit) branch that
+  // used to live here was removed on 2026-10-23 (doc 302098). This tool never files a card ER.
   return textResult({
     error: true,
-    code: "DRAFT_NOT_CONFIRMED",
-    message: `doc_id ${docId} was saved but its location could not be confirmed: ${location.reason} Check In Progress manually.`,
-    ...base,
+    code: "CARD_ER_NO_SUBMIT",
+    message: "card_expense_rd is preview-only in this tool: run dry_run=true, review the screenshot, and press [Draft]/[Request] in the browser yourself. Nothing was filed.",
   });
 }
+
 
 /** What one Check_Form_Request run left behind (window.__ipkCardEr in the form frame). */
 export interface CardErRun {
@@ -3113,13 +2859,17 @@ export function installCardErStubs(preview: boolean): void {
         return { label, fn };
       });
       st.confirmButtons = entries.map((e) => e.label);
-      const pick = entries.find((e) => /^\s*next\s*$/i.test(e.label)) || entries.find((e) => !/cancel|close|^\s*no\s*$/i.test(e.label));
+      // A real save answers only the form's "Notice! Evidence Check!" modal; any other
+      // $.confirm (e.g. a future "Request approval?") is recorded and left unanswered.
+      if (!preview && !/evidence check/i.test(text(opts.title))) return dummy;
+      const pick =entries.find((e) => /^\s*next\s*$/i.test(e.label)) || entries.find((e) => !/cancel|close|^\s*no\s*$/i.test(e.label));
       if (pick && pick.fn) {
         st.pressed = pick.label;
         pick.fn.call(dummy);
       }
     } else if (opts && typeof opts.confirm === "function") {
       st.confirmButtons = [text(opts.confirmButton || "confirm")];
+      if (!preview && !/evidence check/i.test(text(opts.title))) return dummy;
       st.pressed = st.confirmButtons[0];
       opts.confirm.call(dummy);
     }
@@ -3169,6 +2919,31 @@ export function runCheckFormRequest(): CardErRun {
     st.pageError = err instanceof Error ? err.message : String(err);
   }
   return JSON.parse(JSON.stringify(st));
+}
+
+/**
+ * Runs in the form frame: the values of every mode1 element. document.all('mode1') - what
+ * the form's own [Draft] link writes - matches by id or name, so both are collected.
+ */
+export function readCardErMode1(): string[] {
+  const els = new Set<Element>(Array.from(document.getElementsByName("mode1")));
+  const byId = document.getElementById("mode1");
+  if (byId) els.add(byId);
+  return Array.from(els).map((el) => String((el as HTMLInputElement).value ?? ""));
+}
+
+/**
+ * Runs in the form frame: what the [Draft] link does before Check_Form_Request -
+ * document.all('mode1').value='draft' - but only when exactly one mode1 element exists.
+ * Returns the values read back afterwards.
+ */
+export function setCardErDraftMode1(value: string = "draft"): string[] {
+  const els = new Set<Element>(Array.from(document.getElementsByName("mode1")));
+  const byId = document.getElementById("mode1");
+  if (byId) els.add(byId);
+  const list = Array.from(els) as HTMLInputElement[];
+  if (list.length === 1) list[0].value = value;
+  return list.map((el) => String(el.value ?? ""));
 }
 
 /**
@@ -3265,8 +3040,9 @@ async function previewCardExpenseRD(
       validation_alerts: alerts,
       page_error: pageError,
       message:
-        "AppFrm-021 card ER cannot be saved as a draft — the groupware submits it for approval. " +
-        "Nothing was saved. Review the preview; the person files it." +
+        "AppFrm-021 card ER is preview-only in this tool — it is never saved or submitted here. " +
+        "The form has its own [Draft] button (saves to the person's own drafts — server behaviour still being verified) and [Request] button (submits). " +
+        "Nothing was saved. Review the preview; the person presses [Draft] or [Request] themselves." +
         (alerts.length > 0 ? ` The form's own validation refused it: ${alerts.join(" / ")}` : "") +
         (!wouldSubmit && alerts.length === 0 ? ` The form did not reach its submit${pageError ? ` (${pageError})` : ""}.` : ""),
       subject_filled: ctx.subject,
@@ -3284,6 +3060,354 @@ async function previewCardExpenseRD(
       screenshot,
     },
   });
+}
+
+/**
+ * allow_card_er_save with a consumed one-time authorization (card-er-authorization.ts): the
+ * form's own [Draft] link - mode1='draft', then Check_Form_Request('insert') - with only the
+ * "Evidence Check" modal answered (Next), then the budget_check_er popup's own submit_form().
+ * Whether the server keeps mode1='draft' as a draft is UNVERIFIED (docs 301323 and 302098
+ * were filed for approval), so the outcome is read back from document_view afterwards and
+ * reported as it is: SUBMITTED_NOT_DRAFT, DRAFT_SAVED or DRAFT_NOT_CONFIRMED.
+ *
+ * mode1 is checked twice: read back right after it is set (else nothing is clicked), and
+ * re-read from the opener frame inside the popup right before submit_form() (else the popup
+ * is closed and submit_form() is never called).
+ *
+ * `flow` lets ipk_card_er_fix_vat reuse this for an existing draft's Edit page, whose own
+ * [Save] is fn_Edit_Check('update','drafts') - mode1='drafts', not 'draft' - and whose
+ * outcome is read back by its own `finish` (the doc_id is known up front).
+ */
+export async function saveCardExpenseRDDraft(
+  page: any,
+  frame: any,
+  config: Config,
+  ctx: { subject: string; effectiveBudgetCode: string | null; attachResult: { attached: number; skipped: unknown[] }; fileCount: number },
+  flow: { mode1: string; runner: () => CardErRun; finish?: (subject: string) => Promise<any> } = { mode1: "draft", runner: runCheckFormRequest }
+) {
+  const { subject } = ctx;
+  const consumedNote = "The one-time authorization was consumed; add a new entry before trying again.";
+  const want = flow.mode1;
+
+  const mode1Before: string[] = await frame.evaluate(setCardErDraftMode1, want).catch(() => []);
+  if (mode1Before.length !== 1 || mode1Before[0] !== want) {
+    audit({ action: "refusal", code: "DRAFT_MODE_NOT_SET", field: "mode1", value: JSON.stringify(mode1Before), ok: false });
+    return textResult({
+      error: true,
+      code: "DRAFT_MODE_NOT_SET",
+      message:
+        `mode1 could not be set to '${want}' (found ${mode1Before.length} mode1 element(s): ${JSON.stringify(mode1Before)}), ` +
+        `so Check_Form_Request was not run. Nothing was filed. ${consumedNote}`,
+      mode1: mode1Before,
+    });
+  }
+
+  const popupState = {
+    aborted: false,
+    submitAttempted: false,
+    submitted: false,
+    subjectFixed: null as string | null,
+    refusals: [] as string[],
+    modeNotDraft: null as string[] | null,
+    error: null as string | null,
+  };
+  // Native dialogs (alert/confirm) are caught from the moment a page exists - the context
+  // "page" event fires before the popup's scripts run - and dismissed; any one is a refusal.
+  const dialogs = new Map<any, string[]>();
+  const watchDialogs = (p: any) => {
+    if (!p || dialogs.has(p)) return;
+    const msgs: string[] = [];
+    dialogs.set(p, msgs);
+    p.on?.("dialog", (d: any) => {
+      msgs.push(String(d.message?.() ?? ""));
+      Promise.resolve(d.dismiss?.()).catch(() => {});
+    });
+  };
+  const context = typeof page.context === "function" ? page.context() : null;
+  context?.on?.("page", watchDialogs);
+  // Awaited with waitForEvent, not a free-standing listener: a popup that shows up after
+  // this returns has nothing left to call submit_form() on it.
+  const popupWait: Promise<any> = page.waitForEvent("popup", { timeout: 25000 }).catch(() => {
+    popupState.aborted = true;
+    return null;
+  });
+
+  const handlePopup = async (pop: any) => {
+    watchDialogs(pop);
+    const close = () => pop.close().catch(() => {});
+    try {
+      await pop.waitForLoadState("networkidle", { timeout: 15000 });
+      await pop.waitForTimeout(1500);
+      if (popupState.aborted) return;
+      // Only the form's own budget check window may be filed from (review 2026-10-26).
+      if (!/budget_check_er/i.test(String(pop.url()))) {
+        popupState.aborted = true;
+        popupState.refusals = [`unexpected popup ${String(pop.url())}`];
+        await close();
+        return;
+      }
+      const body: string = await pop.evaluate(() => (document.body ? document.body.innerText : ""));
+      const found = [...(dialogs.get(pop) ?? []), ...budgetPopupRefusals(body)];
+      if (found.length > 0) {
+        popupState.refusals = found;
+        return await close();
+      }
+      // The page prefixes "[Card] " itself when pay_kind is 01; keep exactly one.
+      const current: string = await frame.evaluate(() => {
+        const el = document.querySelector('input[name="subject"]') as HTMLInputElement | null;
+        return el ? el.value : "";
+      });
+      const fixed = normalizeCardSubject(current);
+      if (fixed !== current) {
+        await frame.evaluate((v: string) => {
+          const el = document.querySelector('input[name="subject"]') as HTMLInputElement | null;
+          if (el) el.value = v;
+        }, fixed);
+        popupState.subjectFixed = fixed;
+      }
+      const late = dialogs.get(pop) ?? [];
+      if (late.length > 0) {
+        popupState.refusals = [...late];
+        return await close();
+      }
+      // submit_form() posts the opener's form1 - re-read mode1 there right before it.
+      const mode1Now: string[] = await frame.evaluate(readCardErMode1).catch(() => []);
+      if (mode1Now.length !== 1 || mode1Now[0] !== want) {
+        popupState.modeNotDraft = mode1Now;
+        return await close();
+      }
+      if (popupState.aborted) return;
+      popupState.submitAttempted = true;
+      await pop.evaluate("submit_form()");
+      popupState.submitted = true;
+      await pop.waitForTimeout(4000);
+    } catch (err) {
+      // The popup may close itself mid-evaluation once it has posted the form.
+      popupState.error = err instanceof Error ? err.message : String(err);
+    }
+  };
+
+  try {
+    let run: CardErRun;
+    try {
+      await frame.evaluate(installCardErStubs, false);
+      run = await frame.evaluate(flow.runner);
+    } catch (err) {
+      popupState.aborted = true;
+      return textResult({
+        error: true,
+        code: "SUBMIT_FAILED",
+        message:
+          `card ER save (mode1='${want}') trigger failed: ${err instanceof Error ? err.message : String(err)}. submit_form() was not called. ` +
+          `If the page got as far as opening its budget popup, check document lists for "${subject}" before retrying. ${consumedNote}`,
+      });
+    }
+    // No confirmation pressed means the flow is not the one this was built against; nothing
+    // is filed rather than letting an unanswered page decide.
+    if (run.alerts.length > 0 || run.pageError || !run.pressed) {
+      popupState.aborted = true;
+      return textResult({
+        error: true,
+        code: run.alerts.length > 0 ? "SUBMIT_REJECTED" : "SUBMIT_FAILED",
+        message: (run.alerts.length > 0
+          ? `The form refused the save: ${run.alerts.join(" / ")}. submit_form() was not called; nothing was filed.`
+          : `The form did not reach its Evidence Check confirmation${run.pageError ? ` (${run.pageError})` : ""}. submit_form() was not called; nothing was filed.`) +
+          ` ${consumedNote}`,
+        validation_alerts: run.alerts,
+        native_confirms: run.confirms,
+        confirm_buttons: run.confirmButtons,
+      });
+    }
+
+    const pop = await popupWait;
+    if (pop && !popupState.aborted) await handlePopup(pop);
+  } finally {
+    popupState.aborted = true;
+    context?.off?.("page", watchDialogs);
+  }
+
+  if (popupState.refusals.length > 0) {
+    audit({ action: "refusal", code: "BUDGET_CHECK_REFUSED", field: "card_expense_rd", ok: false });
+    return textResult({
+      error: true,
+      code: "BUDGET_CHECK_REFUSED",
+      message: `The budget check refused the save: ${popupState.refusals.join(" / ")}. submit_form() was not called and the popup was closed. Nothing was filed. ${consumedNote}`,
+      budget_check_messages: popupState.refusals,
+    });
+  }
+  if (popupState.modeNotDraft) {
+    audit({ action: "refusal", code: "DRAFT_MODE_NOT_SET", field: "mode1", value: JSON.stringify(popupState.modeNotDraft), ok: false });
+    return textResult({
+      error: true,
+      code: "DRAFT_MODE_NOT_SET",
+      message:
+        `Right before submit_form(), the form's mode1 was ${JSON.stringify(popupState.modeNotDraft)}, not exactly ['${want}'] - ` +
+        `the page changed it after it was set. The popup was closed and submit_form() was not called. Nothing was filed. ${consumedNote}`,
+      mode1: popupState.modeNotDraft,
+    });
+  }
+  if (!popupState.submitAttempted) {
+    return textResult({
+      error: true,
+      code: "SUBMIT_FAILED",
+      message:
+        `The budget_check_er popup ${popupState.error ? `failed (${popupState.error})` : "never appeared"}, so this tool did not call submit_form(). ` +
+        `The page ran its own flow up to that popup - check document lists for "${subject}" before retrying. ${consumedNote}`,
+    });
+  }
+
+  await page.waitForTimeout(2000);
+  try {
+    await page.waitForLoadState("networkidle", { timeout: 10000 });
+  } catch {
+    // navigation may have already settled
+  }
+  if (flow.finish) return await flow.finish(popupState.subjectFixed ?? subject);
+
+  const finalUrl: string = (frame.url && typeof frame.url === "function") ? frame.url() : page.url();
+  const m = finalUrl.match(/[?&]doc_id=(\d+)/) || String(page.url?.() ?? "").match(/[?&]doc_id=(\d+)/);
+  const docId = m ? m[1] : null;
+  return await finishCardErDraftSave(page, frame, config, { ...ctx, subject: popupState.subjectFixed ?? subject, docId, finalUrl });
+}
+
+/**
+ * After submit_form() ran: read document_view for docId and decide what the save became.
+ * SUBMITTED_NOT_DRAFT on any filed-for-approval marker (detectSubmittedOnDocumentView);
+ * else DRAFT_SAVED when the doc is in the person's Drafts or at their own turn
+ * (type=myapprove); else DRAFT_NOT_CONFIRMED. Every outcome here follows a submit_form()
+ * call, so none of them may say "nothing filed". The raw document_view text goes to
+ * ~/.cache/ipk-mcp/card-er-location/<docId>/ (local only).
+ */
+async function finishCardErDraftSave(
+  page: any,
+  frame: any,
+  config: Config,
+  args: { docId: string | null; subject: string; finalUrl: string; effectiveBudgetCode: string | null; attachResult: { attached: number; skipped: unknown[] }; fileCount: number }
+) {
+  const { docId, subject, finalUrl, effectiveBudgetCode, attachResult, fileCount } = args;
+  const base = {
+    formType: "card_expense_rd",
+    subject,
+    budgetCode: effectiveBudgetCode,
+    finalUrl,
+    attached: attachResult.attached,
+    skipped_attachments: attachResult.skipped,
+  };
+  if (!docId) {
+    audit({ action: "draft_save", docId: null, mode: "draft", ok: false, code: "DRAFT_NOT_CONFIRMED" });
+    return textResult({
+      error: true,
+      code: "DRAFT_NOT_CONFIRMED",
+      message:
+        `submit_form() ran but no doc_id could be read from ${finalUrl}. The document may have been filed for approval - ` +
+        `check document lists and document_view for "${subject}" before retrying. Do not retry blind.`,
+      ...base,
+    });
+  }
+
+  const origin = new URL(config.baseUrl).origin;
+  const viewUrl = `${origin}/Document/document_view.php?doc_id=${docId}&approve_type=AppFrm-021`;
+  const cacheDir = path.join(process.env.HOME || "/tmp", ".cache", "ipk-mcp", "card-er-location", docId);
+  try {
+    let viewText = "";
+    try {
+      await frame.goto(viewUrl, { waitUntil: "domcontentloaded", timeout: config.navTimeoutMs });
+      viewText = String((await frame.evaluate(() => (document.body ? document.body.innerText : ""))) ?? "");
+    } catch {
+      // viewText stays "" - reported as DRAFT_NOT_CONFIRMED below
+    }
+    try {
+      fs.mkdirSync(cacheDir, { recursive: true, mode: 0o700 });
+      fs.writeFileSync(path.join(cacheDir, "document_view.rawtext.txt"), viewText, "utf8");
+    } catch {
+      // caching is best-effort - never block reporting the outcome on it
+    }
+
+    const markers = detectSubmittedOnDocumentView(viewText);
+    if (markers.length > 0) {
+      audit({ action: "refusal", code: "SUBMITTED_NOT_DRAFT", docId, mode: "draft", ok: false });
+      return textResult({
+        error: true,
+        code: "SUBMITTED_NOT_DRAFT",
+        docId,
+        message:
+          `doc_id ${docId} was FILED FOR APPROVAL, not saved as a draft: document_view shows ${markers.join(" and ")}. ` +
+          "mode1='draft' did not keep it a draft. The tool did not retry and did not repossess it - the person decides " +
+          `whether to use [Document Repossess] on ${viewUrl} before an approver acts.`,
+        submitted_markers: markers,
+        document_view: viewUrl,
+        cached_at: cacheDir,
+        ...base,
+      });
+    }
+    if (!viewText.trim()) {
+      audit({ action: "draft_save", docId, mode: "draft", ok: false, code: "DRAFT_NOT_CONFIRMED" });
+      return textResult({
+        error: true,
+        code: "DRAFT_NOT_CONFIRMED",
+        docId,
+        message: `submit_form() ran for doc_id ${docId} but its document_view could not be read. It may have been filed for approval - check ${viewUrl} before retrying.`,
+        document_view: viewUrl,
+        cached_at: cacheDir,
+        ...base,
+      });
+    }
+
+    const foundIn: string[] = [];
+    const unreadable: string[] = [];
+    for (const type of ["drafts", "myapprove"]) {
+      try {
+        await page.goto(`${origin}/Document/document_list.php?type=${type}`, { waitUntil: "domcontentloaded", timeout: config.navTimeoutMs });
+        await page.waitForTimeout(1000);
+        if (listHasDoc(String(await page.content()), docId)) foundIn.push(type);
+      } catch {
+        unreadable.push(type);
+      }
+    }
+
+    if (foundIn.length > 0) {
+      audit({ action: "draft_save", docId, mode: "draft", confirmed: true, ok: true, code: "DRAFT_SAVED" });
+      return textResult({
+        error: false,
+        data: {
+          ...base,
+          success: true,
+          outcome: "DRAFT_SAVED",
+          docId,
+          found_in: foundIn,
+          document_view: viewUrl,
+          cached_at: cacheDir,
+          message:
+            `doc_id ${docId} saved, not filed: document_view shows no submitted marker, and it is listed in ` +
+            `${foundIn.map((t) => `document_list.php?type=${t}`).join(" and ")} (${attachResult.attached}/${fileCount} files attached).`,
+        },
+      });
+    }
+    audit({ action: "draft_save", docId, mode: "draft", ok: false, code: "DRAFT_NOT_CONFIRMED" });
+    return textResult({
+      error: true,
+      code: "DRAFT_NOT_CONFIRMED",
+      docId,
+      message:
+        `submit_form() ran for doc_id ${docId}; document_view shows no submitted marker, but the doc is not on the first page of ` +
+        `Drafts or the drafter's-turn list (type=myapprove)${unreadable.length ? ` (unreadable: ${unreadable.join(", ")})` : ""}. ` +
+        `It may have been filed - check ${viewUrl} before retrying.`,
+      document_view: viewUrl,
+      cached_at: cacheDir,
+      ...base,
+    });
+  } catch (err) {
+    return textResult({
+      error: true,
+      code: "DRAFT_NOT_CONFIRMED",
+      docId,
+      message:
+        `submit_form() ran for doc_id ${docId}, but checking where it landed failed: ${err instanceof Error ? err.message : String(err)}. ` +
+        `It may have been filed for approval - check ${viewUrl} before retrying.`,
+      document_view: viewUrl,
+      ...base,
+    });
+  }
 }
 
 /** Travel Settlement (AppFrm-054) — domestic travel expense settlement

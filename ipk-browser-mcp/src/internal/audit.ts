@@ -29,8 +29,8 @@ export type AuditAction =
   | "navigate" | "precedent"
   /** card_expense_rd: attachment kind/attestation review (blocks/warnings/flagged exceptions) */
   | "attachment_review"
-  /** card_expense_rd only: a save via allow_card_er_save that landed at (or past) the
-   *  drafter's own turn - never a submit to the next approver by itself. */
+  /** card_expense_rd only: a one-time authorized save via allow_card_er_save - the
+   *  authorization being consumed, and the outcome read back from document_view. */
   | "draft_save";
 
 export interface AuditEvent {

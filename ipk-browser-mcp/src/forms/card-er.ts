@@ -1,10 +1,14 @@
 /**
  * Card ER (AppFrm-021, mker=Y) - the pure parts of the preview and submit paths.
  *
- * The mker=Y card ER has no draft: the server ignores mode1='draft' and files the
- * document for approval (doc 301323, 2026-10-08). So a "draft" request is served as a
- * preview that runs the form's own Check_Form_Request with the network cut, and these
- * helpers decide what the cut blocks and what the captured form held.
+ * This tool never submits the mker=Y card ER, and saves it only with a one-time
+ * per-transaction authorization (card-er-authorization.ts): a real save through the form's
+ * own [Draft] flow submitted doc 302098 for approval on 2026-10-23 instead of saving a draft
+ * (the server had already ignored mode1='draft' once before, filing doc 301323 for
+ * approval on 2026-10-08). Without an authorization every request is served as a preview
+ * that runs the form's own Check_Form_Request with the network cut, and these helpers
+ * decide what the cut blocks and what the captured form held. The person presses the
+ * form's own [Draft] or [Request] button themselves after reviewing the preview.
  */
 
 const CARD_PREFIX = /^\s*\[\s*card\s*\]\s*/i;

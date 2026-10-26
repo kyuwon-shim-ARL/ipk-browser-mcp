@@ -1,0 +1,121 @@
+Welcome, Kyuwon Shim    	Approved Cc(New) 0 | Approval 0 | Approval(Proxy) 0 | Finished N | Progress N
+
+
+   drafter.id / Master ID / Research Division / Antibacterial Resistance Lab / Post-Doc / Post-Doc / G2 / Team Member	
+
+
+	Approval > Progress
+[ Document Repossess ] [ Document List] [ Print ]
+R&D Expense Request (ER)
+Document No	
+Saving years	
+1 year
+3 years
+5 years
+10 years
+30 years
+Semi - Permanent
+Permanent
+	
+To Be Approved	    Urgent / Confidential	
+Payment Date	to be determined	
+
+
+
+A
+p
+p
+r
+o
+v
+a
+l	( 1 )	( 2 )	( 4 )
+A Person in Charge	Team Head (R)	CEO
+	[ Sign ]	[ Sign ]
+Kyuwon Shim	Approver A	Approver B
+2026-10-23	 	 
+	
+
+
+C
+o
+s
+i
+g
+n
+e
+r	( 3 )
+Budget Holder
+[ Sign ]
+Approver A
+ 
+	
+T
+a
+k
+e
+o
+v
+e
+r
+	( 5 )	( 6 )
+Budget Planning & Finance	Budget Planning & Finance
+[Sign]	[Sign]
+Team Member	Team Head (A)
+ 	 
+
+
+Cc		PA Exception	No
+Drafter	Antibacterial Resistance Lab - Team Member - Kyuwon Shim (XXXXX)	Date	2026-10-23
+
+
+Subject	[Card] overtime meal
+
+
+	
+Budget Type	R&D	Budget Code	  [EZ: NN0000-0000] [NN0000-0000] 2026 Mid-career Research Program_2nd_Approver A
+(Period : 2026-03-01~2027-02-28)
+
+
+Payment	Corporate Credit Card	Card Number	XXXX-XXXX-XXXX-XXXX
+
+
+No	Date of
+Invoice	Cate No	Account Code	Attendees	Qty	Amount
+excl. VAT	VAT	Total Amount	P/C	Control No	Payee/Vendor	PGM
+1	2026-10-15	none	[412103]
+Overtime Meals	Kyuwon Shim	1	12,728	1,272	14,000	N/N	00000000-01	REDACTED_VENDOR	-
+Total	
+14,000 KRW
+
+Notes	
+
+
+
+
+
+
+
+Date/Time	  2026-01-01 00:00 ~ 2026-01-01 00:00
+Attendees	 Kyuwon Shim
+Purpose of Overtime work	  General project work
+
+
+
+Withholdings (NO)
+	
+
+
+
+File Attachment List	receipt-CC_sales_slip.pdf [000000Bytes] [Delete]
+Application_for_Working_REDACTED.pdf [000000Bytes] [Delete]
+
+Attach Approved Document	
+
+[ Attachment Document ]
+
+Opinion of approval	Kyuwon Shim (Antibacterial Resistance Lab - Team Member) 2026-01-01 00:00:00
+[No opinion]
+
+Document Modify History	
+[ Document Repossess ] [ Document List] [ Print ]

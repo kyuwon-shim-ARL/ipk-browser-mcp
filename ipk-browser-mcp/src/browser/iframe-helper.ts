@@ -316,14 +316,21 @@ export async function setFormMode(
   frame: Frame,
   mode: "draft" | "request"
 ): Promise<void> {
-  await frame.evaluate(
+  // Read every mode1 back: a missing field, or a value that did not take, leaves mode1=''
+  // and Check_Form_Request then files the document as a [Request] (doc 302098, 2026-10-23).
+  const values: unknown = await frame.evaluate(
     (m: string) => {
-      const el = (document as any).all("mode1");
-      if (el) el.value = m;
+      const els = Array.from(document.getElementsByName("mode1")) as HTMLInputElement[];
+      for (const el of els) el.value = m;
+      return els.map((el) => el.value);
     },
     mode
   );
-  audit({ action: "submit", mode, ok: true });
+  const ok = Array.isArray(values) && values.length > 0 && values.every((v) => v === mode);
+  audit({ action: "submit", mode, ok });
+  if (!ok) {
+    throw new Error(`setFormMode: mode1 did not read back '${mode}' (got ${JSON.stringify(values)}); stopped before the form's own submit`);
+  }
 }
 
 /**

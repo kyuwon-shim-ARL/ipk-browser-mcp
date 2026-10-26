@@ -26,8 +26,12 @@
  * checked (2026-10-12) - see test/fixtures/card-er-location/document-view-301323-negative.txt.
  * The AT_DRAFTER_TURN branch below is tested against a SYNTHETIC fixture built from that
  * negative one's structure (own action present, no repossess button, first step untimed),
- * not a captured document_view. The real positive fixture is captured at the first live
- * card ER save (a separate step with the user), which is what gates allow_card_er_save.
+ * not a captured document_view.
+ *
+ * Only detectSubmittedOnDocumentView is wired into a live save path: the one-time authorized
+ * [Draft] save in src/tools/ipk-submit.ts (saveCardExpenseRDDraft) checks the saved
+ * document_view with it. The rest is kept as a utility for checking where an existing doc_id
+ * sits in the approval chain from a captured document_view page.
  */
 
 export type CardErLocationOutcome = "AT_DRAFTER_TURN" | "DRAFT_WENT_TO_APPROVAL" | "DRAFT_NOT_CONFIRMED";
@@ -134,6 +138,22 @@ export async function readWaitingListDocIds(frame: any): Promise<string[] | "unr
 
 export function isDocIdInWaitingList(docIds: string[] | "unreadable", docId: string): boolean | "unreadable" {
   return docIds === "unreadable" ? "unreadable" : docIds.includes(docId);
+}
+
+/**
+ * Markers on document_view.php that mean the document was FILED for approval, not saved
+ * as a draft: the "Approval > Progress" breadcrumb (the person's own in-flight documents)
+ * and the [ Document Repossess ] button. Doc 302098 (2026-10-23, test/fixtures/
+ * card-er-location/document-view-302098-submitted.rawtext.txt) showed both after a
+ * "draft" save, while readApprovalLineFromBodyText could not parse its approval line
+ * (the label is printed one letter per line) and the outcome came back as an unread
+ * DRAFT_NOT_CONFIRMED. Checked on the raw text before any approval-line parsing.
+ */
+export function detectSubmittedOnDocumentView(bodyText: string): string[] {
+  const found: string[] = [];
+  if (/Approval\s*>\s*Progress/.test(bodyText)) found.push("Approval > Progress");
+  if (/Document\s+Repossess/i.test(bodyText)) found.push("Document Repossess");
+  return found;
 }
 
 export function determineCardErLocation(inputs: CardErLocationInputs): CardErLocationResult {

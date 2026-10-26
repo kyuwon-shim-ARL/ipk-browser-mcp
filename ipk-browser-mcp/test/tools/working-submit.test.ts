@@ -42,6 +42,8 @@ function makeHarness() {
       // a minimal non-empty DOM snapshot, enough to not trip the "unreadable form"
       // fail-closed check; unmapped fields just warn (unknownFields: "warn").
       if (src.includes("knownSet")) return { subject: "Application for Working on 2026-11-07, Tester" };
+      // setFormMode reads mode1 back: the live form has exactly one, and it takes the value.
+      if (/getElementsByName\(['"]mode1['"]\)/.test(src)) return [arg];
       // Generic default: satisfies the array-expecting callers (verifyIntendedValues,
       // verifySelectsHeld) this harness does not otherwise script per form.
       return [];

@@ -3,7 +3,7 @@ import type { Frame, Page } from "playwright";
 
 // We test setFieldValue, setSelectValue, executeAjaxCascade by importing from source
 // and providing mock Frame/Page objects.
-import { setFieldValue, setSelectValue, executeAjaxCascade } from "../../src/browser/iframe-helper.js";
+import { setFieldValue, setSelectValue, executeAjaxCascade, setFormMode } from "../../src/browser/iframe-helper.js";
 import type { CascadeStep } from "../../src/browser/iframe-helper.js";
 
 /** Create a minimal mock Frame */
@@ -224,5 +224,21 @@ describe("executeAjaxCascade", () => {
     const result = await executeAjaxCascade(page, frame, steps);
     expect(result.errors).toHaveLength(1);
     expect(result.errors[0]).toContain("SELECTOR_NOT_FOUND");
+  });
+});
+
+describe("setFormMode - never lets a draft run as a [Request] (doc 302098, 2026-10-23)", () => {
+  const frameReturning = (values: unknown) => ({ evaluate: vi.fn().mockResolvedValue(values) }) as any;
+
+  it("resolves when every mode1 field reads back the requested mode", async () => {
+    await expect(setFormMode(frameReturning(["draft"]), "draft")).resolves.toBeUndefined();
+  });
+
+  it("throws when the form has no mode1 field (Check_Form_Request would file it as a Request)", async () => {
+    await expect(setFormMode(frameReturning([]), "draft")).rejects.toThrow(/mode1/);
+  });
+
+  it("throws when a mode1 field did not take the value", async () => {
+    await expect(setFormMode(frameReturning(["draft", ""]), "draft")).rejects.toThrow(/mode1/);
   });
 });

@@ -1,8 +1,10 @@
 /**
- * card_expense_rd (AppFrm-021, mker=Y) has no draft: the server files mode1='draft' for
- * approval (doc 301323, 2026-10-08). draft_only=true must be a preview that runs the
- * form's own Check_Form_Request with nothing able to leave the browser, and the submit
- * path must also go through Check_Form_Request.
+ * card_expense_rd (AppFrm-021, mker=Y) is never submitted by this tool (draft_only=false is
+ * refused, CARD_ER_NO_SUBMIT), and draft_only=true is a no-save preview that runs the form's
+ * own Check_Form_Request with nothing able to leave the browser. The only save is
+ * allow_card_er_save with a one-time per-transaction authorization file: a save through the
+ * form's own [Draft] flow submitted doc 302098 for approval on 2026-10-23 instead of saving
+ * a draft, so each save needs a person's go-ahead and its outcome is read back.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import * as os from "node:os";
@@ -193,6 +195,7 @@ const parse = (r: any) => JSON.parse(r.content[0].text);
 function makePopup(body = "Budget check", dialogsOnLoad: string[] = []) {
   const handlers: Record<string, ((x: any) => void)[]> = {};
   const pop: any = {
+    url: () => "https://gw.ip-korea.org/Document/budget_check_er.php",
     dismissed: [] as string[],
     on: vi.fn((ev: string, fn: (x: any) => void) => { (handlers[ev] ??= []).push(fn); }),
     fire(ev: string, message: string) {
@@ -222,7 +225,7 @@ describe("card_expense_rd with draft_only=true is a no-save preview", () => {
     expect(out.data.saved).toBe(false);
     expect(out.data.docId).toBeNull();
     expect(out.data.would_submit).toBe(true);
-    expect(out.data.message).toMatch(/cannot be saved as a draft/);
+    expect(out.data.message).toMatch(/preview-only/);
     expect(out.data.message).toMatch(/Nothing was saved/);
     expect(out.data.message).not.toMatch(/draft saved/);
     expect(out.data.captured.subject).toBe("[Card] Google Cloud usage fee");
@@ -323,10 +326,10 @@ describe("card_expense_rd with dry_run=true", () => {
   });
 });
 
-describe("card_expense_rd submit path goes through Check_Form_Request", () => {
-  // NO_FINAL_SUBMIT (src/policy/org-policy.ts): a real submission (draft_only=false) is
-  // refused unless IPK_ALLOW_SUBMIT=1 is also set. card_expense_rd has no draft state, so
-  // this is the one form type whose "submit" path these tests exercise directly.
+describe("card_expense_rd with draft_only=false is refused outright (CARD_ER_NO_SUBMIT)", () => {
+  // org-policy.ts's CARD_ER_NO_SUBMIT rule refuses this before the handler is ever reached,
+  // whatever confirm_submit/IPK_ALLOW_SUBMIT are set to - see test/tools/org-policy.test.ts
+  // for the policy-layer coverage. These confirm the full handler path agrees.
   const prevAllowSubmit = process.env.IPK_ALLOW_SUBMIT;
   beforeEach(() => {
     vi.clearAllMocks();
@@ -337,93 +340,13 @@ describe("card_expense_rd submit path goes through Check_Form_Request", () => {
     else process.env.IPK_ALLOW_SUBMIT = prevAllowSubmit;
   });
 
-  it("stubs only $.confirm (no capture) and stops on the form's alerts", async () => {
-    const run = { ...okRun(), alerts: ["Please insert meeting time"], pressed: null, submits: [] };
-    const h = makeHarness(run);
-    const out = parse(await handleIpkSubmitForm(h.session, h.config, params({ draft_only: false, confirm_submit: true })));
-    expect(out.error).toBe(true);
-    expect(out.code).toBe("SUBMIT_REJECTED");
-    expect(out.validation_alerts).toEqual(["Please insert meeting time"]);
-    expect(h.stubInstalls).toEqual([false]);
-    expect(h.evaluated).toContain("runCheckFormRequest");
-    expect(h.page.route).not.toHaveBeenCalled();
-    // no free-standing popup listener; the context dialog watcher is removed
-    expect(h.page.once).not.toHaveBeenCalled();
-    expect(h.page.on).not.toHaveBeenCalledWith("popup", expect.anything());
-    expect(h.page.waitForEvent).toHaveBeenCalledWith("popup", expect.objectContaining({ timeout: 25000 }));
-    const watcher = h.ctx.on.mock.calls.find((c: any[]) => c[0] === "page")?.[1];
-    expect(watcher).toBeTypeOf("function");
-    expect(h.ctx.off).toHaveBeenCalledWith("page", watcher);
-  });
-
-  it("a popup that arrives after the tool returned is never filed", async () => {
-    let deliver: (p: any) => void = () => {};
-    const late = new Promise<any>((resolve) => { deliver = resolve; });
-    const run = { ...okRun(), alerts: ["Please insert meeting time"], pressed: null, submits: [] };
-    const h = makeHarness(run, () => late);
-    const out = parse(await handleIpkSubmitForm(h.session, h.config, params({ draft_only: false, confirm_submit: true })));
-    expect(out.code).toBe("SUBMIT_REJECTED");
-    const pop = makePopup();
-    deliver(pop);
-    await new Promise((r) => setTimeout(r, 20));
-    expect(pop.evaluate).not.toHaveBeenCalledWith("submit_form()");
-    expect(pop.waitForLoadState).not.toHaveBeenCalled();
-  });
-
-  it("a popup wait that times out files nothing", async () => {
+  it("refuses draft_only=false even with confirm_submit=true and IPK_ALLOW_SUBMIT=1, nothing touched", async () => {
     const h = makeHarness(okRun());
     const out = parse(await handleIpkSubmitForm(h.session, h.config, params({ draft_only: false, confirm_submit: true })));
-    expect(out.error).toBe(false);
-    expect(out.data.success).toBe(false);
-    expect(out.data.message).toMatch(/never filed the form/);
-    expect(h.ctx.off).toHaveBeenCalledWith("page", expect.any(Function));
-  });
-
-  it("a clean budget check popup gets submit_form()", async () => {
-    const pop = makePopup("Budget check\nRemaining: 1,000,000");
-    const h = makeHarness(okRun(), async () => pop);
-    const out = parse(await handleIpkSubmitForm(h.session, h.config, params({ draft_only: false, confirm_submit: true })));
-    expect(pop.on).toHaveBeenCalledWith("dialog", expect.any(Function));
-    expect(pop.evaluate).toHaveBeenCalledWith("submit_form()");
-    expect(pop.close).not.toHaveBeenCalled();
-    expect(out.code).not.toBe("BUDGET_CHECK_REFUSED");
-  });
-
-  it("'not enough budget' in the popup is refused: no submit_form(), popup closed, message returned", async () => {
-    const pop = makePopup("Budget check\nThere is not enough budget for this item.\n[ Close ]");
-    const h = makeHarness(okRun(), async () => pop);
-    const out = parse(await handleIpkSubmitForm(h.session, h.config, params({ draft_only: false, confirm_submit: true })));
     expect(out.error).toBe(true);
-    expect(out.code).toBe("BUDGET_CHECK_REFUSED");
-    expect(out.budget_check_messages).toEqual(["There is not enough budget for this item."]);
-    expect(pop.evaluate).not.toHaveBeenCalledWith("submit_form()");
-    expect(pop.close).toHaveBeenCalled();
-  });
-
-  it("a native dialog on the popup is refused, dismissed, and its message returned", async () => {
-    const pop = makePopup("Budget check", ["Budget code is closed."]);
-    const h = makeHarness(okRun(), async () => pop);
-    const out = parse(await handleIpkSubmitForm(h.session, h.config, params({ draft_only: false, confirm_submit: true })));
-    expect(out.code).toBe("BUDGET_CHECK_REFUSED");
-    expect(out.budget_check_messages).toEqual(["Budget code is closed."]);
-    expect(pop.dismissed).toEqual(["Budget code is closed."]);
-    expect(pop.evaluate).not.toHaveBeenCalledWith("submit_form()");
-    expect(pop.close).toHaveBeenCalled();
-  });
-
-  it("the context page watcher catches dialogs on a page before the popup event resolves", async () => {
-    const pop = makePopup("Budget check");
-    const h = makeHarness(okRun(), async () => {
-      // the context sees the page first; the dialog fires before waitForEvent resolves
-      const watcher = h.ctx.on.mock.calls.find((c: any[]) => c[0] === "page")![1];
-      watcher(pop);
-      pop.fire("dialog", "Early alert");
-      return pop;
-    });
-    const out = parse(await handleIpkSubmitForm(h.session, h.config, params({ draft_only: false, confirm_submit: true })));
-    expect(out.code).toBe("BUDGET_CHECK_REFUSED");
-    expect(out.budget_check_messages).toEqual(["Early alert"]);
-    expect(pop.evaluate).not.toHaveBeenCalledWith("submit_form()");
+    expect(out.message).toMatch(/CARD_ER_NO_SUBMIT/);
+    expect(h.page.waitForEvent).not.toHaveBeenCalled();
+    expect(h.evaluated).not.toContain("runCheckFormRequest");
   });
 
   it("never posts form1 by hand", async () => {
@@ -431,7 +354,10 @@ describe("card_expense_rd submit path goes through Check_Form_Request", () => {
     const fn = src.slice(src.indexOf("async function submitCardExpenseRD("), src.indexOf("/** What one Check_Form_Request run"));
     expect(fn).not.toMatch(/budget_check_er\.php/);
     expect(fn).not.toMatch(/form\.submit\(\)/);
-    expect(fn).not.toMatch(/mode1/);
+    // submitCardExpenseRD itself never touches mode1 on the DOM: the authorized [Draft]
+    // save does that in setCardErDraftMode1/readCardErMode1 (saveCardExpenseRDDraft).
+    expect(fn).not.toMatch(/getElementsByName\(['"]mode1['"]\)/);
+    expect(fn).not.toMatch(/readFormMode1/);
   });
 });
 
@@ -506,6 +432,26 @@ describe("installCardErStubs + runCheckFormRequest (fake page globals)", () => {
     expect(run.pageError).toBeNull();
   });
 
+  it("save mode: presses only the Evidence Check modal, never another $.confirm (review 2026-10-26)", () => {
+    let pressed = "";
+    fakePage((w) => {
+      w.$.confirm({ title: "Request approval?", buttons: { Request: () => { pressed = "request"; }, Cancel: () => {} } });
+    });
+    installCardErStubs(false);
+    const run = runCheckFormRequest();
+    expect(pressed).toBe("");
+    expect(run.pressed).toBeNull();
+    expect(run.confirmButtons).toEqual(["Request", "Cancel"]);
+  });
+
+  it("save mode: still presses Next on the Evidence Check modal", () => {
+    const p = fakePage(pageHandler);
+    installCardErStubs(false);
+    const run = runCheckFormRequest();
+    expect(run.pressed).toBe("Next");
+    expect(p.opened).toEqual(["REAL_POPUP"]);
+  });
+
   it("preview: validation alerts are recorded and nothing is submitted", () => {
     fakePage((w) => { w.alert("insert venue"); });
     installCardErStubs(true);
@@ -567,137 +513,277 @@ describe("isMeetingAccount", () => {
   });
 });
 
-// ── allow_card_er_save + first_live_save (plan v6 P0-pre item 3/v6.1) ──────
 
-describe("card_expense_rd draft_only=true real-save gate", () => {
-  const prevAllowSubmit = process.env.IPK_ALLOW_SUBMIT;
-  const prevCardErSave = process.env.IPK_CARD_ER_SAVE;
-  const prevHome = process.env.HOME;
-  let tmpHome: string;
+// ── allow_card_er_save: one-time per-transaction authorization ─────
+
+describe("card_expense_rd allow_card_er_save needs a one-time authorization", () => {
+  const prevHome = process.env.IPK_HOME_DIR;
+  let home: string;
+  let authFile: string;
+  const DOC = "302200";
+  const fixture302098 = fs.readFileSync(
+    path.join(__dirname, "..", "fixtures", "card-er-location", "document-view-302098-submitted.rawtext.txt"),
+    "utf8"
+  );
+  const writeAuth = (entries: Record<string, unknown>) => {
+    fs.mkdirSync(path.dirname(authFile), { recursive: true });
+    fs.writeFileSync(authFile, JSON.stringify(entries));
+  };
+  const authFor = (trseq = "26040417102") => ({ "19984403": { trseq, authorized_at: "2026-10-26T10:00:00+09:00", note: "test" } });
+  const readAuth = () => JSON.parse(fs.readFileSync(authFile, "utf8"));
 
   beforeEach(() => {
     vi.clearAllMocks();
-    delete process.env.IPK_ALLOW_SUBMIT; // draft_only stays true throughout this block
-    delete process.env.IPK_CARD_ER_SAVE;
-    tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "ipk-card-er-save-home-"));
-    process.env.HOME = tmpHome; // never write the real cache dir from a test
+    // Never the real ~/.config: a real authorization must not be consumable by a test.
+    home = fs.mkdtempSync(path.join(os.tmpdir(), "ipk-card-er-home-"));
+    process.env.IPK_HOME_DIR = home;
+    authFile = path.join(home, ".config", "ipk-browser-mcp", "card-er-draft-authorizations.json");
   });
   afterEach(() => {
-    if (prevAllowSubmit === undefined) delete process.env.IPK_ALLOW_SUBMIT; else process.env.IPK_ALLOW_SUBMIT = prevAllowSubmit;
-    if (prevCardErSave === undefined) delete process.env.IPK_CARD_ER_SAVE; else process.env.IPK_CARD_ER_SAVE = prevCardErSave;
-    if (prevHome === undefined) delete process.env.HOME; else process.env.HOME = prevHome;
-    fs.rmSync(tmpHome, { recursive: true, force: true });
+    if (prevHome === undefined) delete process.env.IPK_HOME_DIR;
+    else process.env.IPK_HOME_DIR = prevHome;
+    fs.rmSync(home, { recursive: true, force: true });
   });
 
-  it("first_live_save without allow_card_er_save -> refused, nothing saved", async () => {
-    const h = makeHarness(okRun());
-    const out = parse(await handleIpkSubmitForm(h.session, h.config, params({ first_live_save: true })));
-    expect(out.error).toBe(false); // no allow_card_er_save: ordinary preview, not a refusal
-    expect(out.data.mode).toBe("preview");
-    expect(h.page.waitForEvent).not.toHaveBeenCalled(); // never reached the real-submit machinery
-  });
-
-  it("allow_card_er_save alone (no first_live_save) -> CARD_ER_SAVE_NO_FIXTURE_YET, nothing saved", async () => {
-    const h = makeHarness(okRun());
-    const out = parse(await handleIpkSubmitForm(h.session, h.config, params({ allow_card_er_save: true })));
-    expect(out.error).toBe(true);
-    expect(out.code).toBe("CARD_ER_SAVE_NO_FIXTURE_YET");
-    expect(h.page.waitForEvent).not.toHaveBeenCalled();
-  });
-
-  it("IPK_CARD_ER_SAVE=0 refuses even with both flags set, nothing saved", async () => {
-    process.env.IPK_CARD_ER_SAVE = "0";
-    const h = makeHarness(okRun());
-    const out = parse(await handleIpkSubmitForm(h.session, h.config, params({ allow_card_er_save: true, first_live_save: true })));
-    expect(out.error).toBe(true);
-    expect(out.code).toBe("CARD_ER_SAVE_DISABLED");
-    expect(h.page.waitForEvent).not.toHaveBeenCalled();
-  });
-
-  /** Both flags set: the harness is wired so frame.evaluate's innerText-matching calls
-   *  return `documentViewText` before frame.goto("...type=appr") runs and `waitingListText`
-   *  after - mirroring the real call order (read document_view, then navigate, then read
-   *  the waiting list). doc_id is read from frame.url(), overridden per test. */
-  function harnessForRealSave(docId: string | null, documentViewText: string, waitingListIds: string[] | null) {
-    const h = makeHarness(okRun(), async () => makePopup());
-    h.session.getUserInfo = () => ({ name: "Kyuwon Shim" }); // matches the fixtures' drafter name
-    h.frame.url = vi.fn(() => docId ? `https://gw.ip-korea.org/Document/document_view.php?doc_id=${docId}` : "https://gw.ip-korea.org/Document/document_write.php");
-    let navigated = false;
-    h.page.goto = vi.fn(async (url: string) => { if (String(url).includes("type=appr")) navigated = true; return null; });
+  /**
+   * The harness for a real [Draft] save: mode1 helpers, a budget popup, and - once
+   * submit_form() was called - a frame on document_view and document lists.
+   */
+  function saveHarness(opts: {
+    run?: Run;
+    mode1AtSet?: string[];
+    mode1AtPopup?: string[];
+    viewText?: string;
+    lists?: Record<string, string>;
+  } = {}) {
+    const pop = makePopup();
+    const h = makeHarness(opts.run ?? okRun(), async () => pop);
+    let saved = false;
+    pop.evaluate = vi.fn(async (fn: any) => {
+      if (fn === "submit_form()") { saved = true; return undefined; }
+      return typeof fn === "function" ? "Budget check\nRemaining: 500,000" : undefined;
+    });
+    h.frame.url = vi.fn(() => saved
+      ? `https://gw.ip-korea.org/Document/document_view.php?doc_id=${DOC}&approve_type=AppFrm-021`
+      : "https://gw.ip-korea.org/Document/document_write.php?approve_type=AppFrm-021&mker=Y");
     const baseEvaluate = h.frame.evaluate.getMockImplementation()!;
     h.frame.evaluate = vi.fn(async (fn: any, arg?: any) => {
-      const src = String(fn);
-      if (src.includes("innerText")) return navigated ? "" : documentViewText;
-      if (src.includes("a[href*=")) {
-        if (waitingListIds === null) throw new Error("list unreadable");
-        return waitingListIds;
-      }
+      const name = typeof fn === "function" ? fn.name : String(fn);
+      if (name === "setCardErDraftMode1") { h.evaluated.push(name); return opts.mode1AtSet ?? ["draft"]; }
+      if (name === "readCardErMode1") { h.evaluated.push(name); return opts.mode1AtPopup ?? ["draft"]; }
+      if (saved && String(fn).includes("innerText")) return opts.viewText ?? "Approval > Drafts\nR&D Expense Request (ER)\n[ Edit ] [ Delete ]";
       return baseEvaluate(fn, arg);
     });
-    return h;
+    let lastUrl = "";
+    h.page.goto = vi.fn(async (url: string) => { lastUrl = url; return null; });
+    h.page.content = vi.fn(async () => {
+      const type = (lastUrl.match(/type=(\w+)/) || [])[1] ?? "";
+      return (opts.lists ?? {})[type] ?? "<table></table>";
+    });
+    return { ...h, pop, isSaved: () => saved };
   }
 
-  const SYNTHETIC_POSITIVE_TEXT = fs.readFileSync(
-    path.join(__dirname, "..", "fixtures", "card-er-location", "document-view-synthetic-positive.rawtext.txt"), "utf8"
-  );
-  const NEGATIVE_TEXT = fs.readFileSync(
-    path.join(__dirname, "..", "fixtures", "card-er-location", "document-view-301323-negative.rawtext.txt"), "utf8"
-  );
+  it("refuses without an authorization file, naming the file and doc 302098, nothing clicked", async () => {
+    const h = saveHarness();
+    const out = parse(await handleIpkSubmitForm(h.session, h.config, params({ allow_card_er_save: true })));
+    expect(out.error).toBe(true);
+    expect(out.code).toBe("CARD_ER_SAVE_REFUSED");
+    expect(out.message).toMatch(/card-er-draft-authorizations\.json/);
+    expect(out.message).toMatch(/302098/);
+    expect(out.message).toMatch(/dry_run/);
+    expect(out.message).toMatch(/Nothing was saved/);
+    expect(h.page.waitForEvent).not.toHaveBeenCalled();
+    expect(h.evaluated).not.toContain("runCheckFormRequest");
+    expect(h.evaluated).not.toContain("setCardErDraftMode1");
+  });
 
-  it("[SYNTHETIC fixture] AT_DRAFTER_TURN: doc in the waiting list + own action pending -> success, 'press [Approve]' wording, action draft_save", async () => {
-    const h = harnessForRealSave("301999", SYNTHETIC_POSITIVE_TEXT, ["301999"]);
-    const out = parse(await handleIpkSubmitForm(h.session, h.config, params({ allow_card_er_save: true, first_live_save: true })));
+  it("refuses when the authorization's trseq does not match, and leaves it in place", async () => {
+    writeAuth(authFor("26040417999"));
+    const h = saveHarness();
+    const out = parse(await handleIpkSubmitForm(h.session, h.config, params({ allow_card_er_save: true })));
+    expect(out.code).toBe("CARD_ER_SAVE_REFUSED");
+    expect(h.evaluated).not.toContain("runCheckFormRequest");
+    expect(readAuth()).toEqual(authFor("26040417999"));
+  });
+
+  it("is not unlocked by any env variable", async () => {
+    const prev = process.env.IPK_CARD_ER_DRAFT_VERIFIED;
+    process.env.IPK_CARD_ER_DRAFT_VERIFIED = "1"; // the old opt-in, meaningless
+    try {
+      const h = saveHarness();
+      const out = parse(await handleIpkSubmitForm(h.session, h.config, params({ allow_card_er_save: true })));
+      expect(out.code).toBe("CARD_ER_SAVE_REFUSED");
+      expect(h.page.waitForEvent).not.toHaveBeenCalled();
+    } finally {
+      if (prev === undefined) delete process.env.IPK_CARD_ER_DRAFT_VERIFIED;
+      else process.env.IPK_CARD_ER_DRAFT_VERIFIED = prev;
+    }
+  });
+
+  it("an authorization does not unlock draft_only=false (CARD_ER_NO_SUBMIT) and is not consumed by it", async () => {
+    writeAuth(authFor());
+    const prev = process.env.IPK_ALLOW_SUBMIT;
+    process.env.IPK_ALLOW_SUBMIT = "1";
+    try {
+      const h = saveHarness();
+      const out = parse(await handleIpkSubmitForm(h.session, h.config, params({ allow_card_er_save: true, draft_only: false, confirm_submit: true })));
+      expect(out.error).toBe(true);
+      expect(out.message).toMatch(/CARD_ER_NO_SUBMIT/);
+      expect(h.evaluated).not.toContain("runCheckFormRequest");
+      expect(readAuth()).toEqual(authFor());
+    } finally {
+      if (prev === undefined) delete process.env.IPK_ALLOW_SUBMIT;
+      else process.env.IPK_ALLOW_SUBMIT = prev;
+    }
+  });
+
+  it("with an authorization: consumes it, sets mode1='draft' before Check_Form_Request, and reports DRAFT_SAVED when the doc is in Drafts", async () => {
+    writeAuth(authFor());
+    const h = saveHarness({ lists: { drafts: `<a href="document_view.php?doc_id=${DOC}&approve_type=AppFrm-021">x</a>` } });
+    const out = parse(await handleIpkSubmitForm(h.session, h.config, params({ allow_card_er_save: true })));
+
     expect(out.error).toBe(false);
-    expect(out.data.outcome).toBe("AT_DRAFTER_TURN");
-    expect(out.data.message).toMatch(/press \[Approve\]/);
-    expect(out.data.docId).toBe("301999");
-    // cache written outside the repo, under the overridden HOME
-    const cacheDir = path.join(tmpHome, ".cache", "ipk-mcp", "card-er-location", "301999");
-    expect(fs.existsSync(path.join(cacheDir, "document_view.rawtext.txt"))).toBe(true);
-    expect(fs.existsSync(path.join(cacheDir, "waiting_list.rawtext.txt"))).toBe(true);
-    expect(fs.readFileSync(path.join(cacheDir, "document_view.rawtext.txt"), "utf8")).toBe(SYNTHETIC_POSITIVE_TEXT);
+    expect(out.data.outcome).toBe("DRAFT_SAVED");
+    expect(out.data.docId).toBe(DOC);
+    expect(out.data.found_in).toEqual(["drafts"]);
+    expect(readAuth()).toEqual({});
+
+    // The page's own submit/window.open (stubs in non-preview mode), mode1 set first,
+    // re-read right before submit_form().
+    expect(h.stubInstalls).toEqual([false]);
+    const order = h.evaluated.filter((n) => ["setCardErDraftMode1", "runCheckFormRequest", "readCardErMode1"].includes(n));
+    expect(order).toEqual(["setCardErDraftMode1", "runCheckFormRequest", "readCardErMode1"]);
+    expect(h.pop.evaluate).toHaveBeenCalledWith("submit_form()");
+    // No network cut on this path.
+    expect(h.page.route).not.toHaveBeenCalled();
+    // document_view was read for the saved doc.
+    expect(h.frame.goto).toHaveBeenCalledWith(
+      `https://gw.ip-korea.org/Document/document_view.php?doc_id=${DOC}&approve_type=AppFrm-021`,
+      expect.anything()
+    );
   });
 
-  it("[REAL fixture: 301323] DRAFT_WENT_TO_APPROVAL: not in waiting list + past-drafter approval line -> error, repossess steps", async () => {
-    const h = harnessForRealSave("301323", NEGATIVE_TEXT, []);
-    const out = parse(await handleIpkSubmitForm(h.session, h.config, params({ allow_card_er_save: true, first_live_save: true })));
+  it("a second call with the same (consumed) authorization is refused", async () => {
+    writeAuth(authFor());
+    const h1 = saveHarness({ lists: { drafts: `doc_id=${DOC}` } });
+    await handleIpkSubmitForm(h1.session, h1.config, params({ allow_card_er_save: true }));
+    const h2 = saveHarness();
+    const out = parse(await handleIpkSubmitForm(h2.session, h2.config, params({ allow_card_er_save: true })));
+    expect(out.code).toBe("CARD_ER_SAVE_REFUSED");
+    expect(h2.evaluated).not.toContain("runCheckFormRequest");
+  });
+
+  it("the authorization is consumed before the click: a failing Check_Form_Request still leaves it consumed", async () => {
+    writeAuth(authFor());
+    const h = saveHarness({ run: { ...okRun(), pressed: null, pageError: "Check_Form_Request is not defined on this page" } });
+    const out = parse(await handleIpkSubmitForm(h.session, h.config, params({ allow_card_er_save: true })));
     expect(out.error).toBe(true);
-    expect(out.code).toBe("DRAFT_WENT_TO_APPROVAL");
-    expect(out.message).toMatch(/Document Repossess/);
+    expect(out.code).toBe("SUBMIT_FAILED");
+    expect(out.message).toMatch(/consumed/);
+    expect(readAuth()).toEqual({});
+    expect(h.pop.evaluate).not.toHaveBeenCalledWith("submit_form()");
   });
 
-  it("unreadable waiting list -> DRAFT_NOT_CONFIRMED, never a silent success", async () => {
-    const h = harnessForRealSave("301999", SYNTHETIC_POSITIVE_TEXT, null);
-    const out = parse(await handleIpkSubmitForm(h.session, h.config, params({ allow_card_er_save: true, first_live_save: true })));
+  it("mode1 that cannot be set to exactly one 'draft' stops before Check_Form_Request", async () => {
+    writeAuth(authFor());
+    const h = saveHarness({ mode1AtSet: ["", ""] });
+    const out = parse(await handleIpkSubmitForm(h.session, h.config, params({ allow_card_er_save: true })));
+    expect(out.code).toBe("DRAFT_MODE_NOT_SET");
+    expect(out.message).toMatch(/Nothing was filed/);
+    expect(h.evaluated).not.toContain("runCheckFormRequest");
+    expect(h.page.waitForEvent).toHaveBeenCalledTimes(0);
+  });
+
+  it("mode1 guard before submit_form(): a mode1 that is no longer 'draft' closes the popup, submit_form() never called", async () => {
+    writeAuth(authFor());
+    const h = saveHarness({ mode1AtPopup: [""] });
+    const out = parse(await handleIpkSubmitForm(h.session, h.config, params({ allow_card_er_save: true })));
+    expect(out.error).toBe(true);
+    expect(out.code).toBe("DRAFT_MODE_NOT_SET");
+    expect(out.message).toMatch(/Nothing was filed/);
+    expect(h.pop.evaluate).not.toHaveBeenCalledWith("submit_form()");
+    expect(h.pop.close).toHaveBeenCalled();
+    expect(h.isSaved()).toBe(false);
+  });
+
+  it("a budget refusal in the popup closes it without submit_form()", async () => {
+    writeAuth(authFor());
+    const h = saveHarness();
+    h.pop.evaluate = vi.fn(async (fn: any) => (typeof fn === "function" ? "Budget check\nNot enough budget." : undefined));
+    const out = parse(await handleIpkSubmitForm(h.session, h.config, params({ allow_card_er_save: true })));
+    expect(out.code).toBe("BUDGET_CHECK_REFUSED");
+    expect(h.pop.evaluate).not.toHaveBeenCalledWith("submit_form()");
+  });
+
+  it("SUBMITTED_NOT_DRAFT when document_view looks like doc 302098 (filed for approval) - no retry, no repossess", async () => {
+    writeAuth(authFor());
+    const h = saveHarness({ viewText: fixture302098, lists: { drafts: `doc_id=${DOC}` } });
+    const out = parse(await handleIpkSubmitForm(h.session, h.config, params({ allow_card_er_save: true })));
+    expect(out.error).toBe(true);
+    expect(out.code).toBe("SUBMITTED_NOT_DRAFT");
+    expect(out.docId).toBe(DOC);
+    expect(out.submitted_markers).toEqual(["Approval > Progress", "Document Repossess"]);
+    expect(out.message).toMatch(/FILED FOR APPROVAL/);
+    expect(out.message).not.toMatch(/nothing (was )?filed/i);
+    expect(h.pop.evaluate.mock.calls.filter((c: any[]) => c[0] === "submit_form()")).toHaveLength(1);
+    // Never looked at the lists to second-guess the markers.
+    expect(h.page.goto).not.toHaveBeenCalledWith(expect.stringContaining("document_list.php"), expect.anything());
+  });
+
+  it("DRAFT_NOT_CONFIRMED (may have been filed) when the doc is in neither list", async () => {
+    writeAuth(authFor());
+    const h = saveHarness();
+    const out = parse(await handleIpkSubmitForm(h.session, h.config, params({ allow_card_er_save: true })));
     expect(out.error).toBe(true);
     expect(out.code).toBe("DRAFT_NOT_CONFIRMED");
+    expect(out.docId).toBe(DOC);
+    expect(out.message).toMatch(/may have been filed/);
+    expect(h.page.goto).toHaveBeenCalledWith(expect.stringContaining("document_list.php?type=drafts"), expect.anything());
+    expect(h.page.goto).toHaveBeenCalledWith(expect.stringContaining("document_list.php?type=myapprove"), expect.anything());
   });
 
-  it("no doc_id in the final URL -> DRAFT_NOT_CONFIRMED without ever reading the location", async () => {
-    const h = harnessForRealSave(null, SYNTHETIC_POSITIVE_TEXT, ["301999"]);
-    const out = parse(await handleIpkSubmitForm(h.session, h.config, params({ allow_card_er_save: true, first_live_save: true })));
-    expect(out.error).toBe(true);
+  it("DRAFT_SAVED via the drafter's-turn list (type=myapprove)", async () => {
+    writeAuth(authFor());
+    const h = saveHarness({ lists: { myapprove: `onclick="view('doc_id=${DOC}')"` } });
+    const out = parse(await handleIpkSubmitForm(h.session, h.config, params({ allow_card_er_save: true })));
+    expect(out.data.outcome).toBe("DRAFT_SAVED");
+    expect(out.data.found_in).toEqual(["myapprove"]);
+  });
+
+  it("an unreadable document_view after submit_form() is DRAFT_NOT_CONFIRMED, never 'nothing filed'", async () => {
+    writeAuth(authFor());
+    const h = saveHarness({ viewText: "", lists: { drafts: `doc_id=${DOC}` } });
+    const out = parse(await handleIpkSubmitForm(h.session, h.config, params({ allow_card_er_save: true })));
     expect(out.code).toBe("DRAFT_NOT_CONFIRMED");
-    expect(h.page.goto).not.toHaveBeenCalledWith(expect.stringContaining("type=appr"));
+    expect(out.message).toMatch(/may have been filed/);
+    expect(out.message).not.toMatch(/nothing (was )?filed/i);
   });
 
-  it("the real-save path does call the request branch's popup/submit machinery (unlike the ordinary preview)", async () => {
-    const h = harnessForRealSave("301999", SYNTHETIC_POSITIVE_TEXT, ["301999"]);
-    await handleIpkSubmitForm(h.session, h.config, params({ allow_card_er_save: true, first_live_save: true }));
-    expect(h.page.waitForEvent).toHaveBeenCalledWith("popup", expect.objectContaining({ timeout: 25000 }));
-    expect(h.evaluated).toContain("runCheckFormRequest");
+  it("without allow_card_er_save, draft_only=true is still the ordinary no-save preview and an authorization is untouched", async () => {
+    writeAuth(authFor());
+    const h = makeHarness(okRun());
+    const out = parse(await handleIpkSubmitForm(h.session, h.config, params()));
+    expect(out.error).toBe(false);
+    expect(out.data.mode).toBe("preview");
+    expect(readAuth()).toEqual(authFor());
   });
 
-  // A: if the location-check post-processing throws AFTER the form's own submit click
-  // already ran (so the document may well have been filed), the outer SUBMIT_ERROR catch
-  // must not lose the doc_id or the repossess hint - a bare "something broke" message
-  // after a click that may have filed the document is exactly the wrong failure mode.
-  it("a throw inside the post-save location check still returns doc_id and the repossess hint, not a bare SUBMIT_ERROR", async () => {
-    const h = harnessForRealSave("301999", SYNTHETIC_POSITIVE_TEXT, ["301999"]);
-    h.session.getUserInfo = () => { throw new Error("boom: profile lookup failed"); };
-    const out = parse(await handleIpkSubmitForm(h.session, h.config, params({ allow_card_er_save: true, first_live_save: true })));
-    expect(out.error).toBe(true);
-    expect(out.docId).toBe("301999");
-    expect(out.message).toMatch(/Document Repossess/i);
+  it("dry_run with allow_card_er_save stays a preview and does not consume the authorization", async () => {
+    writeAuth(authFor());
+    const h = makeHarness(okRun());
+    const out = parse(await handleIpkSubmitForm(h.session, h.config, params({ dry_run: true, allow_card_er_save: true })));
+    expect(out.error).toBe(false);
+    expect(out.data.dry_run).toBe(true);
+    expect(readAuth()).toEqual(authFor());
+  });
+});
+
+describe("budget popup identity (review 2026-10-26)", () => {
+  it("a popup that is not budget_check_er is closed and never filed from", async () => {
+    const src = (await import("node:fs")).readFileSync(new URL("../../src/tools/ipk-submit.ts", import.meta.url), "utf-8");
+    const i = src.indexOf("budget_check_er/i.test(String(pop.url()))");
+    const j = src.indexOf('await pop.evaluate("submit_form()")');
+    expect(i).toBeGreaterThan(0);
+    expect(j).toBeGreaterThan(i);
   });
 });

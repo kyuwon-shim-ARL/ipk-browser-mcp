@@ -7,6 +7,7 @@ import {
   readWaitingListDocIds,
   isDocIdInWaitingList,
   determineCardErLocation,
+  detectSubmittedOnDocumentView,
 } from "../../src/browser/card-er-location.js";
 
 const FIXTURE_DIR = path.join(__dirname, "../fixtures/card-er-location");
@@ -95,5 +96,28 @@ describe("readWaitingListDocIds / isDocIdInWaitingList (frame glue)", () => {
     const ids = await readWaitingListDocIds(frame);
     expect(ids).toBe("unreadable");
     expect(isDocIdInWaitingList(ids, "301323")).toBe("unreadable");
+  });
+});
+
+// ── submission markers on the post-save document_view (incident 2026-10-23, doc 302098) ──
+// document-view-302098-submitted.rawtext.txt is the REAL page (redacted: card number,
+// approver/PI names, vendor, control no) that the "draft" save left behind: it was filed
+// for approval - breadcrumb "Approval > Progress" and a [ Document Repossess ] button -
+// while the old location check only said "Could not read the document's approval line".
+describe("detectSubmittedOnDocumentView", () => {
+  it("[REAL fixture: doc 302098, 2026-10-23] finds the submission markers", () => {
+    const markers = detectSubmittedOnDocumentView(read("document-view-302098-submitted.rawtext.txt"));
+    expect(markers).toEqual(expect.arrayContaining(["Approval > Progress", "Document Repossess"]));
+  });
+
+  it("reports nothing on the synthetic drafter-turn page or the 301323 approved page", () => {
+    expect(detectSubmittedOnDocumentView(read("document-view-synthetic-positive.rawtext.txt"))).toEqual([]);
+    expect(detectSubmittedOnDocumentView(read("document-view-301323-negative.rawtext.txt"))).toEqual([]);
+  });
+
+  it("matches either marker alone, with the page's own spacing", () => {
+    expect(detectSubmittedOnDocumentView("\tApproval  >  Progress\n")).toEqual(["Approval > Progress"]);
+    expect(detectSubmittedOnDocumentView("[ Document Repossess ] [ Print ]")).toEqual(["Document Repossess"]);
+    expect(detectSubmittedOnDocumentView("")).toEqual([]);
   });
 });
