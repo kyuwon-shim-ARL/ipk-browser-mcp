@@ -8,6 +8,8 @@ import {
   parseEventDates,
   parseTotalAmount,
   parseOrganizer,
+  parseFileAttachmentList,
+  parseTakeoverDepartments,
 } from "../../src/forms/document-view.js";
 
 // Real document_view.php?doc_id=301306 (AppFrm-021, 2026-10-12, still in revision - returned
@@ -47,6 +49,29 @@ describe("parseAdditionalDocuments", () => {
 
   it("returns [] when there is no Additional document section", () => {
     expect(parseAdditionalDocuments("Subject\t[Card] Test\n")).toEqual([]);
+  });
+});
+
+describe("parseFileAttachmentList", () => {
+  it("lists the original submission's files", () => {
+    expect(parseFileAttachmentList(BODY_TEXT)).toEqual([
+      "260928_AI4Sci-CC_sales_slip.pdf",
+      "260928_AI4Sci-registration_receipt.pdf",
+      "260911_AI4Sci-invitation_permission.pdf",
+      "260927_AI4Sci-conference_program.pdf",
+    ]);
+  });
+  it("returns [] when there is no File Attachment List section", () => {
+    expect(parseFileAttachmentList("Subject\t[Card] Test\n")).toEqual([]);
+  });
+});
+
+describe("parseTakeoverDepartments", () => {
+  it("reads both Takeover column departments", () => {
+    expect(parseTakeoverDepartments(BODY_TEXT)).toEqual(["Budget Planning & Finance", "Budget Planning & Finance"]);
+  });
+  it("returns null when there is no Takeover section", () => {
+    expect(parseTakeoverDepartments("Subject\t[Card] Test\n")).toBeNull();
   });
 });
 

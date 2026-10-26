@@ -68,6 +68,57 @@ export function parseAccountCode(bodyText: string): string | null {
   return m ? m[1] : null;
 }
 
+/** Filenames under "File Attachment List" - the original submission's files, [] if absent. */
+export function parseFileAttachmentList(bodyText: string): string[] {
+  const lines = bodyText.split(/\r?\n/);
+  const startIdx = lines.findIndex((l) => l.trim().startsWith("File Attachment List"));
+  if (startIdx === -1) return [];
+  const firstLine = lines[startIdx].replace(/^File Attachment List\t?/, "");
+  const out: string[] = [];
+  for (const line of [firstLine, ...lines.slice(startIdx + 1)]) {
+    const t = line.trim();
+    if (t === "" || t === "[ Close ] [ Print ]") break;
+    const m = /([^\t[\]]+\.[a-zA-Z0-9]+)\s*\[\d+Bytes\]/.exec(line);
+    if (m) out.push(m[1].trim());
+  }
+  return out;
+}
+
+/**
+ * Department name(s) in the "Takeover" row of the approval table. The page spells section
+ * labels ("Approval", "Cosigner", "Takeover", ...) one character per line - this finds the
+ * run of single-letter lines that reconstructs to "takeover", skips the step-number row
+ * right after it ("( 5 )\t( 6 )"), and reads the next tab-separated line as the department
+ * names. null if the section isn't found (a document with no Takeover step).
+ */
+export function parseTakeoverDepartments(bodyText: string): string[] | null {
+  const lines = bodyText.split(/\r?\n/);
+  for (let i = 0; i < lines.length; i++) {
+    let word: string;
+    let j: number;
+    if (lines[i].trim().toLowerCase() === "takeover") {
+      // Single-line form (synthetic fixtures, or a differently-rendered page).
+      word = "takeover";
+      j = i + 1;
+    } else {
+      // Vertically-spelled form (real document_view.php - one letter per line).
+      word = "";
+      j = i;
+      while (j < lines.length && /^[A-Za-z]$/.test(lines[j].trim())) {
+        word += lines[j].trim();
+        j++;
+      }
+    }
+    if (word.toLowerCase() !== "takeover") continue;
+    let k = j;
+    while (k < lines.length && (lines[k].trim() === "" || /^\(\s*\d+\s*\)/.test(lines[k].trim()))) k++;
+    if (k >= lines.length) return null;
+    const depts = lines[k].split("\t").map((s) => s.trim()).filter(Boolean);
+    return depts.length > 0 ? depts : null;
+  }
+  return null;
+}
+
 /** "Date/Time\t  2026-09-27 ~2026-10-01" -> { start, end }. */
 export function parseEventDates(bodyText: string): { start: string; end: string } | null {
   const m = /Date\/Time\t\s*(\d{4}-\d{2}-\d{2})\s*~\s*(\d{4}-\d{2}-\d{2})/.exec(bodyText);
