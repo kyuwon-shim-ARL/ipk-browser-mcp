@@ -2224,54 +2224,34 @@ async function submitBudgetTransfer(
   }
 
   const subject = `[Budget Transfer] ${title}`;
-  const budgetTypeValue = transferType === "rnd" ? "02" : "01";
 
-  // Step 1: Set subject and budget_type (triggers cascade)
-  const cascadeSchema: Record<string, TemplateFieldSchema> = {
-    subject:     { type: "text", dom_name: "subject", required: true },
-    budget_type: { type: "select", dom_name: "budget_type" },
-  };
-  await genericFillForm(frame, cascadeSchema, { subject, budget_type: budgetTypeValue });
-  await page.waitForTimeout(1000);
-
-  // Step 2: Set remaining fields with multi-selector fallbacks
+  // Real DOM names (AppFrm-039, live dry_run inspection 2026-10-14 - the form has no
+  // budget_type/from_budget_code/to_budget_code/transfer_amount/p_reason fields at all;
+  // every one of those selectors from the original handler matched nothing, so every
+  // real submission since 635ccb8 routed budget_transfer here went out with source_account/
+  // target_account/amount1/contents_data all empty - see .omc/plans/attachment-verification-v6.md
+  // and the budget_transfer entry in bench/replay-out, doc 300578, for the reproduction).
+  // params.budget_code (the fund-pot code, e.g. "NN2606-0001") maps straight onto the
+  // form's own "budget_code" field - distinct from source_account/target_account, which
+  // are the two account codes being transferred between.
   const fieldSchema: Record<string, TemplateFieldSchema> = {
-    from_budget: {
-      type: "text", dom_name: null,
-      dom_selectors: [
-        'select[name="budget_code"]', 'select[name="from_budget_code"]', 'select[name="budget_code_from"]',
-        'input[name="from_budget"]', 'input[name="budget_code_from"]',
-      ],
-    },
-    to_budget: {
-      type: "text", dom_name: null,
-      dom_selectors: [
-        'select[name="to_budget_code"]', 'select[name="budget_code_to"]',
-        'input[name="to_budget"]', 'input[name="budget_code_to"]',
-      ],
-    },
-    amount: {
-      type: "text", dom_name: null,
-      dom_selectors: [
-        'input[name="amount"]', 'input[name="transfer_amount"]',
-        'input[name="item_amount[]"]', 'input[name="total_amt"]',
-      ],
-    },
-    reason: {
-      type: "text", dom_name: null,
-      dom_selectors: [
-        'textarea[name="reason"]', 'textarea[name="p_reason"]',
-        'textarea[name="contents1"]', 'input[name="sub_subject"]',
-      ],
-    },
+    subject:         { type: "text", dom_name: "subject", required: true },
+    budget_code:     { type: "text", dom_name: "budget_code" },
+    source_account:  { type: "text", dom_name: "source_account" },
+    target_account:  { type: "text", dom_name: "target_account" },
+    amount1:         { type: "text", dom_name: "amount1" },
+    contents_data:   { type: "text", dom_name: "contents_data" },
   };
 
   await genericFillForm(frame, fieldSchema, {
-    from_budget: fromBudget || undefined,
-    to_budget: toBudget || undefined,
-    amount: amount || undefined,
-    reason,
+    subject,
+    budget_code: params.budget_code || undefined,
+    source_account: fromBudget || undefined,
+    target_account: toBudget || undefined,
+    amount1: amount || undefined,
+    contents_data: reason,
   });
+  await page.waitForTimeout(1000);
 
   // Handle attachment if provided
   if (params.attachment_path) {
