@@ -87,10 +87,18 @@ export class SessionManager {
   }
 
   private async ensureBrowser(): Promise<Browser> {
-    if (!this.browser) {
-      this.browser = await chromium.launch({
+    // A Chromium that died (crash, OOM kill) leaves a disconnected Browser behind; reusing it
+    // fails every later call with "browser has been closed" until the server restarts.
+    if (!this.browser || !this.browser.isConnected()) {
+      const browser = await chromium.launch({
         headless: this.config.headless,
       });
+      browser.on("disconnected", () => {
+        if (this.browser !== browser) return;
+        this.browser = null;
+        this.session = null; // its context lived in the dead browser
+      });
+      this.browser = browser;
     }
     return this.browser;
   }
