@@ -123,6 +123,10 @@ function makeHarness(run: Run, waitForPopup: () => Promise<any> = async () => { 
       evaluated.push(name);
       if (name === "installCardErStubs") { stubInstalls.push(arg); return undefined; }
       if (name === "runCheckFormRequest") return run;
+      // H2 pre-submit recheck (readCardErAmounts): a fixed, self-consistent value by
+      // default so the create-path authorization tests stay green; tests of the refusal
+      // itself override this per-call.
+      if (name === "readCardErAmounts") return { total: "11000", vat: "1000", excl: "10000" };
       const src = String(fn);
       if (src.includes("vender_kor")) return { budget_type: "02", budget_code: "NN2606-0001", amount: "11000", vender_kor: "구글" };
       if (src.includes("__ipkCardEr")) return run;
@@ -704,6 +708,94 @@ describe("card_expense_rd allow_card_er_save needs a one-time authorization", ()
       `https://gw.ip-korea.org/Document/document_view.php?doc_id=${DOC}&approve_type=AppFrm-021`,
       expect.anything()
     );
+  });
+
+  it("refuses PRE_SUBMIT_CHECK_FAILED when row 1's amounts changed before submit_form(), and never calls it", async () => {
+    writeAuth(authFor());
+    const h = saveHarness();
+    let calls = 0;
+    const wrapped = h.frame.evaluate.getMockImplementation()!;
+    h.frame.evaluate = vi.fn(async (fn: any, arg?: any) => {
+      const name = typeof fn === "function" ? fn.name : String(fn);
+      if (name === "readCardErAmounts") {
+        calls++;
+        return calls === 1 ? { total: "11000", vat: "1000", excl: "10000" } : { total: "99999", vat: "1000", excl: "10000" };
+      }
+      return wrapped(fn, arg);
+    });
+    const out = parse(await handleIpkSubmitForm(h.session, h.config, params({ allow_card_er_save: true })));
+    expect(out.error).toBe(true);
+    expect(out.code).toBe("PRE_SUBMIT_CHECK_FAILED");
+    expect(h.pop.evaluate).not.toHaveBeenCalledWith("submit_form()");
+  });
+
+  it("L1: refuses PRE_SUBMIT_CHECK_FAILED when a field reads back empty right before submit (not treated as 0), and never calls submit_form()", async () => {
+    writeAuth(authFor());
+    const h = saveHarness();
+    let calls = 0;
+    const wrapped = h.frame.evaluate.getMockImplementation()!;
+    h.frame.evaluate = vi.fn(async (fn: any, arg?: any) => {
+      const name = typeof fn === "function" ? fn.name : String(fn);
+      if (name === "readCardErAmounts") {
+        calls++;
+        return calls === 1 ? { total: "11000", vat: "1000", excl: "10000" } : { total: "", vat: "1000", excl: "10000" };
+      }
+      return wrapped(fn, arg);
+    });
+    const out = parse(await handleIpkSubmitForm(h.session, h.config, params({ allow_card_er_save: true })));
+    expect(out.error).toBe(true);
+    expect(out.code).toBe("PRE_SUBMIT_CHECK_FAILED");
+    expect(out.message).toMatch(/empty or not a number/);
+    expect(h.pop.evaluate).not.toHaveBeenCalledWith("submit_form()");
+  });
+
+  it("L1/L2: refuses PRE_SUBMIT_CHECK_FAILED when the baseline itself was empty for a field (both empty never 'matches' as 0), before consuming the authorization", async () => {
+    writeAuth(authFor());
+    const h = saveHarness();
+    const wrapped = h.frame.evaluate.getMockImplementation()!;
+    h.frame.evaluate = vi.fn(async (fn: any, arg?: any) => {
+      const name = typeof fn === "function" ? fn.name : String(fn);
+      if (name === "readCardErAmounts") return { total: "11000", vat: "", excl: "10000" }; // every call, same empty VAT
+      return wrapped(fn, arg);
+    });
+    const out = parse(await handleIpkSubmitForm(h.session, h.config, params({ allow_card_er_save: true })));
+    expect(out.error).toBe(true);
+    expect(out.code).toBe("PRE_SUBMIT_CHECK_FAILED");
+    expect(out.message).toMatch(/could not be read as numbers/);
+    expect(readAuth()).toEqual(authFor()); // not consumed
+    expect(h.pop.evaluate).not.toHaveBeenCalledWith("submit_form()");
+  });
+
+  it("L1: refuses PRE_SUBMIT_CHECK_FAILED when a field reads back non-numeric right before submit", async () => {
+    writeAuth(authFor());
+    const h = saveHarness();
+    let calls = 0;
+    const wrapped = h.frame.evaluate.getMockImplementation()!;
+    h.frame.evaluate = vi.fn(async (fn: any, arg?: any) => {
+      const name = typeof fn === "function" ? fn.name : String(fn);
+      if (name === "readCardErAmounts") {
+        calls++;
+        return calls === 1 ? { total: "11000", vat: "1000", excl: "10000" } : { total: "N/A", vat: "1000", excl: "10000" };
+      }
+      return wrapped(fn, arg);
+    });
+    const out = parse(await handleIpkSubmitForm(h.session, h.config, params({ allow_card_er_save: true })));
+    expect(out.error).toBe(true);
+    expect(out.code).toBe("PRE_SUBMIT_CHECK_FAILED");
+    expect(out.message).toMatch(/empty or not a number/);
+    expect(h.pop.evaluate).not.toHaveBeenCalledWith("submit_form()");
+  });
+
+  it("L2: reads the H2 baseline before the authorization is consumed (readCardErAmounts precedes setCardErDraftMode1)", async () => {
+    writeAuth(authFor());
+    const h = saveHarness({ lists: { drafts: `<a href="document_view.php?doc_id=${DOC}&approve_type=AppFrm-021">x</a>` } });
+    const out = parse(await handleIpkSubmitForm(h.session, h.config, params({ allow_card_er_save: true })));
+    expect(out.error).toBe(false);
+    const idxAmounts = h.evaluated.indexOf("readCardErAmounts");
+    const idxMode1 = h.evaluated.indexOf("setCardErDraftMode1");
+    expect(idxAmounts).toBeGreaterThanOrEqual(0);
+    expect(idxMode1).toBeGreaterThanOrEqual(0);
+    expect(idxAmounts).toBeLessThan(idxMode1);
   });
 
   it("a second call with the same (consumed) authorization is refused", async () => {

@@ -47,19 +47,23 @@ function makeHarness() {
         const hh = Number((arg?.hhmm ?? "02:00").slice(0, 2));
         return hh >= 1 && hh <= 12 ? "ok" : "no_option";
       }
-      // travel_settlement: parent-doc autopopulate poll - true on first check, no loop.
-      if (src.includes('"start_date"') && src.includes('"province"')) return true;
+      // travel_settlement: read-only p_doc_id link verification - simulate the parent
+      // request's prefill having taken, matching whatever doc_id the test case passed.
+      if (src.includes("p_doc_id")) return { pDocId: "299953", prefilled: true };
       // field-rules.ts serializeFormFields
       if (src.includes("knownSet")) return { subject: "stub" };
       // expense/card_expense: assertTotalMatchesItems - no comparable line items in this
       // minimal mock DOM, so "nothing to assert" (null) is the correct simulated result.
       if (src.includes('getElementsByName("total_amt")')) return null;
-      // selectExistingOption (ipk-submit.ts, used by submitOverseasTravelReport's
-      // pdoc_id select and others): "ok" on the first poll, so its retry loop doesn't
-      // spin for its full real-wall-clock timeout (Date.now()-based, not mocked).
+      // selectExistingOption (ipk-submit.ts, used by other forms' option selects):
+      // "ok" on the first poll, so its retry loop doesn't spin for its full
+      // real-wall-clock timeout (Date.now()-based, not mocked).
       if (src.includes("no_option") && src.includes("reverted")) {
         return { status: "ok", options: [], label: "x", hidden: false };
       }
+      // submitOverseasTravelReport's read-only pdoc_id-linked check: the customUrl
+      // already opened the page with pdoc_id selected, so simulate that it landed.
+      if (src.includes('select[name="pdoc_id"]')) return "400100";
       // travel-report.ts readReportContentFields / post-save readback
       if (src.includes("out[names[i]]") || src.includes("for (const n of names)")) {
         const out: Record<string, string> = {};

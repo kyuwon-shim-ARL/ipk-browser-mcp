@@ -48,6 +48,7 @@ import { EVIDENCE_DIR, validateAttachmentPath } from "../security/attachment-pat
 import { attachFiles } from "../internal/primitives/attachment.js";
 import { checkOrgPolicy } from "../policy/org-policy.js";
 import * as path from "path";
+import * as fs from "fs";
 
 export const ipkCardErFixVatSchema = {
   doc_id: z.string().regex(/^\d+$/).describe("The card ER draft to correct (must be in the person's type=drafts list)."),
@@ -90,7 +91,20 @@ export interface EditRowState {
   mod_reasons: boolean;
   del_no: string;
   mode: string;
+  del_no_found: boolean;
+  mode_found: boolean;
   attachments: string[];
+}
+
+/** getElementById first; if that finds nothing, fall back to getElementsByName (the Edit
+ * page's del_no/mode inputs are only an id in the source this was built against, but a
+ * re-render without the id would otherwise read back as "" and hide a real pending delete). */
+function readValueByIdOrName(id: string): { value: string; found: boolean } {
+  const byId = document.getElementById(id) as HTMLInputElement | null;
+  if (byId) return { value: byId.value ?? "", found: true };
+  const byName = document.getElementsByName(id)[0] as HTMLInputElement | undefined;
+  if (byName) return { value: byName.value ?? "", found: true };
+  return { value: "", found: false };
 }
 
 export function readEditRowState(): EditRowState {
@@ -98,6 +112,8 @@ export function readEditRowState(): EditRowState {
   const at = (n: string) => document.getElementsByName(n)[1] as HTMLInputElement | undefined;
   const cnt = document.getElementsByName("er_row_cnt")[0] as HTMLSelectElement | undefined;
   const subj = document.querySelector('input[name="subject"]') as HTMLInputElement | null;
+  const delNo = readValueByIdOrName("del_no");
+  const mode = readValueByIdOrName("mode");
   return {
     rows: cnt ? String(cnt.value) : "",
     item_name: at("item_name[]")?.value ?? "",
@@ -109,8 +125,10 @@ export function readEditRowState(): EditRowState {
     has_process_money: typeof w.process_money === "function",
     has_edit_check: typeof w.fn_Edit_Check === "function",
     mod_reasons: document.getElementsByName("MOD_REASONS").length > 0,
-    del_no: (document.getElementById("del_no") as HTMLInputElement | null)?.value ?? "",
-    mode: (document.getElementById("mode") as HTMLInputElement | null)?.value ?? "",
+    del_no: delNo.value,
+    mode: mode.value,
+    del_no_found: delNo.found,
+    mode_found: mode.found,
     attachments: Array.from(document.querySelectorAll(".attatch_file_link")).map((a) => (a.textContent || "").trim()),
   };
 }
@@ -209,12 +227,31 @@ export async function handleIpkCardErFixVat(sessionManager: SessionManager, conf
   // file must be attached now (it stays - the person deletes it).
   const addPaths = adds.map((a) => String(a?.path ?? ""));
   const addNames = addPaths.map((p) => path.basename(p));
-  const badPaths = addPaths.flatMap((p) => {
-    if (!path.isAbsolute(p) || !path.resolve(p).startsWith(`${EVIDENCE_DIR}/`)) return [`${p}: not under ${EVIDENCE_DIR}/`];
+  // Resolve symlinks before checking the evidence-dir/NO_GENERATED_EVIDENCE rules, so a
+  // symlink placed under data/attachments pointing elsewhere (e.g. /tmp) is refused.
+  const realPaths = addPaths.map((p) => {
+    try {
+      return fs.realpathSync(p);
+    } catch {
+      return p; // missing file: validateAttachmentPath below reports the existing error.
+    }
+  });
+  // Compare against EVIDENCE_DIR's own realpath, not the literal constant - if EVIDENCE_DIR
+  // itself is a symlink, a file's realpath resolves to the canonical target, which would
+  // never match the un-resolved constant and reject every legitimate attachment.
+  let realEvidenceDir: string;
+  try {
+    realEvidenceDir = fs.realpathSync(EVIDENCE_DIR);
+  } catch {
+    realEvidenceDir = EVIDENCE_DIR;
+  }
+  const badPaths = addPaths.flatMap((p, i) => {
+    const real = realPaths[i];
+    if (!path.isAbsolute(real) || !real.startsWith(`${realEvidenceDir}/`)) return [`${p}: not under ${EVIDENCE_DIR}/`];
     const err = validateAttachmentPath(p);
     return err ? [`${p}: ${err}`] : [];
   });
-  for (const v of checkOrgPolicy({ attachment_paths: addPaths }).filter((x) => x.rule === "NO_GENERATED_EVIDENCE")) badPaths.push(v.message);
+  for (const v of checkOrgPolicy({ attachment_paths: realPaths }).filter((x) => x.rule === "NO_GENERATED_EVIDENCE")) badPaths.push(v.message);
   if (badPaths.length > 0) return refuse("INVALID_ATTACHMENT", `${badPaths.join("; ")}. Nothing was changed.`);
   const dupes = addNames.filter((n, i) => attachmentsBefore.includes(n) || addNames.indexOf(n) !== i);
   if (dupes.length > 0) {
@@ -243,7 +280,11 @@ export async function handleIpkCardErFixVat(sessionManager: SessionManager, conf
   if (state.total_attr !== total) problems.push(`row 1 server total '${state.total_attr}' differs from document_view total ${total}`);
   if (!state.has_process_money || !state.has_edit_check) problems.push("process_money/fn_Edit_Check missing");
   if (state.mod_reasons) problems.push("the page asks for a modification reason (MOD_REASONS)");
-  if (state.del_no !== "" || state.mode !== "") problems.push(`del_no '${state.del_no}' / mode '${state.mode}' are not empty (a pending delete)`);
+  // A missing del_no/mode field is refused here too (before the one-time authorization is
+  // consumed below) - otherwise a page that doesn't carry one wastes the authorization only
+  // to be caught later by the exact same gap in the pre-submit recheck.
+  if (!state.del_no_found || !state.mode_found) problems.push("del_no/mode could not be found on the Edit page (missing)");
+  else if (state.del_no !== "" || state.mode !== "") problems.push(`del_no '${state.del_no}' / mode '${state.mode}' are not empty (a pending delete)`);
   if (JSON.stringify(state.attachments) !== JSON.stringify(attachmentsBefore)) problems.push(`Edit page attachments ${JSON.stringify(state.attachments)} differ from document_view ${JSON.stringify(attachmentsBefore)}`);
   if (!doVat) {
     // body onload recomputes item_amount[] = ral1 + vat; an attachment-only save posts what the page shows.
@@ -302,6 +343,7 @@ export async function handleIpkCardErFixVat(sessionManager: SessionManager, conf
   if (doVat) {
     const filled = await frame.evaluate(applyOverseasVatZero, total);
     if (filled.total_value !== total || filled.total_amt !== total || filled.vat !== "0" || filled.excl !== total) {
+      await navigateInFrame(page, viewPath, config).catch(() => null);
       return refuse("VALUE_SET_FAILED", `After setting VAT 0 / excl. VAT ${total}, the page shows ${JSON.stringify(filled)}. Nothing was clicked. The authorization was consumed.`, { filled });
     }
   }
@@ -322,6 +364,24 @@ export async function handleIpkCardErFixVat(sessionManager: SessionManager, conf
     {
       mode1: "drafts",
       runner: runEditSaveFlow,
+      preSubmitCheck: async () => {
+        const s: EditRowState = await frame.evaluate(readEditRowState).catch(() => null);
+        if (!s) return { ok: false, message: "the opener's Edit page could not be re-read right before submit" };
+        const num = (v: string) => Number(String(v).replace(/,/g, ""));
+        const problems: string[] = [];
+        if (num(s.excl) !== expected.excl || num(s.vat) !== expected.vat || num(s.total_value) !== expected.total) {
+          problems.push(`the opener now shows excl ${s.excl} / VAT ${s.vat} / total ${s.total_value}, not ${JSON.stringify(expected)}`);
+        }
+        if (s.del_no_found === false || s.mode_found === false) problems.push("del_no/mode could not be found on the opener (missing)");
+        // Only del_no's emptiness is the real safety property (no pending file deletion);
+        // mode's VALUE is not asserted here because the page's own fn_Edit_Check/
+        // Check_Form_Request (which runs before this recheck) may legitimately write the
+        // hidden `mode` input as part of a normal save - asserting it empty would refuse
+        // every ordinary save, not just one with a pending delete. Only its presence (above)
+        // matters.
+        else if (s.del_no !== "") problems.push(`del_no '${s.del_no}' is no longer empty (a pending delete) right before submit`);
+        return { ok: problems.length === 0, message: problems.join("; ") };
+      },
       finish: async () => {
         const afterFrame: any = await navigateInFrame(page, viewPath, config).catch(() => null);
         const afterText = afterFrame ? String((await afterFrame.evaluate(readBodyText).catch(() => "")) ?? "") : "";

@@ -910,7 +910,7 @@ export const ipkSubmitFormSchema = {
   transport_fee: z.number().optional().describe("Transport fee in KRW"),
   accommodation: z.number().optional().describe("Accommodation fee in KRW"),
   food_expense: z.number().optional().describe("Food expense in KRW"),
-  approved_doc_ref: z.string().optional().describe("Document number of the approved travel request"),
+  approved_doc_ref: z.string().optional().describe("The approved travel request (AppFrm-023) this settlement settles. A numeric doc_id is used directly; anything else (omitted, or an ARL-... document number) triggers auto-lookup among this person's own approved AppFrm-023 requests, refused if that matches zero or more than one."),
   oil_price: z.number().optional().describe("Oil price per liter (own vehicle)"),
   distance_km: z.number().optional().describe("Distance in km (own vehicle)"),
   toll_fee: z.number().optional().describe("Toll fee in KRW (own vehicle)"),
@@ -1013,6 +1013,111 @@ const PRECEDENT_FOR = new WeakMap<Record<string, any>, PrecedentSet>();
  *  back by customUrl/waitSelector, same WeakMap-keyed-on-params pattern as PRECEDENT_FOR. */
 const TRAVEL_REPORT_ROUTE = new WeakMap<Record<string, any>, { kind: "domestic" | "overseas"; requestDocId: string }>();
 
+/** Which approved AppFrm-023 request submitTravelSettlement's customUrl opens the AppFrm-054
+ *  write page against (resolved in beforeNavigate - explicit numeric approved_doc_ref, or an
+ *  async auto-lookup), same WeakMap-keyed-on-params pattern as TRAVEL_REPORT_ROUTE. */
+const TRAVEL_SETTLEMENT_ROUTE = new WeakMap<Record<string, any>, { requestDocId: string }>();
+
+/**
+ * Network: this person's own approved AppFrm-023 travel requests (type=approved - own docs
+ * only, per CLAUDE.md's ER search table) matching an optional keyword. Unlike
+ * findOwnApprovedTravelRequest (travel-report.ts), there is no "already has a report" filter -
+ * a settlement has no such concept - so this refuses outright on anything but exactly one match.
+ */
+async function findApprovedTravelRequestForSettlement(
+  page: any,
+  opts: { baseUrl: string; keyword?: string }
+): Promise<{ docId: string } | { error: string; candidates: number }> {
+  const keyword = (opts.keyword ?? "").trim();
+  if (!keyword) {
+    // An unfiltered list is never auto-picked from, even when it happens to resolve to one
+    // match - the match would be an accident of recency, not of this request (M1).
+    return {
+      error: "no keyword to narrow the auto-lookup (request_keyword/title/destination were all empty) - refusing to auto-pick from an unfiltered list of approved requests",
+      candidates: 0,
+    };
+  }
+  const origin = new URL(opts.baseUrl).origin;
+  const ymd = (d: Date) => d.toISOString().slice(0, 10);
+  const e = new Date();
+  const s = new Date(e.getTime() - 365 * 86400000);
+  const listUrl =
+    `${origin}/Document/document_list.php?type=approved&s_date=${ymd(s)}&e_date=${ymd(e)}` +
+    `&keyword=${encodeURIComponent(keyword)}&writer=Y&title=Y&contents=Y&attachment=Y`;
+  await page.goto(listUrl, { waitUntil: "domcontentloaded", timeout: 30000 });
+  await page.waitForTimeout(1500);
+  const anchors: string[] = await page.mainFrame().$$eval("a", (as: any[]) => as.map((a: any) => `${a.getAttribute("href") || ""} ${a.getAttribute("onclick") || ""}`));
+  // A second page of results means the keyword did not narrow enough for an auto-pick to be
+  // trustworthy - refuse rather than silently reading only what fit on page 1. The
+  // groupware's own pager is start_page=N (dev/baseline_gate.py:138's _fetch_domestic_report_texts),
+  // not page=N - matched explicitly so "start_page=2" isn't missed by \bpage=2\b's word
+  // boundary (the "_" before "page" is itself a word character, so it never matches there).
+  if (anchors.some((a) => /\bstart_page=2\b|\bpage=2\b|go_page\(\s*2\s*\)|fn_page\(\s*2\s*\)/i.test(a))) {
+    return {
+      error: "the approved-request list has more than one page of results for this keyword - narrow request_keyword/title/destination so every match fits on page 1",
+      candidates: -1,
+    };
+  }
+  const hrefs = anchors.map((a) => a.split(" ")[0]).filter((h) => h.includes("doc_id="));
+  const relevantHrefs = hrefs.filter((h) => /approve_type=AppFrm-023\b/.test(h));
+  const docIds = [...new Set(relevantHrefs.map((h) => (h.match(/doc_id=(\d+)/) ?? [])[1]).filter((id): id is string => !!id))];
+  if (docIds.length === 0) {
+    return { error: "no approved travel request (AppFrm-023) found for this person in the lookup window", candidates: 0 };
+  }
+  if (docIds.length > 1) {
+    return { error: `${docIds.length} approved travel requests matched - pass approved_doc_ref explicitly to pick one`, candidates: docIds.length };
+  }
+  return { docId: docIds[0] };
+}
+
+/**
+ * H1: approved_doc_ref that is not numeric (a document number like "ARL-260901-03") must
+ * not be discarded into a keyword search over title/destination - a document number
+ * search, matched exactly against the list's Doc Number column, is the only way to be sure
+ * it links the right trip rather than merely a plausible one.
+ */
+async function findApprovedTravelRequestByDocNumber(
+  page: any,
+  opts: { baseUrl: string; docNumber: string }
+): Promise<{ docId: string } | { error: string; candidates: number }> {
+  const wanted = opts.docNumber.trim();
+  const origin = new URL(opts.baseUrl).origin;
+  const ymd = (d: Date) => d.toISOString().slice(0, 10);
+  const e = new Date();
+  const s = new Date(e.getTime() - 365 * 86400000);
+  const listUrl =
+    `${origin}/Document/document_list.php?type=approved&s_date=${ymd(s)}&e_date=${ymd(e)}` +
+    // doc_no=Y enables the list's document-number search scope alongside the keyword's
+    // existing writer/title/contents/attachment scopes (see fetchTravelRequestPrecedents).
+    `&keyword=${encodeURIComponent(wanted)}&writer=Y&title=Y&contents=Y&attachment=Y&doc_no=Y`;
+  await page.goto(listUrl, { waitUntil: "domcontentloaded", timeout: 30000 });
+  await page.waitForTimeout(1500);
+  const rows: { href: string; docId: string; docNo: string }[] = await page.mainFrame().$$eval(
+    "tr",
+    (trs: any[]) =>
+      trs
+        .map((r: any) => {
+          const a = r.querySelector("a[href*='doc_id=']");
+          if (!a) return null;
+          const href = a.getAttribute("href") || "";
+          const m = href.match(/doc_id=(\d+)/);
+          const cells = Array.from(r.querySelectorAll("td")).map((td: any) => (td.innerText || "").replace(/\s+/g, " ").trim());
+          // Columns on document_list.php: doc no, subject, department, writer, status, date.
+          return { href, docId: m ? m[1] : "", docNo: cells[0] ?? "" };
+        })
+        .filter(Boolean)
+  );
+  const matches = rows.filter((r) => r.docId && /approve_type=AppFrm-023\b/.test(r.href) && r.docNo.trim() === wanted);
+  const docIds = [...new Set(matches.map((r) => r.docId))];
+  if (docIds.length === 0) {
+    return { error: `no approved travel request (AppFrm-023) with document number '${wanted}' found for this person`, candidates: 0 };
+  }
+  if (docIds.length > 1) {
+    return { error: `${docIds.length} approved travel requests matched document number '${wanted}' exactly - pass the numeric doc_id instead`, candidates: docIds.length };
+  }
+  return { docId: docIds[0] };
+}
+
 /** Navigation overrides for forms that cannot use the standard navigateToForm path. */
 const FORM_NAV_CONFIG: Partial<Record<string, FormNavConfig>> = {
   travel: {
@@ -1048,7 +1153,10 @@ const FORM_NAV_CONFIG: Partial<Record<string, FormNavConfig>> = {
       if (route?.kind === "domestic") {
         return `${origin}/Document/travel_report_write.php?doc_id=${encodeURIComponent(route.requestDocId)}&approve_type=AppFrm-023&pop=Y`;
       }
-      return `${origin}/Document/document_write.php?approve_type=AppFrm-076`;
+      // Same URL the page's own #pdoc_id change handler navigates to (live-read 2026-10-27) -
+      // opening it directly means pdoc_id is already selected on load, instead of triggering
+      // that handler's reload mid-fill (see submitOverseasTravelReport's read-only check).
+      return `${origin}/Document/document_write.php?approve_type=AppFrm-076&pdoc_id=${encodeURIComponent(route?.requestDocId ?? "")}`;
     },
     waitSelector: 'input[name="report_date"], input[name="subject"]',
     waitMs: 2000,
@@ -1092,7 +1200,59 @@ const FORM_NAV_CONFIG: Partial<Record<string, FormNavConfig>> = {
       }
     },
   },
-  travel_settlement: { validate: (params) => attachmentSlotRefusal(params) },
+  travel_settlement: {
+    validate: (params) => attachmentSlotRefusal(params),
+    // AppFrm-054 opened bare exposes almost no fields (live-read 2026-10-27) - start_date,
+    // budget_control_no etc. only appear once a parent AppFrm-023 request is linked via
+    // p_doc_id on the write URL. Resolve which request that is before any page is loaded,
+    // same reasoning as travel_request's precedent lookup and the `travel` route above.
+    beforeNavigate: async (page, params, config) => {
+      let docId = params.approved_doc_ref ? String(params.approved_doc_ref) : undefined;
+      // A non-numeric ref (e.g. "ARL-260901-03") is a document number, not a doc_id - it is
+      // looked up by exact match on the list's Doc Number column (findApprovedTravelRequestByDocNumber,
+      // H1), never folded into the title/destination keyword search where it could link the
+      // wrong trip.
+      const docNumberRef = docId && !/^\d+$/.test(docId) ? docId : undefined;
+      if (docNumberRef) docId = undefined;
+
+      if (!docId && docNumberRef) {
+        const found = await findApprovedTravelRequestByDocNumber(page, { baseUrl: config.baseUrl, docNumber: docNumberRef });
+        if ("error" in found) {
+          audit({ action: "refusal", code: "PARENT_DOC_REQUIRED", field: "approved_doc_ref", ok: false });
+          return {
+            code: "PARENT_DOC_REQUIRED",
+            message:
+              `${found.error}. travel_settlement needs the approved travel request it settles - pass approved_doc_ref ` +
+              "(the request's numeric doc_id is preferred; its exact document number also works when it resolves to exactly one match).",
+          };
+        }
+        docId = found.docId;
+      } else if (!docId) {
+        const found = await findApprovedTravelRequestForSettlement(page, {
+          baseUrl: config.baseUrl,
+          keyword: params.request_keyword || params.title || params.destination,
+        });
+        if ("error" in found) {
+          audit({ action: "refusal", code: "PARENT_DOC_REQUIRED", field: "approved_doc_ref", ok: false });
+          return {
+            code: "PARENT_DOC_REQUIRED",
+            message:
+              `${found.error}. travel_settlement needs the approved travel request it settles - pass approved_doc_ref ` +
+              "(the request's numeric doc_id is preferred; a document number also works when it resolves to exactly one match).",
+          };
+        }
+        docId = found.docId;
+      }
+      TRAVEL_SETTLEMENT_ROUTE.set(params, { requestDocId: docId });
+    },
+    customUrl: (params, config) => {
+      const route = TRAVEL_SETTLEMENT_ROUTE.get(params);
+      const origin = new URL(config.baseUrl).origin;
+      return `${origin}/Document/document_write.php?approve_type=AppFrm-054&p_doc_id=${encodeURIComponent(route?.requestDocId ?? "")}`;
+    },
+    waitSelector: 'input[name="subject"]',
+    waitMs: 2000,
+  },
   overseas_travel: { validate: (params) => attachmentSlotRefusal(params) },
   card_expense_rd: {
     validate: (params) =>
@@ -1540,7 +1700,7 @@ async function submitLeave(
 
   // Set mode and submit
   await setFormMode(frame, mode);
-  const docId = await submitForm(page, frame, "check_form_request");
+  const docId = await submitForm(page, frame);
 
   return textResult({
     error: false,
@@ -1657,7 +1817,7 @@ async function submitExpense(
   if (params.dry_run) return textResult({ error: false, data: await buildDryRunPreview(page, frame, config, "expense") });
 
   await setFormMode(frame, mode);
-  const docId = await submitForm(page, frame, "check_form_request");
+  const docId = await submitForm(page, frame);
 
   return textResult({
     error: false,
@@ -1785,7 +1945,7 @@ async function submitWorking(
   if (workingRuleRefusal) return textResult({ error: true, ...workingRuleRefusal });
 
   await setFormMode(frame, mode);
-  const docId = await submitForm(page, frame, "check_form_request");
+  const docId = await submitForm(page, frame);
 
   return textResult({
     error: false,
@@ -1943,6 +2103,30 @@ async function submitDomesticTravelReport(
   });
 }
 
+/**
+ * M3: the page now opens with pdoc_id already in the query string, so it may prefill
+ * subject/destination/dates/etc. from the linked request before any field is touched.
+ * Read those right after the pdoc_id check (and before genericFillForm) so a field whose
+ * value would otherwise come from a fallback default (params.x || default) can keep what
+ * the page already has instead of overwriting it with a guess.
+ */
+function readOverseasTravelReportPrefill(): Record<string, string> {
+  const val = (sel: string) => (document.querySelector(sel) as HTMLInputElement | HTMLTextAreaElement | null)?.value ?? "";
+  return {
+    subject: val('input[name="subject"]'),
+    start_date: val('[name="start_day"]'),
+    end_date: val('[name="end_day"]'),
+    report_dest: val('.validate[name="report_dest"]'),
+    purpose_field: val('.validate[name="purpose_field"]'),
+    date_field: val('.validate[name="date_field"]'),
+    org_field: val('.validate[name="org_field"]'),
+    person_field: val('.validate[name="person_field"]'),
+    discuss_field: val('.validate[name="discuss_field"]'),
+    agenda_field: val('.validate[name="agenda_field"]'),
+    result_field: val('.validate[name="result_field"]'),
+  };
+}
+
 /** Overseas travel report: a standalone form (AppFrm-076) with its own subject/pdoc_id/
  *  start_day/end_day, selected explicitly with report_kind: "overseas" (or auto-detected
  *  when the resolved request is AppFrm-026). */
@@ -1956,7 +2140,22 @@ async function submitOverseasTravelReport(
   mode: "draft" | "request"
 ) {
   const userInfo = sessionManager.getUserInfo()!;
-  await selectExistingOption(frame, 'select[name="pdoc_id"]', requestDocId, "pdoc_id");
+  // The page's own #pdoc_id change handler reloads document_write.php on change (live-read
+  // 2026-10-27), which would race the field fills below. customUrl already opened the page
+  // with pdoc_id in the query string, so this only verifies it landed - it never dispatches
+  // change itself.
+  const pdocValue: string | null = await frame.evaluate(() => {
+    const el = document.querySelector('select[name="pdoc_id"]') as HTMLSelectElement | null;
+    return el ? el.value : null;
+  });
+  if (pdocValue !== requestDocId) {
+    audit({ action: "refusal", field: "pdoc_id", code: "PDOC_NOT_LINKED", ok: false });
+    throw new Error(
+      `PDOC_NOT_LINKED: the form's pdoc_id is '${pdocValue ?? "(field not found)"}', not the ` +
+        `expected request '${requestDocId}'. Selecting it here would reload the page mid-fill, ` +
+        `so the save was refused before any field was touched.`
+    );
+  }
 
   const title = params.title || "Business Travel";
   const destination = params.destination || "";
@@ -1973,6 +2172,18 @@ async function submitOverseasTravelReport(
   const reportPost = process.env.IPK_USER_POSITION || "";
   const reportLeader = process.env.IPK_GROUP_LEADER || "";
   const userDept = userInfo.dept || process.env.IPK_USER_DEPT || "";
+
+  // M3: a field the caller did not explicitly pass (so its value above came from a
+  // fallback default) keeps the page's own prefilled value instead of overwriting it;
+  // a caller-passed value always wins.
+  const prefill = await frame.evaluate(readOverseasTravelReportPrefill).catch(() => ({} as Record<string, string>));
+  // L4: a falsy params[k] - including "" (an empty string the caller passed, or never set)
+  // - is treated as "not passed", same as the computed defaults above (params.x || default)
+  // already treat it. Otherwise an explicit "" would fall through to the computed default
+  // ("Business Travel", todayStr(), ...) and overwrite a value the page prefilled, instead
+  // of keeping it like every other not-passed field.
+  const keep = (paramKey: string, schemaKey: string, fallback: string): string =>
+    !params[paramKey] && prefill[schemaKey] ? prefill[schemaKey] : fallback;
 
   const travelSchema: Record<string, TemplateFieldSchema> = {
     subject:          { type: "text", dom_name: "subject", required: true },
@@ -1998,22 +2209,22 @@ async function submitOverseasTravelReport(
   };
 
   await genericFillForm(frame, travelSchema, {
-    subject: title,
+    subject: keep("title", "subject", title),
     report_date: reportDate,
     report_name: userInfo.name,
     report_post: reportPost,
     report_group: userDept,
     report_leader: reportLeader,
-    start_date: startDate,
-    end_date: endDate,
-    report_dest: destination,
-    purpose_field: purpose,
-    date_field: schedule,
-    org_field: organization,
-    person_field: attendees,
-    discuss_field: params.details || purpose,
-    agenda_field: params.schedule || purpose,
-    result_field: params.reason || `Expected outcomes: ${purpose}`,
+    start_date: keep("start_date", "start_date", startDate),
+    end_date: keep("end_date", "end_date", endDate),
+    report_dest: keep("destination", "report_dest", destination),
+    purpose_field: keep("purpose", "purpose_field", purpose),
+    date_field: keep("schedule", "date_field", schedule),
+    org_field: keep("organization", "org_field", organization),
+    person_field: keep("attendees", "person_field", attendees),
+    discuss_field: keep("details", "discuss_field", params.details || purpose),
+    agenda_field: keep("schedule", "agenda_field", params.schedule || purpose),
+    result_field: keep("reason", "result_field", params.reason || `Expected outcomes: ${purpose}`),
     other_field: "N/A",
     conclusion_field: params.destination ? `${purpose} at ${destination}` : `Travel for ${purpose}`,
   });
@@ -2028,9 +2239,11 @@ async function submitOverseasTravelReport(
 
   if (params.dry_run) return textResult({ error: false, data: await buildDryRunPreview(page, frame, config, "travel") });
 
+  // 076's Check_Form_Request checks .validate fields are non-empty (alert + abort if not)
+  // before calling form1.submit() itself (live-read 2026-10-27) - using it instead of a raw
+  // form1.submit() is what catches an empty-body save before it lands.
   await setFormMode(frame, mode);
-  // Travel form uses form1.submit() instead of Check_Form_Request
-  const docId = await submitForm(page, frame, "form_submit");
+  const docId = await submitForm(page, frame);
 
   return textResult({
     error: false,
@@ -2185,7 +2398,7 @@ async function submitTravelRequest(
   if (travelRequestRuleRefusal) return textResult({ error: true, ...travelRequestRuleRefusal });
 
   await setFormMode(frame, mode);
-  const docId = await submitForm(page, frame, "check_form_request");
+  const docId = await submitForm(page, frame);
 
   // Where this draft departs from the department's practice. Computed on the rendered
   // documents, precedent minus draft, so an absence (no card, no city) counts as a
@@ -2294,7 +2507,7 @@ async function submitBudgetTransfer(
   if (budgetTransferRuleRefusal) return textResult({ error: true, ...budgetTransferRuleRefusal });
 
   await setFormMode(frame, mode);
-  const docId = await submitForm(page, frame, "check_form_request");
+  const docId = await submitForm(page, frame);
 
   return textResult({
     error: false,
@@ -2421,7 +2634,7 @@ async function submitCardExpense(
   if (params.dry_run) return textResult({ error: false, data: await buildDryRunPreview(page, frame, config, "card_expense") });
 
   await setFormMode(frame, mode);
-  const docId = await submitForm(page, frame, "check_form_request");
+  const docId = await submitForm(page, frame);
 
   return textResult({
     error: false,
@@ -2858,6 +3071,20 @@ async function submitCardExpenseRD(
   // in ~/.config/ipk-browser-mcp/card-er-draft-authorizations.json (appr_no + trseq). The
   // entry is consumed before anything is clicked: one entry, at most one save.
   if (mode === "draft" && params.allow_card_er_save === true) {
+    // L2: the H2 baseline (row 1 as the handler left it) is read BEFORE the one-time
+    // authorization is consumed below, and an unreadable baseline refuses here - the
+    // pre-submit recheck would refuse it anyway, after the authorization was spent.
+    const expectedAmounts = await frame.evaluate(readCardErAmounts).catch(() => null);
+    const baselineNumeric = (v: string) => /^-?[\d,]+(\.\d+)?$/.test(String(v ?? "").trim());
+    if (!expectedAmounts || ![expectedAmounts.total, expectedAmounts.vat, expectedAmounts.excl].every(baselineNumeric)) {
+      return textResult({
+        error: true,
+        code: "PRE_SUBMIT_CHECK_FAILED",
+        message:
+          `Row 1's amounts could not be read as numbers before saving (${JSON.stringify(expectedAmounts)}), ` +
+          "so the save was refused. The authorization was not consumed; nothing was clicked and nothing was filed.",
+      });
+    }
     const authFile = cardErAuthorizationPath();
     let authorization: CardErDraftAuthorization | null = null;
     try {
@@ -2885,7 +3112,45 @@ async function submitCardExpenseRD(
       });
     }
     audit({ action: "draft_save", code: "AUTHORIZATION_CONSUMED", field: "card_expense_rd", mode: "draft", value: JSON.stringify({ appr_no: String(params.appr_no), ...authorization }), ok: true });
-    return await saveCardExpenseRDDraft(page, frame, config, { subject, effectiveBudgetCode, attachResult, fileCount: filePaths.length });
+    // H2: re-check row 1's total/VAT/excl. VAT right before submit_form() in the budget
+    // popup - without this, nothing on the create path re-reads what the handler just
+    // filled, so a page script changing an amount between here and the click would be
+    // filed unnoticed. expectedAmounts is the baseline captured above, before the
+    // authorization was consumed (L2).
+    return await saveCardExpenseRDDraft(page, frame, config, { subject, effectiveBudgetCode, attachResult, fileCount: filePaths.length }, {
+      mode1: "draft",
+      runner: runCheckFormRequest,
+      preSubmitCheck: async () => {
+        if (!expectedAmounts) return { ok: false, message: "the opener's row 1 amounts could not be read right after filling, so they cannot be re-checked before submit" };
+        const now = await frame.evaluate(readCardErAmounts).catch(() => null);
+        if (!now) return { ok: false, message: "the opener's row 1 amounts could not be re-read right before submit" };
+        // L1: a field read back empty or non-numeric must never be treated as 0 - that would
+        // let a page that stopped rendering these fields (or a value it could not parse)
+        // "match" by accident instead of refusing.
+        const isNumeric = (v: string) => /^-?[\d,]+(\.\d+)?$/.test(String(v ?? "").trim());
+        const fields: [string, string, string][] = [
+          ["total", now.total, expectedAmounts.total],
+          ["VAT", now.vat, expectedAmounts.vat],
+          ["excl. VAT", now.excl, expectedAmounts.excl],
+        ];
+        for (const [label, nowVal, expVal] of fields) {
+          if (!isNumeric(nowVal) || !isNumeric(expVal)) {
+            return {
+              ok: false,
+              message: `${label} is empty or not a number right before submit (opener now '${nowVal}', filled '${expVal}') - refusing rather than treating a missing/unreadable field as 0`,
+            };
+          }
+        }
+        const num = (v: string) => Number(String(v).replace(/,/g, ""));
+        if (num(now.total) !== num(expectedAmounts.total) || num(now.vat) !== num(expectedAmounts.vat) || num(now.excl) !== num(expectedAmounts.excl)) {
+          return {
+            ok: false,
+            message: `the opener now shows total ${now.total} / VAT ${now.vat} / excl. VAT ${now.excl}, not total ${expectedAmounts.total} / VAT ${expectedAmounts.vat} / excl. VAT ${expectedAmounts.excl} as filled`,
+          };
+        }
+        return { ok: true };
+      },
+    });
   }
   if (mode === "draft") {
     return await previewCardExpenseRD(page, frame, config, { subject, effectiveBudgetCode, attachResult, fileCount: filePaths.length });
@@ -3033,6 +3298,18 @@ export function setCardErDraftMode1(value: string = "draft"): string[] {
   return list.map((el) => String(el.value ?? ""));
 }
 
+/** Row 1's total/VAT/excl. VAT (item_amount[]/item_amount_vat[]/item_amount_ral1[], index 1 -
+ *  same fields and indexing as EditRowState in ipk-card-er-fix-vat.ts), for the H2 pre-submit
+ *  recheck on the card_expense_rd create path. */
+export function readCardErAmounts(): { total: string; vat: string; excl: string } {
+  const at = (n: string) => document.getElementsByName(n)[1] as HTMLInputElement | undefined;
+  return {
+    total: at("item_amount[]")?.value ?? "",
+    vat: at("item_amount_vat[]")?.value ?? "",
+    excl: at("item_amount_ral1[]")?.value ?? "",
+  };
+}
+
 /**
  * The draft_only=true path for card_expense_rd. The form is already filled; this runs its
  * own validation with nothing able to leave the browser, and reports what it would file.
@@ -3170,7 +3447,13 @@ export async function saveCardExpenseRDDraft(
   frame: any,
   config: Config,
   ctx: { subject: string; effectiveBudgetCode: string | null; attachResult: { attached: number; skipped: unknown[] }; fileCount: number },
-  flow: { mode1: string; runner: () => CardErRun; finish?: (subject: string) => Promise<any> } = { mode1: "draft", runner: runCheckFormRequest }
+  flow: {
+    mode1: string;
+    runner: () => CardErRun;
+    finish?: (subject: string) => Promise<any>;
+    /** Re-checked on the opener right before submit_form(); ok:false refuses without clicking. */
+    preSubmitCheck?: () => Promise<{ ok: boolean; message?: string }>;
+  } = { mode1: "draft", runner: runCheckFormRequest }
 ) {
   const { subject } = ctx;
   const consumedNote = "The one-time authorization was consumed; add a new entry before trying again.";
@@ -3196,6 +3479,7 @@ export async function saveCardExpenseRDDraft(
     subjectFixed: null as string | null,
     refusals: [] as string[],
     modeNotDraft: null as string[] | null,
+    preSubmitFailed: null as string | null,
     error: null as string | null,
   };
   // Native dialogs (alert/confirm) are caught from the moment a page exists - the context
@@ -3262,6 +3546,13 @@ export async function saveCardExpenseRDDraft(
       if (mode1Now.length !== 1 || mode1Now[0] !== want) {
         popupState.modeNotDraft = mode1Now;
         return await close();
+      }
+      if (flow.preSubmitCheck) {
+        const check = await flow.preSubmitCheck();
+        if (!check.ok) {
+          popupState.preSubmitFailed = check.message ?? "the opener's amounts changed before submit_form() could run";
+          return await close();
+        }
       }
       if (popupState.aborted) return;
       popupState.submitAttempted = true;
@@ -3331,6 +3622,14 @@ export async function saveCardExpenseRDDraft(
         `Right before submit_form(), the form's mode1 was ${JSON.stringify(popupState.modeNotDraft)}, not exactly ['${want}'] - ` +
         `the page changed it after it was set. The popup was closed and submit_form() was not called. Nothing was filed. ${consumedNote}`,
       mode1: popupState.modeNotDraft,
+    });
+  }
+  if (popupState.preSubmitFailed) {
+    audit({ action: "refusal", code: "PRE_SUBMIT_CHECK_FAILED", field: "card_expense_rd", ok: false });
+    return textResult({
+      error: true,
+      code: "PRE_SUBMIT_CHECK_FAILED",
+      message: `${popupState.preSubmitFailed}. The popup was closed and submit_form() was not called. Nothing was filed. ${consumedNote}`,
     });
   }
   if (!popupState.submitAttempted) {
@@ -3499,10 +3798,13 @@ async function finishCardErDraftSave(
 
 /** Travel Settlement (AppFrm-054) — domestic travel expense settlement
  *
- * Key mechanism: sel_travel hidden field links to the approved travel request (AppFrm-023).
- * Setting sel_travel + dispatching 'change' may auto-populate parent-doc fields
- * (start_date, end_date, province, city, transport_mode, purpose_category, purpose, destination).
- * If auto-populate doesn't work, we fall back to manual cascade + field setting.
+ * Key mechanism: the parent AppFrm-023 request is linked by opening the write page itself
+ * at document_write.php?approve_type=AppFrm-054&p_doc_id=<id> (FORM_NAV_CONFIG.travel_settlement's
+ * customUrl, resolved in beforeNavigate) - NOT by writing a sel_travel field, which on a bare
+ * page is a plain hidden input with no change handler and can never auto-populate anything.
+ * That navigation prefills every amount, budget code, budget_control_no and the request's own
+ * verification PDF; only subject is left blank. This handler only verifies the link took and
+ * fills whatever the caller explicitly passed, so it never overwrites a prefilled amount.
  */
 async function submitTravelSettlement(
   page: any,
@@ -3514,92 +3816,60 @@ async function submitTravelSettlement(
 ) {
   const purpose = params.purpose || "Business travel";
   const subject = params.title || `[Settlement] ${purpose}`;
-  const approvedDocRef = params.approved_doc_ref || params.sel_travel || "";
+  const route = TRAVEL_SETTLEMENT_ROUTE.get(params);
+  const requestDocId = route?.requestDocId;
 
-  // A settlement settles an approved travel request. A bare AppFrm-054 carries almost no
-  // fields - start_date, end_date, purpose and the province/city cascade only appear once
-  // the parent is linked - so without one there is nothing to settle and anything produced
-  // is a hollow document that the form then refuses without saying why.
-  if (!approvedDocRef) {
-    throw new Error(
-      "PARENT_DOC_REQUIRED: travel_settlement needs the approved travel request it settles. " +
-        "Pass approved_doc_ref. Without it the form exposes no date, purpose or budget fields " +
-        "and the submission is rejected with no message."
-    );
-  }
-
-  // Step 1: Set sel_travel hidden field to link the approved travel request
-  let autoPopulated = false;
-  if (approvedDocRef) {
-    await frame.evaluate(
-      (docRef: string) => {
-        const selTravel = document.querySelector('input[name="sel_travel"]') as HTMLInputElement | null;
-        if (selTravel) {
-          selTravel.value = docRef;
-          selTravel.dispatchEvent(new Event("change", { bubbles: true }));
-        }
-      },
-      approvedDocRef
-    );
-    // Poll rather than sleep once: linking the parent is a server round-trip, and a fixed
-    // 2s wait turns a slow-but-valid reference into a refusal.
-    const deadline = Date.now() + 8000;
-    while (Date.now() < deadline) {
-      autoPopulated = await frame.evaluate(() => {
-        const startDate = document.querySelector('input[name="start_date"]') as HTMLInputElement | null;
-        const province = document.querySelector('select[name="province"]') as HTMLSelectElement | null;
-        return !!(
-          (startDate && startDate.value && startDate.value !== "") ||
-          (province && province.value && province.value !== "" && province.value !== "0")
-        );
-      });
-      if (autoPopulated) break;
-      await page.waitForTimeout(400);
-    }
-  }
-
-  // sel_travel is a hidden field the form's own [Search] popup (document_select.php) fills.
-  // If the form did not populate itself from the reference we wrote, the form did not accept
-  // it - the document either does not exist, is not ours, or is not settleable. Carrying on
-  // would put an unverified reference on a financial document, which is the same fabrication
-  // as typing a substitute's payroll number.
-  if (!autoPopulated) {
-    audit({ action: "refusal", field: "sel_travel", code: "PARENT_DOC_NOT_ACCEPTED", ok: false });
-    throw new Error(
-      `PARENT_DOC_NOT_ACCEPTED: the form did not load anything from '${approvedDocRef}'. ` +
-        "Check the document number of the approved travel request, or pick it through the " +
-        "form's [Search] button. Refusing to submit a settlement whose parent is unverified."
-    );
-  }
-
-  // Step 3: Set subject, budget control, and expense amounts via genericFillForm
-  const startDate = params.start_date || todayStr();
-  const endDate = params.end_date || startDate;
-  const nights = Math.max(0, Math.round((new Date(endDate).getTime() - new Date(startDate).getTime()) / 86400000));
-  const dailyExpense = params.daily_expense || (nights === 0 ? 20000 : 30000 * nights);
-  const transportFee = params.transport_fee || 0;
-  const accommodationFee = params.accommodation || 0;
-  const foodExpense = params.food_expense || 0;
-
-  const postSchema: Record<string, TemplateFieldSchema> = {
-    subject:                 { type: "text", dom_name: "subject", required: true },
-    budget_control_no:       { type: "hidden", dom_name: "budget_control_no" },
-    daily_fee_total:         { type: "text", dom_name: "daily_fee_total" },
-    ocar_pay:                { type: "text", dom_name: "ocar_pay" },
-    accommodation_fee_total: { type: "text", dom_name: "accommodation_fee_total" },
-    food_fee_total:          { type: "text", dom_name: "food_fee_total" },
-  };
-
-  await genericFillForm(frame, postSchema, {
-    subject,
-    budget_control_no: params.budget_control_no || "",
-    daily_fee_total: String(dailyExpense),
-    ocar_pay: transportFee ? String(transportFee) : "",
-    accommodation_fee_total: accommodationFee ? String(accommodationFee) : "",
-    food_fee_total: foodExpense ? String(foodExpense) : "",
+  // Read-only verify the parent link took: #p_doc_id must match what customUrl asked for,
+  // and the page must actually have prefilled from it (start_date or budget_control_no
+  // non-empty). A mismatch or an unprefilled page means the parent was not accepted - the
+  // document either does not exist, is not ours, or is not settleable - and carrying on would
+  // put an unverified reference on a financial document.
+  const linked = await frame.evaluate(() => {
+    const pDocId = (document.querySelector('#p_doc_id') as HTMLInputElement | null)?.value ?? "";
+    const startDate = (document.querySelector('input[name="start_date"]') as HTMLInputElement | null)?.value ?? "";
+    const budgetControlNo = (document.querySelector('input[name="budget_control_no"]') as HTMLInputElement | null)?.value ?? "";
+    return { pDocId, prefilled: !!(startDate || budgetControlNo) };
   });
+  if (!requestDocId || linked.pDocId !== String(requestDocId) || !linked.prefilled) {
+    audit({ action: "refusal", field: "p_doc_id", code: "PARENT_DOC_NOT_ACCEPTED", ok: false });
+    throw new Error(
+      `PARENT_DOC_NOT_ACCEPTED: expected p_doc_id '${requestDocId}' to prefill this settlement from the approved travel ` +
+        `request, but found p_doc_id='${linked.pDocId}' and prefilled=${linked.prefilled}. Check the document number of ` +
+        "the approved travel request. Refusing to submit a settlement whose parent is unverified."
+    );
+  }
 
-  // Step 6: Handle attachment
+  // Only write fields the caller explicitly passed - the parent link above already prefilled
+  // amounts, budget code and budget_control_no from the approved request, and overwriting
+  // those with defaults would wipe real precedent values with guesses.
+  const postSchema: Record<string, TemplateFieldSchema> = {
+    subject: { type: "text", dom_name: "subject", required: true },
+  };
+  const values: Record<string, string> = { subject };
+  if (params.budget_control_no !== undefined) {
+    postSchema.budget_control_no = { type: "hidden", dom_name: "budget_control_no" };
+    values.budget_control_no = String(params.budget_control_no);
+  }
+  if (params.daily_expense !== undefined) {
+    postSchema.daily_fee_total = { type: "text", dom_name: "daily_fee_total" };
+    values.daily_fee_total = String(params.daily_expense);
+  }
+  if (params.transport_fee !== undefined) {
+    postSchema.ocar_pay = { type: "text", dom_name: "ocar_pay" };
+    values.ocar_pay = String(params.transport_fee);
+  }
+  if (params.accommodation !== undefined) {
+    postSchema.accommodation_fee_total = { type: "text", dom_name: "accommodation_fee_total" };
+    values.accommodation_fee_total = String(params.accommodation);
+  }
+  if (params.food_expense !== undefined) {
+    postSchema.food_fee_total = { type: "text", dom_name: "food_fee_total" };
+    values.food_fee_total = String(params.food_expense);
+  }
+
+  await genericFillForm(frame, postSchema, values);
+
+  // Handle attachment
   if (params.attachment_path) {
     await attachFile(frame, params.attachment_path, slotSelector(params.attachment_slot as TravelDocSlot));
     await page.waitForTimeout(1000);
@@ -3614,9 +3884,6 @@ async function submitTravelSettlement(
   const settlementRuleRefusal = await checkFieldRulesAgainstForm(frame, "travel_settlement");
   if (settlementRuleRefusal) return textResult({ error: true, ...settlementRuleRefusal });
 
-  await setFormMode(frame, mode);
-  const docId = await submitForm(page, frame, "check_form_request");
-
   const warnings: string[] = [];
   if (params.transport_mode?.includes("Own Vehicle") && !params.attachment_path) {
     warnings.push("Own vehicle travel requires 거리.pdf (Naver Maps screenshot) attachment.");
@@ -3625,15 +3892,216 @@ async function submitTravelSettlement(
     warnings.push("Toll fee claimed requires 하이패스 영수증 attachment.");
   }
 
+  const result = await saveTravelSettlement(page, frame, { subject }, mode);
+  const payload = JSON.parse(result.content[0].text);
+  if (!payload.error) {
+    payload.data.parent_doc_id = requestDocId;
+    if (warnings.length > 0) payload.data.warning = warnings.join(" | ");
+  }
+  return textResult(payload);
+}
+
+/**
+ * AppFrm-054's own [Draft]/[Request] always run Check_Form_Request('insert'), which -
+ * regardless of mode1 - ALWAYS opens a budget_frame popup (budget_check_settle.php) and
+ * retargets the opener's form1 to it; the opener itself never navigates. The popup's own
+ * [Request] button calls submit_form(), which points form1 back at document_write.php and
+ * submits it. Without that popup call, nothing is saved - a silent no-op (confirmed live
+ * 2026-09-18: doc 300391 only landed in Drafts after submit_form() ran in the popup).
+ *
+ * Modeled on saveCardExpenseRDDraft's popup contract (mode1 set + re-read right before
+ * submit_form(), any dialog is a refusal, never retry), but through budget_check_settle.php
+ * instead of budget_check_er.php, with no Evidence Check modal, card stubs, or subject
+ * normalization - AppFrm-054 has none of those.
+ */
+async function saveTravelSettlement(
+  page: any,
+  frame: any,
+  ctx: { subject: string },
+  mode: "draft" | "request"
+) {
+  const { subject } = ctx;
+  await setFormMode(frame, mode); // throws if mode1 doesn't read back - same guard every form uses
+
+  const popupState = {
+    aborted: false,
+    submitAttempted: false,
+    submitted: false,
+    refusals: [] as string[],
+    modeNotDraft: null as string[] | null,
+    error: null as string | null,
+  };
+  // Native dialogs (alert/confirm) are caught from the moment a page exists - the context
+  // "page" event fires before the popup's scripts run - and dismissed; any one is a refusal.
+  // M-A: `page` is the shared session page, reused by every later form call - its "dialog"
+  // handler MUST be removed in finally (page.off), or a later form's own confirm gets
+  // silently dismissed by this stale listener. Handlers are kept per-target so each can be
+  // unregistered individually (pop.off too, for symmetry, though it is short-lived).
+  const dialogs = new Map<any, string[]>();
+  const dialogHandlers = new Map<any, (d: any) => void>();
+  const watchDialogs = (p: any) => {
+    if (!p || dialogs.has(p)) return;
+    const msgs: string[] = [];
+    dialogs.set(p, msgs);
+    const handler = (d: any) => {
+      msgs.push(String(d.message?.() ?? ""));
+      Promise.resolve(d.dismiss?.()).catch(() => {});
+    };
+    dialogHandlers.set(p, handler);
+    p.on?.("dialog", handler);
+  };
+  const unwatchDialogs = (p: any) => {
+    const handler = dialogHandlers.get(p);
+    if (handler) p.off?.("dialog", handler);
+    dialogHandlers.delete(p);
+  };
+  const context = typeof page.context === "function" ? page.context() : null;
+  context?.on?.("page", watchDialogs);
+  // The opener itself can raise a Check_Form_Request alert before any popup ever opens -
+  // watched from the start so that case is reported as a refusal, not read as a 25s
+  // "no popup" timeout.
+  watchDialogs(page);
+  // Awaited with waitForEvent, not a free-standing listener: a popup that shows up after
+  // this returns has nothing left to call submit_form() on it.
+  const popupWait: Promise<any> = page.waitForEvent("popup", { timeout: 25000 }).catch(() => {
+    popupState.aborted = true;
+    return null;
+  });
+
+  const handlePopup = async (pop: any) => {
+    watchDialogs(pop);
+    const close = () => pop.close().catch(() => {});
+    try {
+      await pop.waitForLoadState("networkidle", { timeout: 15000 });
+      await pop.waitForTimeout(1000);
+      if (popupState.aborted) return;
+      // Only the form's own budget check window may be filed from.
+      if (!/budget_check_settle/i.test(String(pop.url()))) {
+        popupState.aborted = true;
+        popupState.refusals = [`unexpected popup ${String(pop.url())}`];
+        await close();
+        return;
+      }
+      const body: string = await pop.evaluate(() => (document.body ? document.body.innerText : ""));
+      const found = [...(dialogs.get(pop) ?? []), ...budgetPopupRefusals(body)];
+      if (found.length > 0) {
+        popupState.refusals = found;
+        return await close();
+      }
+      const late = dialogs.get(pop) ?? [];
+      if (late.length > 0) {
+        popupState.refusals = [...late];
+        return await close();
+      }
+      // submit_form() posts the opener's form1 - re-read mode1 there right before it.
+      const mode1Now: string[] = await frame
+        .evaluate(() => Array.from(document.getElementsByName("mode1")).map((el: any) => el.value))
+        .catch(() => []);
+      if (mode1Now.length !== 1 || mode1Now[0] !== mode) {
+        popupState.modeNotDraft = mode1Now;
+        return await close();
+      }
+      if (popupState.aborted) return;
+      popupState.submitAttempted = true;
+      await pop.evaluate("submit_form()");
+      popupState.submitted = true;
+      await pop.waitForTimeout(3000);
+    } catch (err) {
+      // The popup may close itself mid-evaluation once it has posted the form.
+      popupState.error = err instanceof Error ? err.message : String(err);
+    }
+  };
+
+  const consumedNote = "Nothing was filed.";
+  try {
+    try {
+      await frame.evaluate(() => (window as any).Check_Form_Request("insert"));
+    } catch (err) {
+      popupState.aborted = true;
+      return textResult({
+        error: true,
+        code: "SUBMIT_FAILED",
+        message:
+          `travel settlement save (mode1='${mode}') trigger failed: ${err instanceof Error ? err.message : String(err)}. ` +
+          `submit_form() was not called. ${consumedNote}`,
+      });
+    }
+    const pop = await popupWait;
+    if (pop && !popupState.aborted) await handlePopup(pop);
+  } finally {
+    popupState.aborted = true;
+    context?.off?.("page", watchDialogs);
+    for (const target of dialogs.keys()) unwatchDialogs(target);
+  }
+
+  if (popupState.refusals.length > 0) {
+    audit({ action: "refusal", code: "BUDGET_CHECK_REFUSED", field: "travel_settlement", ok: false });
+    return textResult({
+      error: true,
+      code: "BUDGET_CHECK_REFUSED",
+      message: `The budget check popup refused or did not match: ${popupState.refusals.join(" / ")}. submit_form() was not called and the popup was closed. ${consumedNote}`,
+      budget_check_messages: popupState.refusals,
+    });
+  }
+  if (popupState.modeNotDraft) {
+    audit({ action: "refusal", code: "DRAFT_MODE_NOT_SET", field: "mode1", value: JSON.stringify(popupState.modeNotDraft), ok: false });
+    return textResult({
+      error: true,
+      code: "DRAFT_MODE_NOT_SET",
+      message:
+        `Right before submit_form(), mode1 was ${JSON.stringify(popupState.modeNotDraft)}, not exactly ['${mode}'] - ` +
+        `the page changed it after it was set. The popup was closed and submit_form() was not called. ${consumedNote}`,
+      mode1: popupState.modeNotDraft,
+    });
+  }
+  if (!popupState.submitAttempted) {
+    const openerDialogs = dialogs.get(page) ?? [];
+    if (openerDialogs.length > 0) {
+      audit({ action: "refusal", code: "SUBMIT_REJECTED", field: "travel_settlement", value: openerDialogs.join(" / "), ok: false });
+      return textResult({
+        error: true,
+        code: "SUBMIT_REJECTED",
+        message: `The opener refused the save before any popup opened: ${openerDialogs.join(" / ")}. submit_form() was not called. ${consumedNote}`,
+      });
+    }
+    return textResult({
+      error: true,
+      code: "SUBMIT_UNVERIFIED",
+      message:
+        `The budget_check_settle popup ${popupState.error ? `failed (${popupState.error})` : "never appeared"}, so this tool did not call submit_form(). ` +
+        `Check the Drafts list for "${subject}" before retrying - do not retry blind.`,
+    });
+  }
+
+  await page.waitForTimeout(1500);
+  try {
+    await frame.waitForURL("**/document_view.php**", { timeout: 10000 });
+  } catch {
+    await page.waitForTimeout(2000);
+  }
+  const frameUrl: string = typeof frame.url === "function" ? frame.url() : "";
+  const m = frameUrl.match(/[?&]doc_id=(\d+)/);
+  const docId = m ? m[1] : null;
+  if (!docId) {
+    return textResult({
+      error: true,
+      code: "SUBMIT_UNVERIFIED",
+      message:
+        `submit_form() ran in the budget_check_settle popup, but no doc_id could be read from ${frameUrl || "the opener"}. ` +
+        `Check the Drafts list for "${subject}" before retrying - do not retry blind.`,
+    });
+  }
+  // Same shape as submitForm's own post-submit audit (iframe-helper.ts): a doc_id came back
+  // after submit_form() ran, nothing more - this has not re-read document_view or the
+  // Drafts list, so it does not also claim "draft" (mode) as a confirmed outcome.
+  audit({ action: "submit", docId, ok: true });
   return textResult({
     error: false,
     data: {
       success: true, docId, mode, formType: "travel_settlement", subject,
-      autoPopulated,
       message: docId
         ? `Travel settlement ${mode === "draft" ? "draft saved" : "submitted"} (doc_id: ${docId})`
         : `Travel settlement ${mode} completed`,
-      warning: warnings.length > 0 ? warnings.join(" | ") : undefined,
     },
   });
 }
@@ -3708,7 +4176,7 @@ async function submitLeaveReturn(
 
   await page.waitForTimeout(1000);
   await setFormMode(frame, mode);
-  const docId = await submitForm(page, frame, "check_form_request");
+  const docId = await submitForm(page, frame);
 
   return textResult({
     error: false,
@@ -3835,7 +4303,7 @@ async function submitSeminar(
 
   await page.waitForTimeout(1000);
   await setFormMode(frame, mode);
-  const docId = await submitForm(page, frame, "check_form_request");
+  const docId = await submitForm(page, frame);
 
   return textResult({
     error: false,
@@ -4018,7 +4486,7 @@ async function submitOverseasTravel(
 
   await page.waitForTimeout(1000);
   await setFormMode(frame, mode);
-  const docId = await submitForm(page, frame, "check_form_request");
+  const docId = await submitForm(page, frame);
 
   return textResult({
     error: false,
@@ -4073,7 +4541,7 @@ async function submitGeneric(
 
   await page.waitForTimeout(1000);
   await setFormMode(frame, mode);
-  const docId = await submitForm(page, frame, "check_form_request");
+  const docId = await submitForm(page, frame);
 
   return textResult({
     error: false,

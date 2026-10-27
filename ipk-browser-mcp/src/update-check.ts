@@ -79,7 +79,12 @@ async function fetchRemote(fetchFn: typeof fetch, file: string, now: number): Pr
   fs.mkdirSync(path.dirname(file), { recursive: true });
   const tmp = `${file}.${process.pid}.tmp`;
   fs.writeFileSync(tmp, JSON.stringify({ checkedAt: now, remoteVersion: version } satisfies CacheFile));
-  fs.renameSync(tmp, file);
+  try {
+    fs.renameSync(tmp, file);
+  } catch (err) {
+    try { fs.unlinkSync(tmp); } catch { /* best effort */ }
+    throw err;
+  }
 }
 
 /**

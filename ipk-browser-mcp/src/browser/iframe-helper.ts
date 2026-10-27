@@ -334,13 +334,12 @@ export async function setFormMode(
 }
 
 /**
- * Submit form via Check_Form_Request or form1.submit.
+ * Submit form via Check_Form_Request.
  * SECURITY: No user data in JS.
  */
 export async function submitForm(
   page: Page,
-  frame: Frame,
-  method: "check_form_request" | "form_submit" = "check_form_request"
+  frame: Frame
 ): Promise<string | null> {
   // The form reports validation failures through alert(), which Playwright dismisses
   // automatically - so without this the caller only learns that "something" was wrong and
@@ -353,21 +352,12 @@ export async function submitForm(
   page.on("dialog", onDialog);
   try {
   // Execute the submission
-  if (method === "check_form_request") {
-    await Promise.all([
-      page.waitForNavigation({ timeout: 15000, waitUntil: "load" }).catch(() => null),
-      frame.evaluate(() => {
-        (window as any).Check_Form_Request("insert");
-      }),
-    ]);
-  } else {
-    await Promise.all([
-      page.waitForNavigation({ timeout: 20000, waitUntil: "load" }).catch(() => null),
-      frame.evaluate(() => {
-        (document as any).form1.submit();
-      }),
-    ]);
-  }
+  await Promise.all([
+    page.waitForNavigation({ timeout: 15000, waitUntil: "load" }).catch(() => null),
+    frame.evaluate(() => {
+      (window as any).Check_Form_Request("insert");
+    }),
+  ]);
 
   // Wait for redirect to document_view.php
   try {
@@ -380,7 +370,7 @@ export async function submitForm(
   // Extract doc_id from URL
   const frameUrl = frame.url();
   if (frameUrl.includes("document_view.php") && frameUrl.includes("doc_id=")) {
-    const match = frameUrl.match(/doc_id=([^&]+)/);
+    const match = frameUrl.match(/[?&]doc_id=(\d+)/);
     const docId = match ? match[1] : null;
     // Joins this run's field writes to the document they produced, which is what makes a
     // later reconciliation possible: what we wrote vs what the submitted document holds.

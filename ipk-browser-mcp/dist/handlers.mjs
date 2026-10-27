@@ -5601,6 +5601,7 @@ function firstSentence(text) {
 function argsJsonSchema(shape) {
   const js = zodToJsonSchema(external_exports.object(shape), { target: "jsonSchema7", $refStrategy: "none" });
   delete js.$schema;
+  js.additionalProperties = true;
   return js;
 }
 function help(registry, args) {
@@ -5636,7 +5637,18 @@ async function runAction(registry, ctx, params) {
       issues: parsed.error.issues.map((i) => ({ path: i.path.join("."), message: i.message }))
     });
   }
-  return def.handler(ctx, parsed.data);
+  const dropped_keys = Object.keys(args).filter((k) => !Object.hasOwn(def.schema, k));
+  const result = await def.handler(ctx, parsed.data);
+  if (dropped_keys.length === 0) return result;
+  try {
+    const first = result?.content?.[0];
+    if (first?.type === "text") {
+      const data = JSON.parse(first.text);
+      return { ...result, content: [{ ...first, text: JSON.stringify({ ...data, dropped_keys }) }, ...result.content.slice(1)] };
+    }
+  } catch {
+  }
+  return result;
 }
 function makeActionTool(registry) {
   return {
@@ -5684,7 +5696,15 @@ async function fetchRemote(fetchFn, file, now) {
   fs.mkdirSync(path.dirname(file), { recursive: true });
   const tmp = `${file}.${process.pid}.tmp`;
   fs.writeFileSync(tmp, JSON.stringify({ checkedAt: now, remoteVersion: version }));
-  fs.renameSync(tmp, file);
+  try {
+    fs.renameSync(tmp, file);
+  } catch (err) {
+    try {
+      fs.unlinkSync(tmp);
+    } catch {
+    }
+    throw err;
+  }
 }
 function updateNotice(state, deps) {
   try {
@@ -7024,12 +7044,85 @@ function removeEntry(auths, key, file) {
     fs6.rmSync(tmp, { force: true });
   }
 }
+var LOCK_STALE_MS = 1e4;
+var LOCK_ACQUIRE_TIMEOUT_MS = 5e3;
+function sleepMs(ms) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
+function reconcileTakenLock(lockPath, taken, staleStat) {
+  let sameFile = false;
+  try {
+    const takenStat = fs6.statSync(taken);
+    sameFile = takenStat.ino === staleStat.ino && takenStat.mtimeMs === staleStat.mtimeMs;
+  } catch {
+    sameFile = false;
+  }
+  if (sameFile) {
+    fs6.rmSync(taken, { force: true });
+    return;
+  }
+  try {
+    fs6.linkSync(taken, lockPath);
+  } catch {
+  }
+  fs6.rmSync(taken, { force: true });
+}
+function withAuthorizationsLock(file, fn) {
+  const lockPath = `${file}.lock`;
+  fs6.mkdirSync(path4.dirname(file), { recursive: true });
+  const deadline = Date.now() + LOCK_ACQUIRE_TIMEOUT_MS;
+  let fd = null;
+  for (; ; ) {
+    try {
+      fd = fs6.openSync(lockPath, "wx");
+      break;
+    } catch (err) {
+      if (err?.code !== "EEXIST") throw err;
+      try {
+        const staleStat = fs6.statSync(lockPath);
+        if (Date.now() - staleStat.mtimeMs > LOCK_STALE_MS) {
+          const taken = `${lockPath}.${process.pid}.${Math.random().toString(36).slice(2)}`;
+          try {
+            fs6.renameSync(lockPath, taken);
+          } catch {
+            continue;
+          }
+          reconcileTakenLock(lockPath, taken, staleStat);
+          continue;
+        }
+      } catch {
+        continue;
+      }
+      if (Date.now() > deadline) throw new Error(`could not acquire ${lockPath} within ${LOCK_ACQUIRE_TIMEOUT_MS}ms`);
+      sleepMs(25);
+    }
+  }
+  try {
+    fs6.writeSync(fd, String(process.pid));
+    fs6.closeSync(fd);
+    fd = null;
+  } catch (err) {
+    try {
+      if (fd !== null) fs6.closeSync(fd);
+    } catch {
+    }
+    fs6.rmSync(lockPath, { force: true });
+    throw err;
+  }
+  try {
+    return fn();
+  } finally {
+    fs6.rmSync(lockPath, { force: true });
+  }
+}
 function consumeCardErDraftAuthorization(apprNo, trseq, file = cardErAuthorizationPath()) {
-  const auths = readCardErDraftAuthorizations(file);
-  const entry = findCardErDraftAuthorization(auths, apprNo, trseq);
-  if (!entry) return null;
-  removeEntry(auths, String(apprNo), file);
-  return entry;
+  return withAuthorizationsLock(file, () => {
+    const auths = readCardErDraftAuthorizations(file);
+    const entry = findCardErDraftAuthorization(auths, apprNo, trseq);
+    if (!entry) return null;
+    removeEntry(auths, String(apprNo), file);
+    return entry;
+  });
 }
 function findCardErDocEditAuthorization(auths, docId) {
   const id = String(docId ?? "");
@@ -7040,11 +7133,13 @@ function findCardErDocEditAuthorization(auths, docId) {
   return entry;
 }
 function consumeCardErDocEditAuthorization(docId, file = cardErAuthorizationPath()) {
-  const auths = readCardErDraftAuthorizations(file);
-  const entry = findCardErDocEditAuthorization(auths, docId);
-  if (!entry) return null;
-  removeEntry(auths, `doc:${String(docId)}`, file);
-  return entry;
+  return withAuthorizationsLock(file, () => {
+    const auths = readCardErDraftAuthorizations(file);
+    const entry = findCardErDocEditAuthorization(auths, docId);
+    if (!entry) return null;
+    removeEntry(auths, `doc:${String(docId)}`, file);
+    return entry;
+  });
 }
 
 // src/browser/card-er-location.ts
@@ -7340,7 +7435,7 @@ async function setFormMode(frame, mode) {
     throw new Error(`setFormMode: mode1 did not read back '${mode}' (got ${JSON.stringify(values)}); stopped before the form's own submit`);
   }
 }
-async function submitForm(page, frame, method = "check_form_request") {
+async function submitForm(page, frame) {
   const dialogs = [];
   const onDialog = (d) => {
     dialogs.push(d.message().replace(/\s+/g, " ").trim());
@@ -7349,21 +7444,12 @@ async function submitForm(page, frame, method = "check_form_request") {
   };
   page.on("dialog", onDialog);
   try {
-    if (method === "check_form_request") {
-      await Promise.all([
-        page.waitForNavigation({ timeout: 15e3, waitUntil: "load" }).catch(() => null),
-        frame.evaluate(() => {
-          window.Check_Form_Request("insert");
-        })
-      ]);
-    } else {
-      await Promise.all([
-        page.waitForNavigation({ timeout: 2e4, waitUntil: "load" }).catch(() => null),
-        frame.evaluate(() => {
-          document.form1.submit();
-        })
-      ]);
-    }
+    await Promise.all([
+      page.waitForNavigation({ timeout: 15e3, waitUntil: "load" }).catch(() => null),
+      frame.evaluate(() => {
+        window.Check_Form_Request("insert");
+      })
+    ]);
     try {
       await frame.waitForURL("**/document_view.php**", { timeout: 1e4 });
     } catch {
@@ -7371,7 +7457,7 @@ async function submitForm(page, frame, method = "check_form_request") {
     }
     const frameUrl = frame.url();
     if (frameUrl.includes("document_view.php") && frameUrl.includes("doc_id=")) {
-      const match = frameUrl.match(/doc_id=([^&]+)/);
+      const match = frameUrl.match(/[?&]doc_id=(\d+)/);
       const docId = match ? match[1] : null;
       audit({ action: "submit", docId, ok: true });
       return docId;
@@ -8048,7 +8134,7 @@ var ipkSubmitFormSchema = {
   transport_fee: external_exports.number().optional().describe("Transport fee in KRW"),
   accommodation: external_exports.number().optional().describe("Accommodation fee in KRW"),
   food_expense: external_exports.number().optional().describe("Food expense in KRW"),
-  approved_doc_ref: external_exports.string().optional().describe("Document number of the approved travel request"),
+  approved_doc_ref: external_exports.string().optional().describe("The approved travel request (AppFrm-023) this settlement settles. A numeric doc_id is used directly; anything else (omitted, or an ARL-... document number) triggers auto-lookup among this person's own approved AppFrm-023 requests, refused if that matches zero or more than one."),
   oil_price: external_exports.number().optional().describe("Oil price per liter (own vehicle)"),
   distance_km: external_exports.number().optional().describe("Distance in km (own vehicle)"),
   toll_fee: external_exports.number().optional().describe("Toll fee in KRW (own vehicle)"),
@@ -8100,6 +8186,70 @@ function attachmentSlotRefusal(params) {
 }
 var PRECEDENT_FOR = /* @__PURE__ */ new WeakMap();
 var TRAVEL_REPORT_ROUTE = /* @__PURE__ */ new WeakMap();
+var TRAVEL_SETTLEMENT_ROUTE = /* @__PURE__ */ new WeakMap();
+async function findApprovedTravelRequestForSettlement(page, opts) {
+  const keyword = (opts.keyword ?? "").trim();
+  if (!keyword) {
+    return {
+      error: "no keyword to narrow the auto-lookup (request_keyword/title/destination were all empty) - refusing to auto-pick from an unfiltered list of approved requests",
+      candidates: 0
+    };
+  }
+  const origin = new URL(opts.baseUrl).origin;
+  const ymd2 = (d) => d.toISOString().slice(0, 10);
+  const e = /* @__PURE__ */ new Date();
+  const s = new Date(e.getTime() - 365 * 864e5);
+  const listUrl = `${origin}/Document/document_list.php?type=approved&s_date=${ymd2(s)}&e_date=${ymd2(e)}&keyword=${encodeURIComponent(keyword)}&writer=Y&title=Y&contents=Y&attachment=Y`;
+  await page.goto(listUrl, { waitUntil: "domcontentloaded", timeout: 3e4 });
+  await page.waitForTimeout(1500);
+  const anchors = await page.mainFrame().$$eval("a", (as) => as.map((a) => `${a.getAttribute("href") || ""} ${a.getAttribute("onclick") || ""}`));
+  if (anchors.some((a) => /\bstart_page=2\b|\bpage=2\b|go_page\(\s*2\s*\)|fn_page\(\s*2\s*\)/i.test(a))) {
+    return {
+      error: "the approved-request list has more than one page of results for this keyword - narrow request_keyword/title/destination so every match fits on page 1",
+      candidates: -1
+    };
+  }
+  const hrefs = anchors.map((a) => a.split(" ")[0]).filter((h) => h.includes("doc_id="));
+  const relevantHrefs = hrefs.filter((h) => /approve_type=AppFrm-023\b/.test(h));
+  const docIds = [...new Set(relevantHrefs.map((h) => (h.match(/doc_id=(\d+)/) ?? [])[1]).filter((id) => !!id))];
+  if (docIds.length === 0) {
+    return { error: "no approved travel request (AppFrm-023) found for this person in the lookup window", candidates: 0 };
+  }
+  if (docIds.length > 1) {
+    return { error: `${docIds.length} approved travel requests matched - pass approved_doc_ref explicitly to pick one`, candidates: docIds.length };
+  }
+  return { docId: docIds[0] };
+}
+async function findApprovedTravelRequestByDocNumber(page, opts) {
+  const wanted = opts.docNumber.trim();
+  const origin = new URL(opts.baseUrl).origin;
+  const ymd2 = (d) => d.toISOString().slice(0, 10);
+  const e = /* @__PURE__ */ new Date();
+  const s = new Date(e.getTime() - 365 * 864e5);
+  const listUrl = `${origin}/Document/document_list.php?type=approved&s_date=${ymd2(s)}&e_date=${ymd2(e)}&keyword=${encodeURIComponent(wanted)}&writer=Y&title=Y&contents=Y&attachment=Y&doc_no=Y`;
+  await page.goto(listUrl, { waitUntil: "domcontentloaded", timeout: 3e4 });
+  await page.waitForTimeout(1500);
+  const rows = await page.mainFrame().$$eval(
+    "tr",
+    (trs) => trs.map((r) => {
+      const a = r.querySelector("a[href*='doc_id=']");
+      if (!a) return null;
+      const href = a.getAttribute("href") || "";
+      const m = href.match(/doc_id=(\d+)/);
+      const cells = Array.from(r.querySelectorAll("td")).map((td) => (td.innerText || "").replace(/\s+/g, " ").trim());
+      return { href, docId: m ? m[1] : "", docNo: cells[0] ?? "" };
+    }).filter(Boolean)
+  );
+  const matches = rows.filter((r) => r.docId && /approve_type=AppFrm-023\b/.test(r.href) && r.docNo.trim() === wanted);
+  const docIds = [...new Set(matches.map((r) => r.docId))];
+  if (docIds.length === 0) {
+    return { error: `no approved travel request (AppFrm-023) with document number '${wanted}' found for this person`, candidates: 0 };
+  }
+  if (docIds.length > 1) {
+    return { error: `${docIds.length} approved travel requests matched document number '${wanted}' exactly - pass the numeric doc_id instead`, candidates: docIds.length };
+  }
+  return { docId: docIds[0] };
+}
 var FORM_NAV_CONFIG = {
   travel: {
     // Resolves request_doc_id (explicit or auto-looked-up) and the domestic/overseas
@@ -8132,7 +8282,7 @@ var FORM_NAV_CONFIG = {
       if (route?.kind === "domestic") {
         return `${origin}/Document/travel_report_write.php?doc_id=${encodeURIComponent(route.requestDocId)}&approve_type=AppFrm-023&pop=Y`;
       }
-      return `${origin}/Document/document_write.php?approve_type=AppFrm-076`;
+      return `${origin}/Document/document_write.php?approve_type=AppFrm-076&pdoc_id=${encodeURIComponent(route?.requestDocId ?? "")}`;
     },
     waitSelector: 'input[name="report_date"], input[name="subject"]',
     waitMs: 2e3
@@ -8169,7 +8319,50 @@ var FORM_NAV_CONFIG = {
       }
     }
   },
-  travel_settlement: { validate: (params) => attachmentSlotRefusal(params) },
+  travel_settlement: {
+    validate: (params) => attachmentSlotRefusal(params),
+    // AppFrm-054 opened bare exposes almost no fields (live-read 2026-10-27) - start_date,
+    // budget_control_no etc. only appear once a parent AppFrm-023 request is linked via
+    // p_doc_id on the write URL. Resolve which request that is before any page is loaded,
+    // same reasoning as travel_request's precedent lookup and the `travel` route above.
+    beforeNavigate: async (page, params, config) => {
+      let docId = params.approved_doc_ref ? String(params.approved_doc_ref) : void 0;
+      const docNumberRef = docId && !/^\d+$/.test(docId) ? docId : void 0;
+      if (docNumberRef) docId = void 0;
+      if (!docId && docNumberRef) {
+        const found = await findApprovedTravelRequestByDocNumber(page, { baseUrl: config.baseUrl, docNumber: docNumberRef });
+        if ("error" in found) {
+          audit({ action: "refusal", code: "PARENT_DOC_REQUIRED", field: "approved_doc_ref", ok: false });
+          return {
+            code: "PARENT_DOC_REQUIRED",
+            message: `${found.error}. travel_settlement needs the approved travel request it settles - pass approved_doc_ref (the request's numeric doc_id is preferred; its exact document number also works when it resolves to exactly one match).`
+          };
+        }
+        docId = found.docId;
+      } else if (!docId) {
+        const found = await findApprovedTravelRequestForSettlement(page, {
+          baseUrl: config.baseUrl,
+          keyword: params.request_keyword || params.title || params.destination
+        });
+        if ("error" in found) {
+          audit({ action: "refusal", code: "PARENT_DOC_REQUIRED", field: "approved_doc_ref", ok: false });
+          return {
+            code: "PARENT_DOC_REQUIRED",
+            message: `${found.error}. travel_settlement needs the approved travel request it settles - pass approved_doc_ref (the request's numeric doc_id is preferred; a document number also works when it resolves to exactly one match).`
+          };
+        }
+        docId = found.docId;
+      }
+      TRAVEL_SETTLEMENT_ROUTE.set(params, { requestDocId: docId });
+    },
+    customUrl: (params, config) => {
+      const route = TRAVEL_SETTLEMENT_ROUTE.get(params);
+      const origin = new URL(config.baseUrl).origin;
+      return `${origin}/Document/document_write.php?approve_type=AppFrm-054&p_doc_id=${encodeURIComponent(route?.requestDocId ?? "")}`;
+    },
+    waitSelector: 'input[name="subject"]',
+    waitMs: 2e3
+  },
   overseas_travel: { validate: (params) => attachmentSlotRefusal(params) },
   card_expense_rd: {
     validate: (params) => !params.trseq || !params.appr_no ? "card_expense_rd requires trseq and appr_no (from corporation_card_list.php Make ER link)." : null,
@@ -8475,7 +8668,7 @@ async function submitLeave(page, frame, sessionManager, config, params, mode) {
   const leaveRuleRefusal = await checkFieldRulesAgainstForm(frame, "leave");
   if (leaveRuleRefusal) return textResult({ error: true, ...leaveRuleRefusal });
   await setFormMode(frame, mode);
-  const docId = await submitForm(page, frame, "check_form_request");
+  const docId = await submitForm(page, frame);
   return textResult({
     error: false,
     data: {
@@ -8566,7 +8759,7 @@ async function submitExpense(page, frame, sessionManager, config, params, mode) 
   await page.waitForTimeout(1e3);
   if (params.dry_run) return textResult({ error: false, data: await buildDryRunPreview(page, frame, config, "expense") });
   await setFormMode(frame, mode);
-  const docId = await submitForm(page, frame, "check_form_request");
+  const docId = await submitForm(page, frame);
   return textResult({
     error: false,
     data: {
@@ -8648,7 +8841,7 @@ async function submitWorking(page, frame, sessionManager, config, params, mode) 
   const workingRuleRefusal = await checkFieldRulesAgainstForm(frame, "working");
   if (workingRuleRefusal) return textResult({ error: true, ...workingRuleRefusal });
   await setFormMode(frame, mode);
-  const docId = await submitForm(page, frame, "check_form_request");
+  const docId = await submitForm(page, frame);
   return textResult({
     error: false,
     data: {
@@ -8753,9 +8946,34 @@ async function submitDomesticTravelReport(page, frame, sessionManager, config, p
     }
   });
 }
+function readOverseasTravelReportPrefill() {
+  const val = (sel) => document.querySelector(sel)?.value ?? "";
+  return {
+    subject: val('input[name="subject"]'),
+    start_date: val('[name="start_day"]'),
+    end_date: val('[name="end_day"]'),
+    report_dest: val('.validate[name="report_dest"]'),
+    purpose_field: val('.validate[name="purpose_field"]'),
+    date_field: val('.validate[name="date_field"]'),
+    org_field: val('.validate[name="org_field"]'),
+    person_field: val('.validate[name="person_field"]'),
+    discuss_field: val('.validate[name="discuss_field"]'),
+    agenda_field: val('.validate[name="agenda_field"]'),
+    result_field: val('.validate[name="result_field"]')
+  };
+}
 async function submitOverseasTravelReport(page, frame, sessionManager, config, params, requestDocId, mode) {
   const userInfo = sessionManager.getUserInfo();
-  await selectExistingOption(frame, 'select[name="pdoc_id"]', requestDocId, "pdoc_id");
+  const pdocValue = await frame.evaluate(() => {
+    const el = document.querySelector('select[name="pdoc_id"]');
+    return el ? el.value : null;
+  });
+  if (pdocValue !== requestDocId) {
+    audit({ action: "refusal", field: "pdoc_id", code: "PDOC_NOT_LINKED", ok: false });
+    throw new Error(
+      `PDOC_NOT_LINKED: the form's pdoc_id is '${pdocValue ?? "(field not found)"}', not the expected request '${requestDocId}'. Selecting it here would reload the page mid-fill, so the save was refused before any field was touched.`
+    );
+  }
   const title = params.title || "Business Travel";
   const destination = params.destination || "";
   const startDate = params.start_date || todayStr();
@@ -8768,6 +8986,8 @@ async function submitOverseasTravelReport(page, frame, sessionManager, config, p
   const reportPost = process.env.IPK_USER_POSITION || "";
   const reportLeader = process.env.IPK_GROUP_LEADER || "";
   const userDept = userInfo.dept || process.env.IPK_USER_DEPT || "";
+  const prefill = await frame.evaluate(readOverseasTravelReportPrefill).catch(() => ({}));
+  const keep = (paramKey, schemaKey, fallback) => !params[paramKey] && prefill[schemaKey] ? prefill[schemaKey] : fallback;
   const travelSchema = {
     subject: { type: "text", dom_name: "subject", required: true },
     report_date: { type: "date", dom_name: "report_date", required: true, dom_selector: '.validate[name="report_date"]' },
@@ -8791,22 +9011,22 @@ async function submitOverseasTravelReport(page, frame, sessionManager, config, p
     conclusion_field: { type: "text", dom_name: "conclusion_field", dom_selector: '.validate[name="conclusion_field"]' }
   };
   await genericFillForm(frame, travelSchema, {
-    subject: title,
+    subject: keep("title", "subject", title),
     report_date: reportDate,
     report_name: userInfo.name,
     report_post: reportPost,
     report_group: userDept,
     report_leader: reportLeader,
-    start_date: startDate,
-    end_date: endDate,
-    report_dest: destination,
-    purpose_field: purpose,
-    date_field: schedule,
-    org_field: organization,
-    person_field: attendees,
-    discuss_field: params.details || purpose,
-    agenda_field: params.schedule || purpose,
-    result_field: params.reason || `Expected outcomes: ${purpose}`,
+    start_date: keep("start_date", "start_date", startDate),
+    end_date: keep("end_date", "end_date", endDate),
+    report_dest: keep("destination", "report_dest", destination),
+    purpose_field: keep("purpose", "purpose_field", purpose),
+    date_field: keep("schedule", "date_field", schedule),
+    org_field: keep("organization", "org_field", organization),
+    person_field: keep("attendees", "person_field", attendees),
+    discuss_field: keep("details", "discuss_field", params.details || purpose),
+    agenda_field: keep("schedule", "agenda_field", params.schedule || purpose),
+    result_field: keep("reason", "result_field", params.reason || `Expected outcomes: ${purpose}`),
     other_field: "N/A",
     conclusion_field: params.destination ? `${purpose} at ${destination}` : `Travel for ${purpose}`
   });
@@ -8817,7 +9037,7 @@ async function submitOverseasTravelReport(page, frame, sessionManager, config, p
   await page.waitForTimeout(1e3);
   if (params.dry_run) return textResult({ error: false, data: await buildDryRunPreview(page, frame, config, "travel") });
   await setFormMode(frame, mode);
-  const docId = await submitForm(page, frame, "form_submit");
+  const docId = await submitForm(page, frame);
   return textResult({
     error: false,
     data: {
@@ -8930,7 +9150,7 @@ async function submitTravelRequest(page, frame, sessionManager, config, params, 
   const travelRequestRuleRefusal = await checkFieldRulesAgainstForm(frame, "travel_request");
   if (travelRequestRuleRefusal) return textResult({ error: true, ...travelRequestRuleRefusal });
   await setFormMode(frame, mode);
-  const docId = await submitForm(page, frame, "check_form_request");
+  const docId = await submitForm(page, frame);
   const precedentSet = PRECEDENT_FOR.get(params);
   let precedent;
   if (precedentSet) {
@@ -9003,7 +9223,7 @@ async function submitBudgetTransfer(page, frame, sessionManager, config, params,
   const budgetTransferRuleRefusal = await checkFieldRulesAgainstForm(frame, "budget_transfer");
   if (budgetTransferRuleRefusal) return textResult({ error: true, ...budgetTransferRuleRefusal });
   await setFormMode(frame, mode);
-  const docId = await submitForm(page, frame, "check_form_request");
+  const docId = await submitForm(page, frame);
   return textResult({
     error: false,
     data: {
@@ -9106,7 +9326,7 @@ async function submitCardExpense(page, frame, sessionManager, config, params, mo
   await page.waitForTimeout(1e3);
   if (params.dry_run) return textResult({ error: false, data: await buildDryRunPreview(page, frame, config, "card_expense") });
   await setFormMode(frame, mode);
-  const docId = await submitForm(page, frame, "check_form_request");
+  const docId = await submitForm(page, frame);
   return textResult({
     error: false,
     data: {
@@ -9416,6 +9636,15 @@ async function submitCardExpenseRD(page, frame, _sessionManager, config, params,
     });
   }
   if (mode === "draft" && params.allow_card_er_save === true) {
+    const expectedAmounts = await frame.evaluate(readCardErAmounts).catch(() => null);
+    const baselineNumeric = (v) => /^-?[\d,]+(\.\d+)?$/.test(String(v ?? "").trim());
+    if (!expectedAmounts || ![expectedAmounts.total, expectedAmounts.vat, expectedAmounts.excl].every(baselineNumeric)) {
+      return textResult({
+        error: true,
+        code: "PRE_SUBMIT_CHECK_FAILED",
+        message: `Row 1's amounts could not be read as numbers before saving (${JSON.stringify(expectedAmounts)}), so the save was refused. The authorization was not consumed; nothing was clicked and nothing was filed.`
+      });
+    }
     const authFile = cardErAuthorizationPath();
     let authorization = null;
     try {
@@ -9435,7 +9664,37 @@ async function submitCardExpenseRD(page, frame, _sessionManager, config, params,
       });
     }
     audit({ action: "draft_save", code: "AUTHORIZATION_CONSUMED", field: "card_expense_rd", mode: "draft", value: JSON.stringify({ appr_no: String(params.appr_no), ...authorization }), ok: true });
-    return await saveCardExpenseRDDraft(page, frame, config, { subject, effectiveBudgetCode, attachResult, fileCount: filePaths.length });
+    return await saveCardExpenseRDDraft(page, frame, config, { subject, effectiveBudgetCode, attachResult, fileCount: filePaths.length }, {
+      mode1: "draft",
+      runner: runCheckFormRequest,
+      preSubmitCheck: async () => {
+        if (!expectedAmounts) return { ok: false, message: "the opener's row 1 amounts could not be read right after filling, so they cannot be re-checked before submit" };
+        const now = await frame.evaluate(readCardErAmounts).catch(() => null);
+        if (!now) return { ok: false, message: "the opener's row 1 amounts could not be re-read right before submit" };
+        const isNumeric = (v) => /^-?[\d,]+(\.\d+)?$/.test(String(v ?? "").trim());
+        const fields = [
+          ["total", now.total, expectedAmounts.total],
+          ["VAT", now.vat, expectedAmounts.vat],
+          ["excl. VAT", now.excl, expectedAmounts.excl]
+        ];
+        for (const [label, nowVal, expVal] of fields) {
+          if (!isNumeric(nowVal) || !isNumeric(expVal)) {
+            return {
+              ok: false,
+              message: `${label} is empty or not a number right before submit (opener now '${nowVal}', filled '${expVal}') - refusing rather than treating a missing/unreadable field as 0`
+            };
+          }
+        }
+        const num = (v) => Number(String(v).replace(/,/g, ""));
+        if (num(now.total) !== num(expectedAmounts.total) || num(now.vat) !== num(expectedAmounts.vat) || num(now.excl) !== num(expectedAmounts.excl)) {
+          return {
+            ok: false,
+            message: `the opener now shows total ${now.total} / VAT ${now.vat} / excl. VAT ${now.excl}, not total ${expectedAmounts.total} / VAT ${expectedAmounts.vat} / excl. VAT ${expectedAmounts.excl} as filled`
+          };
+        }
+        return { ok: true };
+      }
+    });
   }
   if (mode === "draft") {
     return await previewCardExpenseRD(page, frame, config, { subject, effectiveBudgetCode, attachResult, fileCount: filePaths.length });
@@ -9553,6 +9812,14 @@ function setCardErDraftMode1(value = "draft") {
   if (list.length === 1) list[0].value = value;
   return list.map((el) => String(el.value ?? ""));
 }
+function readCardErAmounts() {
+  const at = (n) => document.getElementsByName(n)[1];
+  return {
+    total: at("item_amount[]")?.value ?? "",
+    vat: at("item_amount_vat[]")?.value ?? "",
+    excl: at("item_amount_ral1[]")?.value ?? ""
+  };
+}
 async function previewCardExpenseRD(page, frame, config, ctx) {
   const blocked = [];
   const onRoute = (route) => {
@@ -9662,6 +9929,7 @@ async function saveCardExpenseRDDraft(page, frame, config, ctx, flow = { mode1: 
     subjectFixed: null,
     refusals: [],
     modeNotDraft: null,
+    preSubmitFailed: null,
     error: null
   };
   const dialogs = /* @__PURE__ */ new Map();
@@ -9723,6 +9991,13 @@ async function saveCardExpenseRDDraft(page, frame, config, ctx, flow = { mode1: 
         popupState.modeNotDraft = mode1Now;
         return await close();
       }
+      if (flow.preSubmitCheck) {
+        const check = await flow.preSubmitCheck();
+        if (!check.ok) {
+          popupState.preSubmitFailed = check.message ?? "the opener's amounts changed before submit_form() could run";
+          return await close();
+        }
+      }
       if (popupState.aborted) return;
       popupState.submitAttempted = true;
       await pop.evaluate("submit_form()");
@@ -9778,6 +10053,14 @@ async function saveCardExpenseRDDraft(page, frame, config, ctx, flow = { mode1: 
       code: "DRAFT_MODE_NOT_SET",
       message: `Right before submit_form(), the form's mode1 was ${JSON.stringify(popupState.modeNotDraft)}, not exactly ['${want}'] - the page changed it after it was set. The popup was closed and submit_form() was not called. Nothing was filed. ${consumedNote}`,
       mode1: popupState.modeNotDraft
+    });
+  }
+  if (popupState.preSubmitFailed) {
+    audit({ action: "refusal", code: "PRE_SUBMIT_CHECK_FAILED", field: "card_expense_rd", ok: false });
+    return textResult({
+      error: true,
+      code: "PRE_SUBMIT_CHECK_FAILED",
+      message: `${popupState.preSubmitFailed}. The popup was closed and submit_form() was not called. Nothing was filed. ${consumedNote}`
     });
   }
   if (!popupState.submitAttempted) {
@@ -9909,64 +10192,45 @@ async function finishCardErDraftSave(page, frame, config, args) {
 async function submitTravelSettlement(page, frame, sessionManager, config, params, mode) {
   const purpose = params.purpose || "Business travel";
   const subject = params.title || `[Settlement] ${purpose}`;
-  const approvedDocRef = params.approved_doc_ref || params.sel_travel || "";
-  if (!approvedDocRef) {
-    throw new Error(
-      "PARENT_DOC_REQUIRED: travel_settlement needs the approved travel request it settles. Pass approved_doc_ref. Without it the form exposes no date, purpose or budget fields and the submission is rejected with no message."
-    );
-  }
-  let autoPopulated = false;
-  if (approvedDocRef) {
-    await frame.evaluate(
-      (docRef) => {
-        const selTravel = document.querySelector('input[name="sel_travel"]');
-        if (selTravel) {
-          selTravel.value = docRef;
-          selTravel.dispatchEvent(new Event("change", { bubbles: true }));
-        }
-      },
-      approvedDocRef
-    );
-    const deadline = Date.now() + 8e3;
-    while (Date.now() < deadline) {
-      autoPopulated = await frame.evaluate(() => {
-        const startDate2 = document.querySelector('input[name="start_date"]');
-        const province = document.querySelector('select[name="province"]');
-        return !!(startDate2 && startDate2.value && startDate2.value !== "" || province && province.value && province.value !== "" && province.value !== "0");
-      });
-      if (autoPopulated) break;
-      await page.waitForTimeout(400);
-    }
-  }
-  if (!autoPopulated) {
-    audit({ action: "refusal", field: "sel_travel", code: "PARENT_DOC_NOT_ACCEPTED", ok: false });
-    throw new Error(
-      `PARENT_DOC_NOT_ACCEPTED: the form did not load anything from '${approvedDocRef}'. Check the document number of the approved travel request, or pick it through the form's [Search] button. Refusing to submit a settlement whose parent is unverified.`
-    );
-  }
-  const startDate = params.start_date || todayStr();
-  const endDate = params.end_date || startDate;
-  const nights = Math.max(0, Math.round((new Date(endDate).getTime() - new Date(startDate).getTime()) / 864e5));
-  const dailyExpense = params.daily_expense || (nights === 0 ? 2e4 : 3e4 * nights);
-  const transportFee = params.transport_fee || 0;
-  const accommodationFee = params.accommodation || 0;
-  const foodExpense = params.food_expense || 0;
-  const postSchema = {
-    subject: { type: "text", dom_name: "subject", required: true },
-    budget_control_no: { type: "hidden", dom_name: "budget_control_no" },
-    daily_fee_total: { type: "text", dom_name: "daily_fee_total" },
-    ocar_pay: { type: "text", dom_name: "ocar_pay" },
-    accommodation_fee_total: { type: "text", dom_name: "accommodation_fee_total" },
-    food_fee_total: { type: "text", dom_name: "food_fee_total" }
-  };
-  await genericFillForm(frame, postSchema, {
-    subject,
-    budget_control_no: params.budget_control_no || "",
-    daily_fee_total: String(dailyExpense),
-    ocar_pay: transportFee ? String(transportFee) : "",
-    accommodation_fee_total: accommodationFee ? String(accommodationFee) : "",
-    food_fee_total: foodExpense ? String(foodExpense) : ""
+  const route = TRAVEL_SETTLEMENT_ROUTE.get(params);
+  const requestDocId = route?.requestDocId;
+  const linked = await frame.evaluate(() => {
+    const pDocId = document.querySelector("#p_doc_id")?.value ?? "";
+    const startDate = document.querySelector('input[name="start_date"]')?.value ?? "";
+    const budgetControlNo = document.querySelector('input[name="budget_control_no"]')?.value ?? "";
+    return { pDocId, prefilled: !!(startDate || budgetControlNo) };
   });
+  if (!requestDocId || linked.pDocId !== String(requestDocId) || !linked.prefilled) {
+    audit({ action: "refusal", field: "p_doc_id", code: "PARENT_DOC_NOT_ACCEPTED", ok: false });
+    throw new Error(
+      `PARENT_DOC_NOT_ACCEPTED: expected p_doc_id '${requestDocId}' to prefill this settlement from the approved travel request, but found p_doc_id='${linked.pDocId}' and prefilled=${linked.prefilled}. Check the document number of the approved travel request. Refusing to submit a settlement whose parent is unverified.`
+    );
+  }
+  const postSchema = {
+    subject: { type: "text", dom_name: "subject", required: true }
+  };
+  const values = { subject };
+  if (params.budget_control_no !== void 0) {
+    postSchema.budget_control_no = { type: "hidden", dom_name: "budget_control_no" };
+    values.budget_control_no = String(params.budget_control_no);
+  }
+  if (params.daily_expense !== void 0) {
+    postSchema.daily_fee_total = { type: "text", dom_name: "daily_fee_total" };
+    values.daily_fee_total = String(params.daily_expense);
+  }
+  if (params.transport_fee !== void 0) {
+    postSchema.ocar_pay = { type: "text", dom_name: "ocar_pay" };
+    values.ocar_pay = String(params.transport_fee);
+  }
+  if (params.accommodation !== void 0) {
+    postSchema.accommodation_fee_total = { type: "text", dom_name: "accommodation_fee_total" };
+    values.accommodation_fee_total = String(params.accommodation);
+  }
+  if (params.food_expense !== void 0) {
+    postSchema.food_fee_total = { type: "text", dom_name: "food_fee_total" };
+    values.food_fee_total = String(params.food_expense);
+  }
+  await genericFillForm(frame, postSchema, values);
   if (params.attachment_path) {
     await attachFile(frame, params.attachment_path, slotSelector(params.attachment_slot));
     await page.waitForTimeout(1e3);
@@ -9975,8 +10239,6 @@ async function submitTravelSettlement(page, frame, sessionManager, config, param
   if (params.dry_run) return textResult({ error: false, data: await buildDryRunPreview(page, frame, config, "travel_settlement") });
   const settlementRuleRefusal = await checkFieldRulesAgainstForm(frame, "travel_settlement");
   if (settlementRuleRefusal) return textResult({ error: true, ...settlementRuleRefusal });
-  await setFormMode(frame, mode);
-  const docId = await submitForm(page, frame, "check_form_request");
   const warnings = [];
   if (params.transport_mode?.includes("Own Vehicle") && !params.attachment_path) {
     warnings.push("Own vehicle travel requires \uAC70\uB9AC.pdf (Naver Maps screenshot) attachment.");
@@ -9984,6 +10246,160 @@ async function submitTravelSettlement(page, frame, sessionManager, config, param
   if (params.toll_fee && params.toll_fee > 0 && !params.attachment_path) {
     warnings.push("Toll fee claimed requires \uD558\uC774\uD328\uC2A4 \uC601\uC218\uC99D attachment.");
   }
+  const result = await saveTravelSettlement(page, frame, { subject }, mode);
+  const payload = JSON.parse(result.content[0].text);
+  if (!payload.error) {
+    payload.data.parent_doc_id = requestDocId;
+    if (warnings.length > 0) payload.data.warning = warnings.join(" | ");
+  }
+  return textResult(payload);
+}
+async function saveTravelSettlement(page, frame, ctx, mode) {
+  const { subject } = ctx;
+  await setFormMode(frame, mode);
+  const popupState = {
+    aborted: false,
+    submitAttempted: false,
+    submitted: false,
+    refusals: [],
+    modeNotDraft: null,
+    error: null
+  };
+  const dialogs = /* @__PURE__ */ new Map();
+  const dialogHandlers = /* @__PURE__ */ new Map();
+  const watchDialogs = (p) => {
+    if (!p || dialogs.has(p)) return;
+    const msgs = [];
+    dialogs.set(p, msgs);
+    const handler = (d) => {
+      msgs.push(String(d.message?.() ?? ""));
+      Promise.resolve(d.dismiss?.()).catch(() => {
+      });
+    };
+    dialogHandlers.set(p, handler);
+    p.on?.("dialog", handler);
+  };
+  const unwatchDialogs = (p) => {
+    const handler = dialogHandlers.get(p);
+    if (handler) p.off?.("dialog", handler);
+    dialogHandlers.delete(p);
+  };
+  const context = typeof page.context === "function" ? page.context() : null;
+  context?.on?.("page", watchDialogs);
+  watchDialogs(page);
+  const popupWait = page.waitForEvent("popup", { timeout: 25e3 }).catch(() => {
+    popupState.aborted = true;
+    return null;
+  });
+  const handlePopup = async (pop) => {
+    watchDialogs(pop);
+    const close = () => pop.close().catch(() => {
+    });
+    try {
+      await pop.waitForLoadState("networkidle", { timeout: 15e3 });
+      await pop.waitForTimeout(1e3);
+      if (popupState.aborted) return;
+      if (!/budget_check_settle/i.test(String(pop.url()))) {
+        popupState.aborted = true;
+        popupState.refusals = [`unexpected popup ${String(pop.url())}`];
+        await close();
+        return;
+      }
+      const body = await pop.evaluate(() => document.body ? document.body.innerText : "");
+      const found = [...dialogs.get(pop) ?? [], ...budgetPopupRefusals(body)];
+      if (found.length > 0) {
+        popupState.refusals = found;
+        return await close();
+      }
+      const late2 = dialogs.get(pop) ?? [];
+      if (late2.length > 0) {
+        popupState.refusals = [...late2];
+        return await close();
+      }
+      const mode1Now = await frame.evaluate(() => Array.from(document.getElementsByName("mode1")).map((el) => el.value)).catch(() => []);
+      if (mode1Now.length !== 1 || mode1Now[0] !== mode) {
+        popupState.modeNotDraft = mode1Now;
+        return await close();
+      }
+      if (popupState.aborted) return;
+      popupState.submitAttempted = true;
+      await pop.evaluate("submit_form()");
+      popupState.submitted = true;
+      await pop.waitForTimeout(3e3);
+    } catch (err) {
+      popupState.error = err instanceof Error ? err.message : String(err);
+    }
+  };
+  const consumedNote = "Nothing was filed.";
+  try {
+    try {
+      await frame.evaluate(() => window.Check_Form_Request("insert"));
+    } catch (err) {
+      popupState.aborted = true;
+      return textResult({
+        error: true,
+        code: "SUBMIT_FAILED",
+        message: `travel settlement save (mode1='${mode}') trigger failed: ${err instanceof Error ? err.message : String(err)}. submit_form() was not called. ${consumedNote}`
+      });
+    }
+    const pop = await popupWait;
+    if (pop && !popupState.aborted) await handlePopup(pop);
+  } finally {
+    popupState.aborted = true;
+    context?.off?.("page", watchDialogs);
+    for (const target of dialogs.keys()) unwatchDialogs(target);
+  }
+  if (popupState.refusals.length > 0) {
+    audit({ action: "refusal", code: "BUDGET_CHECK_REFUSED", field: "travel_settlement", ok: false });
+    return textResult({
+      error: true,
+      code: "BUDGET_CHECK_REFUSED",
+      message: `The budget check popup refused or did not match: ${popupState.refusals.join(" / ")}. submit_form() was not called and the popup was closed. ${consumedNote}`,
+      budget_check_messages: popupState.refusals
+    });
+  }
+  if (popupState.modeNotDraft) {
+    audit({ action: "refusal", code: "DRAFT_MODE_NOT_SET", field: "mode1", value: JSON.stringify(popupState.modeNotDraft), ok: false });
+    return textResult({
+      error: true,
+      code: "DRAFT_MODE_NOT_SET",
+      message: `Right before submit_form(), mode1 was ${JSON.stringify(popupState.modeNotDraft)}, not exactly ['${mode}'] - the page changed it after it was set. The popup was closed and submit_form() was not called. ${consumedNote}`,
+      mode1: popupState.modeNotDraft
+    });
+  }
+  if (!popupState.submitAttempted) {
+    const openerDialogs = dialogs.get(page) ?? [];
+    if (openerDialogs.length > 0) {
+      audit({ action: "refusal", code: "SUBMIT_REJECTED", field: "travel_settlement", value: openerDialogs.join(" / "), ok: false });
+      return textResult({
+        error: true,
+        code: "SUBMIT_REJECTED",
+        message: `The opener refused the save before any popup opened: ${openerDialogs.join(" / ")}. submit_form() was not called. ${consumedNote}`
+      });
+    }
+    return textResult({
+      error: true,
+      code: "SUBMIT_UNVERIFIED",
+      message: `The budget_check_settle popup ${popupState.error ? `failed (${popupState.error})` : "never appeared"}, so this tool did not call submit_form(). Check the Drafts list for "${subject}" before retrying - do not retry blind.`
+    });
+  }
+  await page.waitForTimeout(1500);
+  try {
+    await frame.waitForURL("**/document_view.php**", { timeout: 1e4 });
+  } catch {
+    await page.waitForTimeout(2e3);
+  }
+  const frameUrl = typeof frame.url === "function" ? frame.url() : "";
+  const m = frameUrl.match(/[?&]doc_id=(\d+)/);
+  const docId = m ? m[1] : null;
+  if (!docId) {
+    return textResult({
+      error: true,
+      code: "SUBMIT_UNVERIFIED",
+      message: `submit_form() ran in the budget_check_settle popup, but no doc_id could be read from ${frameUrl || "the opener"}. Check the Drafts list for "${subject}" before retrying - do not retry blind.`
+    });
+  }
+  audit({ action: "submit", docId, ok: true });
   return textResult({
     error: false,
     data: {
@@ -9992,9 +10408,7 @@ async function submitTravelSettlement(page, frame, sessionManager, config, param
       mode,
       formType: "travel_settlement",
       subject,
-      autoPopulated,
-      message: docId ? `Travel settlement ${mode === "draft" ? "draft saved" : "submitted"} (doc_id: ${docId})` : `Travel settlement ${mode} completed`,
-      warning: warnings.length > 0 ? warnings.join(" | ") : void 0
+      message: docId ? `Travel settlement ${mode === "draft" ? "draft saved" : "submitted"} (doc_id: ${docId})` : `Travel settlement ${mode} completed`
     }
   });
 }
@@ -10050,7 +10464,7 @@ async function submitLeaveReturn(page, frame, sessionManager, config, params, mo
   await genericFillForm(frame, fieldSchema, userData, hooks);
   await page.waitForTimeout(1e3);
   await setFormMode(frame, mode);
-  const docId = await submitForm(page, frame, "check_form_request");
+  const docId = await submitForm(page, frame);
   return textResult({
     error: false,
     data: {
@@ -10157,7 +10571,7 @@ async function submitSeminar(page, frame, sessionManager, config, params, mode) 
   }
   await page.waitForTimeout(1e3);
   await setFormMode(frame, mode);
-  const docId = await submitForm(page, frame, "check_form_request");
+  const docId = await submitForm(page, frame);
   return textResult({
     error: false,
     data: {
@@ -10315,7 +10729,7 @@ async function submitOverseasTravel(page, frame, sessionManager, config, params,
   }
   await page.waitForTimeout(1e3);
   await setFormMode(frame, mode);
-  const docId = await submitForm(page, frame, "check_form_request");
+  const docId = await submitForm(page, frame);
   return textResult({
     error: false,
     data: {
@@ -10349,7 +10763,7 @@ async function submitGeneric(page, frame, sessionManager, config, params, mode, 
   }
   await page.waitForTimeout(1e3);
   await setFormMode(frame, mode);
-  const docId = await submitForm(page, frame, "check_form_request");
+  const docId = await submitForm(page, frame);
   return textResult({
     error: false,
     data: {
@@ -11463,6 +11877,7 @@ async function handleIpkPrecedentAttachments(sessionManager, config, params) {
 init_attachment_path();
 init_attachment();
 import * as path9 from "path";
+import * as fs12 from "fs";
 var ipkCardErFixVatSchema = {
   doc_id: external_exports.string().regex(/^\d+$/).describe("The card ER draft to correct (must be in the person's type=drafts list)."),
   dry_run: external_exports.boolean().default(true).describe(
@@ -11479,11 +11894,20 @@ var ipkCardErFixVatSchema = {
   })).max(5).default([]).describe("Files to add to the draft in the same [ Save ].")
 };
 var ipkCardErFixVatDescription = "Edit one existing card ER (AppFrm-021) DRAFT through the Edit page's own [Save] (mode1='drafts'; never [Request]): correct an overseas IT subscription (RunPod/Claude/OpenAI/Google Cloud/...) to VAT 0 and Amount excl. VAT = Total, and/or add files from data/attachments (add_attachments; a superseded file is never deleted - the person deletes it). Refuses docs not in type=drafts, filed docs and multi-row docs. Reads document_view back after saving: DRAFT_UPDATED / SUBMITTED_NOT_DRAFT / DRAFT_NOT_CONFIRMED / VALUES_NOT_UPDATED / AMOUNTS_CHANGED / ATTACHMENTS_MISMATCH.";
+function readValueByIdOrName(id) {
+  const byId = document.getElementById(id);
+  if (byId) return { value: byId.value ?? "", found: true };
+  const byName = document.getElementsByName(id)[0];
+  if (byName) return { value: byName.value ?? "", found: true };
+  return { value: "", found: false };
+}
 function readEditRowState() {
   const w = window;
   const at = (n) => document.getElementsByName(n)[1];
   const cnt = document.getElementsByName("er_row_cnt")[0];
   const subj = document.querySelector('input[name="subject"]');
+  const delNo = readValueByIdOrName("del_no");
+  const mode = readValueByIdOrName("mode");
   return {
     rows: cnt ? String(cnt.value) : "",
     item_name: at("item_name[]")?.value ?? "",
@@ -11495,8 +11919,10 @@ function readEditRowState() {
     has_process_money: typeof w.process_money === "function",
     has_edit_check: typeof w.fn_Edit_Check === "function",
     mod_reasons: document.getElementsByName("MOD_REASONS").length > 0,
-    del_no: document.getElementById("del_no")?.value ?? "",
-    mode: document.getElementById("mode")?.value ?? "",
+    del_no: delNo.value,
+    mode: mode.value,
+    del_no_found: delNo.found,
+    mode_found: mode.found,
     attachments: Array.from(document.querySelectorAll(".attatch_file_link")).map((a) => (a.textContent || "").trim())
   };
 }
@@ -11575,12 +12001,26 @@ async function handleIpkCardErFixVat(sessionManager, config, params) {
   const attachmentsBefore = parseFileAttachmentList(viewText);
   const addPaths = adds.map((a) => String(a?.path ?? ""));
   const addNames = addPaths.map((p) => path9.basename(p));
-  const badPaths = addPaths.flatMap((p) => {
-    if (!path9.isAbsolute(p) || !path9.resolve(p).startsWith(`${EVIDENCE_DIR}/`)) return [`${p}: not under ${EVIDENCE_DIR}/`];
+  const realPaths = addPaths.map((p) => {
+    try {
+      return fs12.realpathSync(p);
+    } catch {
+      return p;
+    }
+  });
+  let realEvidenceDir;
+  try {
+    realEvidenceDir = fs12.realpathSync(EVIDENCE_DIR);
+  } catch {
+    realEvidenceDir = EVIDENCE_DIR;
+  }
+  const badPaths = addPaths.flatMap((p, i) => {
+    const real = realPaths[i];
+    if (!path9.isAbsolute(real) || !real.startsWith(`${realEvidenceDir}/`)) return [`${p}: not under ${EVIDENCE_DIR}/`];
     const err = validateAttachmentPath(p);
     return err ? [`${p}: ${err}`] : [];
   });
-  for (const v of checkOrgPolicy({ attachment_paths: addPaths }).filter((x) => x.rule === "NO_GENERATED_EVIDENCE")) badPaths.push(v.message);
+  for (const v of checkOrgPolicy({ attachment_paths: realPaths }).filter((x) => x.rule === "NO_GENERATED_EVIDENCE")) badPaths.push(v.message);
   if (badPaths.length > 0) return refuse2("INVALID_ATTACHMENT", `${badPaths.join("; ")}. Nothing was changed.`);
   const dupes = addNames.filter((n, i) => attachmentsBefore.includes(n) || addNames.indexOf(n) !== i);
   if (dupes.length > 0) {
@@ -11611,7 +12051,8 @@ async function handleIpkCardErFixVat(sessionManager, config, params) {
   if (state.total_attr !== total) problems.push(`row 1 server total '${state.total_attr}' differs from document_view total ${total}`);
   if (!state.has_process_money || !state.has_edit_check) problems.push("process_money/fn_Edit_Check missing");
   if (state.mod_reasons) problems.push("the page asks for a modification reason (MOD_REASONS)");
-  if (state.del_no !== "" || state.mode !== "") problems.push(`del_no '${state.del_no}' / mode '${state.mode}' are not empty (a pending delete)`);
+  if (!state.del_no_found || !state.mode_found) problems.push("del_no/mode could not be found on the Edit page (missing)");
+  else if (state.del_no !== "" || state.mode !== "") problems.push(`del_no '${state.del_no}' / mode '${state.mode}' are not empty (a pending delete)`);
   if (JSON.stringify(state.attachments) !== JSON.stringify(attachmentsBefore)) problems.push(`Edit page attachments ${JSON.stringify(state.attachments)} differ from document_view ${JSON.stringify(attachmentsBefore)}`);
   if (!doVat) {
     const num = (v) => Number(String(v).replace(/,/g, ""));
@@ -11660,6 +12101,7 @@ async function handleIpkCardErFixVat(sessionManager, config, params) {
   if (doVat) {
     const filled = await frame.evaluate(applyOverseasVatZero, total);
     if (filled.total_value !== total || filled.total_amt !== total || filled.vat !== "0" || filled.excl !== total) {
+      await navigateInFrame(page, viewPath, config).catch(() => null);
       return refuse2("VALUE_SET_FAILED", `After setting VAT 0 / excl. VAT ${total}, the page shows ${JSON.stringify(filled)}. Nothing was clicked. The authorization was consumed.`, { filled });
     }
   }
@@ -11683,6 +12125,18 @@ async function handleIpkCardErFixVat(sessionManager, config, params) {
     {
       mode1: "drafts",
       runner: runEditSaveFlow,
+      preSubmitCheck: async () => {
+        const s = await frame.evaluate(readEditRowState).catch(() => null);
+        if (!s) return { ok: false, message: "the opener's Edit page could not be re-read right before submit" };
+        const num = (v) => Number(String(v).replace(/,/g, ""));
+        const problems2 = [];
+        if (num(s.excl) !== expected.excl || num(s.vat) !== expected.vat || num(s.total_value) !== expected.total) {
+          problems2.push(`the opener now shows excl ${s.excl} / VAT ${s.vat} / total ${s.total_value}, not ${JSON.stringify(expected)}`);
+        }
+        if (s.del_no_found === false || s.mode_found === false) problems2.push("del_no/mode could not be found on the opener (missing)");
+        else if (s.del_no !== "") problems2.push(`del_no '${s.del_no}' is no longer empty (a pending delete) right before submit`);
+        return { ok: problems2.length === 0, message: problems2.join("; ") };
+      },
       finish: async () => {
         const afterFrame = await navigateInFrame(page, viewPath, config).catch(() => null);
         const afterText = afterFrame ? String(await afterFrame.evaluate(readBodyText3).catch(() => "") ?? "") : "";
@@ -11740,7 +12194,7 @@ async function handleIpkCardErFixVat(sessionManager, config, params) {
 }
 
 // src/tools/ipk-reviewer-opinions.ts
-import * as fs12 from "fs";
+import * as fs13 from "fs";
 import * as path10 from "path";
 
 // src/precedent/reviewer-opinions.ts
@@ -11909,9 +12363,9 @@ async function handleIpkReviewerOpinions(sessionManager, config, params) {
   let cachedAt = null;
   try {
     const dir = cacheDir2();
-    fs12.mkdirSync(dir, { recursive: true, mode: 448 });
+    fs13.mkdirSync(dir, { recursive: true, mode: 448 });
     cachedAt = path10.join(dir, `reviewer-opinions-${eDate}.json`);
-    fs12.writeFileSync(cachedAt, JSON.stringify({
+    fs13.writeFileSync(cachedAt, JSON.stringify({
       sDate,
       eDate,
       docsScanned: visited,
@@ -12037,7 +12491,7 @@ var actions = Object.fromEntries(
     return [name, { name, purpose: firstSentence(t.description), description: t.description, schema: t.schema, safety: ACTION_SAFETY[name], handler: t.handler }];
   })
 );
-var localVersion = true ? "0.2.0" : "0.0.0";
+var localVersion = true ? "0.2.1" : "0.0.0";
 function withUpdateNotice(def) {
   return {
     ...def,

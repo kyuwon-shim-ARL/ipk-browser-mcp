@@ -46,12 +46,17 @@ interface Opts {
   mode1AtSet?: string[];
   mode1AtPopup?: string[];
   run?: ReturnType<typeof okRun>;
+  /** Applied to readEditRowState's result from its SECOND call onward (the pre-submit
+   *  recheck, right before submit_form()) - simulates the opener changing between the fix
+   *  and the click. */
+  preSubmitStateOverride?: Record<string, unknown>;
 }
 
 function harness(o: Opts = {}) {
   const evaluated: string[] = [];
   const mode1Args: unknown[] = [];
   let saved = false;
+  let readEditRowStateCalls = 0;
   const pop: any = {
     url: () => "https://gw.ip-korea.org/Document/budget_check_er.php",
     on: vi.fn(),
@@ -79,8 +84,20 @@ function harness(o: Opts = {}) {
       switch (name) {
         case "readBodyText": return saved ? (o.viewAfter ?? view(ROW_AFTER)) : (o.viewBefore ?? view(ROW_BEFORE));
         case "readEditHref": return [EDIT_HREF];
-        case "readEditRowState": return state;
-        case "applyOverseasVatZero": return o.filled ?? { total_value: arg, total_amt: arg, vat: "0", excl: arg };
+        case "readEditRowState": {
+          readEditRowStateCalls++;
+          const over = readEditRowStateCalls > 1 ? (o.preSubmitStateOverride ?? {}) : {};
+          return { del_no_found: true, mode_found: true, ...state, ...over };
+        }
+        case "applyOverseasVatZero": {
+          const filled = o.filled ?? { total_value: arg, total_amt: arg, vat: "0", excl: arg };
+          // The real page's DOM is mutated in place, so the next readEditRowState (the
+          // pre-submit recheck) sees the values this just set, not the pre-fix ones.
+          state.total_value = filled.total_value;
+          state.vat = filled.vat;
+          state.excl = filled.excl;
+          return filled;
+        }
         case "setCardErDraftMode1": mode1Args.push(arg); return o.mode1AtSet ?? [arg];
         case "readCardErMode1": return o.mode1AtPopup ?? ["drafts"];
         case "installCardErStubs": return undefined;
@@ -184,6 +201,30 @@ describe("ipk_card_er_fix_vat", () => {
     const order = h.evaluated.filter((n) => ["applyOverseasVatZero", "setCardErDraftMode1", "runEditSaveFlow", "readCardErMode1"].includes(n));
     expect(order).toEqual(["applyOverseasVatZero", "setCardErDraftMode1", "runEditSaveFlow", "readCardErMode1"]);
     expect(h.pop.evaluate).toHaveBeenCalledWith("submit_form()");
+  });
+
+  it("M6: refuses PRE_SUBMIT_CHECK_FAILED when the opener's amounts changed before submit_form(), and never calls it", async () => {
+    writeAuth(auth);
+    const h = harness({ preSubmitStateOverride: { total_value: "99999", vat: "0", excl: "99999" } });
+    const out = await run(h);
+    expect(out.code).toBe("PRE_SUBMIT_CHECK_FAILED");
+    expect(h.pop.evaluate).not.toHaveBeenCalledWith("submit_form()");
+  });
+
+  it("M6: refuses PRE_SUBMIT_CHECK_FAILED when del_no is no longer empty (a pending delete) before submit_form()", async () => {
+    writeAuth(auth);
+    const h = harness({ preSubmitStateOverride: { del_no: "3" } });
+    const out = await run(h);
+    expect(out.code).toBe("PRE_SUBMIT_CHECK_FAILED");
+    expect(h.pop.evaluate).not.toHaveBeenCalledWith("submit_form()");
+  });
+
+  it("M6: refuses PRE_SUBMIT_CHECK_FAILED when del_no/mode cannot be found on the opener before submit_form()", async () => {
+    writeAuth(auth);
+    const h = harness({ preSubmitStateOverride: { del_no_found: false } });
+    const out = await run(h);
+    expect(out.code).toBe("PRE_SUBMIT_CHECK_FAILED");
+    expect(h.pop.evaluate).not.toHaveBeenCalledWith("submit_form()");
   });
 
   it("the authorization is consumed before the click: a second call is refused", async () => {

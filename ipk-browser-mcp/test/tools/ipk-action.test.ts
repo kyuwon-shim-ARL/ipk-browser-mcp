@@ -82,6 +82,35 @@ describe("dispatch", () => {
     const out = parse(await actionTool().handler(loggedOut as any, { action: "screenshot" }));
     expect(out.code).toBe("NOT_LOGGED_IN");
   });
+
+  it("an omitted default-having field (e.g. draft_only) reaches the handler as its zod default", async () => {
+    const z = (await import("zod")).z;
+    let seen: any = null;
+    const reg: ActionRegistry = {
+      x: {
+        name: "x", purpose: "x", description: "x",
+        schema: { draft_only: z.boolean().default(true) },
+        handler: async (_c: unknown, p: any) => { seen = p; return { content: [{ type: "text", text: JSON.stringify({ ok: true }) }] }; },
+      },
+    };
+    await makeActionTool(reg).handler({}, { action: "x", args: {} });
+    expect(seen).toEqual({ draft_only: true });
+  });
+
+  it("unknown keys are not passed to the handler, and are reported as dropped_keys", async () => {
+    const z = (await import("zod")).z;
+    let seen: any = null;
+    const reg: ActionRegistry = {
+      x: {
+        name: "x", purpose: "x", description: "x",
+        schema: { n: z.number() },
+        handler: async (_c: unknown, p: any) => { seen = p; return { content: [{ type: "text", text: JSON.stringify({ ok: true }) }] }; },
+      },
+    };
+    const r = await makeActionTool(reg).handler({}, { action: "x", args: { n: 1, bogus: "nope" } });
+    expect(seen).toEqual({ n: 1 });
+    expect(parse(r)).toEqual({ ok: true, dropped_keys: ["bogus"] });
+  });
 });
 
 describe("a new action is callable without the shim's registered schema changing", () => {

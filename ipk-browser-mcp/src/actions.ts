@@ -58,6 +58,10 @@ export function firstSentence(text: string): string {
 function argsJsonSchema(shape: Record<string, unknown>): unknown {
   const js = zodToJsonSchema(z.object(shape as z.ZodRawShape), { target: "jsonSchema7", $refStrategy: "none" }) as Record<string, unknown>;
   delete js.$schema;
+  // zodToJsonSchema defaults to additionalProperties:false, but runAction's safeParse (no
+  // .strict()) actually tolerates and silently drops unknown keys (reported as dropped_keys
+  // in the result), rather than rejecting them - so the listed schema says what args() does.
+  js.additionalProperties = true;
   return js;
 }
 
@@ -99,7 +103,21 @@ export async function runAction(registry: ActionRegistry, ctx: unknown, params: 
       issues: parsed.error.issues.map((i) => ({ path: i.path.join("."), message: i.message })),
     });
   }
-  return def.handler(ctx, parsed.data);
+  // z.object(...).safeParse without .strict() silently drops keys not in the schema rather
+  // than rejecting them; surface what was dropped so the caller sees why an arg had no effect.
+  const dropped_keys = Object.keys(args).filter((k) => !Object.hasOwn(def.schema, k));
+  const result = await def.handler(ctx, parsed.data);
+  if (dropped_keys.length === 0) return result;
+  try {
+    const first = result?.content?.[0];
+    if (first?.type === "text") {
+      const data = JSON.parse(first.text);
+      return { ...result, content: [{ ...first, text: JSON.stringify({ ...data, dropped_keys }) }, ...result.content.slice(1)] };
+    }
+  } catch {
+    // result wasn't JSON text; fall through to returning it unchanged below.
+  }
+  return result;
 }
 
 /** The ipk_action tool definition for a registry. Its schema and description do not depend on the registry. */
