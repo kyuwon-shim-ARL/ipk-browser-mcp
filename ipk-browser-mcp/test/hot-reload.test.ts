@@ -228,7 +228,7 @@ describe("built dist server (stdio smoke test)", () => {
   const hasDist = fs.existsSync(distEntry);
   const maybeIt = hasDist ? it : it.skip;
 
-  maybeIt("answers initialize and tools/list with 11 tools", async () => {
+  maybeIt("answers initialize and tools/list with 13 tools, ipk_action among them", async () => {
     const child = spawn(process.execPath, [distEntry], { stdio: ["pipe", "pipe", "pipe"] });
     let stderr = "";
     child.stderr.on("data", (d) => { stderr += d.toString(); });
@@ -273,7 +273,8 @@ describe("built dist server (stdio smoke test)", () => {
       send({ jsonrpc: "2.0", id: 2, method: "tools/list", params: {} });
       const listRes = await waitForId(2);
       expect(listRes.error).toBeUndefined();
-      expect(listRes.result.tools).toHaveLength(12);
+      expect(listRes.result.tools).toHaveLength(13);
+      expect(listRes.result.tools.map((t: any) => t.name)).toContain("ipk_action");
     } finally {
       child.kill();
     }

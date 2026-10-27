@@ -10,14 +10,14 @@ var __export = (target, all) => {
 };
 
 // src/security/attachment-path.ts
-import * as fs from "fs";
+import * as fs2 from "fs";
 function validateAttachmentPath(filePath) {
   if (filePath.includes("..")) {
     return "Attachment path contains path traversal (..)";
   }
   let resolved;
   try {
-    resolved = fs.realpathSync(filePath);
+    resolved = fs2.realpathSync(filePath);
   } catch {
     return `Attachment path does not exist or is not accessible: ${filePath}`;
   }
@@ -33,14 +33,14 @@ function validateAttachmentPath(filePath) {
   }
   return null;
 }
-var ALLOWED_ATTACHMENT_DIRS;
+var EVIDENCE_DIR, ALLOWED_ATTACHMENT_DIRS;
 var init_attachment_path = __esm({
   "src/security/attachment-path.ts"() {
     "use strict";
+    EVIDENCE_DIR = `${process.env.HOME}/projects/ipk-browser-mcp/data/attachments`;
     ALLOWED_ATTACHMENT_DIRS = [
       "/tmp",
-      // The project's evidence convention: data/attachments/YYMM/<vendor>/... (CLAUDE.md)
-      `${process.env.HOME}/projects/ipk-browser-mcp/data/attachments`,
+      EVIDENCE_DIR,
       `${process.env.HOME}/Downloads`,
       `${process.env.HOME}/Documents`,
       `${process.env.HOME}/Desktop`
@@ -55,7 +55,7 @@ __export(attachment_exports, {
   attachRevisionFiles: () => attachRevisionFiles,
   clearAllAttachments: () => clearAllAttachments
 });
-import * as fs6 from "fs";
+import * as fs7 from "fs";
 async function attachFiles(ctx, filePaths) {
   const result = { attached: 0, skipped: [] };
   const valid = [];
@@ -65,7 +65,7 @@ async function attachFiles(ctx, filePaths) {
       result.skipped.push({ path: p, reason: pathErr });
       continue;
     }
-    if (!fs6.existsSync(p)) {
+    if (!fs7.existsSync(p)) {
       result.skipped.push({ path: p, reason: "file not found on local fs" });
     } else {
       valid.push(p);
@@ -105,7 +105,7 @@ async function attachRevisionFiles(ctx, filePaths) {
       result.skipped.push({ path: p, reason: pathErr });
       continue;
     }
-    if (!fs6.existsSync(p)) {
+    if (!fs7.existsSync(p)) {
       result.skipped.push({ path: p, reason: "file not found on local fs" });
     } else {
       valid.push(p);
@@ -722,8 +722,8 @@ function getErrorMap() {
 
 // node_modules/zod/v3/helpers/parseUtil.js
 var makeIssue = (params) => {
-  const { data, path: path9, errorMaps, issueData } = params;
-  const fullPath = [...path9, ...issueData.path || []];
+  const { data, path: path11, errorMaps, issueData } = params;
+  const fullPath = [...path11, ...issueData.path || []];
   const fullIssue = {
     ...issueData,
     path: fullPath
@@ -839,11 +839,11 @@ var errorUtil;
 
 // node_modules/zod/v3/types.js
 var ParseInputLazyPath = class {
-  constructor(parent, value, path9, key) {
+  constructor(parent, value, path11, key) {
     this._cachedPath = [];
     this.parent = parent;
     this.data = value;
-    this._path = path9;
+    this._path = path11;
     this._key = key;
   }
   get path() {
@@ -4287,12 +4287,1426 @@ var NEVER = INVALID;
 
 // src/hot-reload.ts
 var SHIM_API_VERSION = 1;
+function withNotes(result, notes) {
+  if (notes.length === 0) return result;
+  const content = Array.isArray(result?.content) ? result.content : [];
+  return { ...result, content: [...content, { type: "text", text: `note: ${notes.join("; ")}` }] };
+}
+
+// node_modules/zod-to-json-schema/dist/esm/Options.js
+var ignoreOverride = /* @__PURE__ */ Symbol("Let zodToJsonSchema decide on which parser to use");
+var defaultOptions = {
+  name: void 0,
+  $refStrategy: "root",
+  basePath: ["#"],
+  effectStrategy: "input",
+  pipeStrategy: "all",
+  dateStrategy: "format:date-time",
+  mapStrategy: "entries",
+  removeAdditionalStrategy: "passthrough",
+  allowedAdditionalProperties: true,
+  rejectedAdditionalProperties: false,
+  definitionPath: "definitions",
+  target: "jsonSchema7",
+  strictUnions: false,
+  definitions: {},
+  errorMessages: false,
+  markdownDescription: false,
+  patternStrategy: "escape",
+  applyRegexFlags: false,
+  emailStrategy: "format:email",
+  base64Strategy: "contentEncoding:base64",
+  nameStrategy: "ref",
+  openAiAnyTypeName: "OpenAiAnyType"
+};
+var getDefaultOptions = (options) => typeof options === "string" ? {
+  ...defaultOptions,
+  name: options
+} : {
+  ...defaultOptions,
+  ...options
+};
+
+// node_modules/zod-to-json-schema/dist/esm/Refs.js
+var getRefs = (options) => {
+  const _options = getDefaultOptions(options);
+  const currentPath = _options.name !== void 0 ? [..._options.basePath, _options.definitionPath, _options.name] : _options.basePath;
+  return {
+    ..._options,
+    flags: { hasReferencedOpenAiAnyType: false },
+    currentPath,
+    propertyPath: void 0,
+    seen: new Map(Object.entries(_options.definitions).map(([name, def]) => [
+      def._def,
+      {
+        def: def._def,
+        path: [..._options.basePath, _options.definitionPath, name],
+        // Resolution of references will be forced even though seen, so it's ok that the schema is undefined here for now.
+        jsonSchema: void 0
+      }
+    ]))
+  };
+};
+
+// node_modules/zod-to-json-schema/dist/esm/errorMessages.js
+function addErrorMessage(res, key, errorMessage, refs) {
+  if (!refs?.errorMessages)
+    return;
+  if (errorMessage) {
+    res.errorMessage = {
+      ...res.errorMessage,
+      [key]: errorMessage
+    };
+  }
+}
+function setResponseValueAndErrors(res, key, value, errorMessage, refs) {
+  res[key] = value;
+  addErrorMessage(res, key, errorMessage, refs);
+}
+
+// node_modules/zod-to-json-schema/dist/esm/getRelativePath.js
+var getRelativePath = (pathA, pathB) => {
+  let i = 0;
+  for (; i < pathA.length && i < pathB.length; i++) {
+    if (pathA[i] !== pathB[i])
+      break;
+  }
+  return [(pathA.length - i).toString(), ...pathB.slice(i)].join("/");
+};
+
+// node_modules/zod-to-json-schema/dist/esm/parsers/any.js
+function parseAnyDef(refs) {
+  if (refs.target !== "openAi") {
+    return {};
+  }
+  const anyDefinitionPath = [
+    ...refs.basePath,
+    refs.definitionPath,
+    refs.openAiAnyTypeName
+  ];
+  refs.flags.hasReferencedOpenAiAnyType = true;
+  return {
+    $ref: refs.$refStrategy === "relative" ? getRelativePath(anyDefinitionPath, refs.currentPath) : anyDefinitionPath.join("/")
+  };
+}
+
+// node_modules/zod-to-json-schema/dist/esm/parsers/array.js
+function parseArrayDef(def, refs) {
+  const res = {
+    type: "array"
+  };
+  if (def.type?._def && def.type?._def?.typeName !== ZodFirstPartyTypeKind.ZodAny) {
+    res.items = parseDef(def.type._def, {
+      ...refs,
+      currentPath: [...refs.currentPath, "items"]
+    });
+  }
+  if (def.minLength) {
+    setResponseValueAndErrors(res, "minItems", def.minLength.value, def.minLength.message, refs);
+  }
+  if (def.maxLength) {
+    setResponseValueAndErrors(res, "maxItems", def.maxLength.value, def.maxLength.message, refs);
+  }
+  if (def.exactLength) {
+    setResponseValueAndErrors(res, "minItems", def.exactLength.value, def.exactLength.message, refs);
+    setResponseValueAndErrors(res, "maxItems", def.exactLength.value, def.exactLength.message, refs);
+  }
+  return res;
+}
+
+// node_modules/zod-to-json-schema/dist/esm/parsers/bigint.js
+function parseBigintDef(def, refs) {
+  const res = {
+    type: "integer",
+    format: "int64"
+  };
+  if (!def.checks)
+    return res;
+  for (const check of def.checks) {
+    switch (check.kind) {
+      case "min":
+        if (refs.target === "jsonSchema7") {
+          if (check.inclusive) {
+            setResponseValueAndErrors(res, "minimum", check.value, check.message, refs);
+          } else {
+            setResponseValueAndErrors(res, "exclusiveMinimum", check.value, check.message, refs);
+          }
+        } else {
+          if (!check.inclusive) {
+            res.exclusiveMinimum = true;
+          }
+          setResponseValueAndErrors(res, "minimum", check.value, check.message, refs);
+        }
+        break;
+      case "max":
+        if (refs.target === "jsonSchema7") {
+          if (check.inclusive) {
+            setResponseValueAndErrors(res, "maximum", check.value, check.message, refs);
+          } else {
+            setResponseValueAndErrors(res, "exclusiveMaximum", check.value, check.message, refs);
+          }
+        } else {
+          if (!check.inclusive) {
+            res.exclusiveMaximum = true;
+          }
+          setResponseValueAndErrors(res, "maximum", check.value, check.message, refs);
+        }
+        break;
+      case "multipleOf":
+        setResponseValueAndErrors(res, "multipleOf", check.value, check.message, refs);
+        break;
+    }
+  }
+  return res;
+}
+
+// node_modules/zod-to-json-schema/dist/esm/parsers/boolean.js
+function parseBooleanDef() {
+  return {
+    type: "boolean"
+  };
+}
+
+// node_modules/zod-to-json-schema/dist/esm/parsers/branded.js
+function parseBrandedDef(_def, refs) {
+  return parseDef(_def.type._def, refs);
+}
+
+// node_modules/zod-to-json-schema/dist/esm/parsers/catch.js
+var parseCatchDef = (def, refs) => {
+  return parseDef(def.innerType._def, refs);
+};
+
+// node_modules/zod-to-json-schema/dist/esm/parsers/date.js
+function parseDateDef(def, refs, overrideDateStrategy) {
+  const strategy = overrideDateStrategy ?? refs.dateStrategy;
+  if (Array.isArray(strategy)) {
+    return {
+      anyOf: strategy.map((item, i) => parseDateDef(def, refs, item))
+    };
+  }
+  switch (strategy) {
+    case "string":
+    case "format:date-time":
+      return {
+        type: "string",
+        format: "date-time"
+      };
+    case "format:date":
+      return {
+        type: "string",
+        format: "date"
+      };
+    case "integer":
+      return integerDateParser(def, refs);
+  }
+}
+var integerDateParser = (def, refs) => {
+  const res = {
+    type: "integer",
+    format: "unix-time"
+  };
+  if (refs.target === "openApi3") {
+    return res;
+  }
+  for (const check of def.checks) {
+    switch (check.kind) {
+      case "min":
+        setResponseValueAndErrors(
+          res,
+          "minimum",
+          check.value,
+          // This is in milliseconds
+          check.message,
+          refs
+        );
+        break;
+      case "max":
+        setResponseValueAndErrors(
+          res,
+          "maximum",
+          check.value,
+          // This is in milliseconds
+          check.message,
+          refs
+        );
+        break;
+    }
+  }
+  return res;
+};
+
+// node_modules/zod-to-json-schema/dist/esm/parsers/default.js
+function parseDefaultDef(_def, refs) {
+  return {
+    ...parseDef(_def.innerType._def, refs),
+    default: _def.defaultValue()
+  };
+}
+
+// node_modules/zod-to-json-schema/dist/esm/parsers/effects.js
+function parseEffectsDef(_def, refs) {
+  return refs.effectStrategy === "input" ? parseDef(_def.schema._def, refs) : parseAnyDef(refs);
+}
+
+// node_modules/zod-to-json-schema/dist/esm/parsers/enum.js
+function parseEnumDef(def) {
+  return {
+    type: "string",
+    enum: Array.from(def.values)
+  };
+}
+
+// node_modules/zod-to-json-schema/dist/esm/parsers/intersection.js
+var isJsonSchema7AllOfType = (type) => {
+  if ("type" in type && type.type === "string")
+    return false;
+  return "allOf" in type;
+};
+function parseIntersectionDef(def, refs) {
+  const allOf = [
+    parseDef(def.left._def, {
+      ...refs,
+      currentPath: [...refs.currentPath, "allOf", "0"]
+    }),
+    parseDef(def.right._def, {
+      ...refs,
+      currentPath: [...refs.currentPath, "allOf", "1"]
+    })
+  ].filter((x) => !!x);
+  let unevaluatedProperties = refs.target === "jsonSchema2019-09" ? { unevaluatedProperties: false } : void 0;
+  const mergedAllOf = [];
+  allOf.forEach((schema) => {
+    if (isJsonSchema7AllOfType(schema)) {
+      mergedAllOf.push(...schema.allOf);
+      if (schema.unevaluatedProperties === void 0) {
+        unevaluatedProperties = void 0;
+      }
+    } else {
+      let nestedSchema = schema;
+      if ("additionalProperties" in schema && schema.additionalProperties === false) {
+        const { additionalProperties, ...rest } = schema;
+        nestedSchema = rest;
+      } else {
+        unevaluatedProperties = void 0;
+      }
+      mergedAllOf.push(nestedSchema);
+    }
+  });
+  return mergedAllOf.length ? {
+    allOf: mergedAllOf,
+    ...unevaluatedProperties
+  } : void 0;
+}
+
+// node_modules/zod-to-json-schema/dist/esm/parsers/literal.js
+function parseLiteralDef(def, refs) {
+  const parsedType = typeof def.value;
+  if (parsedType !== "bigint" && parsedType !== "number" && parsedType !== "boolean" && parsedType !== "string") {
+    return {
+      type: Array.isArray(def.value) ? "array" : "object"
+    };
+  }
+  if (refs.target === "openApi3") {
+    return {
+      type: parsedType === "bigint" ? "integer" : parsedType,
+      enum: [def.value]
+    };
+  }
+  return {
+    type: parsedType === "bigint" ? "integer" : parsedType,
+    const: def.value
+  };
+}
+
+// node_modules/zod-to-json-schema/dist/esm/parsers/string.js
+var emojiRegex2 = void 0;
+var zodPatterns = {
+  /**
+   * `c` was changed to `[cC]` to replicate /i flag
+   */
+  cuid: /^[cC][^\s-]{8,}$/,
+  cuid2: /^[0-9a-z]+$/,
+  ulid: /^[0-9A-HJKMNP-TV-Z]{26}$/,
+  /**
+   * `a-z` was added to replicate /i flag
+   */
+  email: /^(?!\.)(?!.*\.\.)([a-zA-Z0-9_'+\-\.]*)[a-zA-Z0-9_+-]@([a-zA-Z0-9][a-zA-Z0-9\-]*\.)+[a-zA-Z]{2,}$/,
+  /**
+   * Constructed a valid Unicode RegExp
+   *
+   * Lazily instantiate since this type of regex isn't supported
+   * in all envs (e.g. React Native).
+   *
+   * See:
+   * https://github.com/colinhacks/zod/issues/2433
+   * Fix in Zod:
+   * https://github.com/colinhacks/zod/commit/9340fd51e48576a75adc919bff65dbc4a5d4c99b
+   */
+  emoji: () => {
+    if (emojiRegex2 === void 0) {
+      emojiRegex2 = RegExp("^(\\p{Extended_Pictographic}|\\p{Emoji_Component})+$", "u");
+    }
+    return emojiRegex2;
+  },
+  /**
+   * Unused
+   */
+  uuid: /^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$/,
+  /**
+   * Unused
+   */
+  ipv4: /^(?:(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])\.){3}(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])$/,
+  ipv4Cidr: /^(?:(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])\.){3}(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])\/(3[0-2]|[12]?[0-9])$/,
+  /**
+   * Unused
+   */
+  ipv6: /^(([a-f0-9]{1,4}:){7}|::([a-f0-9]{1,4}:){0,6}|([a-f0-9]{1,4}:){1}:([a-f0-9]{1,4}:){0,5}|([a-f0-9]{1,4}:){2}:([a-f0-9]{1,4}:){0,4}|([a-f0-9]{1,4}:){3}:([a-f0-9]{1,4}:){0,3}|([a-f0-9]{1,4}:){4}:([a-f0-9]{1,4}:){0,2}|([a-f0-9]{1,4}:){5}:([a-f0-9]{1,4}:){0,1})([a-f0-9]{1,4}|(((25[0-5])|(2[0-4][0-9])|(1[0-9]{2})|([0-9]{1,2}))\.){3}((25[0-5])|(2[0-4][0-9])|(1[0-9]{2})|([0-9]{1,2})))$/,
+  ipv6Cidr: /^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))\/(12[0-8]|1[01][0-9]|[1-9]?[0-9])$/,
+  base64: /^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$/,
+  base64url: /^([0-9a-zA-Z-_]{4})*(([0-9a-zA-Z-_]{2}(==)?)|([0-9a-zA-Z-_]{3}(=)?))?$/,
+  nanoid: /^[a-zA-Z0-9_-]{21}$/,
+  jwt: /^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]*$/
+};
+function parseStringDef(def, refs) {
+  const res = {
+    type: "string"
+  };
+  if (def.checks) {
+    for (const check of def.checks) {
+      switch (check.kind) {
+        case "min":
+          setResponseValueAndErrors(res, "minLength", typeof res.minLength === "number" ? Math.max(res.minLength, check.value) : check.value, check.message, refs);
+          break;
+        case "max":
+          setResponseValueAndErrors(res, "maxLength", typeof res.maxLength === "number" ? Math.min(res.maxLength, check.value) : check.value, check.message, refs);
+          break;
+        case "email":
+          switch (refs.emailStrategy) {
+            case "format:email":
+              addFormat(res, "email", check.message, refs);
+              break;
+            case "format:idn-email":
+              addFormat(res, "idn-email", check.message, refs);
+              break;
+            case "pattern:zod":
+              addPattern(res, zodPatterns.email, check.message, refs);
+              break;
+          }
+          break;
+        case "url":
+          addFormat(res, "uri", check.message, refs);
+          break;
+        case "uuid":
+          addFormat(res, "uuid", check.message, refs);
+          break;
+        case "regex":
+          addPattern(res, check.regex, check.message, refs);
+          break;
+        case "cuid":
+          addPattern(res, zodPatterns.cuid, check.message, refs);
+          break;
+        case "cuid2":
+          addPattern(res, zodPatterns.cuid2, check.message, refs);
+          break;
+        case "startsWith":
+          addPattern(res, RegExp(`^${escapeLiteralCheckValue(check.value, refs)}`), check.message, refs);
+          break;
+        case "endsWith":
+          addPattern(res, RegExp(`${escapeLiteralCheckValue(check.value, refs)}$`), check.message, refs);
+          break;
+        case "datetime":
+          addFormat(res, "date-time", check.message, refs);
+          break;
+        case "date":
+          addFormat(res, "date", check.message, refs);
+          break;
+        case "time":
+          addFormat(res, "time", check.message, refs);
+          break;
+        case "duration":
+          addFormat(res, "duration", check.message, refs);
+          break;
+        case "length":
+          setResponseValueAndErrors(res, "minLength", typeof res.minLength === "number" ? Math.max(res.minLength, check.value) : check.value, check.message, refs);
+          setResponseValueAndErrors(res, "maxLength", typeof res.maxLength === "number" ? Math.min(res.maxLength, check.value) : check.value, check.message, refs);
+          break;
+        case "includes": {
+          addPattern(res, RegExp(escapeLiteralCheckValue(check.value, refs)), check.message, refs);
+          break;
+        }
+        case "ip": {
+          if (check.version !== "v6") {
+            addFormat(res, "ipv4", check.message, refs);
+          }
+          if (check.version !== "v4") {
+            addFormat(res, "ipv6", check.message, refs);
+          }
+          break;
+        }
+        case "base64url":
+          addPattern(res, zodPatterns.base64url, check.message, refs);
+          break;
+        case "jwt":
+          addPattern(res, zodPatterns.jwt, check.message, refs);
+          break;
+        case "cidr": {
+          if (check.version !== "v6") {
+            addPattern(res, zodPatterns.ipv4Cidr, check.message, refs);
+          }
+          if (check.version !== "v4") {
+            addPattern(res, zodPatterns.ipv6Cidr, check.message, refs);
+          }
+          break;
+        }
+        case "emoji":
+          addPattern(res, zodPatterns.emoji(), check.message, refs);
+          break;
+        case "ulid": {
+          addPattern(res, zodPatterns.ulid, check.message, refs);
+          break;
+        }
+        case "base64": {
+          switch (refs.base64Strategy) {
+            case "format:binary": {
+              addFormat(res, "binary", check.message, refs);
+              break;
+            }
+            case "contentEncoding:base64": {
+              setResponseValueAndErrors(res, "contentEncoding", "base64", check.message, refs);
+              break;
+            }
+            case "pattern:zod": {
+              addPattern(res, zodPatterns.base64, check.message, refs);
+              break;
+            }
+          }
+          break;
+        }
+        case "nanoid": {
+          addPattern(res, zodPatterns.nanoid, check.message, refs);
+        }
+        case "toLowerCase":
+        case "toUpperCase":
+        case "trim":
+          break;
+        default:
+          /* @__PURE__ */ ((_) => {
+          })(check);
+      }
+    }
+  }
+  return res;
+}
+function escapeLiteralCheckValue(literal, refs) {
+  return refs.patternStrategy === "escape" ? escapeNonAlphaNumeric(literal) : literal;
+}
+var ALPHA_NUMERIC = new Set("ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvxyz0123456789");
+function escapeNonAlphaNumeric(source) {
+  let result = "";
+  for (let i = 0; i < source.length; i++) {
+    if (!ALPHA_NUMERIC.has(source[i])) {
+      result += "\\";
+    }
+    result += source[i];
+  }
+  return result;
+}
+function addFormat(schema, value, message, refs) {
+  if (schema.format || schema.anyOf?.some((x) => x.format)) {
+    if (!schema.anyOf) {
+      schema.anyOf = [];
+    }
+    if (schema.format) {
+      schema.anyOf.push({
+        format: schema.format,
+        ...schema.errorMessage && refs.errorMessages && {
+          errorMessage: { format: schema.errorMessage.format }
+        }
+      });
+      delete schema.format;
+      if (schema.errorMessage) {
+        delete schema.errorMessage.format;
+        if (Object.keys(schema.errorMessage).length === 0) {
+          delete schema.errorMessage;
+        }
+      }
+    }
+    schema.anyOf.push({
+      format: value,
+      ...message && refs.errorMessages && { errorMessage: { format: message } }
+    });
+  } else {
+    setResponseValueAndErrors(schema, "format", value, message, refs);
+  }
+}
+function addPattern(schema, regex, message, refs) {
+  if (schema.pattern || schema.allOf?.some((x) => x.pattern)) {
+    if (!schema.allOf) {
+      schema.allOf = [];
+    }
+    if (schema.pattern) {
+      schema.allOf.push({
+        pattern: schema.pattern,
+        ...schema.errorMessage && refs.errorMessages && {
+          errorMessage: { pattern: schema.errorMessage.pattern }
+        }
+      });
+      delete schema.pattern;
+      if (schema.errorMessage) {
+        delete schema.errorMessage.pattern;
+        if (Object.keys(schema.errorMessage).length === 0) {
+          delete schema.errorMessage;
+        }
+      }
+    }
+    schema.allOf.push({
+      pattern: stringifyRegExpWithFlags(regex, refs),
+      ...message && refs.errorMessages && { errorMessage: { pattern: message } }
+    });
+  } else {
+    setResponseValueAndErrors(schema, "pattern", stringifyRegExpWithFlags(regex, refs), message, refs);
+  }
+}
+function stringifyRegExpWithFlags(regex, refs) {
+  if (!refs.applyRegexFlags || !regex.flags) {
+    return regex.source;
+  }
+  const flags = {
+    i: regex.flags.includes("i"),
+    m: regex.flags.includes("m"),
+    s: regex.flags.includes("s")
+    // `.` matches newlines
+  };
+  const source = flags.i ? regex.source.toLowerCase() : regex.source;
+  let pattern = "";
+  let isEscaped = false;
+  let inCharGroup = false;
+  let inCharRange = false;
+  for (let i = 0; i < source.length; i++) {
+    if (isEscaped) {
+      pattern += source[i];
+      isEscaped = false;
+      continue;
+    }
+    if (flags.i) {
+      if (inCharGroup) {
+        if (source[i].match(/[a-z]/)) {
+          if (inCharRange) {
+            pattern += source[i];
+            pattern += `${source[i - 2]}-${source[i]}`.toUpperCase();
+            inCharRange = false;
+          } else if (source[i + 1] === "-" && source[i + 2]?.match(/[a-z]/)) {
+            pattern += source[i];
+            inCharRange = true;
+          } else {
+            pattern += `${source[i]}${source[i].toUpperCase()}`;
+          }
+          continue;
+        }
+      } else if (source[i].match(/[a-z]/)) {
+        pattern += `[${source[i]}${source[i].toUpperCase()}]`;
+        continue;
+      }
+    }
+    if (flags.m) {
+      if (source[i] === "^") {
+        pattern += `(^|(?<=[\r
+]))`;
+        continue;
+      } else if (source[i] === "$") {
+        pattern += `($|(?=[\r
+]))`;
+        continue;
+      }
+    }
+    if (flags.s && source[i] === ".") {
+      pattern += inCharGroup ? `${source[i]}\r
+` : `[${source[i]}\r
+]`;
+      continue;
+    }
+    pattern += source[i];
+    if (source[i] === "\\") {
+      isEscaped = true;
+    } else if (inCharGroup && source[i] === "]") {
+      inCharGroup = false;
+    } else if (!inCharGroup && source[i] === "[") {
+      inCharGroup = true;
+    }
+  }
+  try {
+    new RegExp(pattern);
+  } catch {
+    console.warn(`Could not convert regex pattern at ${refs.currentPath.join("/")} to a flag-independent form! Falling back to the flag-ignorant source`);
+    return regex.source;
+  }
+  return pattern;
+}
+
+// node_modules/zod-to-json-schema/dist/esm/parsers/record.js
+function parseRecordDef(def, refs) {
+  if (refs.target === "openAi") {
+    console.warn("Warning: OpenAI may not support records in schemas! Try an array of key-value pairs instead.");
+  }
+  if (refs.target === "openApi3" && def.keyType?._def.typeName === ZodFirstPartyTypeKind.ZodEnum) {
+    return {
+      type: "object",
+      required: def.keyType._def.values,
+      properties: def.keyType._def.values.reduce((acc, key) => ({
+        ...acc,
+        [key]: parseDef(def.valueType._def, {
+          ...refs,
+          currentPath: [...refs.currentPath, "properties", key]
+        }) ?? parseAnyDef(refs)
+      }), {}),
+      additionalProperties: refs.rejectedAdditionalProperties
+    };
+  }
+  const schema = {
+    type: "object",
+    additionalProperties: parseDef(def.valueType._def, {
+      ...refs,
+      currentPath: [...refs.currentPath, "additionalProperties"]
+    }) ?? refs.allowedAdditionalProperties
+  };
+  if (refs.target === "openApi3") {
+    return schema;
+  }
+  if (def.keyType?._def.typeName === ZodFirstPartyTypeKind.ZodString && def.keyType._def.checks?.length) {
+    const { type, ...keyType } = parseStringDef(def.keyType._def, refs);
+    return {
+      ...schema,
+      propertyNames: keyType
+    };
+  } else if (def.keyType?._def.typeName === ZodFirstPartyTypeKind.ZodEnum) {
+    return {
+      ...schema,
+      propertyNames: {
+        enum: def.keyType._def.values
+      }
+    };
+  } else if (def.keyType?._def.typeName === ZodFirstPartyTypeKind.ZodBranded && def.keyType._def.type._def.typeName === ZodFirstPartyTypeKind.ZodString && def.keyType._def.type._def.checks?.length) {
+    const { type, ...keyType } = parseBrandedDef(def.keyType._def, refs);
+    return {
+      ...schema,
+      propertyNames: keyType
+    };
+  }
+  return schema;
+}
+
+// node_modules/zod-to-json-schema/dist/esm/parsers/map.js
+function parseMapDef(def, refs) {
+  if (refs.mapStrategy === "record") {
+    return parseRecordDef(def, refs);
+  }
+  const keys = parseDef(def.keyType._def, {
+    ...refs,
+    currentPath: [...refs.currentPath, "items", "items", "0"]
+  }) || parseAnyDef(refs);
+  const values = parseDef(def.valueType._def, {
+    ...refs,
+    currentPath: [...refs.currentPath, "items", "items", "1"]
+  }) || parseAnyDef(refs);
+  return {
+    type: "array",
+    maxItems: 125,
+    items: {
+      type: "array",
+      items: [keys, values],
+      minItems: 2,
+      maxItems: 2
+    }
+  };
+}
+
+// node_modules/zod-to-json-schema/dist/esm/parsers/nativeEnum.js
+function parseNativeEnumDef(def) {
+  const object = def.values;
+  const actualKeys = Object.keys(def.values).filter((key) => {
+    return typeof object[object[key]] !== "number";
+  });
+  const actualValues = actualKeys.map((key) => object[key]);
+  const parsedTypes = Array.from(new Set(actualValues.map((values) => typeof values)));
+  return {
+    type: parsedTypes.length === 1 ? parsedTypes[0] === "string" ? "string" : "number" : ["string", "number"],
+    enum: actualValues
+  };
+}
+
+// node_modules/zod-to-json-schema/dist/esm/parsers/never.js
+function parseNeverDef(refs) {
+  return refs.target === "openAi" ? void 0 : {
+    not: parseAnyDef({
+      ...refs,
+      currentPath: [...refs.currentPath, "not"]
+    })
+  };
+}
+
+// node_modules/zod-to-json-schema/dist/esm/parsers/null.js
+function parseNullDef(refs) {
+  return refs.target === "openApi3" ? {
+    enum: ["null"],
+    nullable: true
+  } : {
+    type: "null"
+  };
+}
+
+// node_modules/zod-to-json-schema/dist/esm/parsers/union.js
+var primitiveMappings = {
+  ZodString: "string",
+  ZodNumber: "number",
+  ZodBigInt: "integer",
+  ZodBoolean: "boolean",
+  ZodNull: "null"
+};
+function parseUnionDef(def, refs) {
+  if (refs.target === "openApi3")
+    return asAnyOf(def, refs);
+  const options = def.options instanceof Map ? Array.from(def.options.values()) : def.options;
+  if (options.every((x) => x._def.typeName in primitiveMappings && (!x._def.checks || !x._def.checks.length))) {
+    const types = options.reduce((types2, x) => {
+      const type = primitiveMappings[x._def.typeName];
+      return type && !types2.includes(type) ? [...types2, type] : types2;
+    }, []);
+    return {
+      type: types.length > 1 ? types : types[0]
+    };
+  } else if (options.every((x) => x._def.typeName === "ZodLiteral" && !x.description)) {
+    const types = options.reduce((acc, x) => {
+      const type = typeof x._def.value;
+      switch (type) {
+        case "string":
+        case "number":
+        case "boolean":
+          return [...acc, type];
+        case "bigint":
+          return [...acc, "integer"];
+        case "object":
+          if (x._def.value === null)
+            return [...acc, "null"];
+        case "symbol":
+        case "undefined":
+        case "function":
+        default:
+          return acc;
+      }
+    }, []);
+    if (types.length === options.length) {
+      const uniqueTypes = types.filter((x, i, a) => a.indexOf(x) === i);
+      return {
+        type: uniqueTypes.length > 1 ? uniqueTypes : uniqueTypes[0],
+        enum: options.reduce((acc, x) => {
+          return acc.includes(x._def.value) ? acc : [...acc, x._def.value];
+        }, [])
+      };
+    }
+  } else if (options.every((x) => x._def.typeName === "ZodEnum")) {
+    return {
+      type: "string",
+      enum: options.reduce((acc, x) => [
+        ...acc,
+        ...x._def.values.filter((x2) => !acc.includes(x2))
+      ], [])
+    };
+  }
+  return asAnyOf(def, refs);
+}
+var asAnyOf = (def, refs) => {
+  const anyOf = (def.options instanceof Map ? Array.from(def.options.values()) : def.options).map((x, i) => parseDef(x._def, {
+    ...refs,
+    currentPath: [...refs.currentPath, "anyOf", `${i}`]
+  })).filter((x) => !!x && (!refs.strictUnions || typeof x === "object" && Object.keys(x).length > 0));
+  return anyOf.length ? { anyOf } : void 0;
+};
+
+// node_modules/zod-to-json-schema/dist/esm/parsers/nullable.js
+function parseNullableDef(def, refs) {
+  if (["ZodString", "ZodNumber", "ZodBigInt", "ZodBoolean", "ZodNull"].includes(def.innerType._def.typeName) && (!def.innerType._def.checks || !def.innerType._def.checks.length)) {
+    if (refs.target === "openApi3") {
+      return {
+        type: primitiveMappings[def.innerType._def.typeName],
+        nullable: true
+      };
+    }
+    return {
+      type: [
+        primitiveMappings[def.innerType._def.typeName],
+        "null"
+      ]
+    };
+  }
+  if (refs.target === "openApi3") {
+    const base2 = parseDef(def.innerType._def, {
+      ...refs,
+      currentPath: [...refs.currentPath]
+    });
+    if (base2 && "$ref" in base2)
+      return { allOf: [base2], nullable: true };
+    return base2 && { ...base2, nullable: true };
+  }
+  const base = parseDef(def.innerType._def, {
+    ...refs,
+    currentPath: [...refs.currentPath, "anyOf", "0"]
+  });
+  return base && { anyOf: [base, { type: "null" }] };
+}
+
+// node_modules/zod-to-json-schema/dist/esm/parsers/number.js
+function parseNumberDef(def, refs) {
+  const res = {
+    type: "number"
+  };
+  if (!def.checks)
+    return res;
+  for (const check of def.checks) {
+    switch (check.kind) {
+      case "int":
+        res.type = "integer";
+        addErrorMessage(res, "type", check.message, refs);
+        break;
+      case "min":
+        if (refs.target === "jsonSchema7") {
+          if (check.inclusive) {
+            setResponseValueAndErrors(res, "minimum", check.value, check.message, refs);
+          } else {
+            setResponseValueAndErrors(res, "exclusiveMinimum", check.value, check.message, refs);
+          }
+        } else {
+          if (!check.inclusive) {
+            res.exclusiveMinimum = true;
+          }
+          setResponseValueAndErrors(res, "minimum", check.value, check.message, refs);
+        }
+        break;
+      case "max":
+        if (refs.target === "jsonSchema7") {
+          if (check.inclusive) {
+            setResponseValueAndErrors(res, "maximum", check.value, check.message, refs);
+          } else {
+            setResponseValueAndErrors(res, "exclusiveMaximum", check.value, check.message, refs);
+          }
+        } else {
+          if (!check.inclusive) {
+            res.exclusiveMaximum = true;
+          }
+          setResponseValueAndErrors(res, "maximum", check.value, check.message, refs);
+        }
+        break;
+      case "multipleOf":
+        setResponseValueAndErrors(res, "multipleOf", check.value, check.message, refs);
+        break;
+    }
+  }
+  return res;
+}
+
+// node_modules/zod-to-json-schema/dist/esm/parsers/object.js
+function parseObjectDef(def, refs) {
+  const forceOptionalIntoNullable = refs.target === "openAi";
+  const result = {
+    type: "object",
+    properties: {}
+  };
+  const required = [];
+  const shape = def.shape();
+  for (const propName in shape) {
+    let propDef = shape[propName];
+    if (propDef === void 0 || propDef._def === void 0) {
+      continue;
+    }
+    let propOptional = safeIsOptional(propDef);
+    if (propOptional && forceOptionalIntoNullable) {
+      if (propDef._def.typeName === "ZodOptional") {
+        propDef = propDef._def.innerType;
+      }
+      if (!propDef.isNullable()) {
+        propDef = propDef.nullable();
+      }
+      propOptional = false;
+    }
+    const parsedDef = parseDef(propDef._def, {
+      ...refs,
+      currentPath: [...refs.currentPath, "properties", propName],
+      propertyPath: [...refs.currentPath, "properties", propName]
+    });
+    if (parsedDef === void 0) {
+      continue;
+    }
+    result.properties[propName] = parsedDef;
+    if (!propOptional) {
+      required.push(propName);
+    }
+  }
+  if (required.length) {
+    result.required = required;
+  }
+  const additionalProperties = decideAdditionalProperties(def, refs);
+  if (additionalProperties !== void 0) {
+    result.additionalProperties = additionalProperties;
+  }
+  return result;
+}
+function decideAdditionalProperties(def, refs) {
+  if (def.catchall._def.typeName !== "ZodNever") {
+    return parseDef(def.catchall._def, {
+      ...refs,
+      currentPath: [...refs.currentPath, "additionalProperties"]
+    });
+  }
+  switch (def.unknownKeys) {
+    case "passthrough":
+      return refs.allowedAdditionalProperties;
+    case "strict":
+      return refs.rejectedAdditionalProperties;
+    case "strip":
+      return refs.removeAdditionalStrategy === "strict" ? refs.allowedAdditionalProperties : refs.rejectedAdditionalProperties;
+  }
+}
+function safeIsOptional(schema) {
+  try {
+    return schema.isOptional();
+  } catch {
+    return true;
+  }
+}
+
+// node_modules/zod-to-json-schema/dist/esm/parsers/optional.js
+var parseOptionalDef = (def, refs) => {
+  if (refs.currentPath.toString() === refs.propertyPath?.toString()) {
+    return parseDef(def.innerType._def, refs);
+  }
+  const innerSchema = parseDef(def.innerType._def, {
+    ...refs,
+    currentPath: [...refs.currentPath, "anyOf", "1"]
+  });
+  return innerSchema ? {
+    anyOf: [
+      {
+        not: parseAnyDef(refs)
+      },
+      innerSchema
+    ]
+  } : parseAnyDef(refs);
+};
+
+// node_modules/zod-to-json-schema/dist/esm/parsers/pipeline.js
+var parsePipelineDef = (def, refs) => {
+  if (refs.pipeStrategy === "input") {
+    return parseDef(def.in._def, refs);
+  } else if (refs.pipeStrategy === "output") {
+    return parseDef(def.out._def, refs);
+  }
+  const a = parseDef(def.in._def, {
+    ...refs,
+    currentPath: [...refs.currentPath, "allOf", "0"]
+  });
+  const b = parseDef(def.out._def, {
+    ...refs,
+    currentPath: [...refs.currentPath, "allOf", a ? "1" : "0"]
+  });
+  return {
+    allOf: [a, b].filter((x) => x !== void 0)
+  };
+};
+
+// node_modules/zod-to-json-schema/dist/esm/parsers/promise.js
+function parsePromiseDef(def, refs) {
+  return parseDef(def.type._def, refs);
+}
+
+// node_modules/zod-to-json-schema/dist/esm/parsers/set.js
+function parseSetDef(def, refs) {
+  const items = parseDef(def.valueType._def, {
+    ...refs,
+    currentPath: [...refs.currentPath, "items"]
+  });
+  const schema = {
+    type: "array",
+    uniqueItems: true,
+    items
+  };
+  if (def.minSize) {
+    setResponseValueAndErrors(schema, "minItems", def.minSize.value, def.minSize.message, refs);
+  }
+  if (def.maxSize) {
+    setResponseValueAndErrors(schema, "maxItems", def.maxSize.value, def.maxSize.message, refs);
+  }
+  return schema;
+}
+
+// node_modules/zod-to-json-schema/dist/esm/parsers/tuple.js
+function parseTupleDef(def, refs) {
+  if (def.rest) {
+    return {
+      type: "array",
+      minItems: def.items.length,
+      items: def.items.map((x, i) => parseDef(x._def, {
+        ...refs,
+        currentPath: [...refs.currentPath, "items", `${i}`]
+      })).reduce((acc, x) => x === void 0 ? acc : [...acc, x], []),
+      additionalItems: parseDef(def.rest._def, {
+        ...refs,
+        currentPath: [...refs.currentPath, "additionalItems"]
+      })
+    };
+  } else {
+    return {
+      type: "array",
+      minItems: def.items.length,
+      maxItems: def.items.length,
+      items: def.items.map((x, i) => parseDef(x._def, {
+        ...refs,
+        currentPath: [...refs.currentPath, "items", `${i}`]
+      })).reduce((acc, x) => x === void 0 ? acc : [...acc, x], [])
+    };
+  }
+}
+
+// node_modules/zod-to-json-schema/dist/esm/parsers/undefined.js
+function parseUndefinedDef(refs) {
+  return {
+    not: parseAnyDef(refs)
+  };
+}
+
+// node_modules/zod-to-json-schema/dist/esm/parsers/unknown.js
+function parseUnknownDef(refs) {
+  return parseAnyDef(refs);
+}
+
+// node_modules/zod-to-json-schema/dist/esm/parsers/readonly.js
+var parseReadonlyDef = (def, refs) => {
+  return parseDef(def.innerType._def, refs);
+};
+
+// node_modules/zod-to-json-schema/dist/esm/selectParser.js
+var selectParser = (def, typeName, refs) => {
+  switch (typeName) {
+    case ZodFirstPartyTypeKind.ZodString:
+      return parseStringDef(def, refs);
+    case ZodFirstPartyTypeKind.ZodNumber:
+      return parseNumberDef(def, refs);
+    case ZodFirstPartyTypeKind.ZodObject:
+      return parseObjectDef(def, refs);
+    case ZodFirstPartyTypeKind.ZodBigInt:
+      return parseBigintDef(def, refs);
+    case ZodFirstPartyTypeKind.ZodBoolean:
+      return parseBooleanDef();
+    case ZodFirstPartyTypeKind.ZodDate:
+      return parseDateDef(def, refs);
+    case ZodFirstPartyTypeKind.ZodUndefined:
+      return parseUndefinedDef(refs);
+    case ZodFirstPartyTypeKind.ZodNull:
+      return parseNullDef(refs);
+    case ZodFirstPartyTypeKind.ZodArray:
+      return parseArrayDef(def, refs);
+    case ZodFirstPartyTypeKind.ZodUnion:
+    case ZodFirstPartyTypeKind.ZodDiscriminatedUnion:
+      return parseUnionDef(def, refs);
+    case ZodFirstPartyTypeKind.ZodIntersection:
+      return parseIntersectionDef(def, refs);
+    case ZodFirstPartyTypeKind.ZodTuple:
+      return parseTupleDef(def, refs);
+    case ZodFirstPartyTypeKind.ZodRecord:
+      return parseRecordDef(def, refs);
+    case ZodFirstPartyTypeKind.ZodLiteral:
+      return parseLiteralDef(def, refs);
+    case ZodFirstPartyTypeKind.ZodEnum:
+      return parseEnumDef(def);
+    case ZodFirstPartyTypeKind.ZodNativeEnum:
+      return parseNativeEnumDef(def);
+    case ZodFirstPartyTypeKind.ZodNullable:
+      return parseNullableDef(def, refs);
+    case ZodFirstPartyTypeKind.ZodOptional:
+      return parseOptionalDef(def, refs);
+    case ZodFirstPartyTypeKind.ZodMap:
+      return parseMapDef(def, refs);
+    case ZodFirstPartyTypeKind.ZodSet:
+      return parseSetDef(def, refs);
+    case ZodFirstPartyTypeKind.ZodLazy:
+      return () => def.getter()._def;
+    case ZodFirstPartyTypeKind.ZodPromise:
+      return parsePromiseDef(def, refs);
+    case ZodFirstPartyTypeKind.ZodNaN:
+    case ZodFirstPartyTypeKind.ZodNever:
+      return parseNeverDef(refs);
+    case ZodFirstPartyTypeKind.ZodEffects:
+      return parseEffectsDef(def, refs);
+    case ZodFirstPartyTypeKind.ZodAny:
+      return parseAnyDef(refs);
+    case ZodFirstPartyTypeKind.ZodUnknown:
+      return parseUnknownDef(refs);
+    case ZodFirstPartyTypeKind.ZodDefault:
+      return parseDefaultDef(def, refs);
+    case ZodFirstPartyTypeKind.ZodBranded:
+      return parseBrandedDef(def, refs);
+    case ZodFirstPartyTypeKind.ZodReadonly:
+      return parseReadonlyDef(def, refs);
+    case ZodFirstPartyTypeKind.ZodCatch:
+      return parseCatchDef(def, refs);
+    case ZodFirstPartyTypeKind.ZodPipeline:
+      return parsePipelineDef(def, refs);
+    case ZodFirstPartyTypeKind.ZodFunction:
+    case ZodFirstPartyTypeKind.ZodVoid:
+    case ZodFirstPartyTypeKind.ZodSymbol:
+      return void 0;
+    default:
+      return /* @__PURE__ */ ((_) => void 0)(typeName);
+  }
+};
+
+// node_modules/zod-to-json-schema/dist/esm/parseDef.js
+function parseDef(def, refs, forceResolution = false) {
+  const seenItem = refs.seen.get(def);
+  if (refs.override) {
+    const overrideResult = refs.override?.(def, refs, seenItem, forceResolution);
+    if (overrideResult !== ignoreOverride) {
+      return overrideResult;
+    }
+  }
+  if (seenItem && !forceResolution) {
+    const seenSchema = get$ref(seenItem, refs);
+    if (seenSchema !== void 0) {
+      return seenSchema;
+    }
+  }
+  const newItem = { def, path: refs.currentPath, jsonSchema: void 0 };
+  refs.seen.set(def, newItem);
+  const jsonSchemaOrGetter = selectParser(def, def.typeName, refs);
+  const jsonSchema = typeof jsonSchemaOrGetter === "function" ? parseDef(jsonSchemaOrGetter(), refs) : jsonSchemaOrGetter;
+  if (jsonSchema) {
+    addMeta(def, refs, jsonSchema);
+  }
+  if (refs.postProcess) {
+    const postProcessResult = refs.postProcess(jsonSchema, def, refs);
+    newItem.jsonSchema = jsonSchema;
+    return postProcessResult;
+  }
+  newItem.jsonSchema = jsonSchema;
+  return jsonSchema;
+}
+var get$ref = (item, refs) => {
+  switch (refs.$refStrategy) {
+    case "root":
+      return { $ref: item.path.join("/") };
+    case "relative":
+      return { $ref: getRelativePath(refs.currentPath, item.path) };
+    case "none":
+    case "seen": {
+      if (item.path.length < refs.currentPath.length && item.path.every((value, index) => refs.currentPath[index] === value)) {
+        console.warn(`Recursive reference detected at ${refs.currentPath.join("/")}! Defaulting to any`);
+        return parseAnyDef(refs);
+      }
+      return refs.$refStrategy === "seen" ? parseAnyDef(refs) : void 0;
+    }
+  }
+};
+var addMeta = (def, refs, jsonSchema) => {
+  if (def.description) {
+    jsonSchema.description = def.description;
+    if (refs.markdownDescription) {
+      jsonSchema.markdownDescription = def.description;
+    }
+  }
+  return jsonSchema;
+};
+
+// node_modules/zod-to-json-schema/dist/esm/zodToJsonSchema.js
+var zodToJsonSchema = (schema, options) => {
+  const refs = getRefs(options);
+  let definitions = typeof options === "object" && options.definitions ? Object.entries(options.definitions).reduce((acc, [name2, schema2]) => ({
+    ...acc,
+    [name2]: parseDef(schema2._def, {
+      ...refs,
+      currentPath: [...refs.basePath, refs.definitionPath, name2]
+    }, true) ?? parseAnyDef(refs)
+  }), {}) : void 0;
+  const name = typeof options === "string" ? options : options?.nameStrategy === "title" ? void 0 : options?.name;
+  const main = parseDef(schema._def, name === void 0 ? refs : {
+    ...refs,
+    currentPath: [...refs.basePath, refs.definitionPath, name]
+  }, false) ?? parseAnyDef(refs);
+  const title = typeof options === "object" && options.name !== void 0 && options.nameStrategy === "title" ? options.name : void 0;
+  if (title !== void 0) {
+    main.title = title;
+  }
+  if (refs.flags.hasReferencedOpenAiAnyType) {
+    if (!definitions) {
+      definitions = {};
+    }
+    if (!definitions[refs.openAiAnyTypeName]) {
+      definitions[refs.openAiAnyTypeName] = {
+        // Skipping "object" as no properties can be defined and additionalProperties must be "false"
+        type: ["string", "number", "integer", "boolean", "array", "null"],
+        items: {
+          $ref: refs.$refStrategy === "relative" ? "1" : [
+            ...refs.basePath,
+            refs.definitionPath,
+            refs.openAiAnyTypeName
+          ].join("/")
+        }
+      };
+    }
+  }
+  const combined = name === void 0 ? definitions ? {
+    ...main,
+    [refs.definitionPath]: definitions
+  } : main : {
+    $ref: [
+      ...refs.$refStrategy === "relative" ? [] : refs.basePath,
+      refs.definitionPath,
+      name
+    ].join("/"),
+    [refs.definitionPath]: {
+      ...definitions,
+      [name]: main
+    }
+  };
+  if (refs.target === "jsonSchema7") {
+    combined.$schema = "http://json-schema.org/draft-07/schema#";
+  } else if (refs.target === "jsonSchema2019-09" || refs.target === "openAi") {
+    combined.$schema = "https://json-schema.org/draft/2019-09/schema#";
+  }
+  if (refs.target === "openAi" && ("anyOf" in combined || "oneOf" in combined || "allOf" in combined || "type" in combined && Array.isArray(combined.type))) {
+    console.warn("Warning: OpenAI may not support schemas with unions as roots! Try wrapping it in an object property.");
+  }
+  return combined;
+};
 
 // src/util.ts
 function textResult(data) {
   return {
     content: [{ type: "text", text: JSON.stringify(data) }]
   };
+}
+
+// src/actions.ts
+var IPK_ACTION_NAME = "ipk_action";
+var IPK_ACTION_DESCRIPTION = "Run one IPK groupware action by name. The list of actions and their args changes without a reconnect: call ipk_action {action:'help'} for the current list of actions and their args (or {action:'help', args:{action:'<name>'}} for one). Every action applies the same safety checks as its individual ipk_* tool.";
+var IPK_ACTION_SCHEMA = {
+  action: external_exports.string().describe("Action name, e.g. 'help', 'login', 'submit_form', 'screenshot'"),
+  args: external_exports.record(external_exports.unknown()).optional().describe("The action's arguments; see ipk_action {action:'help'}")
+};
+function refuse(code, message, extra = {}) {
+  return { ...textResult({ error: true, code, message, ...extra }), isError: true };
+}
+function firstSentence(text) {
+  const m = text.match(/^.*?[.!?](?=\s|$)/s);
+  return (m ? m[0] : text).trim();
+}
+function argsJsonSchema(shape) {
+  const js = zodToJsonSchema(external_exports.object(shape), { target: "jsonSchema7", $refStrategy: "none" });
+  delete js.$schema;
+  return js;
+}
+function help(registry, args) {
+  const one = args.action;
+  if (one !== void 0) {
+    const def = typeof one === "string" && Object.hasOwn(registry, one) ? registry[one] : void 0;
+    if (!def) return refuse("UNKNOWN_ACTION", `No action ${JSON.stringify(one)}`, { actions: Object.keys(registry).sort() });
+    return textResult({
+      action: def.name,
+      purpose: def.purpose,
+      description: def.description,
+      args: argsJsonSchema(def.schema),
+      ...def.safety ? { safety: def.safety } : {}
+    });
+  }
+  return textResult({
+    usage: "ipk_action {action:'<name>', args:{...}}; ipk_action {action:'help', args:{action:'<name>'}} for one action's full description",
+    actions: Object.values(registry).sort((a, b) => a.name.localeCompare(b.name)).map((d) => ({ action: d.name, purpose: d.purpose, args: argsJsonSchema(d.schema), ...d.safety ? { safety: d.safety } : {} }))
+  });
+}
+async function runAction(registry, ctx, params) {
+  const args = params.args ?? {};
+  if (params.action === "help") return help(registry, args);
+  const def = Object.hasOwn(registry, params.action) ? registry[params.action] : void 0;
+  if (!def) {
+    return refuse("UNKNOWN_ACTION", `No action ${JSON.stringify(params.action)}; call ipk_action {action:'help'}`, {
+      actions: ["help", ...Object.keys(registry).sort()]
+    });
+  }
+  const parsed = external_exports.object(def.schema).safeParse(args);
+  if (!parsed.success) {
+    return refuse("INVALID_ARGS", `${def.name}: args do not match its schema; see ipk_action {action:'help', args:{action:'${def.name}'}}`, {
+      issues: parsed.error.issues.map((i) => ({ path: i.path.join("."), message: i.message }))
+    });
+  }
+  return def.handler(ctx, parsed.data);
+}
+function makeActionTool(registry) {
+  return {
+    name: IPK_ACTION_NAME,
+    description: IPK_ACTION_DESCRIPTION,
+    schema: IPK_ACTION_SCHEMA,
+    handler: (ctx, params) => runAction(registry, ctx, params)
+  };
+}
+
+// src/update-check.ts
+import * as fs from "fs";
+import * as os from "os";
+import * as path from "path";
+var UPDATE_CHECK_URL = "https://raw.githubusercontent.com/kyuwon-shim-ARL/ipk-browser-mcp/master/.claude-plugin/plugin.json";
+var UPDATE_CHECK_INTERVAL_MS = 24 * 60 * 60 * 1e3;
+var FETCH_TIMEOUT_MS = 2e3;
+function defaultCachePath() {
+  return path.join(os.homedir(), ".cache", "ipk-mcp", "update-check.json");
+}
+function parseVersion(v) {
+  const m = /^v?(\d+)\.(\d+)\.(\d+)/.exec(v.trim());
+  return m ? [Number(m[1]), Number(m[2]), Number(m[3])] : null;
+}
+function isNewer(a, b) {
+  const x = parseVersion(a);
+  const y = parseVersion(b);
+  if (!x || !y) return false;
+  for (let i = 0; i < 3; i++) if (x[i] !== y[i]) return x[i] > y[i];
+  return false;
+}
+function readCache(file) {
+  try {
+    const c = JSON.parse(fs.readFileSync(file, "utf8"));
+    return typeof c?.checkedAt === "number" && typeof c?.remoteVersion === "string" ? c : null;
+  } catch {
+    return null;
+  }
+}
+async function fetchRemote(fetchFn, file, now) {
+  const res = await fetchFn(UPDATE_CHECK_URL, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+  if (!res.ok) return;
+  const version = (await res.json())?.version;
+  if (typeof version !== "string" || !parseVersion(version)) return;
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  const tmp = `${file}.${process.pid}.tmp`;
+  fs.writeFileSync(tmp, JSON.stringify({ checkedAt: now, remoteVersion: version }));
+  fs.renameSync(tmp, file);
+}
+function updateNotice(state, deps) {
+  try {
+    const env = deps.env ?? process.env;
+    if (env.IPK_UPDATE_CHECK === "0") return void 0;
+    const now = (deps.now ?? Date.now)();
+    const file = deps.cachePath ?? defaultCachePath();
+    const cache = readCache(file);
+    const cacheStale = !cache || now - cache.checkedAt >= UPDATE_CHECK_INTERVAL_MS;
+    const triedRecently = state.lastAttempt !== void 0 && now - state.lastAttempt < UPDATE_CHECK_INTERVAL_MS;
+    if (cacheStale && !triedRecently && !state.inflight) {
+      state.lastAttempt = now;
+      state.inflight = fetchRemote(deps.fetch ?? fetch, file, now).catch(() => void 0).finally(() => {
+        state.inflight = void 0;
+      });
+    }
+    if (!cache || !isNewer(cache.remoteVersion, deps.localVersion) || state.notified.has(cache.remoteVersion)) return void 0;
+    state.notified.add(cache.remoteVersion);
+    return `ipk-browser-mcp ${cache.remoteVersion} available (installed ${deps.localVersion}): run /plugin marketplace update ipk-browser-mcp, then /plugin update ipk-browser-mcp@ipk-browser-mcp, then restart Claude Code.`;
+  } catch {
+    return void 0;
+  }
 }
 
 // src/tools/ipk-login.ts
@@ -4322,14 +5736,14 @@ async function handleIpkLogin(sessionManager, params) {
 }
 
 // src/tools/ipk-submit.ts
-import * as fs7 from "fs";
+import * as fs8 from "fs";
 init_attachment_path();
 
 // src/internal/audit.ts
-import * as fs2 from "fs";
-import * as path from "path";
-var LOG_PATH = path.resolve(
-  process.env.IPK_AUDIT_DIR || path.join(process.env.HOME || "/tmp", ".cache", "ipk-mcp"),
+import * as fs3 from "fs";
+import * as path2 from "path";
+var LOG_PATH = path2.resolve(
+  process.env.IPK_AUDIT_DIR || path2.join(process.env.HOME || "/tmp", ".cache", "ipk-mcp"),
   "audit.jsonl"
 );
 var runId = `run-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -4341,15 +5755,15 @@ function beginRun(id) {
 function audit(event) {
   if (!enabled) return;
   try {
-    fs2.mkdirSync(path.dirname(LOG_PATH), { recursive: true, mode: 448 });
-    fs2.appendFileSync(LOG_PATH, JSON.stringify({ ts: (/* @__PURE__ */ new Date()).toISOString(), runId, ...event }) + "\n", "utf8");
+    fs3.mkdirSync(path2.dirname(LOG_PATH), { recursive: true, mode: 448 });
+    fs3.appendFileSync(LOG_PATH, JSON.stringify({ ts: (/* @__PURE__ */ new Date()).toISOString(), runId, ...event }) + "\n", "utf8");
   } catch {
   }
 }
 function toolDraftedDocIds() {
   const out = /* @__PURE__ */ new Set();
   try {
-    for (const l of fs2.readFileSync(LOG_PATH, "utf8").split("\n")) {
+    for (const l of fs3.readFileSync(LOG_PATH, "utf8").split("\n")) {
       if (!l) continue;
       try {
         const e = JSON.parse(l);
@@ -4420,7 +5834,7 @@ function budgetPopupRefusals(bodyText) {
 }
 
 // src/policy/attachment-review.ts
-import * as fs3 from "fs";
+import * as fs4 from "fs";
 import * as crypto from "crypto";
 var ATTACHMENT_KINDS = [
   "card_slip",
@@ -4548,7 +5962,7 @@ function datesBetween(start, end) {
 }
 function sha256OfFile(filePath) {
   try {
-    const buf = fs3.readFileSync(filePath);
+    const buf = fs4.readFileSync(filePath);
     return crypto.createHash("sha256").update(buf).digest("hex");
   } catch {
     return null;
@@ -4922,8 +6336,8 @@ function checkOrgPolicy(params) {
 }
 
 // src/profile/profile.ts
-import * as fs4 from "fs";
-import * as path2 from "path";
+import * as fs5 from "fs";
+import * as path3 from "path";
 var PROFILE_SCHEMA_VERSION = 1;
 function emptyProfile(user) {
   return {
@@ -4935,24 +6349,24 @@ function emptyProfile(user) {
   };
 }
 function profileDir(home = process.env.IPK_HOME_DIR ?? process.env.HOME ?? "") {
-  return path2.join(home, ".config", "ipk-browser-mcp");
+  return path3.join(home, ".config", "ipk-browser-mcp");
 }
 function profilePath(home) {
-  return path2.join(profileDir(home), "profile.json");
+  return path3.join(profileDir(home), "profile.json");
 }
 function loadProfile(home) {
   try {
-    return JSON.parse(fs4.readFileSync(profilePath(home), "utf-8"));
+    return JSON.parse(fs5.readFileSync(profilePath(home), "utf-8"));
   } catch {
     return null;
   }
 }
 function saveProfile(profile, home) {
   const dir = profileDir(home);
-  fs4.mkdirSync(dir, { recursive: true });
+  fs5.mkdirSync(dir, { recursive: true });
   const p = profilePath(home);
-  fs4.writeFileSync(p, JSON.stringify(profile, null, 2) + "\n", { mode: 384 });
-  fs4.chmodSync(p, 384);
+  fs5.writeFileSync(p, JSON.stringify(profile, null, 2) + "\n", { mode: 384 });
+  fs5.chmodSync(p, 384);
   return p;
 }
 function maskCardNumber(number) {
@@ -5578,14 +6992,14 @@ function diffAgainstPractice(draft, profile) {
 }
 
 // src/forms/card-er-authorization.ts
-import * as fs5 from "fs";
-import * as path3 from "path";
+import * as fs6 from "fs";
+import * as path4 from "path";
 function cardErAuthorizationPath(home) {
-  return path3.join(profileDir(home), "card-er-draft-authorizations.json");
+  return path4.join(profileDir(home), "card-er-draft-authorizations.json");
 }
 function readCardErDraftAuthorizations(file = cardErAuthorizationPath()) {
   try {
-    const v = JSON.parse(fs5.readFileSync(file, "utf8"));
+    const v = JSON.parse(fs6.readFileSync(file, "utf8"));
     return v && typeof v === "object" && !Array.isArray(v) ? v : {};
   } catch {
     return {};
@@ -5604,10 +7018,10 @@ function removeEntry(auths, key, file) {
   delete rest[key];
   const tmp = `${file}.${process.pid}.tmp`;
   try {
-    fs5.writeFileSync(tmp, JSON.stringify(rest, null, 2) + "\n", { mode: 384 });
-    fs5.renameSync(tmp, file);
+    fs6.writeFileSync(tmp, JSON.stringify(rest, null, 2) + "\n", { mode: 384 });
+    fs6.renameSync(tmp, file);
   } finally {
-    fs5.rmSync(tmp, { force: true });
+    fs6.rmSync(tmp, { force: true });
   }
 }
 function consumeCardErDraftAuthorization(apprNo, trseq, file = cardErAuthorizationPath()) {
@@ -6018,7 +7432,7 @@ async function submitTravelReportDraft(page, frame) {
 }
 
 // src/tools/ipk-submit.ts
-import * as path4 from "path";
+import * as path5 from "path";
 import { fileURLToPath } from "url";
 
 // src/form-registry.ts
@@ -6040,9 +7454,9 @@ var FORM_REGISTRY = {
 
 // src/tools/ipk-submit.ts
 var __filename = fileURLToPath(import.meta.url);
-var __dirname = path4.dirname(__filename);
-async function executePostActions(frame, actions) {
-  for (const act of actions) {
+var __dirname = path5.dirname(__filename);
+async function executePostActions(frame, actions2) {
+  for (const act of actions2) {
     if (act.action === "wait_selector" && act.target) {
       await frame.waitForSelector(act.target, { timeout: 5e3 }).catch(() => null);
     } else if (act.action === "click_button" && act.target) {
@@ -6222,10 +7636,10 @@ async function genericFillForm(frame, fieldSchema, userData, hooks, opts) {
 function loadTemplateFieldSchema(formType) {
   const registry = FORM_REGISTRY[formType];
   if (!registry) return null;
-  for (const projectRoot of [path4.resolve(__dirname, "..", ".."), path4.resolve(__dirname, "..", "..", "..")]) {
-    const templatePath = path4.join(projectRoot, "form_templates", registry.templateFile);
+  for (const projectRoot of [path5.resolve(__dirname, "..", ".."), path5.resolve(__dirname, "..", "..", "..")]) {
+    const templatePath = path5.join(projectRoot, "form_templates", registry.templateFile);
     try {
-      const raw = fs7.readFileSync(templatePath, "utf-8");
+      const raw = fs8.readFileSync(templatePath, "utf-8");
       const template = JSON.parse(raw);
       return template.field_schema || null;
     } catch {
@@ -6237,10 +7651,10 @@ function loadTemplateFieldSchema(formType) {
 function loadPublicRulebook(formType) {
   const registry = FORM_REGISTRY[formType];
   if (!registry) return null;
-  for (const projectRoot of [path4.resolve(__dirname, "..", ".."), path4.resolve(__dirname, "..", "..", "..")]) {
-    const rulesPath = path4.join(projectRoot, "rules", "public", `${registry.appFrmCode}.json`);
+  for (const projectRoot of [path5.resolve(__dirname, "..", ".."), path5.resolve(__dirname, "..", "..", "..")]) {
+    const rulesPath = path5.join(projectRoot, "rules", "public", `${registry.appFrmCode}.json`);
     try {
-      return JSON.parse(fs7.readFileSync(rulesPath, "utf-8"));
+      return JSON.parse(fs8.readFileSync(rulesPath, "utf-8"));
     } catch {
       continue;
     }
@@ -6249,7 +7663,7 @@ function loadPublicRulebook(formType) {
 }
 function loadJsonIfPresent(p) {
   try {
-    return JSON.parse(fs7.readFileSync(p, "utf-8"));
+    return JSON.parse(fs8.readFileSync(p, "utf-8"));
   } catch {
     return null;
   }
@@ -6258,7 +7672,7 @@ function loadFieldRulesOptions(formType) {
   const home = process.env.IPK_HOME_DIR ?? process.env.HOME ?? "";
   const profile = loadProfile() ?? void 0;
   const registry = FORM_REGISTRY[formType];
-  const privatePack = home && registry ? loadJsonIfPresent(path4.join(home, ".config", "ipk-browser-mcp", "knowledge", "rules", `${registry.appFrmCode}.json`)) : void 0;
+  const privatePack = home && registry ? loadJsonIfPresent(path5.join(home, ".config", "ipk-browser-mcp", "knowledge", "rules", `${registry.appFrmCode}.json`)) : void 0;
   return { profile, privatePack };
 }
 function mergeRulebook(pub, pack) {
@@ -6332,15 +7746,15 @@ async function buildDryRunPreview(page, frame, config, formType) {
   const fieldRuleResult = await checkFieldRulesRaw(frame, formType) ?? { blocks: [], warnings: [] };
   let screenshot;
   try {
-    fs7.mkdirSync(config.screenshotDir, { recursive: true, mode: 448 });
+    fs8.mkdirSync(config.screenshotDir, { recursive: true, mode: 448 });
     const filename = `dry-run-${formType}-${(/* @__PURE__ */ new Date()).toISOString().replace(/[:.]/g, "-")}.png`;
-    const filepath = path4.join(config.screenshotDir, filename);
+    const filepath = path5.join(config.screenshotDir, filename);
     await page.screenshot({ path: filepath, fullPage: true });
     screenshot = filepath;
     const ttlMs = config.screenshotTtlMinutes * 60 * 1e3;
     setTimeout(() => {
       try {
-        if (fs7.existsSync(filepath)) fs7.unlinkSync(filepath);
+        if (fs8.existsSync(filepath)) fs8.unlinkSync(filepath);
       } catch {
       }
     }, ttlMs);
@@ -8171,8 +9585,8 @@ async function previewCardExpenseRD(page, frame, config, ctx) {
       runError = err instanceof Error ? err.message : String(err);
     }
     try {
-      fs7.mkdirSync(config.screenshotDir, { recursive: true, mode: 448 });
-      const file = path4.join(config.screenshotDir, `card-er-preview-${(/* @__PURE__ */ new Date()).toISOString().replace(/[:.]/g, "-")}.png`);
+      fs8.mkdirSync(config.screenshotDir, { recursive: true, mode: 448 });
+      const file = path5.join(config.screenshotDir, `card-er-preview-${(/* @__PURE__ */ new Date()).toISOString().replace(/[:.]/g, "-")}.png`);
       const vp = page.viewportSize();
       try {
         if (vp) await page.setViewportSize({ width: vp.width, height: 4e3 });
@@ -8405,7 +9819,7 @@ async function finishCardErDraftSave(page, frame, config, args) {
   }
   const origin = new URL(config.baseUrl).origin;
   const viewUrl = `${origin}/Document/document_view.php?doc_id=${docId}&approve_type=AppFrm-021`;
-  const cacheDir3 = path4.join(process.env.HOME || "/tmp", ".cache", "ipk-mcp", "card-er-location", docId);
+  const cacheDir3 = path5.join(process.env.HOME || "/tmp", ".cache", "ipk-mcp", "card-er-location", docId);
   try {
     let viewText = "";
     try {
@@ -8414,8 +9828,8 @@ async function finishCardErDraftSave(page, frame, config, args) {
     } catch {
     }
     try {
-      fs7.mkdirSync(cacheDir3, { recursive: true, mode: 448 });
-      fs7.writeFileSync(path4.join(cacheDir3, "document_view.rawtext.txt"), viewText, "utf8");
+      fs8.mkdirSync(cacheDir3, { recursive: true, mode: 448 });
+      fs8.writeFileSync(path5.join(cacheDir3, "document_view.rawtext.txt"), viewText, "utf8");
     } catch {
     }
     const markers = detectSubmittedOnDocumentView(viewText);
@@ -9264,8 +10678,8 @@ async function handleIpkGetContent(sessionManager, config, params) {
 }
 
 // src/tools/screenshot.ts
-import * as fs8 from "fs";
-import * as path5 from "path";
+import * as fs9 from "fs";
+import * as path6 from "path";
 var screenshotSchema = {
   filename: external_exports.string().optional().describe("Custom filename (without path). Default: auto-generated timestamp."),
   full_page: external_exports.boolean().default(false).describe("Capture full page (true) or viewport only (false)")
@@ -9277,10 +10691,10 @@ async function handleScreenshot(sessionManager, config, params) {
   }
   const page = sessionManager.getPage();
   try {
-    fs8.mkdirSync(config.screenshotDir, { recursive: true, mode: 448 });
+    fs9.mkdirSync(config.screenshotDir, { recursive: true, mode: 448 });
     const timestamp = (/* @__PURE__ */ new Date()).toISOString().replace(/[:.]/g, "-");
     const filename = params.filename || `ipk-${timestamp}.png`;
-    const filepath = path5.join(config.screenshotDir, filename);
+    const filepath = path6.join(config.screenshotDir, filename);
     await page.screenshot({
       path: filepath,
       fullPage: params.full_page || false
@@ -9288,8 +10702,8 @@ async function handleScreenshot(sessionManager, config, params) {
     const ttlMs = config.screenshotTtlMinutes * 60 * 1e3;
     setTimeout(() => {
       try {
-        if (fs8.existsSync(filepath)) {
-          fs8.unlinkSync(filepath);
+        if (fs9.existsSync(filepath)) {
+          fs9.unlinkSync(filepath);
         }
       } catch {
       }
@@ -9310,16 +10724,16 @@ async function handleScreenshot(sessionManager, config, params) {
 }
 function cleanupExpiredScreenshots(config) {
   try {
-    if (!fs8.existsSync(config.screenshotDir)) return;
+    if (!fs9.existsSync(config.screenshotDir)) return;
     const now = Date.now();
     const ttlMs = config.screenshotTtlMinutes * 60 * 1e3;
-    const files = fs8.readdirSync(config.screenshotDir);
+    const files = fs9.readdirSync(config.screenshotDir);
     for (const file of files) {
       if (!file.endsWith(".png")) continue;
-      const filepath = path5.join(config.screenshotDir, file);
-      const stat = fs8.statSync(filepath);
+      const filepath = path6.join(config.screenshotDir, file);
+      const stat = fs9.statSync(filepath);
       if (now - stat.mtimeMs > ttlMs) {
-        fs8.unlinkSync(filepath);
+        fs9.unlinkSync(filepath);
       }
     }
   } catch {
@@ -9327,11 +10741,11 @@ function cleanupExpiredScreenshots(config) {
 }
 
 // src/tools/ipk-inspect.ts
-import * as fs9 from "fs";
-import * as path6 from "path";
+import * as fs10 from "fs";
+import * as path7 from "path";
 import { fileURLToPath as fileURLToPath2 } from "url";
 var __filename2 = fileURLToPath2(import.meta.url);
-var __dirname2 = path6.dirname(__filename2);
+var __dirname2 = path7.dirname(__filename2);
 var ipkInspectFormSchema = {
   form_code: external_exports.string().describe("Form code to inspect, e.g. AppFrm-054"),
   compare_template: external_exports.boolean().default(true).describe("Cross-verify against form_templates JSON")
@@ -9387,10 +10801,10 @@ async function handleIpkInspectForm(sessionManager, config, params) {
       elements: domElements
     };
     if (compareTemplate) {
-      const projectRoot = path6.resolve(__dirname2, "..", "..");
-      const templatePath = path6.join(projectRoot, "form_templates", `${formCode}.json`);
+      const projectRoot = path7.resolve(__dirname2, "..", "..");
+      const templatePath = path7.join(projectRoot, "form_templates", `${formCode}.json`);
       try {
-        const raw = fs9.readFileSync(templatePath, "utf-8");
+        const raw = fs10.readFileSync(templatePath, "utf-8");
         const template = JSON.parse(raw);
         const fieldSchema = template.field_schema || {};
         const templateKeys = new Set(Object.keys(fieldSchema));
@@ -9633,13 +11047,13 @@ async function handleIpkProfileInit(sessionManager, config, _params = {}, deps =
   }
   if (profile.budget_pots.length === 0) notDerived.push("budget_pots (budget_code select offered none)");
   notDerived.push("approval_line (group_leader/substitute - not yet read automatically; set by hand if needed)");
-  const path9 = saveProfile(profile, void 0);
+  const path11 = saveProfile(profile, void 0);
   const ownCards = profile.cards.filter((c) => c.kind === "own");
   const sharedCards = profile.cards.filter((c) => c.kind === "shared");
   return textResult({
     error: false,
     data: {
-      profile_path: path9,
+      profile_path: path11,
       cards_found: ownCards.length,
       cards_signal: ownCards.length > 0 ? cardSignal : void 0,
       cards_masked: ownCards.map((c) => maskCardNumber(c.number)),
@@ -9648,7 +11062,7 @@ async function handleIpkProfileInit(sessionManager, config, _params = {}, deps =
       budget_pots_found: profile.budget_pots.length,
       budget_pot_codes: profile.budget_pots.map((b) => b.code),
       not_derived: notDerived,
-      message: notDerived.length > 0 ? `Wrote ${path9}. Could not derive: ${notDerived.join("; ")} - ask the person for these only.` : `Wrote ${path9}. Every key was derived from the groupware; nothing left to ask.`
+      message: notDerived.length > 0 ? `Wrote ${path11}. Could not derive: ${notDerived.join("; ")} - ask the person for these only.` : `Wrote ${path11}. Every key was derived from the groupware; nothing left to ask.`
     }
   });
 }
@@ -9913,8 +11327,8 @@ async function handleIpkReviseAttachments(sessionManager, config, params) {
 }
 
 // src/tools/ipk-precedent-attachments.ts
-import * as fs10 from "fs";
-import * as path7 from "path";
+import * as fs11 from "fs";
+import * as path8 from "path";
 
 // src/precedent/attachment-precedent.ts
 var STOPWORD_TOKEN = /^\d+$/;
@@ -9955,7 +11369,7 @@ function isoDate(d) {
   return d.toISOString().slice(0, 10);
 }
 function cacheDir() {
-  return path7.join(process.env.HOME || "/tmp", ".cache", "ipk-mcp", "precedent-attachments");
+  return path8.join(process.env.HOME || "/tmp", ".cache", "ipk-mcp", "precedent-attachments");
 }
 async function readBodyText2(frame) {
   try {
@@ -10034,9 +11448,9 @@ async function handleIpkPrecedentAttachments(sessionManager, config, params) {
   let cachedAt = null;
   try {
     const dir = cacheDir();
-    fs10.mkdirSync(dir, { recursive: true, mode: 448 });
-    cachedAt = path7.join(dir, `${account}-${eDate}.json`);
-    fs10.writeFileSync(cachedAt, JSON.stringify({ sDate, eDate, ...report }, null, 2), "utf8");
+    fs11.mkdirSync(dir, { recursive: true, mode: 448 });
+    cachedAt = path8.join(dir, `${account}-${eDate}.json`);
+    fs11.writeFileSync(cachedAt, JSON.stringify({ sDate, eDate, ...report }, null, 2), "utf8");
   } catch {
   }
   return textResult({
@@ -10046,13 +11460,25 @@ async function handleIpkPrecedentAttachments(sessionManager, config, params) {
 }
 
 // src/tools/ipk-card-er-fix-vat.ts
+init_attachment_path();
+init_attachment();
+import * as path9 from "path";
 var ipkCardErFixVatSchema = {
   doc_id: external_exports.string().regex(/^\d+$/).describe("The card ER draft to correct (must be in the person's type=drafts list)."),
   dry_run: external_exports.boolean().default(true).describe(
     'Default true: reads the draft, fills VAT 0 / excl. VAT = total in the Edit page and reports it - saves nothing. false: needs a one-time { "doc:<doc_id>": { "doc_id": "<doc_id>", "authorized_at": "<ISO>", "note": "..." } } entry in ~/.config/ipk-browser-mcp/card-er-draft-authorizations.json, consumed before any click.'
-  )
+  ),
+  fix_vat: external_exports.boolean().default(true).describe(
+    "Default true: set VAT 0 / excl. VAT = total (overseas IT subscriptions only; a no-op when already so). false: attachment-only edit - amounts must be unchanged after the save."
+  ),
+  add_attachments: external_exports.array(external_exports.object({
+    path: external_exports.string().describe("Absolute path under data/attachments/ (the person's own file, e.g. a signed invoice)."),
+    replaces: external_exports.string().optional().describe(
+      "File name of an attachment already on the draft that this one supersedes. It must be attached; it is NOT deleted (the page's [Delete] posts immediately) - it is reported in left_for_person_to_delete."
+    )
+  })).max(5).default([]).describe("Files to add to the draft in the same [ Save ].")
 };
-var ipkCardErFixVatDescription = "Correct one existing card ER (AppFrm-021) DRAFT of an overseas IT subscription (RunPod/Claude/OpenAI/Google Cloud/...) to VAT 0 and Amount excl. VAT = Total, through the Edit page's own [Save] (mode1='drafts'; never [Request]). Refuses docs not in type=drafts, filed docs, multi-row docs and non-overseas items. Reads document_view back after saving: DRAFT_UPDATED / SUBMITTED_NOT_DRAFT / DRAFT_NOT_CONFIRMED / VALUES_NOT_UPDATED.";
+var ipkCardErFixVatDescription = "Edit one existing card ER (AppFrm-021) DRAFT through the Edit page's own [Save] (mode1='drafts'; never [Request]): correct an overseas IT subscription (RunPod/Claude/OpenAI/Google Cloud/...) to VAT 0 and Amount excl. VAT = Total, and/or add files from data/attachments (add_attachments; a superseded file is never deleted - the person deletes it). Refuses docs not in type=drafts, filed docs and multi-row docs. Reads document_view back after saving: DRAFT_UPDATED / SUBMITTED_NOT_DRAFT / DRAFT_NOT_CONFIRMED / VALUES_NOT_UPDATED / AMOUNTS_CHANGED / ATTACHMENTS_MISMATCH.";
 function readEditRowState() {
   const w = window;
   const at = (n) => document.getElementsByName(n)[1];
@@ -10068,7 +11494,10 @@ function readEditRowState() {
     subject: subj ? subj.value : "",
     has_process_money: typeof w.process_money === "function",
     has_edit_check: typeof w.fn_Edit_Check === "function",
-    mod_reasons: document.getElementsByName("MOD_REASONS").length > 0
+    mod_reasons: document.getElementsByName("MOD_REASONS").length > 0,
+    del_no: document.getElementById("del_no")?.value ?? "",
+    mode: document.getElementById("mode")?.value ?? "",
+    attachments: Array.from(document.querySelectorAll(".attatch_file_link")).map((a) => (a.textContent || "").trim())
   };
 }
 function applyOverseasVatZero(total) {
@@ -10098,13 +11527,13 @@ function readEditHref() {
 function readBodyText3() {
   return document.body ? document.body.innerText : "";
 }
-var refuse = (code, message, extra = {}) => textResult({ error: true, code, message, ...extra });
+var refuse2 = (code, message, extra = {}) => textResult({ error: true, code, message, ...extra });
 async function handleIpkCardErFixVat(sessionManager, config, params) {
   if (!sessionManager.isLoggedIn()) {
-    return refuse("NOT_LOGGED_IN", sessionManager.getLoginState() === "expired" ? "Browser session expired after 30 minutes idle. Call ipk_login again." : "Call ipk_login first");
+    return refuse2("NOT_LOGGED_IN", sessionManager.getLoginState() === "expired" ? "Browser session expired after 30 minutes idle. Call ipk_login again." : "Call ipk_login first");
   }
   const docId = String(params.doc_id ?? "");
-  if (!/^\d+$/.test(docId)) return refuse("DOC_ID_REQUIRED", "doc_id must be a numeric document id.");
+  if (!/^\d+$/.test(docId)) return refuse2("DOC_ID_REQUIRED", "doc_id must be a numeric document id.");
   const page = sessionManager.getPage();
   const viewPath = `/Document/document_view.php?doc_id=${docId}&approve_type=AppFrm-021&type=drafts`;
   const listPath = "/Document/document_list.php?type=drafts";
@@ -10117,27 +11546,52 @@ async function handleIpkCardErFixVat(sessionManager, config, params) {
     }
   };
   if (await inDrafts() !== true) {
-    return refuse("NOT_IN_DRAFTS", `doc ${docId} is not in document_list.php?type=drafts (or the list could not be read). Only drafts are edited. Nothing was changed.`);
+    return refuse2("NOT_IN_DRAFTS", `doc ${docId} is not in document_list.php?type=drafts (or the list could not be read). Only drafts are edited. Nothing was changed.`);
   }
   const frame = await navigateInFrame(page, viewPath, config).catch(() => null);
-  if (!frame) return refuse("NAVIGATION_FAILED", "Could not open the document (main_menu frame not found). Nothing was changed.");
+  if (!frame) return refuse2("NAVIGATION_FAILED", "Could not open the document (main_menu frame not found). Nothing was changed.");
   const viewText = String(await frame.evaluate(readBodyText3).catch(() => "") ?? "");
   const markers = detectSubmittedOnDocumentView(viewText);
   if (markers.length > 0) {
-    return refuse("NOT_A_DRAFT", `doc ${docId}'s document_view shows ${markers.join(" and ")} - it is filed, not a draft. Nothing was changed.`, { submitted_markers: markers });
+    return refuse2("NOT_A_DRAFT", `doc ${docId}'s document_view shows ${markers.join(" and ")} - it is filed, not a draft. Nothing was changed.`, { submitted_markers: markers });
   }
   const rows = parseCardErItemRows(viewText);
   if (rows.length !== 1) {
-    return refuse("ROWS_UNSUPPORTED", `doc ${docId} has ${rows.length} readable item row(s); only single-row card ERs are corrected. Nothing was changed.`, { rows });
+    return refuse2("ROWS_UNSUPPORTED", `doc ${docId} has ${rows.length} readable item row(s); only single-row card ERs are corrected. Nothing was changed.`, { rows });
   }
   const before = rows[0];
-  if (!isOverseasItSubscription(before.item_name)) {
-    return refuse("NOT_OVERSEAS_IT_SUBSCRIPTION", `"${before.item_name}" is not an overseas IT subscription; its VAT split is not changed here. Nothing was changed.`, { before });
+  const adds = Array.isArray(params.add_attachments) ? params.add_attachments : [];
+  const fixVat = params.fix_vat !== false;
+  if (!fixVat && adds.length === 0) {
+    return refuse2("NOTHING_TO_DO", "fix_vat is false and add_attachments is empty. Nothing was changed.");
   }
-  if (before.vat === 0 && before.excl === before.total) {
+  if (fixVat && !isOverseasItSubscription(before.item_name)) {
+    return refuse2("NOT_OVERSEAS_IT_SUBSCRIPTION", `"${before.item_name}" is not an overseas IT subscription; its VAT split is not changed here (pass fix_vat:false for an attachment-only edit). Nothing was changed.`, { before });
+  }
+  const doVat = fixVat && !(before.vat === 0 && before.excl === before.total);
+  if (!doVat && adds.length === 0) {
     return textResult({ error: false, data: { doc_id: docId, outcome: "NOTHING_TO_FIX", before, message: `doc ${docId} already has VAT 0 and excl. VAT = total (${before.total}). Nothing was changed.` } });
   }
   const attachmentsBefore = parseFileAttachmentList(viewText);
+  const addPaths = adds.map((a) => String(a?.path ?? ""));
+  const addNames = addPaths.map((p) => path9.basename(p));
+  const badPaths = addPaths.flatMap((p) => {
+    if (!path9.isAbsolute(p) || !path9.resolve(p).startsWith(`${EVIDENCE_DIR}/`)) return [`${p}: not under ${EVIDENCE_DIR}/`];
+    const err = validateAttachmentPath(p);
+    return err ? [`${p}: ${err}`] : [];
+  });
+  for (const v of checkOrgPolicy({ attachment_paths: addPaths }).filter((x) => x.rule === "NO_GENERATED_EVIDENCE")) badPaths.push(v.message);
+  if (badPaths.length > 0) return refuse2("INVALID_ATTACHMENT", `${badPaths.join("; ")}. Nothing was changed.`);
+  const dupes = addNames.filter((n, i) => attachmentsBefore.includes(n) || addNames.indexOf(n) !== i);
+  if (dupes.length > 0) {
+    return refuse2("ALREADY_ATTACHED", `doc ${docId} already has (or this call repeats) ${dupes.join(", ")}. Nothing was changed.`, { attachments: attachmentsBefore });
+  }
+  const replaced = adds.map((a) => a?.replaces).filter((r) => typeof r === "string" && r.length > 0);
+  const missing = replaced.filter((r) => !attachmentsBefore.includes(r));
+  if (missing.length > 0) {
+    return refuse2("REPLACED_FILE_NOT_FOUND", `doc ${docId} has no attachment named ${missing.join(", ")} (it has ${attachmentsBefore.join(", ")}). Nothing was changed.`, { attachments: attachmentsBefore });
+  }
+  const expectedAttachments = [...attachmentsBefore, ...addNames];
   const hrefs = await frame.evaluate(readEditHref).catch(() => []);
   const origin = new URL(config.baseUrl).origin;
   const editUrl = hrefs.map((h) => {
@@ -10147,7 +11601,7 @@ async function handleIpkCardErFixVat(sessionManager, config, params) {
       return "";
     }
   }).find((u) => new RegExp(`[?&]doc_id=${docId}(?!\\d)`).test(u) && /[?&]type=drafts(?:&|$)/.test(u) && /[?&]approve_type=AppFrm-021(?:&|$)/.test(u));
-  if (!editUrl) return refuse("EDIT_LINK_NOT_FOUND", `doc ${docId}'s document_view has no [Edit] link to document_write.php with type=drafts. Nothing was changed.`, { hrefs });
+  if (!editUrl) return refuse2("EDIT_LINK_NOT_FOUND", `doc ${docId}'s document_view has no [Edit] link to document_write.php with type=drafts. Nothing was changed.`, { hrefs });
   await navigateInFrame(page, editUrl, config);
   const state = await frame.evaluate(readEditRowState);
   const total = String(before.total);
@@ -10157,13 +11611,21 @@ async function handleIpkCardErFixVat(sessionManager, config, params) {
   if (state.total_attr !== total) problems.push(`row 1 server total '${state.total_attr}' differs from document_view total ${total}`);
   if (!state.has_process_money || !state.has_edit_check) problems.push("process_money/fn_Edit_Check missing");
   if (state.mod_reasons) problems.push("the page asks for a modification reason (MOD_REASONS)");
+  if (state.del_no !== "" || state.mode !== "") problems.push(`del_no '${state.del_no}' / mode '${state.mode}' are not empty (a pending delete)`);
+  if (JSON.stringify(state.attachments) !== JSON.stringify(attachmentsBefore)) problems.push(`Edit page attachments ${JSON.stringify(state.attachments)} differ from document_view ${JSON.stringify(attachmentsBefore)}`);
+  if (!doVat) {
+    const num = (v) => Number(String(v).replace(/,/g, ""));
+    if (num(state.excl) !== before.excl || num(state.vat) !== before.vat || num(state.total_value) !== before.total) {
+      problems.push(`the Edit page shows excl ${state.excl} / VAT ${state.vat} / total ${state.total_value} on load, document_view ${before.excl} / ${before.vat} / ${before.total}`);
+    }
+  }
   if (problems.length > 0) {
     await navigateInFrame(page, viewPath, config).catch(() => null);
-    return refuse("EDIT_PAGE_UNEXPECTED", `The Edit page is not the one this was built against: ${problems.join("; ")}. Nothing was changed.`, { state });
+    return refuse2("EDIT_PAGE_UNEXPECTED", `The Edit page is not the one this was built against: ${problems.join("; ")}. Nothing was changed.`, { state });
   }
-  const expected = { excl: before.total, vat: 0, total: before.total };
+  const expected = doVat ? { excl: before.total, vat: 0, total: before.total } : { excl: before.excl, vat: before.vat, total: before.total };
   if (params.dry_run !== false) {
-    const filled2 = await frame.evaluate(applyOverseasVatZero, total);
+    const filled = doVat ? await frame.evaluate(applyOverseasVatZero, total) : null;
     await navigateInFrame(page, viewPath, config).catch(() => null);
     return textResult({
       error: false,
@@ -10173,9 +11635,11 @@ async function handleIpkCardErFixVat(sessionManager, config, params) {
         before,
         edit_page_on_load: { excl: state.excl, vat: state.vat, total: state.total_value },
         would_set: expected,
-        filled_in_page: filled2,
+        filled_in_page: filled,
         attachments: attachmentsBefore,
-        message: `dry_run: doc ${docId} would be saved through the Edit page's own [ Save ] (mode1='drafts') with excl. VAT ${total}, VAT 0, total ${total}. Nothing was saved; the page was left without saving. A save needs a "doc:${docId}" entry in ${cardErAuthorizationPath()}.`
+        would_add: addNames,
+        left_for_person_to_delete: replaced,
+        message: `dry_run: doc ${docId} would be saved through the Edit page's own [ Save ] (mode1='drafts') with excl. VAT ${expected.excl}, VAT ${expected.vat}, total ${expected.total}${addNames.length > 0 ? `, adding ${addNames.join(", ")}` : ""}. Nothing was saved; the page was left without saving. A save needs a "doc:${docId}" entry in ${cardErAuthorizationPath()}.`
       }
     });
   }
@@ -10183,25 +11647,39 @@ async function handleIpkCardErFixVat(sessionManager, config, params) {
   try {
     auth = consumeCardErDocEditAuthorization(docId);
   } catch (err) {
-    return refuse("CARD_ER_EDIT_REFUSED", `The authorization for doc ${docId} could not be consumed (${err instanceof Error ? err.message : String(err)}). Nothing was clicked.`);
+    return refuse2("CARD_ER_EDIT_REFUSED", `The authorization for doc ${docId} could not be consumed (${err instanceof Error ? err.message : String(err)}). Nothing was clicked.`);
   }
   if (!auth) {
     await navigateInFrame(page, viewPath, config).catch(() => null);
-    return refuse(
+    return refuse2(
       "CARD_ER_EDIT_REFUSED",
       `Saving doc ${docId} needs a one-time authorization: ${cardErAuthorizationPath()} has no "doc:${docId}": { "doc_id": "${docId}", "authorized_at": "<ISO>", "note": "..." } entry. A person adds it; the tool consumes it before clicking, so each entry allows one save attempt. Nothing was saved.`
     );
   }
   audit({ action: "draft_save", code: "AUTHORIZATION_CONSUMED", field: "card_er_fix_vat", docId, mode: "draft", value: JSON.stringify({ key: `doc:${docId}`, ...auth }), ok: true });
-  const filled = await frame.evaluate(applyOverseasVatZero, total);
-  if (filled.total_value !== total || filled.total_amt !== total || filled.vat !== "0" || filled.excl !== total) {
-    return refuse("VALUE_SET_FAILED", `After setting VAT 0 / excl. VAT ${total}, the page shows ${JSON.stringify(filled)}. Nothing was clicked. The authorization was consumed.`, { filled });
+  if (doVat) {
+    const filled = await frame.evaluate(applyOverseasVatZero, total);
+    if (filled.total_value !== total || filled.total_amt !== total || filled.vat !== "0" || filled.excl !== total) {
+      return refuse2("VALUE_SET_FAILED", `After setting VAT 0 / excl. VAT ${total}, the page shows ${JSON.stringify(filled)}. Nothing was clicked. The authorization was consumed.`, { filled });
+    }
+  }
+  let attachResult = { attached: 0, skipped: [] };
+  if (addPaths.length > 0) {
+    attachResult = await attachFiles(frame, addPaths);
+    if (attachResult.attached !== addPaths.length) {
+      await navigateInFrame(page, viewPath, config).catch(() => null);
+      return refuse2(
+        "ATTACHMENT_NOT_ACCEPTED",
+        `${attachResult.attached}/${addPaths.length} files landed in the page's file slots (${JSON.stringify(attachResult.skipped)}). Nothing was clicked; the page was left without saving. The authorization was consumed.`,
+        { skipped: attachResult.skipped }
+      );
+    }
   }
   return await saveCardExpenseRDDraft(
     page,
     frame,
     config,
-    { subject: state.subject, effectiveBudgetCode: null, attachResult: { attached: 0, skipped: [] }, fileCount: 0 },
+    { subject: state.subject, effectiveBudgetCode: null, attachResult, fileCount: addPaths.length },
     {
       mode1: "drafts",
       runner: runEditSaveFlow,
@@ -10212,31 +11690,39 @@ async function handleIpkCardErFixVat(sessionManager, config, params) {
         const filedMarkers = detectSubmittedOnDocumentView(afterText);
         if (filedMarkers.length > 0) {
           audit({ action: "refusal", code: "SUBMITTED_NOT_DRAFT", docId, mode: "draft", ok: false });
-          return refuse(
+          return refuse2(
             "SUBMITTED_NOT_DRAFT",
             `doc ${docId} was FILED FOR APPROVAL by the save: document_view shows ${filedMarkers.join(" and ")}. The tool did not retry and did not repossess it - the person decides.`,
             { ...base, submitted_markers: filedMarkers }
           );
         }
         if (!afterText.trim()) {
-          return refuse("DRAFT_NOT_CONFIRMED", `submit_form() ran for doc ${docId} but its document_view could not be read. Check it before retrying.`, base);
+          return refuse2("DRAFT_NOT_CONFIRMED", `submit_form() ran for doc ${docId} but its document_view could not be read. Check it before retrying.`, base);
         }
         const after = parseCardErItemRows(afterText)[0];
         const attachmentsAfter = parseFileAttachmentList(afterText);
         const stillDraft = await inDrafts();
-        const details = { ...base, after: after ?? null, attachments_before: attachmentsBefore, attachments_after: attachmentsAfter, in_drafts: stillDraft };
+        const details = {
+          ...base,
+          after: after ?? null,
+          attachments_before: attachmentsBefore,
+          attachments_after: attachmentsAfter,
+          expected_attachments: expectedAttachments,
+          left_for_person_to_delete: replaced,
+          in_drafts: stillDraft
+        };
         if (stillDraft !== true) {
           audit({ action: "draft_save", docId, mode: "draft", ok: false, code: "DRAFT_NOT_CONFIRMED" });
-          return refuse("DRAFT_NOT_CONFIRMED", `submit_form() ran; document_view shows no filed marker, but doc ${docId} is not in type=drafts. Check it before retrying.`, details);
+          return refuse2("DRAFT_NOT_CONFIRMED", `submit_form() ran; document_view shows no filed marker, but doc ${docId} is not in type=drafts. Check it before retrying.`, details);
         }
         if (!after || after.excl !== expected.excl || after.vat !== expected.vat || after.total !== expected.total) {
-          audit({ action: "draft_save", docId, mode: "draft", ok: false, code: "VALUES_NOT_UPDATED" });
-          return refuse("VALUES_NOT_UPDATED", `doc ${docId} is still a draft, but document_view shows ${JSON.stringify(after ?? null)}, not ${JSON.stringify(expected)}.`, details);
+          const code = doVat ? "VALUES_NOT_UPDATED" : "AMOUNTS_CHANGED";
+          audit({ action: "draft_save", docId, mode: "draft", ok: false, code });
+          return refuse2(code, `doc ${docId} is still a draft, but document_view shows ${JSON.stringify(after ?? null)}, not ${JSON.stringify(expected)}.`, details);
         }
-        const lost = attachmentsBefore.filter((f) => !attachmentsAfter.includes(f));
-        if (lost.length > 0) {
-          audit({ action: "draft_save", docId, mode: "draft", ok: false, code: "ATTACHMENTS_LOST" });
-          return refuse("ATTACHMENTS_LOST", `doc ${docId} was updated and is still a draft, but these attachments are gone: ${lost.join(", ")}.`, details);
+        if (JSON.stringify([...attachmentsAfter].sort()) !== JSON.stringify([...expectedAttachments].sort())) {
+          audit({ action: "draft_save", docId, mode: "draft", ok: false, code: "ATTACHMENTS_MISMATCH" });
+          return refuse2("ATTACHMENTS_MISMATCH", `doc ${docId} is still a draft, but its attachments are ${JSON.stringify(attachmentsAfter)}, not ${JSON.stringify(expectedAttachments)}.`, details);
         }
         audit({ action: "draft_save", docId, mode: "draft", confirmed: true, ok: true, code: "DRAFT_UPDATED" });
         return textResult({
@@ -10245,7 +11731,7 @@ async function handleIpkCardErFixVat(sessionManager, config, params) {
             ...details,
             success: true,
             outcome: "DRAFT_UPDATED",
-            message: `doc ${docId} is still a draft (type=drafts, no filed marker) and now shows excl. VAT ${after.excl}, VAT ${after.vat}, total ${after.total}.`
+            message: `doc ${docId} is still a draft (type=drafts, no filed marker) and now shows excl. VAT ${after.excl}, VAT ${after.vat}, total ${after.total}${addNames.length > 0 ? `; added ${addNames.join(", ")}` : ""}.` + (replaced.length > 0 ? ` Still attached, for the person to delete by hand ([Edit] -> [Delete] next to it): ${replaced.join(", ")}.` : "")
           }
         });
       }
@@ -10254,8 +11740,8 @@ async function handleIpkCardErFixVat(sessionManager, config, params) {
 }
 
 // src/tools/ipk-reviewer-opinions.ts
-import * as fs11 from "fs";
-import * as path8 from "path";
+import * as fs12 from "fs";
+import * as path10 from "path";
 
 // src/precedent/reviewer-opinions.ts
 var DEPT_ALIASES = {
@@ -10341,7 +11827,7 @@ var ipkReviewerOpinionsSchema = {
 };
 var ipkReviewerOpinionsDescription = "OFFLINE, read-only, LOCAL ONLY: collects processing-department opinions (e.g. Budget Planning & Finance) across groupapproved documents and flags a request repeated by >=2 different drafters as a rule candidate, with doc_id evidence. Never called from a save path, never writes to the groupware. Full detail (names, opinion text) is cached under ~/.cache/ipk-mcp/ only; the MCP result reports counts/candidates/unmatched departments, not raw names.";
 function cacheDir2() {
-  return path8.join(process.env.HOME || "/tmp", ".cache", "ipk-mcp", "reviewer-opinions");
+  return path10.join(process.env.HOME || "/tmp", ".cache", "ipk-mcp", "reviewer-opinions");
 }
 async function readBodyText4(frame) {
   try {
@@ -10423,9 +11909,9 @@ async function handleIpkReviewerOpinions(sessionManager, config, params) {
   let cachedAt = null;
   try {
     const dir = cacheDir2();
-    fs11.mkdirSync(dir, { recursive: true, mode: 448 });
-    cachedAt = path8.join(dir, `reviewer-opinions-${eDate}.json`);
-    fs11.writeFileSync(cachedAt, JSON.stringify({
+    fs12.mkdirSync(dir, { recursive: true, mode: 448 });
+    cachedAt = path10.join(dir, `reviewer-opinions-${eDate}.json`);
+    fs12.writeFileSync(cachedAt, JSON.stringify({
       sDate,
       eDate,
       docsScanned: visited,
@@ -10460,7 +11946,7 @@ async function handleIpkReviewerOpinions(sessionManager, config, params) {
 
 // src/handlers.ts
 var SHIM_API = SHIM_API_VERSION;
-var tools = [
+var individualTools = [
   {
     name: "ipk_login",
     description: ipkLoginDescription,
@@ -10534,6 +12020,36 @@ var tools = [
     handler: (c, p) => handleIpkCardErFixVat(c.sessionManager, c.config, p)
   }
 ];
+var ACTION_SAFETY = {
+  submit_form: [
+    "draft_only defaults to true; a real submission also needs confirm_submit=true and IPK_ALLOW_SUBMIT=1, and org policy refuses some forms outright",
+    "card_expense_rd: draft_only=false is refused (CARD_ER_NO_SUBMIT); allow_card_er_save needs a one-time per-transaction entry in ~/.config/ipk-browser-mcp/card-er-draft-authorizations.json, written by a person"
+  ],
+  card_er_fix_vat: [
+    'dry_run defaults to true; a save needs a one-time "doc:<doc_id>" entry in ~/.config/ipk-browser-mcp/card-er-draft-authorizations.json, written by a person; never presses [Request]'
+  ],
+  revise_attachments: ["dry_run defaults to true; a write needs dry_run=false AND confirm_submit=true; never repossesses"],
+  profile_init: ["read-only on the groupware; writes ~/.config/ipk-browser-mcp/profile.json"]
+};
+var actions = Object.fromEntries(
+  individualTools.map((t) => {
+    const name = t.name.replace(/^ipk_/, "");
+    return [name, { name, purpose: firstSentence(t.description), description: t.description, schema: t.schema, safety: ACTION_SAFETY[name], handler: t.handler }];
+  })
+);
+var localVersion = true ? "0.2.0" : "0.0.0";
+function withUpdateNotice(def) {
+  return {
+    ...def,
+    handler: async (ctx, params) => {
+      const state = ctx.updateCheck ??= { notified: /* @__PURE__ */ new Set() };
+      const note = updateNotice(state, { localVersion });
+      const result = await def.handler(ctx, params);
+      return note ? withNotes(result, [note]) : result;
+    }
+  };
+}
+var tools = [...individualTools, makeActionTool(actions)].map(withUpdateNotice);
 function startup(ctx) {
   cleanupExpiredScreenshots(ctx.config);
 }
@@ -10543,6 +12059,7 @@ function parseArgs(shape, args) {
 }
 export {
   SHIM_API,
+  actions,
   parseArgs,
   startup,
   tools

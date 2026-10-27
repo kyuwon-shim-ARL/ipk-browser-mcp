@@ -21276,7 +21276,7 @@ var initial = await reloader.load();
 initial.startup?.(ctx);
 var server = new McpServer({
   name: "ipk-browser",
-  version: "0.1.2"
+  version: "0.2.0"
 });
 for (const def of initial.tools) {
   const fp = toolFingerprint(def);

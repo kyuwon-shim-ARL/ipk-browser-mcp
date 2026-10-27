@@ -42,6 +42,7 @@ NEW_FILE_ALLOWLIST = (
     "ipk-browser-mcp/test/",
     "ipk-browser-mcp/dist/",
     "ipk-browser-mcp/bench/",
+    "ipk-browser-mcp/scripts/",
     "form_templates/",
     "rules/public/",
     "test-fixtures/",

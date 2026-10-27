@@ -1,6 +1,6 @@
 {
   "name": "ipk-browser-mcp",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "IPK Groupware browser automation MCP server - automates leave, expense, working, and travel form submissions via Playwright",
   "author": {
     "name": "Kyuwon Shim",

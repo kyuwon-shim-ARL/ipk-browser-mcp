@@ -72,6 +72,16 @@ When a new version is published, run these in Claude Code:
 
 Then restart Claude Code so the new MCP server bundle and hook are loaded.
 
+The server checks for a newer published version at most once a day (in the background, 2s timeout,
+silent when offline) and adds a one-time note to a tool result when one is available. It never
+updates anything itself. Set `IPK_UPDATE_CHECK=0` to turn the check off.
+
+### Releasing
+
+Bump `version` in `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json` and
+`ipk-browser-mcp/package.json` (the `version-sync` test fails if they disagree), run
+`npm run build` in `ipk-browser-mcp/`, and push to `master`. Colleagues then see the update note.
+
 ## Requirements
 
 - Claude Code with `/plugin` support
@@ -95,6 +105,7 @@ Then restart Claude Code so the new MCP server bundle and hook are loaded.
 
 | Tool | Description |
 |------|-------------|
+| `ipk_action` | Run any action below by name (`{action, args}`); `{action:'help'}` lists the current actions and their args. New actions appear without a `/mcp` reconnect |
 | `ipk_login` | Authenticate with IPK groupware |
 | `ipk_submit_form` | Submit any supported form (draft or request) |
 | `ipk_fetch_approvals` | Fetch approval/document lists |
@@ -102,9 +113,12 @@ Then restart Claude Code so the new MCP server bundle and hook are loaded.
 | `ipk_get_content` | Extract page content (text/HTML) |
 | `screenshot` | Capture a screenshot of the current page |
 
+Every individual tool (including those not listed here) is also an `ipk_action` action under its name without the `ipk_` prefix (e.g. `submit_form`, `screenshot`), running the same handler with the same checks.
+
 ## Safety
 
 - **Draft-first**: All forms default to `draft_only=true`. No form is submitted for approval unless explicitly requested.
+- **Don't "always allow" `ipk_action`**: it dispatches every action (including saves), so one permission covers them all. Approve it per call; the safety checks inside each action still apply either way.
 - **Confirm submit**: Even with `draft_only=false`, a `confirm_submit=true` flag is required to actually submit.
 - **Credentials**: Stored locally at `~/.config/ipk-browser-mcp/.env` with 600 permissions. Never committed to git.
 - **Session management**: Browser sessions auto-expire after 30 minutes of inactivity.

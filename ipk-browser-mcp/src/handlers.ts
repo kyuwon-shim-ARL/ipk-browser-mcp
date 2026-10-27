@@ -8,7 +8,9 @@ import { z } from "zod";
 
 import type { Config } from "./types.js";
 import type { SessionManager } from "./browser/session.js";
-import { SHIM_API_VERSION, type ToolDef } from "./hot-reload.js";
+import { SHIM_API_VERSION, withNotes, type ToolDef } from "./hot-reload.js";
+import { firstSentence, makeActionTool, type ActionDef, type ActionRegistry } from "./actions.js";
+import { updateNotice, type UpdateCheckState } from "./update-check.js";
 
 import { ipkLoginSchema, ipkLoginDescription, handleIpkLogin } from "./tools/ipk-login.js";
 import { ipkSubmitFormSchema, ipkSubmitFormDescription, handleIpkSubmitForm } from "./tools/ipk-submit.js";
@@ -26,14 +28,18 @@ import { ipkReviewerOpinionsSchema, ipkReviewerOpinionsDescription, handleIpkRev
 export interface HandlerContext {
   sessionManager: SessionManager;
   config: Config;
+  /** Per-process update-check state, kept on the shim's ctx so it survives handler reloads (update-check.ts). */
+  updateCheck?: UpdateCheckState;
 }
+
+declare const __PACKAGE_VERSION__: string;
 
 /** The handlers<->shim API version this bundle was built against; see hot-reload.ts. */
 export const SHIM_API = SHIM_API_VERSION;
 
 type Def = Omit<ToolDef, "handler"> & { handler: (ctx: HandlerContext, params: any) => Promise<any> };
 
-export const tools: Def[] = [
+const individualTools: Def[] = [
   { name: "ipk_login", description: ipkLoginDescription, schema: ipkLoginSchema,
     handler: (c, p) => handleIpkLogin(c.sessionManager, p) },
   { name: "ipk_submit_form", description: ipkSubmitFormDescription, schema: ipkSubmitFormSchema,
@@ -59,6 +65,47 @@ export const tools: Def[] = [
   { name: "ipk_card_er_fix_vat", description: ipkCardErFixVatDescription, schema: ipkCardErFixVatSchema,
     handler: (c, p) => handleIpkCardErFixVat(c.sessionManager, c.config, p) },
 ];
+
+/** Safety notes shown by ipk_action help. The checks themselves are in the handlers, shared by both call paths. */
+const ACTION_SAFETY: Record<string, string[]> = {
+  submit_form: [
+    "draft_only defaults to true; a real submission also needs confirm_submit=true and IPK_ALLOW_SUBMIT=1, and org policy refuses some forms outright",
+    "card_expense_rd: draft_only=false is refused (CARD_ER_NO_SUBMIT); allow_card_er_save needs a one-time per-transaction entry in ~/.config/ipk-browser-mcp/card-er-draft-authorizations.json, written by a person",
+  ],
+  card_er_fix_vat: [
+    "dry_run defaults to true; a save needs a one-time \"doc:<doc_id>\" entry in ~/.config/ipk-browser-mcp/card-er-draft-authorizations.json, written by a person; never presses [Request]",
+  ],
+  revise_attachments: ["dry_run defaults to true; a write needs dry_run=false AND confirm_submit=true; never repossesses"],
+  profile_init: ["read-only on the groupware; writes ~/.config/ipk-browser-mcp/profile.json"],
+};
+
+/**
+ * Actions for ipk_action: every individual tool under its name without the ipk_ prefix, with
+ * the same zod shape and handler function. Add a new action here; no shim change is needed.
+ */
+export const actions: ActionRegistry = Object.fromEntries(
+  individualTools.map((t): [string, ActionDef] => {
+    const name = t.name.replace(/^ipk_/, "");
+    return [name, { name, purpose: firstSentence(t.description), description: t.description, schema: t.schema, safety: ACTION_SAFETY[name], handler: t.handler }];
+  })
+);
+
+const localVersion = typeof __PACKAGE_VERSION__ === "string" ? __PACKAGE_VERSION__ : "0.0.0";
+
+/** Append the update-available note (update-check.ts) to a tool's result, when there is one. */
+function withUpdateNotice(def: Def): Def {
+  return {
+    ...def,
+    handler: async (ctx, params) => {
+      const state = (ctx.updateCheck ??= { notified: new Set() });
+      const note = updateNotice(state, { localVersion });
+      const result = await def.handler(ctx, params);
+      return note ? withNotes(result, [note]) : result;
+    },
+  };
+}
+
+export const tools: Def[] = [...individualTools, makeActionTool(actions)].map(withUpdateNotice);
 
 /** Run once at server start, not on reload. */
 export function startup(ctx: HandlerContext): void {
