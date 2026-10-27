@@ -1,10 +1,12 @@
 import * as fs from "fs";
 
+/** The project's evidence convention: data/attachments/YYMM/<vendor>/... (CLAUDE.md) */
+export const EVIDENCE_DIR = `${process.env.HOME}/projects/ipk-browser-mcp/data/attachments`;
+
 /** Allowed directories for attachment file uploads. Prevents arbitrary file reads. */
 export const ALLOWED_ATTACHMENT_DIRS = [
   "/tmp",
-  // The project's evidence convention: data/attachments/YYMM/<vendor>/... (CLAUDE.md)
-  `${process.env.HOME}/projects/ipk-browser-mcp/data/attachments`,
+  EVIDENCE_DIR,
   `${process.env.HOME}/Downloads`,
   `${process.env.HOME}/Documents`,
   `${process.env.HOME}/Desktop`,

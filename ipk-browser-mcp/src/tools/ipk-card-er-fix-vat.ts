@@ -15,8 +15,17 @@
  *  - body onload (Reset_Form -> process_money) recomputes item_amount[] = ral1 + vat, so the
  *    DOM total is already WRONG (247,394 for a 272,133 doc) when the page opens. The real
  *    total is the server-rendered value attribute, cross-checked against document_view.
- *  - existing attachments are server-side links (.attatch_file_link); nothing here touches
- *    del_file() or the file inputs. The attachment list is compared before/after.
+ *  - existing attachments are server-side links (.attatch_file_link). Their [Delete] is
+ *    del_file(n): confirm(), then del_no=n, mode='file' and an IMMEDIATE form1.submit() - the
+ *    server deletes the file right then, not at [Save] (2026-10-26 Edit-page source of
+ *    302242/302243). So this tool never deletes: add_attachments puts new files in the
+ *    page's own doc_attach_file[] slots (attachFiles, uploaded by the [Save] post), and a
+ *    file it "replaces" is only checked to be there and reported for the person to delete
+ *    by hand. del_no/mode must be empty before the save. The attachment list read back must
+ *    be exactly before + added (ATTACHMENTS_MISMATCH otherwise).
+ *  - fix_vat:false (or a draft already at VAT 0 / excl = total) is an attachment-only edit:
+ *    the Edit page's on-load amounts must equal document_view's before saving, and
+ *    document_view's amounts must be unchanged after (AMOUNTS_CHANGED otherwise).
  *
  * dry_run (default) reads and fills the values in the page, saves nothing, needs no
  * authorization. A save needs a one-time "doc:<doc_id>" entry in
@@ -35,6 +44,10 @@ import { detectSubmittedOnDocumentView } from "../browser/card-er-location.js";
 import { listHasDoc } from "../browser/draft-guard.js";
 import { parseCardErItemRows, parseFileAttachmentList, type CardErItemRow } from "../forms/document-view.js";
 import { saveCardExpenseRDDraft, type CardErRun } from "./ipk-submit.js";
+import { EVIDENCE_DIR, validateAttachmentPath } from "../security/attachment-path.js";
+import { attachFiles } from "../internal/primitives/attachment.js";
+import { checkOrgPolicy } from "../policy/org-policy.js";
+import * as path from "path";
 
 export const ipkCardErFixVatSchema = {
   doc_id: z.string().regex(/^\d+$/).describe("The card ER draft to correct (must be in the person's type=drafts list)."),
@@ -43,13 +56,25 @@ export const ipkCardErFixVatSchema = {
     "false: needs a one-time { \"doc:<doc_id>\": { \"doc_id\": \"<doc_id>\", \"authorized_at\": \"<ISO>\", \"note\": \"...\" } } entry in " +
     "~/.config/ipk-browser-mcp/card-er-draft-authorizations.json, consumed before any click."
   ),
+  fix_vat: z.boolean().default(true).describe(
+    "Default true: set VAT 0 / excl. VAT = total (overseas IT subscriptions only; a no-op when already so). " +
+    "false: attachment-only edit - amounts must be unchanged after the save."
+  ),
+  add_attachments: z.array(z.object({
+    path: z.string().describe("Absolute path under data/attachments/ (the person's own file, e.g. a signed invoice)."),
+    replaces: z.string().optional().describe(
+      "File name of an attachment already on the draft that this one supersedes. It must be attached; it is NOT deleted " +
+      "(the page's [Delete] posts immediately) - it is reported in left_for_person_to_delete."
+    ),
+  })).max(5).default([]).describe("Files to add to the draft in the same [ Save ]."),
 };
 
 export const ipkCardErFixVatDescription =
-  "Correct one existing card ER (AppFrm-021) DRAFT of an overseas IT subscription (RunPod/Claude/OpenAI/Google Cloud/...) " +
-  "to VAT 0 and Amount excl. VAT = Total, through the Edit page's own [Save] (mode1='drafts'; never [Request]). " +
-  "Refuses docs not in type=drafts, filed docs, multi-row docs and non-overseas items. Reads document_view back " +
-  "after saving: DRAFT_UPDATED / SUBMITTED_NOT_DRAFT / DRAFT_NOT_CONFIRMED / VALUES_NOT_UPDATED.";
+  "Edit one existing card ER (AppFrm-021) DRAFT through the Edit page's own [Save] (mode1='drafts'; never [Request]): " +
+  "correct an overseas IT subscription (RunPod/Claude/OpenAI/Google Cloud/...) to VAT 0 and Amount excl. VAT = Total, " +
+  "and/or add files from data/attachments (add_attachments; a superseded file is never deleted - the person deletes it). " +
+  "Refuses docs not in type=drafts, filed docs and multi-row docs. Reads document_view back after saving: DRAFT_UPDATED / " +
+  "SUBMITTED_NOT_DRAFT / DRAFT_NOT_CONFIRMED / VALUES_NOT_UPDATED / AMOUNTS_CHANGED / ATTACHMENTS_MISMATCH.";
 
 /** What the Edit page shows for row 1 (runs in the form frame). */
 export interface EditRowState {
@@ -63,6 +88,9 @@ export interface EditRowState {
   has_process_money: boolean;
   has_edit_check: boolean;
   mod_reasons: boolean;
+  del_no: string;
+  mode: string;
+  attachments: string[];
 }
 
 export function readEditRowState(): EditRowState {
@@ -81,6 +109,9 @@ export function readEditRowState(): EditRowState {
     has_process_money: typeof w.process_money === "function",
     has_edit_check: typeof w.fn_Edit_Check === "function",
     mod_reasons: document.getElementsByName("MOD_REASONS").length > 0,
+    del_no: (document.getElementById("del_no") as HTMLInputElement | null)?.value ?? "",
+    mode: (document.getElementById("mode") as HTMLInputElement | null)?.value ?? "",
+    attachments: Array.from(document.querySelectorAll(".attatch_file_link")).map((a) => (a.textContent || "").trim()),
   };
 }
 
@@ -160,13 +191,41 @@ export async function handleIpkCardErFixVat(sessionManager: SessionManager, conf
     return refuse("ROWS_UNSUPPORTED", `doc ${docId} has ${rows.length} readable item row(s); only single-row card ERs are corrected. Nothing was changed.`, { rows });
   }
   const before = rows[0];
-  if (!isOverseasItSubscription(before.item_name)) {
-    return refuse("NOT_OVERSEAS_IT_SUBSCRIPTION", `"${before.item_name}" is not an overseas IT subscription; its VAT split is not changed here. Nothing was changed.`, { before });
+  const adds: { path: string; replaces?: string }[] = Array.isArray(params.add_attachments) ? params.add_attachments : [];
+  const fixVat = params.fix_vat !== false;
+  if (!fixVat && adds.length === 0) {
+    return refuse("NOTHING_TO_DO", "fix_vat is false and add_attachments is empty. Nothing was changed.");
   }
-  if (before.vat === 0 && before.excl === before.total) {
+  if (fixVat && !isOverseasItSubscription(before.item_name)) {
+    return refuse("NOT_OVERSEAS_IT_SUBSCRIPTION", `"${before.item_name}" is not an overseas IT subscription; its VAT split is not changed here (pass fix_vat:false for an attachment-only edit). Nothing was changed.`, { before });
+  }
+  const doVat = fixVat && !(before.vat === 0 && before.excl === before.total);
+  if (!doVat && adds.length === 0) {
     return textResult({ error: false, data: { doc_id: docId, outcome: "NOTHING_TO_FIX", before, message: `doc ${docId} already has VAT 0 and excl. VAT = total (${before.total}). Nothing was changed.` } });
   }
   const attachmentsBefore = parseFileAttachmentList(viewText);
+
+  // Files to add: the person's own, under data/attachments, not yet attached; a superseded
+  // file must be attached now (it stays - the person deletes it).
+  const addPaths = adds.map((a) => String(a?.path ?? ""));
+  const addNames = addPaths.map((p) => path.basename(p));
+  const badPaths = addPaths.flatMap((p) => {
+    if (!path.isAbsolute(p) || !path.resolve(p).startsWith(`${EVIDENCE_DIR}/`)) return [`${p}: not under ${EVIDENCE_DIR}/`];
+    const err = validateAttachmentPath(p);
+    return err ? [`${p}: ${err}`] : [];
+  });
+  for (const v of checkOrgPolicy({ attachment_paths: addPaths }).filter((x) => x.rule === "NO_GENERATED_EVIDENCE")) badPaths.push(v.message);
+  if (badPaths.length > 0) return refuse("INVALID_ATTACHMENT", `${badPaths.join("; ")}. Nothing was changed.`);
+  const dupes = addNames.filter((n, i) => attachmentsBefore.includes(n) || addNames.indexOf(n) !== i);
+  if (dupes.length > 0) {
+    return refuse("ALREADY_ATTACHED", `doc ${docId} already has (or this call repeats) ${dupes.join(", ")}. Nothing was changed.`, { attachments: attachmentsBefore });
+  }
+  const replaced = adds.map((a) => a?.replaces).filter((r): r is string => typeof r === "string" && r.length > 0);
+  const missing = replaced.filter((r) => !attachmentsBefore.includes(r));
+  if (missing.length > 0) {
+    return refuse("REPLACED_FILE_NOT_FOUND", `doc ${docId} has no attachment named ${missing.join(", ")} (it has ${attachmentsBefore.join(", ")}). Nothing was changed.`, { attachments: attachmentsBefore });
+  }
+  const expectedAttachments = [...attachmentsBefore, ...addNames];
 
   // 2. Its own Edit page.
   const hrefs: string[] = await frame.evaluate(readEditHref).catch(() => []);
@@ -184,14 +243,23 @@ export async function handleIpkCardErFixVat(sessionManager: SessionManager, conf
   if (state.total_attr !== total) problems.push(`row 1 server total '${state.total_attr}' differs from document_view total ${total}`);
   if (!state.has_process_money || !state.has_edit_check) problems.push("process_money/fn_Edit_Check missing");
   if (state.mod_reasons) problems.push("the page asks for a modification reason (MOD_REASONS)");
+  if (state.del_no !== "" || state.mode !== "") problems.push(`del_no '${state.del_no}' / mode '${state.mode}' are not empty (a pending delete)`);
+  if (JSON.stringify(state.attachments) !== JSON.stringify(attachmentsBefore)) problems.push(`Edit page attachments ${JSON.stringify(state.attachments)} differ from document_view ${JSON.stringify(attachmentsBefore)}`);
+  if (!doVat) {
+    // body onload recomputes item_amount[] = ral1 + vat; an attachment-only save posts what the page shows.
+    const num = (v: string) => Number(String(v).replace(/,/g, ""));
+    if (num(state.excl) !== before.excl || num(state.vat) !== before.vat || num(state.total_value) !== before.total) {
+      problems.push(`the Edit page shows excl ${state.excl} / VAT ${state.vat} / total ${state.total_value} on load, document_view ${before.excl} / ${before.vat} / ${before.total}`);
+    }
+  }
   if (problems.length > 0) {
     await navigateInFrame(page, viewPath, config).catch(() => null);
     return refuse("EDIT_PAGE_UNEXPECTED", `The Edit page is not the one this was built against: ${problems.join("; ")}. Nothing was changed.`, { state });
   }
-  const expected = { excl: before.total, vat: 0, total: before.total };
+  const expected = doVat ? { excl: before.total, vat: 0, total: before.total } : { excl: before.excl, vat: before.vat, total: before.total };
 
   if (params.dry_run !== false) {
-    const filled = await frame.evaluate(applyOverseasVatZero, total);
+    const filled = doVat ? await frame.evaluate(applyOverseasVatZero, total) : null;
     await navigateInFrame(page, viewPath, config).catch(() => null);
     return textResult({
       error: false,
@@ -203,8 +271,11 @@ export async function handleIpkCardErFixVat(sessionManager: SessionManager, conf
         would_set: expected,
         filled_in_page: filled,
         attachments: attachmentsBefore,
+        would_add: addNames,
+        left_for_person_to_delete: replaced,
         message:
-          `dry_run: doc ${docId} would be saved through the Edit page's own [ Save ] (mode1='drafts') with excl. VAT ${total}, VAT 0, total ${total}. ` +
+          `dry_run: doc ${docId} would be saved through the Edit page's own [ Save ] (mode1='drafts') with excl. VAT ${expected.excl}, VAT ${expected.vat}, total ${expected.total}` +
+          `${addNames.length > 0 ? `, adding ${addNames.join(", ")}` : ""}. ` +
           `Nothing was saved; the page was left without saving. A save needs a "doc:${docId}" entry in ${cardErAuthorizationPath()}.`,
       },
     });
@@ -228,14 +299,26 @@ export async function handleIpkCardErFixVat(sessionManager: SessionManager, conf
   }
   audit({ action: "draft_save", code: "AUTHORIZATION_CONSUMED", field: "card_er_fix_vat", docId, mode: "draft", value: JSON.stringify({ key: `doc:${docId}`, ...auth }), ok: true });
 
-  const filled = await frame.evaluate(applyOverseasVatZero, total);
-  if (filled.total_value !== total || filled.total_amt !== total || filled.vat !== "0" || filled.excl !== total) {
-    return refuse("VALUE_SET_FAILED", `After setting VAT 0 / excl. VAT ${total}, the page shows ${JSON.stringify(filled)}. Nothing was clicked. The authorization was consumed.`, { filled });
+  if (doVat) {
+    const filled = await frame.evaluate(applyOverseasVatZero, total);
+    if (filled.total_value !== total || filled.total_amt !== total || filled.vat !== "0" || filled.excl !== total) {
+      return refuse("VALUE_SET_FAILED", `After setting VAT 0 / excl. VAT ${total}, the page shows ${JSON.stringify(filled)}. Nothing was clicked. The authorization was consumed.`, { filled });
+    }
+  }
+  let attachResult: { attached: number; skipped: unknown[] } = { attached: 0, skipped: [] };
+  if (addPaths.length > 0) {
+    attachResult = await attachFiles(frame, addPaths);
+    if (attachResult.attached !== addPaths.length) {
+      await navigateInFrame(page, viewPath, config).catch(() => null);
+      return refuse("ATTACHMENT_NOT_ACCEPTED",
+        `${attachResult.attached}/${addPaths.length} files landed in the page's file slots (${JSON.stringify(attachResult.skipped)}). ` +
+        "Nothing was clicked; the page was left without saving. The authorization was consumed.", { skipped: attachResult.skipped });
+    }
   }
 
   return await saveCardExpenseRDDraft(
     page, frame, config,
-    { subject: state.subject, effectiveBudgetCode: null, attachResult: { attached: 0, skipped: [] }, fileCount: 0 },
+    { subject: state.subject, effectiveBudgetCode: null, attachResult, fileCount: addPaths.length },
     {
       mode1: "drafts",
       runner: runEditSaveFlow,
@@ -256,19 +339,22 @@ export async function handleIpkCardErFixVat(sessionManager: SessionManager, conf
         const after: CardErItemRow | undefined = parseCardErItemRows(afterText)[0];
         const attachmentsAfter = parseFileAttachmentList(afterText);
         const stillDraft = await inDrafts();
-        const details = { ...base, after: after ?? null, attachments_before: attachmentsBefore, attachments_after: attachmentsAfter, in_drafts: stillDraft };
+        const details = {
+          ...base, after: after ?? null, attachments_before: attachmentsBefore, attachments_after: attachmentsAfter,
+          expected_attachments: expectedAttachments, left_for_person_to_delete: replaced, in_drafts: stillDraft,
+        };
         if (stillDraft !== true) {
           audit({ action: "draft_save", docId, mode: "draft", ok: false, code: "DRAFT_NOT_CONFIRMED" });
           return refuse("DRAFT_NOT_CONFIRMED", `submit_form() ran; document_view shows no filed marker, but doc ${docId} is not in type=drafts. Check it before retrying.`, details);
         }
         if (!after || after.excl !== expected.excl || after.vat !== expected.vat || after.total !== expected.total) {
-          audit({ action: "draft_save", docId, mode: "draft", ok: false, code: "VALUES_NOT_UPDATED" });
-          return refuse("VALUES_NOT_UPDATED", `doc ${docId} is still a draft, but document_view shows ${JSON.stringify(after ?? null)}, not ${JSON.stringify(expected)}.`, details);
+          const code = doVat ? "VALUES_NOT_UPDATED" : "AMOUNTS_CHANGED";
+          audit({ action: "draft_save", docId, mode: "draft", ok: false, code });
+          return refuse(code, `doc ${docId} is still a draft, but document_view shows ${JSON.stringify(after ?? null)}, not ${JSON.stringify(expected)}.`, details);
         }
-        const lost = attachmentsBefore.filter((f) => !attachmentsAfter.includes(f));
-        if (lost.length > 0) {
-          audit({ action: "draft_save", docId, mode: "draft", ok: false, code: "ATTACHMENTS_LOST" });
-          return refuse("ATTACHMENTS_LOST", `doc ${docId} was updated and is still a draft, but these attachments are gone: ${lost.join(", ")}.`, details);
+        if (JSON.stringify([...attachmentsAfter].sort()) !== JSON.stringify([...expectedAttachments].sort())) {
+          audit({ action: "draft_save", docId, mode: "draft", ok: false, code: "ATTACHMENTS_MISMATCH" });
+          return refuse("ATTACHMENTS_MISMATCH", `doc ${docId} is still a draft, but its attachments are ${JSON.stringify(attachmentsAfter)}, not ${JSON.stringify(expectedAttachments)}.`, details);
         }
         audit({ action: "draft_save", docId, mode: "draft", confirmed: true, ok: true, code: "DRAFT_UPDATED" });
         return textResult({
@@ -277,7 +363,9 @@ export async function handleIpkCardErFixVat(sessionManager: SessionManager, conf
             ...details,
             success: true,
             outcome: "DRAFT_UPDATED",
-            message: `doc ${docId} is still a draft (type=drafts, no filed marker) and now shows excl. VAT ${after.excl}, VAT ${after.vat}, total ${after.total}.`,
+            message: `doc ${docId} is still a draft (type=drafts, no filed marker) and now shows excl. VAT ${after.excl}, VAT ${after.vat}, total ${after.total}` +
+              `${addNames.length > 0 ? `; added ${addNames.join(", ")}` : ""}.` +
+              (replaced.length > 0 ? ` Still attached, for the person to delete by hand ([Edit] -> [Delete] next to it): ${replaced.join(", ")}.` : ""),
           },
         });
       },

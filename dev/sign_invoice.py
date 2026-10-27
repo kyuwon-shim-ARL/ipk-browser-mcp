@@ -22,6 +22,9 @@ DATA_DIR = Path("data/attachments")
 
 INVOICE_KEYWORDS = {"invoice", "total paid", "total amount", "bill to", "invoice id", "invoice #", "invoice no"}
 INVOICE_THRESHOLD = 3  # must match at least 3 distinct keywords
+FOOTER_BAND = 100  # pt at the page bottom treated as footer, not content
+SIG_MARGIN = 12  # pt of clearance from the text above/below the signature
+SIG_HEIGHT = 60  # pt, about the RunPod gap's height
 
 
 def is_invoice(pdf_path: Path) -> bool:
@@ -41,7 +44,8 @@ def find_sig_rect(page: fitz.Page) -> fitz.Rect:
     Find the best gap for signature placement:
     - Between billing info block (BILL TO / email) and item table (ITEM/AMOUNT header)
     - Prefer left column of that gap
-    Falls back to bottom-left if no gap found.
+    Otherwise just below the lowest content block above the footer band, clear of all text;
+    falls back to bottom-left if there is no room.
     """
     blocks = page.get_text("blocks")
     page_w = page.rect.width
@@ -64,8 +68,23 @@ def find_sig_rect(page: fitz.Page) -> fitz.Rect:
         sig_w = min(sig_h * 2.2, page_w * 0.35)
         return fitz.Rect(40, gap_top, 40 + sig_w, gap_bot)
 
+    # No RunPod gap (e.g. Anthropic: "Description Qty Unit price Tax Amount" table and a
+    # "<invoice no> · $X USD due ..." footer line at the page bottom): just below the lowest
+    # content block above the footer band, never over any text block.
+    page_h = page.rect.height
+    texts = [fitz.Rect(b[:4]) for b in blocks if str(b[4]).strip()]
+    content = [r for r in texts if r.y0 < page_h - FOOTER_BAND]
+    if content:
+        top = max(r.y1 for r in content) + SIG_MARGIN
+        bottom = min([page_h - 20] + [r.y0 - SIG_MARGIN for r in texts if r.y0 >= top])
+        sig_h = min(SIG_HEIGHT, bottom - top)
+        if sig_h >= 30:
+            rect = fitz.Rect(40, top, 40 + min(sig_h * 2.2, page_w * 0.35), top + sig_h)
+            if not any(rect.intersects(r) for r in texts):
+                return rect
+
     # Fallback: bottom-left
-    return fitz.Rect(40, page.rect.height - 100, 210, page.rect.height - 20)
+    return fitz.Rect(40, page_h - 100, 210, page_h - 20)
 
 
 def load_sig_transparent(max_height: int = 300) -> bytes:
