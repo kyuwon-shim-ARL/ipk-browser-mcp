@@ -340,10 +340,17 @@ export const ORG_POLICY: PolicyRule[] = [
   },
   {
     id: "NO_REPORT_FOR_DAY_TRIP",
-    standard: "A domestic travel report (form_type 'travel', written onto the approved AppFrm-023 request at travel_report_write.php) is only filed for trips of 2 nights (2박3일) or more - across the person's 15 domestic trips, all 5 of >=2 nights have a report and all 9 same-day trips do not, no exceptions.",
-    passes: "start_date/end_date are absent (nothing to compute yet), or span 2 nights or more.",
+    standard: "A domestic travel report (form_type 'travel', written onto the approved AppFrm-023 request at travel_report_write.php) is only filed for trips of 2 nights (2박3일) or more - across the person's 15 domestic trips, all 5 of >=2 nights have a report and all 9 same-day trips do not, no exceptions. This is a domestic-only pattern; it has not been established for overseas trips, so it is not applied to them.",
+    passes: "start_date/end_date are absent (nothing to compute yet), report_kind is not 'domestic', or the span is 2 nights or more.",
     check(params) {
-      if (String(params.form_type) !== "travel") return null;
+      // Only an EXPLICIT report_kind: 'domestic' is checked here, pre-navigation - when
+      // report_kind is omitted, the request's real form code (and so whether this is
+      // actually domestic or overseas) is resolved only via the network lookup in
+      // FORM_NAV_CONFIG.travel.beforeNavigate, which re-applies this exact rule once
+      // the resolved kind is known (ipk-submit.ts, code review 2026-11-09 M1) - firing
+      // it here for the omitted case would refuse an overseas report found by
+      // auto-lookup before that lookup ever ran.
+      if (String(params.form_type) !== "travel" || params.report_kind !== "domestic") return null;
       if (!params.start_date || !params.end_date) return null;
       const nights = nightsBetween(String(params.start_date), String(params.end_date));
       if (Number.isNaN(nights) || nights >= 2) return null;

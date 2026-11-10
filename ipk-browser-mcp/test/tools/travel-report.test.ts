@@ -10,14 +10,28 @@ describe("pickApprovedTravelRequest", () => {
     expect(pickApprovedTravelRequest(hrefs)).toEqual({ docId: "299953", formCode: "AppFrm-023" });
   });
 
-  it("picks an AppFrm-026 (overseas) link and reports its form code", () => {
-    const hrefs = ["document_view.php?doc_id=400100&approve_type=AppFrm-026"];
-    expect(pickApprovedTravelRequest(hrefs)).toEqual({ docId: "400100", formCode: "AppFrm-026" });
+  it("picks an AppFrm-022 (overseas request) link and reports its form code", () => {
+    const hrefs = ["document_view.php?doc_id=400100&approve_type=AppFrm-022"];
+    expect(pickApprovedTravelRequest(hrefs)).toEqual({ docId: "400100", formCode: "AppFrm-022" });
   });
 
   it("refuses with 0 candidates when nothing matches, rather than guessing", () => {
     const r = pickApprovedTravelRequest(["document_view.php?doc_id=1&approve_type=AppFrm-073"]);
     expect("error" in r && r.candidates).toBe(0);
+  });
+
+  it("does NOT match AppFrm-026 - it is a settlement, not a request", () => {
+    const r = pickApprovedTravelRequest(["document_view.php?doc_id=400100&approve_type=AppFrm-026"]);
+    expect("error" in r && r.candidates).toBe(0);
+  });
+
+  it("refuses with 2 candidates when one AppFrm-023 and one AppFrm-022 both match", () => {
+    const hrefs = [
+      "document_view.php?doc_id=1&approve_type=AppFrm-023",
+      "document_view.php?doc_id=2&approve_type=AppFrm-022",
+    ];
+    const r = pickApprovedTravelRequest(hrefs);
+    expect("error" in r && r.candidates).toBe(2);
   });
 
   it("refuses with the count when more than one matches, rather than picking one", () => {

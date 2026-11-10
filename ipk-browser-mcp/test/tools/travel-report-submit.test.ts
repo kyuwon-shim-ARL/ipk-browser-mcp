@@ -39,13 +39,23 @@ function makeHarness(approvedListHrefs: string[], existingReportFields: Record<s
   const dialogsSeen: string[] = [];
   let checkFormDCalled = false;
   const gotoUrls: string[] = [];
+  // Tracks every field setFieldValue actually wrote (by DOM name, stripped from its
+  // `[name="x"]` selector) so the post-save read-back mock below can report what was
+  // REALLY set, instead of an unconditional stub that would always fail M3's
+  // saved_confirmed check (code review 2026-11-09).
+  const written: Record<string, string> = {};
+  // H1's REPORT_PAGE_UNAVAILABLE check reads frame.url() and expects it to reflect
+  // whatever customUrl actually navigated to (varies by requestDocId per test) - tracked
+  // live from frame.goto, rather than a fixed string that only matched doc_id=299953.
+  let lastFrameUrl = "https://gw.ip-korea.org/Document/travel_report_write.php?doc_id=299953&approve_type=AppFrm-023&pop=Y";
 
   const frame: any = {
-    goto: vi.fn(async () => null),
+    goto: vi.fn(async (url: string) => { lastFrameUrl = url; return null; }),
     waitForLoadState: vi.fn(async () => undefined),
     waitForSelector: vi.fn(async () => ({})),
     waitForURL: vi.fn(async () => undefined),
-    url: vi.fn(() => "https://gw.ip-korea.org/Document/travel_report_write.php?doc_id=299953&approve_type=AppFrm-023&pop=Y"),
+    url: vi.fn(() => lastFrameUrl),
+    content: vi.fn(async () => ""), // resolveTravelRequestFormCode's document_view.php fallback read
     locator: vi.fn(() => ({ click: vi.fn(async () => undefined) })),
     evaluate: vi.fn(async (fn: any, arg?: any) => {
       const src = String(fn);
@@ -53,6 +63,12 @@ function makeHarness(approvedListHrefs: string[], existingReportFields: Record<s
       if (src.includes("Check_Form(")) {
         checkFormDCalled = true;
         return undefined;
+      }
+      // REPORT_PAGE_UNAVAILABLE's fast presence check (submitTravelReportOnRequest): every
+      // required field is present and Check_Form exists, by default - individual tests
+      // override this via a custom frame.evaluate when they need to simulate the opposite.
+      if (src.includes("names.filter")) {
+        return { missing: [], hasCheckForm: true };
       }
       // readReportContentFields (travel-report.ts): the overwrite guard's pre-fill read,
       // and the auto-lookup's per-candidate emptiness check. Distinguished from the
@@ -62,11 +78,19 @@ function makeHarness(approvedListHrefs: string[], existingReportFields: Record<s
         for (const n of (arg as string[]) ?? []) out[n] = existingReportFields[n] ?? "";
         return out;
       }
-      // Post-save read-back (submitDomesticTravelReport's own evaluate, after Check_Form):
-      // report every requested field as holding what was set, simulating a saved page.
+      // setFieldValue's own evaluate (iframe-helper.ts): records what was actually written.
+      if (arg && typeof arg === "object" && "sel" in arg && "val" in arg) {
+        const m = /\[name="([^"]+)"\]/.exec((arg as { sel: string }).sel);
+        if (m) written[m[1]] = (arg as { val: string }).val;
+        return "ok";
+      }
+      // Post-save read-back (submitTravelReportOnRequest's own evaluate, after Check_Form):
+      // reports what was really written above. A field genericFillForm SKIPPED (its value
+      // was "" - never touched) falls back to "", matching an untouched DOM field, not an
+      // arbitrary "stub" that would never equal an intentionally empty fields[k].
       if (src.includes("for (const n of names)")) {
         const out: Record<string, string> = {};
-        for (const n of arg as string[]) out[n] = "stub";
+        for (const n of arg as string[]) out[n] = written[n] ?? "";
         return out;
       }
       if (src.includes("knownSet")) return { subject: "stub" }; // field-rules serializeFormFields, unused for travel
@@ -76,6 +100,12 @@ function makeHarness(approvedListHrefs: string[], existingReportFields: Record<s
       return [];
     }),
   };
+  // H3 (code review 2026-11-09): an explicit request_doc_id's real approve_type is now
+  // resolved via the network (resolveTravelRequestFormCode, ipk-submit.ts), not guessed
+  // from report_kind - this default matches GOOD_PARAMS' request_doc_id (299953) to
+  // AppFrm-023 (domestic). Auto-lookup tests below override frame.$$eval themselves.
+  frame.$$eval = vi.fn(async () => ["document_view.php?doc_id=299953&approve_type=AppFrm-023"]);
+
   const page: any = {
     frame: vi.fn(() => frame),
     mainFrame: vi.fn(() => frame),
@@ -138,15 +168,69 @@ describe("submitTravel - domestic report (explicit request_doc_id)", () => {
     expect(h.frame.evaluate).not.toHaveBeenCalled();
   });
 
-  it("navigates straight to travel_report_write.php with the explicit request_doc_id, no lookup", async () => {
+  it("resolves the explicit request_doc_id's real form code (H3), then navigates to travel_report_write.php", async () => {
     const h = makeHarness([]);
     const out = parse(await handleIpkSubmitForm(h.session, h.config, GOOD_PARAMS()));
     expect(out.error).toBe(false);
     expect(out.data.attached_to_doc_id).toBe("299953");
     expect(out.data).not.toHaveProperty("docId"); // no new document - must not trip confirmDraftResult
     expect(h.getCheckFormDCalled()).toBe(true);
-    // No lookup network call means page.goto was never pointed at document_list.php?type=approved.
-    expect(h.gotoUrls.some((u) => u.includes("document_list.php"))).toBe(false);
+    // An explicit request_doc_id is resolved against the unfiltered approved list (H3's
+    // resolveTravelRequestFormCode) - it is never keyword-searched (the auto-lookup
+    // path's own request_keyword/title/destination narrowing never runs for it).
+    expect(h.gotoUrls.some((u) => u.includes("document_list.php") && !/keyword=(&|$)/.test(u))).toBe(false);
+  });
+
+  it("refuses REQUEST_FORM_CODE_UNRESOLVED when the explicit request_doc_id cannot be found on the approved list or its own view page", async () => {
+    const h = makeHarness([]);
+    h.frame.$$eval = vi.fn(async () => []); // not on the list, and (M-4) not found on its own view page either
+    const out = parse(await handleIpkSubmitForm(h.session, h.config, GOOD_PARAMS()));
+    expect(out.error).toBe(true);
+    expect(out.code).toBe("REQUEST_FORM_CODE_UNRESOLVED");
+    expect(h.getCheckFormDCalled()).toBe(false);
+  });
+
+  it("refuses REQUEST_FORM_CODE_UNRESOLVED when the resolved form code is neither AppFrm-023 nor AppFrm-022", async () => {
+    const h = makeHarness([]);
+    h.frame.$$eval = vi.fn(async () => ["document_view.php?doc_id=299953&approve_type=AppFrm-073"]); // a leave request, not a travel request
+    const out = parse(await handleIpkSubmitForm(h.session, h.config, GOOD_PARAMS()));
+    expect(out.error).toBe(true);
+    expect(out.code).toBe("REQUEST_FORM_CODE_UNRESOLVED");
+    expect(out.message).toMatch(/AppFrm-073/);
+  });
+
+  it("H-1: resolves an Appfrm-022 href (lowercase f) via explicit request_doc_id, normalized to AppFrm-022", async () => {
+    const h = makeHarness([]);
+    h.frame.$$eval = vi.fn(async () => ["document_view.php?doc_id=299953&approve_type=Appfrm-022"]);
+    const out = parse(await handleIpkSubmitForm(h.session, h.config, GOOD_PARAMS({ report_kind: "overseas", end_date: "2026-09-14" })));
+    expect(out.error).toBe(false);
+    expect(out.data.report_kind).toBe("overseas");
+  });
+
+  it("M-4: the view-page fallback reads the code from the anchor whose href contains THIS doc_id, not the first approve_type on the page (which belongs to another doc)", async () => {
+    const h = makeHarness([]);
+    let call = 0;
+    h.frame.$$eval = vi.fn(async () => {
+      call++;
+      if (call === 1) return []; // not on the approved list - triggers the view-page fallback
+      // view page: first anchor is a DIFFERENT document (e.g. a related settlement),
+      // the correct self-referencing anchor for doc 299953 comes second.
+      return [
+        "document_view.php?doc_id=555555&approve_type=AppFrm-026",
+        "document_view.php?doc_id=299953&approve_type=AppFrm-022",
+      ];
+    });
+    const out = parse(await handleIpkSubmitForm(h.session, h.config, GOOD_PARAMS({ report_kind: "overseas", end_date: "2026-09-14" })));
+    expect(out.error).toBe(false);
+    expect(out.data.report_kind).toBe("overseas"); // not AppFrm-026/"domestic" from the other doc's anchor
+  });
+
+  it("refuses REPORT_KIND_MISMATCH when report_kind: 'overseas' is claimed for a request that resolves to AppFrm-023 (domestic)", async () => {
+    const h = makeHarness([]);
+    const out = parse(await handleIpkSubmitForm(h.session, h.config, GOOD_PARAMS({ report_kind: "overseas" })));
+    expect(out.error).toBe(true);
+    expect(out.code).toBe("REPORT_KIND_MISMATCH");
+    expect(h.getCheckFormDCalled()).toBe(false);
   });
 });
 
@@ -239,5 +323,14 @@ describe("submitTravel - domestic report (auto-lookup)", () => {
     const out = parse(await handleIpkSubmitForm(h.session, h.config, GOOD_PARAMS({ request_doc_id: undefined })));
     expect(out.error).toBe(false);
     expect(out.data.attached_to_doc_id).toBe("777");
+  });
+
+  it("H-1: auto-lookup recognizes an Appfrm-022 href (lowercase f) and auto-detects 'overseas'", async () => {
+    const h = makeHarness([]);
+    h.frame.$$eval = vi.fn(async () => ["document_view.php?doc_id=777&approve_type=Appfrm-022"]);
+    const out = parse(await handleIpkSubmitForm(h.session, h.config, GOOD_PARAMS({ request_doc_id: undefined, end_date: "2026-09-14" })));
+    expect(out.error).toBe(false);
+    expect(out.data.attached_to_doc_id).toBe("777");
+    expect(out.data.report_kind).toBe("overseas");
   });
 });

@@ -211,6 +211,12 @@ describe("travel_settlement (AppFrm-054) parent-request navigation", () => {
     expect(h.frame.$$eval).not.toHaveBeenCalled();
   });
 
+  it("L2: the customUrl navigation's permission-dialog listener is scoped to form_type 'travel' - never attached for travel_settlement", async () => {
+    const h = makeHarness();
+    await handleIpkSubmitForm(h.session, h.config, baseParams());
+    expect(h.pageHandlers["dialog"] ?? []).toHaveLength(0);
+  });
+
   it("a non-numeric approved_doc_ref is looked up by exact document-number match, not folded into a keyword search", async () => {
     const h = makeHarness({
       lookupRows: [

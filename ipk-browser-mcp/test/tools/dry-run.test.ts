@@ -33,12 +33,17 @@ import { handleIpkSubmitForm } from "../../src/tools/ipk-submit.js";
 const parse = (r: any) => JSON.parse(r.content[0].text);
 
 function makeHarness() {
+  // H1's REPORT_PAGE_UNAVAILABLE check (code review 2026-11-09) reads frame.url() and
+  // expects it to reflect whatever customUrl actually navigated to - tracked live from
+  // frame.goto rather than a fixed document_write.php string.
+  let lastFrameUrl = "https://gw.ip-korea.org/Document/document_write.php";
   const frame: any = {
-    goto: vi.fn(async () => null),
+    goto: vi.fn(async (url: string) => { lastFrameUrl = url; return null; }),
     waitForLoadState: vi.fn(async () => undefined),
     waitForSelector: vi.fn(async () => ({})),
     waitForURL: vi.fn(async () => undefined),
-    url: vi.fn(() => "https://gw.ip-korea.org/Document/document_write.php"),
+    url: vi.fn(() => lastFrameUrl),
+    content: vi.fn(async () => ""), // resolveTravelRequestFormCode's document_view.php fallback
     locator: vi.fn(() => ({ click: vi.fn(async () => undefined) })),
     evaluate: vi.fn(async (fn: any, arg?: any) => {
       const src = String(fn);
@@ -61,7 +66,7 @@ function makeHarness() {
       if (src.includes("no_option") && src.includes("reverted")) {
         return { status: "ok", options: [], label: "x", hidden: false };
       }
-      // submitOverseasTravelReport's read-only pdoc_id-linked check: the customUrl
+      // submitStandaloneTravelReport's read-only pdoc_id-linked check: the customUrl
       // already opened the page with pdoc_id selected, so simulate that it landed.
       if (src.includes('select[name="pdoc_id"]')) return "400100";
       // travel-report.ts readReportContentFields / post-save readback
@@ -70,9 +75,22 @@ function makeHarness() {
         for (const n of (arg as string[]) ?? []) out[n] = "";
         return out;
       }
+      // H1's fast presence check (submitTravelReportOnRequest, code review 2026-11-09):
+      // every required field present, Check_Form exists.
+      if (src.includes("names.filter")) {
+        return { missing: [], hasCheckForm: true };
+      }
       return [];
     }),
   };
+  // H3's resolveTravelRequestFormCode (code review 2026-11-09): resolves an explicit
+  // request_doc_id's real approve_type against the approved-documents list - both
+  // request_doc_ids this file's CASES use are present so either resolves correctly
+  // regardless of which case is running.
+  frame.$$eval = vi.fn(async () => [
+    "document_view.php?doc_id=299953&approve_type=AppFrm-023",
+    "document_view.php?doc_id=400100&approve_type=AppFrm-022",
+  ]);
   // leave: the substitute popup (mandatory, no fallback - see submitLeave's own comment).
   // Always "found" so the popup path completes without needing a realistic row DOM.
   const popup: any = {
@@ -194,6 +212,7 @@ describe("dry_run response shape", () => {
         return out;
       }
       if (src.includes("knownSet")) return { subject: "stub" };
+      if (src.includes("names.filter")) return { missing: [], hasCheckForm: true };
       return [];
     });
     const out = parse(await handleIpkSubmitForm(h.session, h.config, {

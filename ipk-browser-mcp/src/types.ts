@@ -23,7 +23,7 @@ export type FormType =
   | "leave"           // 휴가 (AppFrm-073)
   | "expense"         // 경비 (AppFrm-020, legacy mapping was 021 — see form-registry.ts)
   | "working"         // 휴일근무 (AppFrm-074)
-  | "travel"          // 출장보고 (AppFrm-076)
+  | "travel"          // 출장보고 (written onto approved AppFrm-023 domestic / AppFrm-022 overseas; AppFrm-076 standalone only)
   | "travel_request"  // 출장신청 (AppFrm-023)
   | "budget_transfer" // 예산전용 (AppFrm-039/053)
   // --- Wave 2 form types ---
@@ -32,7 +32,7 @@ export type FormType =
   | "card_expense"      // 카드경비 (AppFrm-020)
   | "card_expense_rd"   // R&D ER from Card via mker=Y (AppFrm-021)
   | "seminar"           // 세미나공시 (AppFrm-043)
-  | "overseas_travel";  // 해외출장 (AppFrm-026)
+  | "overseas_travel";  // 해외출장정산 (overseas settlement, AppFrm-026; the overseas REQUEST is AppFrm-022, not its own form_type)
 
 /** Leave type codes */
 export const LEAVE_TYPES: Record<string, string> = {

@@ -23,7 +23,7 @@ from typing import Optional, Dict, Any, List, Tuple
 from dataclasses import dataclass, field
 
 try:
-    from history_manager import get_history_manager, HistoryManager
+    from history_manager import get_history_manager
     HISTORY_AVAILABLE = True
 except ImportError:
     HISTORY_AVAILABLE = False
@@ -489,14 +489,20 @@ class SmartFormAgent:
         "AppFrm-020": ["카드", "영수증", "법인카드", "card", "expense"],
         "AppFrm-028": ["휴가복귀", "복귀", "return"],
         "AppFrm-043": ["세미나", "학회발표", "공개", "seminar", "disclosure"],
-        "AppFrm-026": ["해외출장", "해외", "overseas"],
+        # M-2 (code review 2026-11-09): "해외출장"/"해외"/"overseas" alone, without a
+        # settlement-specific word, is request-intent (before the trip) - it is AppFrm-022,
+        # not AppFrm-026 (the overseas SETTLEMENT, after the trip). AppFrm-026 only matches
+        # on an explicit settlement/정산 keyword now.
+        "AppFrm-022": ["해외출장신청", "해외 출장 신청", "해외출장", "해외", "overseas travel request", "overseas request", "overseas"],
+        "AppFrm-026": ["해외출장정산", "해외정산", "overseas settlement", "overseas travel settlement"],
         "AppFrm-039": ["예산전용", "예산", "전용", "budget transfer", "budget", "transfer"],
     }
 
     # Priority order for disambiguation (more specific first)
     FORM_PRIORITY = [
         "AppFrm-028",  # 휴가복귀 before 휴가
-        "AppFrm-026",  # 해외출장 before 출장
+        "AppFrm-026",  # 해외출장정산 (settlement-specific keywords) before 022's generic 해외출장
+        "AppFrm-022",  # 해외출장 (request-intent, M-2) before domestic 출장/정산
         "AppFrm-054",  # 출장정산 before 출장
         "AppFrm-043",
         "AppFrm-023",
@@ -526,6 +532,16 @@ class SmartFormAgent:
     # Public API
     # ------------------------------------------------------------------
 
+    def _is_overseas_settlement(self, text: str) -> bool:
+        """Re-review (2026-11-09): FORM_KEYWORDS["AppFrm-026"]'s compact strings
+        ("해외출장정산", "overseas settlement") miss word-spaced variants like
+        "해외출장 정산", "해외 출장 정산 보스턴" or "overseas trip settlement". Overseas-ness
+        and settlement-ness are independent signals in free text, so match them
+        independently and require both, instead of one fixed compact phrase."""
+        import re
+        return bool(re.search(r'해외|overseas', text, re.IGNORECASE) and
+                    re.search(r'정산|settle', text, re.IGNORECASE))
+
     def classify_form(self, raw_text: str) -> str:
         """Detect which of the 8 form types from natural language text.
 
@@ -537,10 +553,19 @@ class SmartFormAgent:
         # BC-XXXX-XXXX is a strong signal for travel request (AppFrm-023)
         # ARL-XXXXXX-XX is a strong signal for leave return (AppFrm-028)
         if re.search(r'\bBC-\d{4}-\d{4}\b', raw_text, re.IGNORECASE):
-            # Overseas beats domestic
+            # Overseas settlement (explicit 정산/settlement wording, checked before the
+            # 022 fallback - both an overseas word and a settlement word anywhere in the
+            # text, independent of exact phrasing/spacing) beats everything else
+            if self._is_overseas_settlement(raw_text):
+                return "AppFrm-026"
             for kw in self.FORM_KEYWORDS["AppFrm-026"]:
                 if kw.lower() in text_lower:
                     return "AppFrm-026"
+            # Overseas REQUEST (M-2): a bare "해외출장"/"해외"/"overseas" mention with a
+            # BC-code is request-intent, AppFrm-022 - not the settlement, AppFrm-026.
+            for kw in self.FORM_KEYWORDS["AppFrm-022"]:
+                if kw.lower() in text_lower:
+                    return "AppFrm-022"
             # Settlement beats travel request
             for kw in self.FORM_KEYWORDS["AppFrm-054"]:
                 if kw.lower() in text_lower:
@@ -557,6 +582,12 @@ class SmartFormAgent:
         # Receipt pattern: control number (XXXXXXXX-XX) + amount in 원 → card expense
         if re.search(r'\d{8}-\d{2}', raw_text) and re.search(r'\d[\d,]*원', raw_text):
             return "AppFrm-020"
+
+        # Overseas settlement (both an overseas word and a settlement word present,
+        # independent of exact phrasing/spacing - see _is_overseas_settlement), checked
+        # before the general priority loop's 022 fallback.
+        if self._is_overseas_settlement(raw_text):
+            return "AppFrm-026"
 
         for form_code in self.FORM_PRIORITY:
             for kw in self.FORM_KEYWORDS[form_code]:
@@ -1232,7 +1263,7 @@ class SmartFormAgent:
             return f"{leave_type}, {date_str}".strip()
 
         if form_code == "AppFrm-020":
-            return f"[Card] ER_Team activities"
+            return "[Card] ER_Team activities"
 
         if form_code == "AppFrm-028":
             original = fields.get("original_leave_doc", "")
@@ -1310,6 +1341,26 @@ def main():
             print(f"Error: {e}")
             return
 
+        # M-2 (code review 2026-11-09): AppFrm-022 (overseas travel REQUEST) has no MCP
+        # submitter - ipk_submit_form's `travel` form_type only reports onto an ALREADY
+        # approved AppFrm-022 request (report_kind: "overseas"); it does not create a new
+        # one. There is no form_type that files a fresh AppFrm-022 request. Say so and
+        # stop here rather than silently running fill_and_validate against a form_code it
+        # has no classification data for.
+        if form_code == "AppFrm-022":
+            msg = (
+                "Classified as AppFrm-022 (해외출장 신청 / overseas travel request), but this "
+                "is not supported by any MCP tool here - ipk_submit_form has no form_type "
+                "that files a NEW AppFrm-022 request (only report_kind: 'overseas' writes a "
+                "report onto one that is already approved). Ask the person to file this "
+                "request themselves, or confirm with them before proceeding differently."
+            )
+            if args.json:
+                print(json.dumps({"form_code": form_code, "supported": False, "message": msg}, ensure_ascii=False, indent=2))
+            else:
+                print(f"\n{msg}")
+            return
+
         parsed = agent.parse_input(raw, form_code)
         result = agent.fill_and_validate(form_code, parsed)
 
@@ -1321,7 +1372,7 @@ def main():
             "AppFrm-028": "leave_return",
             "AppFrm-020": "card_expense",
             "AppFrm-043": "seminar_disclosure",
-            "AppFrm-026": "overseas_travel",
+            "AppFrm-026": "overseas_travel",  # overseas SETTLEMENT - the request is AppFrm-022, handled above
             "AppFrm-039": "budget_transfer",
         }
         result["mcp_form_type"] = MCP_FORM_TYPE.get(form_code, form_code)

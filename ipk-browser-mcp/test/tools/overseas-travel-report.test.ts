@@ -1,64 +1,95 @@
 /**
- * Overseas travel report (AppFrm-076) save path - live-read 2026-10-27 of the real 076
- * write page: selecting #pdoc_id there reloads document_write.php (its own change
- * handler), and Check_Form_Request (not form1.submit()) is what checks .validate fields
- * are non-empty before saving. See submitOverseasTravelReport's comments for the fix
- * this guards: customUrl now opens the page with pdoc_id already in the query string,
- * the handler only verifies (never selects) it, and the save goes through
- * Check_Form_Request so an empty body is caught rather than silently saved.
+ * submitTravel's overseas-report branch (report_kind: "overseas") - since 2026-11-09 this
+ * writes onto the approved AppFrm-022 request at the SAME travel_report_write.php
+ * endpoint as the domestic report, but WITHOUT &approve_type (exactly the URL the
+ * AppFrm-026 settlement's own JS opens). Also covers H3's real-form-code resolution/
+ * mismatch refusals and route/URL resolution across domestic/overseas/standalone.
+ * Handler-level tests with a mocked page/frame (no real Playwright, no network). See
+ * travel-report-submit.test.ts for the domestic branch and standalone-travel-report.test.ts
+ * for report_kind: "standalone" (AppFrm-076).
+ *
+ * OPEN QUESTION (code review 2026-11-09): if a report is written onto the AppFrm-022
+ * request before any AppFrm-026 settlement exists for the trip, it is unknown whether
+ * that report later shows up when the settlement is eventually filed - colleagues'
+ * reports were only ever observed via the settlement's own id
+ * (travel_report_view.php?doc_id=<026>&pop=Y, dev/baseline_gate.py's
+ * _fetch_overseas_report_texts), never via the request's id directly. Not something
+ * this test suite can answer without a live write, which is out of scope here.
  */
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
 vi.mock("../../src/security/attachment-path.js", () => ({ validateAttachmentPath: () => null }));
 
-const { setFormModeSpy, submitFormSpy } = vi.hoisted(() => ({
-  setFormModeSpy: vi.fn(async () => undefined),
-  submitFormSpy: vi.fn(async () => "400200"),
-}));
-
-vi.mock("../../src/browser/iframe-helper.js", async () => {
-  const actual = await vi.importActual<typeof import("../../src/browser/iframe-helper.js")>("../../src/browser/iframe-helper.js");
-  return {
-    ...actual,
-    setFormMode: setFormModeSpy,
-    submitForm: submitFormSpy,
-  };
-});
-
 import { handleIpkSubmitForm } from "../../src/tools/ipk-submit.js";
+
+let tmpHome: string;
+beforeEach(() => {
+  tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "ipk-overseas-report-test-"));
+  process.env.IPK_HOME_DIR = tmpHome;
+});
+afterEach(() => {
+  delete process.env.IPK_HOME_DIR;
+  fs.rmSync(tmpHome, { recursive: true, force: true });
+});
 
 const parse = (r: any) => JSON.parse(r.content[0].text);
 
 const REQUEST_DOC_ID = "400100";
 
-function makeHarness(pdocValueOnPage: string | null = REQUEST_DOC_ID, prefill: Record<string, string> = {}) {
-  const fieldWrites: { sel: string; val: string }[] = [];
+/**
+ * hasReportFields=false simulates a page with none of the expected report fields
+ * (e.g. a permission-deny alert with no form behind it): the H1 availability check
+ * (names.filter/hasCheckForm) reports everything missing and no Check_Form.
+ */
+function makeHarness(hasReportFields: boolean, existingReportFields: Record<string, string> = {}) {
+  const gotoUrls: string[] = [];
+  let checkFormDCalled = false;
+  const written: Record<string, string> = {};
+  let lastFrameUrl = `https://gw.ip-korea.org/Document/travel_report_write.php?doc_id=${REQUEST_DOC_ID}&pop=Y`;
+
   const frame: any = {
-    goto: vi.fn(async () => null),
+    goto: vi.fn(async (url: string) => { lastFrameUrl = url; return null; }),
     waitForLoadState: vi.fn(async () => undefined),
     waitForSelector: vi.fn(async () => ({})),
     waitForURL: vi.fn(async () => undefined),
-    url: vi.fn(() => "https://gw.ip-korea.org/Document/document_write.php"),
+    url: vi.fn(() => lastFrameUrl),
+    content: vi.fn(async () => ""),
     locator: vi.fn(() => ({ click: vi.fn(async () => undefined) })),
+    // H3's resolveTravelRequestFormCode default: request 400100 resolves to AppFrm-022
+    // (overseas) - individual tests override this when they need a different form code.
+    $$eval: vi.fn(async () => [`document_view.php?doc_id=${REQUEST_DOC_ID}&approve_type=AppFrm-022`]),
     evaluate: vi.fn(async (fn: any, arg?: any) => {
-      const name = typeof fn === "function" ? fn.name : "";
       const src = String(fn);
-      // submitOverseasTravelReport's read-only pdoc_id-linked check (never dispatches
-      // change - that is the bug being fixed; a dispatchEvent here would be the regression).
-      if (src.includes('select[name="pdoc_id"]')) {
-        expect(src).not.toContain("dispatchEvent");
-        return pdocValueOnPage;
+      // H1's fast presence check (submitTravelReportOnRequest).
+      if (src.includes("names.filter")) {
+        return hasReportFields ? { missing: [], hasCheckForm: true } : { missing: ["report_date", "purpose_field"], hasCheckForm: false };
       }
-      // M3: the page's own prefilled values, read before genericFillForm.
-      if (name === "readOverseasTravelReportPrefill") return prefill;
-      // setFieldValue (iframe-helper.ts) - field writes, tracked by selector
+      if (src.includes("Check_Form(")) {
+        checkFormDCalled = true;
+        return undefined;
+      }
+      // readReportContentFields (travel-report.ts): pre-fill read / emptiness check.
+      if (src.includes("out[names[i]]")) {
+        const out: Record<string, string> = {};
+        for (const n of (arg as string[]) ?? []) out[n] = existingReportFields[n] ?? "";
+        return out;
+      }
+      // setFieldValue's own evaluate (iframe-helper.ts): records what was really written.
       if (arg && typeof arg === "object" && "sel" in arg && "val" in arg) {
-        fieldWrites.push({ sel: arg.sel, val: arg.val });
+        const m = /\[name="([^"]+)"\]/.exec((arg as { sel: string }).sel);
+        if (m) written[m[1]] = (arg as { val: string }).val;
         return "ok";
       }
-      // field-rules.ts serializeFormFields
+      // Post-save read-back: what was really written, "" for anything genericFillForm
+      // skipped (an intentionally empty value, never touched) - not an arbitrary stub.
+      if (src.includes("for (const n of names)")) {
+        const out: Record<string, string> = {};
+        for (const n of arg as string[]) out[n] = written[n] ?? "";
+        return out;
+      }
       if (src.includes("knownSet")) return { subject: "stub" };
       return [];
     }),
@@ -67,13 +98,12 @@ function makeHarness(pdocValueOnPage: string | null = REQUEST_DOC_ID, prefill: R
     frame: vi.fn(() => frame),
     mainFrame: vi.fn(() => frame),
     frames: vi.fn(() => [frame]),
-    goto: vi.fn(async () => null),
+    goto: vi.fn(async (url: string) => { gotoUrls.push(url); return null; }),
     waitForTimeout: vi.fn(async () => undefined),
     waitForLoadState: vi.fn(async () => undefined),
     waitForNavigation: vi.fn(async () => undefined),
     url: vi.fn(() => "https://gw.ip-korea.org/"),
-    content: vi.fn(async () => '<a href="document_view.php?doc_id=400200">draft</a>'),
-    screenshot: vi.fn(async () => undefined),
+    content: vi.fn(async () => ""),
     on: vi.fn(),
     off: vi.fn(),
   };
@@ -88,129 +118,281 @@ function makeHarness(pdocValueOnPage: string | null = REQUEST_DOC_ID, prefill: R
   const config: any = {
     baseUrl: "https://gw.ip-korea.org",
     navTimeoutMs: 1000,
-    screenshotDir: path.join(os.tmpdir(), "ipk-overseas-travel-test-shots"),
+    screenshotDir: path.join(os.tmpdir(), "ipk-overseas-report-test-shots"),
     screenshotTtlMinutes: 1,
   };
-  return { frame, page, session, config, fieldWrites };
+  return { frame, page, session, config, gotoUrls, getCheckFormDCalled: () => checkFormDCalled };
 }
 
-const baseParams = {
+const GOOD_PARAMS = (over: Record<string, unknown> = {}) => ({
   form_type: "travel",
-  request_doc_id: REQUEST_DOC_ID,
   report_kind: "overseas",
-  title: "Conference trip",
-  destination: "Boston",
-  start_date: "2026-09-14",
-  end_date: "2026-09-16",
+  request_doc_id: REQUEST_DOC_ID,
   purpose: "x".repeat(100),
   schedule: "y".repeat(100),
   reason: "z".repeat(100),
+  start_date: "2026-09-14",
+  end_date: "2026-09-15", // 1 night - would be refused for a domestic report
   draft_only: true,
   confirm_submit: false,
-};
-
-beforeEach(() => {
-  setFormModeSpy.mockClear();
-  submitFormSpy.mockClear();
+  ...over,
 });
 
-describe("overseas travel report (AppFrm-076)", () => {
-  it("customUrl opens the page with pdoc_id already in the query string", async () => {
-    const h = makeHarness();
-    await handleIpkSubmitForm(h.session, h.config, baseParams);
+describe("submitTravel - overseas report (AppFrm-022 request, travel_report_write.php without approve_type)", () => {
+  beforeEach(() => vi.clearAllMocks());
 
-    expect(h.frame.goto).toHaveBeenCalled();
-    const url = h.frame.goto.mock.calls[0][0] as string;
-    expect(url).toContain("approve_type=AppFrm-076");
-    expect(url).toContain(`pdoc_id=${REQUEST_DOC_ID}`);
+  it("navigates to travel_report_write.php with doc_id and pop=Y, but no approve_type", async () => {
+    const h = makeHarness(true);
+    const out = parse(await handleIpkSubmitForm(h.session, h.config, GOOD_PARAMS()));
+    expect(out.error).toBe(false);
+    const navigated = [...h.gotoUrls, ...h.frame.goto.mock.calls.map((c: any[]) => c[0])];
+    expect(navigated.some((u) => u.includes("travel_report_write.php") && u.includes(`doc_id=${REQUEST_DOC_ID}`) && u.includes("pop=Y"))).toBe(true);
+    expect(navigated.some((u) => u.includes("approve_type"))).toBe(false);
+    expect(out.data.report_kind).toBe("overseas");
+    expect(out.data.attached_to_doc_id).toBe(REQUEST_DOC_ID);
+    expect(out.data.saved_confirmed).toBe(true);
+    expect(h.getCheckFormDCalled()).toBe(true);
+    // L6: the H2 permission-dialog listener is always removed after the customUrl
+    // navigation, success or not - it must never leak into a later navigation.
+    expect(h.page.on).toHaveBeenCalledWith("dialog", expect.any(Function));
+    expect(h.page.off).toHaveBeenCalledWith("dialog", expect.any(Function));
   });
 
-  it("refuses PDOC_NOT_LINKED when the page's pdoc_id differs, and never saves", async () => {
-    const h = makeHarness("some-other-doc-id");
-    const out = parse(await handleIpkSubmitForm(h.session, h.config, baseParams));
-
-    expect(out.error).toBe(true);
-    expect(out.message).toContain("PDOC_NOT_LINKED");
-    expect(setFormModeSpy).not.toHaveBeenCalled();
-    expect(submitFormSpy).not.toHaveBeenCalled();
-  });
-
-  it("refuses PDOC_NOT_LINKED when the pdoc_id select is missing entirely", async () => {
-    const h = makeHarness(null);
-    const out = parse(await handleIpkSubmitForm(h.session, h.config, baseParams));
-
-    expect(out.error).toBe(true);
-    expect(out.message).toContain("PDOC_NOT_LINKED");
-    expect(submitFormSpy).not.toHaveBeenCalled();
-  });
-
-  it("never dispatches change on pdoc_id (checked inside the evaluate mock above)", async () => {
-    const h = makeHarness();
-    const out = parse(await handleIpkSubmitForm(h.session, h.config, baseParams));
+  it("does NOT refuse a 0-night trip the way the domestic report would (M1: day-trip rule is domestic-only)", async () => {
+    const h = makeHarness(true);
+    const out = parse(await handleIpkSubmitForm(h.session, h.config, GOOD_PARAMS({ end_date: "2026-09-14" }))); // same-day
     expect(out.error).toBe(false);
   });
 
-  it("saves via setFormMode + Check_Form_Request (submitForm), not form1.submit, mode set before save", async () => {
-    const h = makeHarness();
-    const out = parse(await handleIpkSubmitForm(h.session, h.config, baseParams));
+  it("refuses REPORT_PAGE_UNAVAILABLE when the page has none of the expected report fields (permission-deny), naming what's missing, and never saves", async () => {
+    const h = makeHarness(false);
+    const out = parse(await handleIpkSubmitForm(h.session, h.config, GOOD_PARAMS()));
+    expect(out.error).toBe(true);
+    expect(out.code).toBe("REPORT_PAGE_UNAVAILABLE");
+    expect(out.message).toMatch(/report_date/);
+    expect(out.message).toMatch(/Check_Form is not a function/);
+    expect(h.getCheckFormDCalled()).toBe(false);
+  });
 
+  // L6 (code review 2026-11-09): H1's three checks (missing fields / Check_Form / URL)
+  // tested in isolation, not only in the combined permission-deny case above.
+  describe("H1 availability check: each of its three conditions refuses on its own", () => {
+    it("refuses REPORT_PAGE_UNAVAILABLE on a missing field alone (Check_Form present, URL correct)", async () => {
+      const h = makeHarness(true);
+      h.frame.evaluate = vi.fn(async (fn: any, arg?: any) => {
+        const src = String(fn);
+        if (src.includes("names.filter")) return { missing: ["purpose_field"], hasCheckForm: true };
+        if (src.includes("Check_Form(")) return undefined;
+        if (src.includes("out[names[i]]")) return {};
+        if (src.includes("for (const n of names)")) return {};
+        return [];
+      });
+      const out = parse(await handleIpkSubmitForm(h.session, h.config, GOOD_PARAMS()));
+      expect(out.error).toBe(true);
+      expect(out.code).toBe("REPORT_PAGE_UNAVAILABLE");
+      expect(out.message).toMatch(/purpose_field/);
+      expect(out.message).not.toMatch(/Check_Form is not a function/);
+    });
+
+    it("refuses REPORT_PAGE_UNAVAILABLE on Check_Form missing alone (no missing fields, URL correct)", async () => {
+      const h = makeHarness(true);
+      h.frame.evaluate = vi.fn(async (fn: any, arg?: any) => {
+        const src = String(fn);
+        if (src.includes("names.filter")) return { missing: [], hasCheckForm: false };
+        if (src.includes("out[names[i]]")) return {};
+        if (src.includes("for (const n of names)")) return {};
+        return [];
+      });
+      const out = parse(await handleIpkSubmitForm(h.session, h.config, GOOD_PARAMS()));
+      expect(out.error).toBe(true);
+      expect(out.code).toBe("REPORT_PAGE_UNAVAILABLE");
+      expect(out.message).toMatch(/Check_Form is not a function/);
+      expect(out.message).not.toMatch(/missing field/);
+    });
+
+    it("refuses REPORT_PAGE_UNAVAILABLE on a URL mismatch alone (no missing fields, Check_Form present)", async () => {
+      const h = makeHarness(true);
+      // The frame landed somewhere else entirely - e.g. a redirect back to the frameset.
+      h.frame.url = vi.fn(() => "https://gw.ip-korea.org/main.php");
+      const out = parse(await handleIpkSubmitForm(h.session, h.config, GOOD_PARAMS()));
+      expect(out.error).toBe(true);
+      expect(out.code).toBe("REPORT_PAGE_UNAVAILABLE");
+      expect(out.message).toMatch(/is not travel_report_write\.php\?doc_id=400100/);
+      expect(out.message).not.toMatch(/missing field|Check_Form is not a function/);
+    });
+  });
+
+  it("refuses REPORT_KIND_MISMATCH when report_kind: 'overseas' is claimed for a request that resolves to AppFrm-023 (domestic)", async () => {
+    const h = makeHarness(true);
+    h.frame.$$eval = vi.fn(async () => [`document_view.php?doc_id=${REQUEST_DOC_ID}&approve_type=AppFrm-023`]);
+    const out = parse(await handleIpkSubmitForm(h.session, h.config, GOOD_PARAMS()));
+    expect(out.error).toBe(true);
+    expect(out.code).toBe("REPORT_KIND_MISMATCH");
+    expect(h.getCheckFormDCalled()).toBe(false);
+  });
+
+  it("auto-detects 'overseas' (no report_kind given) when the looked-up request resolves to AppFrm-022", async () => {
+    const h = makeHarness(true);
+    h.frame.$$eval = vi.fn(async () => [`document_view.php?doc_id=${REQUEST_DOC_ID}&approve_type=AppFrm-022`]);
+    const { report_kind, ...withoutKind } = GOOD_PARAMS();
+    const out = parse(await handleIpkSubmitForm(h.session, h.config, withoutKind));
     expect(out.error).toBe(false);
-    expect(setFormModeSpy).toHaveBeenCalledTimes(1);
-    expect(setFormModeSpy).toHaveBeenCalledWith(h.frame, "draft");
-    expect(submitFormSpy).toHaveBeenCalledTimes(1);
-    expect(submitFormSpy).toHaveBeenCalledWith(h.page, h.frame);
-    // mode1 must already be set before the save call (ordering, not just call count)
-    const modeOrder = setFormModeSpy.mock.invocationCallOrder[0];
-    const submitOrder = submitFormSpy.mock.invocationCallOrder[0];
-    expect(modeOrder).toBeLessThan(submitOrder);
+    expect(out.data.report_kind).toBe("overseas");
+    // Proof it really is the overseas route, not merely the label: no &approve_type.
+    const navigated = [...h.gotoUrls, ...h.frame.goto.mock.calls.map((c: any[]) => c[0])];
+    expect(navigated.some((u) => u.includes("travel_report_write.php") && !u.includes("approve_type"))).toBe(true);
+  });
+
+  it("DRAFT_NOT_CONFIRMED (M3) when the post-save re-read does not show the written values", async () => {
+    const h = makeHarness(true);
+    // Simulate a save whose read-back never reflects what was written: every post-save
+    // field read returns empty regardless of what setFieldValue wrote.
+    const baseEvaluate = h.frame.evaluate.getMockImplementation()!;
+    h.frame.evaluate = vi.fn(async (fn: any, arg?: any) => {
+      const src = String(fn);
+      if (src.includes("for (const n of names)")) {
+        const out: Record<string, string> = {};
+        for (const n of arg as string[]) out[n] = "never-matches";
+        return out;
+      }
+      return baseEvaluate(fn, arg);
+    });
+    const out = parse(await handleIpkSubmitForm(h.session, h.config, GOOD_PARAMS()));
+    expect(out.error).toBe(true);
+    expect(out.code).toBe("DRAFT_NOT_CONFIRMED");
   });
 });
 
-describe("overseas travel report (AppFrm-076) only overwrites fields the caller passed (M3)", () => {
-  it("keeps a prefilled start_day when start_date was not passed, writing the fallback default when it was", async () => {
-    const h = makeHarness(REQUEST_DOC_ID, { start_date: "2026-08-01" });
-    const { start_date, ...withoutStartDate } = baseParams;
-    const out = parse(await handleIpkSubmitForm(h.session, h.config, withoutStartDate));
+describe("INVALID_REQUEST_DOC_ID (re-review 2026-11-09): request_doc_id must be plain digits", () => {
+  beforeEach(() => vi.clearAllMocks());
 
+  it("refuses a non-numeric request_doc_id before any navigation or lookup", async () => {
+    const h = makeHarness(true);
+    const out = parse(await handleIpkSubmitForm(h.session, h.config, GOOD_PARAMS({ request_doc_id: "400100; DROP" })));
+    expect(out.error).toBe(true);
+    expect(out.code).toBe("INVALID_REQUEST_DOC_ID");
+    expect(h.gotoUrls).toHaveLength(0);
+    expect(h.getCheckFormDCalled()).toBe(false);
+  });
+});
+
+describe("route/URL resolution: domestic vs overseas vs standalone", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("domestic (explicit) resolves against AppFrm-023 and still includes &approve_type=AppFrm-023", async () => {
+    const h = makeHarness(true);
+    h.frame.$$eval = vi.fn(async () => [`document_view.php?doc_id=${REQUEST_DOC_ID}&approve_type=AppFrm-023`]);
+    const out = parse(await handleIpkSubmitForm(h.session, h.config, GOOD_PARAMS({ report_kind: "domestic", end_date: "2026-09-16" })));
     expect(out.error).toBe(false);
-    const write = h.fieldWrites.find((w) => w.sel === '[name="start_day"]');
-    expect(write?.val).toBe("2026-08-01");
+    const navigated = [...h.gotoUrls, ...h.frame.goto.mock.calls.map((c: any[]) => c[0])];
+    expect(navigated.some((u) => u.includes("approve_type=AppFrm-023"))).toBe(true);
   });
 
-  it("overwrites a prefilled start_day with the caller's own start_date", async () => {
-    const h = makeHarness(REQUEST_DOC_ID, { start_date: "2026-08-01" });
-    const out = parse(await handleIpkSubmitForm(h.session, h.config, baseParams));
-
-    expect(out.error).toBe(false);
-    const write = h.fieldWrites.find((w) => w.sel === '[name="start_day"]');
-    expect(write?.val).toBe(baseParams.start_date);
+  it("standalone routes to document_write.php?approve_type=AppFrm-076, not travel_report_write.php, regardless of the resolved request's real form code", async () => {
+    const h = makeHarness(true);
+    const out = parse(await handleIpkSubmitForm(h.session, h.config, GOOD_PARAMS({ report_kind: "standalone", title: "Conf", destination: "Boston" })));
+    const navigated = [...h.gotoUrls, ...h.frame.goto.mock.calls.map((c: any[]) => c[0])];
+    expect(navigated.some((u) => u.includes("document_write.php") && u.includes("approve_type=AppFrm-076"))).toBe(true);
+    expect(navigated.some((u) => u.includes("travel_report_write.php"))).toBe(false);
+    // L5 (code review 2026-11-09): this harness is generic (not standalone-travel-report.test.ts's
+    // dedicated pdoc_id/prefill mock), so submitStandaloneTravelReport's own pdoc_id-linked
+    // check deterministically reads a non-matching value here (the generic evaluate mock's
+    // `[]` fallback, not REQUEST_DOC_ID) and refuses PDOC_NOT_LINKED before any save - proof
+    // that URL resolution alone (asserted above) is never mistaken for a successful save on
+    // the wrong page.
+    expect(out.error).toBe(true);
+    expect(out.message).toContain("PDOC_NOT_LINKED");
+    expect(h.getCheckFormDCalled()).toBe(false);
   });
 
-  it("writes the computed default when the page has no prefilled value and the caller passed none", async () => {
-    const h = makeHarness(REQUEST_DOC_ID, {});
-    const { start_date, ...withoutStartDate } = baseParams;
-    const out = parse(await handleIpkSubmitForm(h.session, h.config, withoutStartDate));
+  it("refuses REQUEST_FORM_CODE_UNRESOLVED when the request resolves to neither AppFrm-023 nor AppFrm-022", async () => {
+    const h = makeHarness(true);
+    h.frame.$$eval = vi.fn(async () => [`document_view.php?doc_id=${REQUEST_DOC_ID}&approve_type=AppFrm-073`]); // a leave request
+    const out = parse(await handleIpkSubmitForm(h.session, h.config, GOOD_PARAMS()));
+    expect(out.error).toBe(true);
+    expect(out.code).toBe("REQUEST_FORM_CODE_UNRESOLVED");
+  });
+});
 
-    expect(out.error).toBe(false);
-    const write = h.fieldWrites.find((w) => w.sel === '[name="start_day"]');
-    expect(write?.val).toBeTruthy(); // todayStr() fallback - not empty, not the prefill (there was none)
+describe("PERMISSION_DENIED (H2): a permission dialog on the customUrl navigation itself", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("refuses PERMISSION_DENIED when the groupware shows a permission dialog while navigating, before any field is read", async () => {
+    const h = makeHarness(true);
+    h.page.on = vi.fn((event: string, handler: (d: any) => void) => {
+      if (event === "dialog") {
+        // Fire synchronously-ish right after registration, simulating a dialog that
+        // appears as the page loads (the frame.goto below still "succeeds" in this mock).
+        handler({ message: () => "Permission denied: you may not view this document.", accept: () => Promise.resolve() });
+      }
+    });
+    const out = parse(await handleIpkSubmitForm(h.session, h.config, GOOD_PARAMS()));
+    expect(out.error).toBe(true);
+    expect(out.code).toBe("PERMISSION_DENIED");
+    expect(h.getCheckFormDCalled()).toBe(false);
+    // L6: cleaned up even on this refusal path, not only on success.
+    expect(h.page.off).toHaveBeenCalledWith("dialog", expect.any(Function));
   });
 
-  it("L4: an explicit empty string is treated as not passed - keeps a prefilled start_day instead of overwriting with the computed default", async () => {
-    const h = makeHarness(REQUEST_DOC_ID, { start_date: "2026-08-01" });
-    const out = parse(await handleIpkSubmitForm(h.session, h.config, { ...baseParams, start_date: "" }));
-
-    expect(out.error).toBe(false);
-    const write = h.fieldWrites.find((w) => w.sel === '[name="start_day"]');
-    expect(write?.val).toBe("2026-08-01");
+  // Re-review (2026-11-09):
+  // (a) a permission dialog's own goto catch path - the dialog can interrupt the
+  //     navigation's own promise and make it reject, not merely "succeed anyway" like the
+  //     test above. That rejection must still surface as PERMISSION_DENIED, never as an
+  //     uncaught throw/SUBMIT_ERROR, as long as a permission-dialog message was captured.
+  it("refuses PERMISSION_DENIED (not a thrown error) when the dialog fires AND the frame's own goto rejects", async () => {
+    const h = makeHarness(true);
+    h.page.on = vi.fn((event: string, handler: (d: any) => void) => {
+      if (event === "dialog") {
+        handler({ message: () => "Permission denied: you may not view this document.", accept: () => Promise.resolve() });
+      }
+    });
+    h.frame.goto = vi.fn(async () => {
+      throw new Error("Navigation interrupted by dialog");
+    });
+    const out = parse(await handleIpkSubmitForm(h.session, h.config, GOOD_PARAMS()));
+    expect(out.error).toBe(true);
+    expect(out.code).toBe("PERMISSION_DENIED");
+    expect(out.code).not.toBe("SUBMIT_ERROR");
+    expect(h.getCheckFormDCalled()).toBe(false);
+    expect(h.page.off).toHaveBeenCalledWith("dialog", expect.any(Function));
   });
 
-  it("L4: an explicit empty string with no prefill still gets the computed default (not an empty write)", async () => {
-    const h = makeHarness(REQUEST_DOC_ID, {});
-    const out = parse(await handleIpkSubmitForm(h.session, h.config, { ...baseParams, start_date: "" }));
-
+  // (b) a non-permission dialog must still be dismissed (preserving the old no-listener
+  //     auto-dismiss behavior) but must NOT be treated as a refusal - the submit proceeds.
+  it("dismisses a non-permission dialog without refusing, and the submit still succeeds", async () => {
+    const h = makeHarness(true);
+    const dismiss = vi.fn(async () => undefined);
+    h.page.on = vi.fn((event: string, handler: (d: any) => void) => {
+      if (event === "dialog") {
+        // A real Playwright Dialog always exposes both methods; this mock does too (like
+        // submitForm's own later dialog listener in iframe-helper.ts, which calls accept()
+        // unconditionally during the save flow) - only `dismiss` is asserted on below.
+        handler({ message: () => "Are you sure you want to leave this page?", dismiss, accept: vi.fn(async () => undefined) });
+      }
+    });
+    const out = parse(await handleIpkSubmitForm(h.session, h.config, GOOD_PARAMS()));
+    expect(dismiss).toHaveBeenCalled();
     expect(out.error).toBe(false);
-    const write = h.fieldWrites.find((w) => w.sel === '[name="start_day"]');
-    expect(write?.val).toBeTruthy();
+    expect(out.code).not.toBe("PERMISSION_DENIED");
+  });
+
+  // (c) the permission-dialog listener is opt-in per form (FormNavConfig.listenForPermissionDialog),
+  //     never a blanket formType check - travel_settlement's own customUrl path must not
+  //     register a 'dialog' listener at all, same invariant travel-settlement.test.ts locks
+  //     for its own form, re-asserted here alongside the "travel" form's positive case.
+  it("travel_settlement's customUrl navigation registers no 'dialog' listener", async () => {
+    const h = makeHarness(true);
+    const dialogHandlers: any[] = [];
+    h.page.on = vi.fn((event: string, handler: any) => {
+      if (event === "dialog") dialogHandlers.push(handler);
+    });
+    await handleIpkSubmitForm(h.session, h.config, {
+      form_type: "travel_settlement",
+      request_doc_id: REQUEST_DOC_ID,
+      budget_code: "NN2602-0002",
+      draft_only: true,
+      confirm_submit: false,
+    });
+    expect(dialogHandlers).toHaveLength(0);
   });
 });

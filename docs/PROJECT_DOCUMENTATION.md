@@ -28,7 +28,7 @@ flowchart TD
     subgraph FORMS["02-05. 폼별 자동화"]
         D[02. 휴가신청 AppFrm-073]
         E[03. 휴일근무 AppFrm-027]
-        F[04. 출장보고 AppFrm-076]
+        F["04. 출장보고 (standalone AppFrm-076; 기본은 승인된 요청서 AppFrm-023/AppFrm-022에 작성)"]
         G[05. 야근식대 AppFrm-021]
     end
 
@@ -314,7 +314,13 @@ substitute_contact: '031-8018-8195'
 
 ---
 
-## 📄 모듈 04: 출장보고 자동화 (AppFrm-076)
+## 📄 모듈 04: 출장보고 자동화 (AppFrm-076, standalone 경로 - 2026-11-09부터 기본 경로는 아님)
+
+> **2026-11-09 갱신**: 이 모듈이 기록하는 AppFrm-076/`document.form1.submit()` 경로는 이제
+> `report_kind: "standalone"`을 명시했을 때만 쓰인다. 기본 동작(국내)과 `report_kind: "overseas"`는
+> 이미 승인된 요청서(국내 AppFrm-023, 해외 AppFrm-022) 위에 `travel_report_write.php`로 직접
+> 작성한다 — 별도 문서가 아니다. 아래 서술은 AppFrm-076 자체의 메커니즘(.validate 17개 필드,
+> form1.submit() 등)에 대한 기록으로는 여전히 유효하다.
 
 ### 1. 🔍 한 줄 요약
 > `.validate` CSS 클래스로 표시된 17개 필수 필드를 식별하고, `document.form1.submit()` 직접 호출로 저장했다.

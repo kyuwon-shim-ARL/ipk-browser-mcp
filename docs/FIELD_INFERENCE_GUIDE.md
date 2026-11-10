@@ -144,7 +144,7 @@ def infer_budget_code(user_history: list) -> str:
 
 ---
 
-## 📄 3. 출장보고 (AppFrm-076)
+## 📄 3. 출장보고 (AppFrm-076, standalone - `report_kind: "standalone"`일 때만; 기본 동작은 승인된 요청서 AppFrm-023(국내)/AppFrm-022(해외)에 작성됨)
 
 ### 필드 분류표
 

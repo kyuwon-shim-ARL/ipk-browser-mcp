@@ -11,15 +11,50 @@
  * inputs. Its only save control (confirmed live) is `[ Draft ]` -> `Check_Form('D')`;
  * no final-submit button was present on the page actually inspected.
  *
- * AppFrm-076 (document_write.php?approve_type=AppFrm-076) is a different, standalone
- * form with subject/pdoc_id/start_day/end_day plus the same report_* fields - used only
- * for an explicit overseas report (report_kind: "overseas", or when the linked request
- * turns out to be AppFrm-026).
+ * Overseas travel report (facts established live 2026-11-03..09, read-only recon - see
+ * project_overseas_travel_report_route.md / CLAUDE.md task notes): the person's own
+ * approved overseas travel REQUEST is AppFrm-022 (NOT AppFrm-026, which is the overseas
+ * settlement). In practice an overseas report is written onto that approved AppFrm-022
+ * request at the SAME travel_report_write.php endpoint as the domestic report, but
+ * WITHOUT &approve_type - exactly the URL the AppFrm-026 settlement's own JS opens
+ * (`travel_report_write.php?doc_id=<022 doc_id>&pop=Y`). Whether that page's field set
+ * is identical to the domestic one is an UNVERIFIED hypothesis (the write page could not
+ * be read live for a colleague's own 022 - the server returns "permission deny" for
+ * anyone but the owner); submitTravel's overseas branch refuses with
+ * REPORT_PAGE_UNAVAILABLE if the expected fields are not present before touching
+ * anything.
+ *
+ * AppFrm-076 (document_write.php?approve_type=AppFrm-076) is a third, standalone form
+ * with subject/pdoc_id/start_day/end_day plus the same report_* fields - used only when
+ * explicitly asked for (report_kind: "standalone"), never auto-detected.
  */
 
 export interface ApprovedTravelRequestMatch {
   docId: string;
-  formCode: "AppFrm-023" | "AppFrm-026";
+  formCode: "AppFrm-023" | "AppFrm-022";
+}
+
+/**
+ * H-1 (code review 2026-11-09, confirmed live): the AppFrm-026 settlement view page
+ * links its request as `approve_type=Appfrm-022` - lowercase 'f'. Every approve_type
+ * match in this file and in ipk-submit.ts goes through this, so a differently-cased
+ * approve_type is still recognized and compared correctly, instead of silently not
+ * matching AppFrm-022/AppFrm-023 at all. Matches case-insensitively and returns the
+ * normalized `AppFrm-NNN` form, or null if no approve_type=AppFrm-<digits> is present.
+ */
+export function normalizeFormCode(hrefOrHtml: string): string | null {
+  const m = hrefOrHtml.match(/approve_type=AppFrm-(\d+)/i);
+  return m ? `AppFrm-${m[1]}` : null;
+}
+
+/** Case-insensitive approve_type=AppFrm-023 test (H-1) - \b still applies after the code. */
+function isApproveType023(href: string): boolean {
+  return /approve_type=AppFrm-023\b/i.test(href);
+}
+
+/** Case-insensitive approve_type=AppFrm-022 test (H-1). */
+function isApproveType022(href: string): boolean {
+  return /approve_type=AppFrm-022\b/i.test(href);
 }
 
 export interface ApprovedTravelRequestLookupError {
@@ -30,7 +65,7 @@ export interface ApprovedTravelRequestLookupError {
 /** The report's own content fields (not the person's static info fields report_date/
  *  report_name/report_post/report_group/report_leader) - whether all of these are blank
  *  is what "this request has no report yet" means. Checked both by the overwrite guard
- *  (submitDomesticTravelReport) and by the auto-lookup's empty-report preference below. */
+ *  (submitTravelReportOnRequest) and by the auto-lookup's empty-report preference below. */
 export const REPORT_CONTENT_FIELDS = ["purpose_field", "agenda_field", "result_field", "discuss_field", "conclusion_field"] as const;
 
 /** Pure: true when every report content field is blank (nothing was ever written here). */
@@ -55,12 +90,14 @@ export async function readReportContentFields(frame: any): Promise<Record<string
 /**
  * Pure: given the approved-documents list page's doc_id links (hrefs, already narrowed
  * to candidates worth considering - e.g. by readReportContentFields/reportIsEmpty
- * upstream), pick the one approved travel request (AppFrm-023 or AppFrm-026) among them.
+ * upstream), pick the one approved travel request (AppFrm-023 domestic or AppFrm-022
+ * overseas) among them. AppFrm-026 is a settlement, not a request, and is never matched
+ * here (facts established live 2026-11-09 - project_overseas_travel_report_endpoint).
  * Never guesses between several - "never ask for a groupware-queryable value" means
  * auto-lookup when it resolves to exactly one match, not when it doesn't.
  */
 export function pickApprovedTravelRequest(hrefs: string[]): ApprovedTravelRequestMatch | ApprovedTravelRequestLookupError {
-  const relevant = hrefs.filter((h) => /approve_type=AppFrm-023\b/.test(h) || /approve_type=AppFrm-026\b/.test(h));
+  const relevant = hrefs.filter((h) => isApproveType023(h) || isApproveType022(h));
   if (relevant.length === 0) {
     return { error: "no approved travel request found for this person in the lookup window", candidates: 0 };
   }
@@ -72,7 +109,7 @@ export function pickApprovedTravelRequest(hrefs: string[]): ApprovedTravelReques
   if (!docId) {
     return { error: "matched one approved travel request but could not read its doc_id from the link", candidates: 1 };
   }
-  const formCode = /approve_type=AppFrm-026\b/.test(href) ? "AppFrm-026" : "AppFrm-023";
+  const formCode = normalizeFormCode(href) as "AppFrm-023" | "AppFrm-022";
   return { docId, formCode };
 }
 
@@ -80,9 +117,10 @@ export function pickApprovedTravelRequest(hrefs: string[]): ApprovedTravelReques
  * Network: search this person's own approved travel requests (type=approved - own docs
  * only, per CLAUDE.md's ER search table), prefer one (AppFrm-023) whose report is still
  * empty - never silently pick a request to overwrite - and resolve to the one match via
- * pickApprovedTravelRequest. An AppFrm-026 (overseas) candidate is not emptiness-checked
- * here (that form's own overwrite behaviour is unchanged/out of scope); it is still
- * offered as a candidate.
+ * pickApprovedTravelRequest. An AppFrm-022 (overseas) candidate is not emptiness-checked
+ * here (its report lives on a different write page, travel_report_write.php without
+ * approve_type - see FORM_NAV_CONFIG.travel in ipk-submit.ts); it is still offered as a
+ * candidate.
  */
 export async function findOwnApprovedTravelRequest(
   page: any,
@@ -98,14 +136,14 @@ export async function findOwnApprovedTravelRequest(
   await page.goto(listUrl, { waitUntil: "domcontentloaded", timeout: 30000 });
   await page.waitForTimeout(1500);
   const hrefs: string[] = await page.mainFrame().$$eval("a[href*='doc_id=']", (as: any[]) => as.map((a: any) => a.getAttribute("href") || ""));
-  const relevant = hrefs.filter((h) => /approve_type=AppFrm-023\b/.test(h) || /approve_type=AppFrm-026\b/.test(h));
+  const relevant = hrefs.filter((h) => isApproveType023(h) || isApproveType022(h));
   if (relevant.length === 0) {
     return { error: "no approved travel request found for this person in the lookup window", candidates: 0 };
   }
 
   const withEmptyReport: string[] = [];
   for (const href of relevant) {
-    if (/approve_type=AppFrm-026\b/.test(href)) {
+    if (isApproveType022(href)) {
       withEmptyReport.push(href); // overseas: not emptiness-checked here
       continue;
     }
@@ -138,7 +176,7 @@ export async function findOwnApprovedTravelRequest(
  *
  * person_field ("Person to Meet / Contact information") is the counterparty, never this
  * person's own name - it comes only from params.persons_met (empty, not defaulted, when
- * absent; the caller is expected to warn - see submitDomesticTravelReport).
+ * absent; the caller is expected to warn - see submitTravelReportOnRequest).
  */
 export function buildDomesticReportFields(
   params: Record<string, any>,

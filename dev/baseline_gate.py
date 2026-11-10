@@ -87,7 +87,12 @@ _REPORT_NON_TEXT = {"report_date", "report_name", "report_post", "report_group",
 
 
 def parse_domestic_report(text: str) -> dict[str, str]:
-    """Sections of travel_report_view.php innerText; {} when the page holds no report."""
+    """Sections of travel_report_view.php innerText; {} when the page has no "Date of
+    Report 20YY-MM-DD" line - the one marker checked, used as a proxy for "this page
+    holds no report" (a page with that line but different section labels would instead
+    come back with some sections present and others silently missing - see test_baseline_gate.py's
+    test_field_with_too_few_precedents_is_unavailable for how a changed label is caught: it
+    counts as too few precedents for that section, not as a silent miscount)."""
     if not re.search(r"Date of Report\s+20\d\d-\d\d-\d\d", text):
         return {}
     out = {}
@@ -123,7 +128,7 @@ def whoami(gw) -> str:
     return m.group(1).strip()
 
 
-def _fetch_domestic_report_texts(gw, me: str, keywords=("conference", "symposium", "meeting", "congress"),
+def _fetch_domestic_report_texts(gw, me: str, keywords=("conference", "symposium", "meeting", "congress", "report", "trip"),
                                  since_days=730) -> tuple[dict[str, str], list[str]]:
     """(colleague doc_id -> report page text, own doc_ids left out)."""
     base = gw.BASE_URL
@@ -132,23 +137,33 @@ def _fetch_domestic_report_texts(gw, me: str, keywords=("conference", "symposium
     s = e - timedelta(days=since_days)
     rows: dict[str, str] = {}  # doc_id -> writer cell
     for kw in keywords:
-        for p in range(1, 6):
+        for p in range(1, 16):
             fr.goto(
                 f"{base}/Document/document_list.php?type=groupapproved&s_date={s}&e_date={e}"
                 f"&keyword={kw}&writer=Y&title=Y&contents=Y&attachment=Y&start_page={p}",
                 wait_until="networkidle",
             )
             time.sleep(0.8)
-            # columns on document_list.php: doc no, subject, department, writer, status, date
-            found = fr.evaluate(
-                """() => [...document.querySelectorAll('tr')]
-                    .filter(tr => /approve_type=AppFrm-023/.test(tr.innerHTML))
-                    .map(tr => [(tr.innerHTML.match(/doc_id=(\\d+)/) || [])[1],
-                                ((tr.querySelectorAll('td')[3] || {}).innerText || '').replace(/\\s+/g, ' ').trim()])"""
+            # columns on document_list.php: doc no, subject, department, writer, status, date.
+            # `any_rows` is whether this page has ANY document row at all (pagination stops
+            # here) - independent of `matched`, which is only the rows for OUR target
+            # approve_type. A page can be non-empty (more results exist, worth another page)
+            # while matching zero target rows (e.g. a run of leave/expense docs for this
+            # keyword) - stopping on `matched` alone, as the code used to, silently dropped
+            # every later page's target rows (M4, code review 2026-11-09).
+            page_data = fr.evaluate(
+                """() => {
+                    const trs = [...document.querySelectorAll('tr')];
+                    const any_rows = trs.some(tr => /doc_id=\\d+/.test(tr.innerHTML));
+                    const matched = trs.filter(tr => /approve_type=AppFrm-023/i.test(tr.innerHTML))
+                        .map(tr => [(tr.innerHTML.match(/doc_id=(\\d+)/) || [])[1],
+                                    ((tr.querySelectorAll('td')[3] || {}).innerText || '').replace(/\\s+/g, ' ').trim()]);
+                    return { any_rows, matched };
+                }"""
             )
-            if not found:
+            if not page_data["any_rows"]:
                 break
-            for doc_id, row in found:
+            for doc_id, row in page_data["matched"]:
                 if doc_id:
                     rows[doc_id] = row
     own = sorted(d for d, w in rows.items() if w == me)
@@ -169,8 +184,87 @@ def _fetch_domestic_report_texts(gw, me: str, keywords=("conference", "symposium
     return texts, own
 
 
+def _fetch_overseas_report_texts(gw, me: str, keywords=("settlement", "conference", "symposium", "travel", "meeting", "report", "trip"),
+                                  since_days=1409) -> tuple[dict[str, str], list[str]]:
+    """(colleague doc_id -> overseas report page text, own doc_ids left out).
+
+    Colleague overseas travel REPORTS are read off the approved AppFrm-026 settlement
+    (the overseas request, AppFrm-022, cannot be read for a colleague's own document -
+    "permission deny" - and the settlement is what links to the report: see
+    project_overseas_travel_report_route.md / CLAUDE.md task notes, facts
+    established live 2026-11-03..09). Unlike _fetch_domestic_report_texts, an empty
+    `own` list does NOT raise BaselineUnavailable here: the user has 0 own AppFrm-026
+    documents (confirmed 2026-11-09), so own-exclusion by writer name still runs (and
+    would exclude any that did exist), it simply excludes nothing today. This is
+    intentional, not a silent failure to exclude.
+    """
+    base = gw.BASE_URL
+    fr = gw.page.frame("main_menu")
+    e = date.today()
+    s = e - timedelta(days=since_days)
+    rows: dict[str, str] = {}  # doc_id -> writer cell
+    for kw in keywords:
+        for p in range(1, 16):
+            fr.goto(
+                f"{base}/Document/document_list.php?type=groupapproved&s_date={s}&e_date={e}"
+                f"&keyword={kw}&writer=Y&title=Y&contents=Y&attachment=Y&start_page={p}",
+                wait_until="networkidle",
+            )
+            time.sleep(0.8)
+            # See _fetch_domestic_report_texts's comment (M4, code review 2026-11-09):
+            # pagination stops only on a page with NO document rows at all, never on one
+            # that simply has zero AppFrm-026 rows for this keyword. The approve_type
+            # match is case-insensitive (re-review 2026-11-09, H-1): the groupware has
+            # been observed emitting "Appfrm-022" with a lowercase f on at least one page.
+            page_data = fr.evaluate(
+                """() => {
+                    const trs = [...document.querySelectorAll('tr')];
+                    const any_rows = trs.some(tr => /doc_id=\\d+/.test(tr.innerHTML));
+                    const matched = trs.filter(tr => /approve_type=AppFrm-026/i.test(tr.innerHTML))
+                        .map(tr => [(tr.innerHTML.match(/doc_id=(\\d+)/) || [])[1],
+                                    ((tr.querySelectorAll('td')[3] || {}).innerText || '').replace(/\\s+/g, ' ').trim()]);
+                    return { any_rows, matched };
+                }"""
+            )
+            if not page_data["any_rows"]:
+                break
+            for doc_id, row in page_data["matched"]:
+                if doc_id:
+                    rows[doc_id] = row
+    own = sorted(d for d, w in rows.items() if w == me)
+    # NOTE: no raise when `own` is empty - see docstring. The domestic fetcher raises
+    # here because the user DOES write domestic reports, so an empty match there means
+    # the writer column was misread; that assumption does not hold for overseas.
+    pg = gw.context.new_page()
+    texts = {}
+    try:
+        for doc_id, writer in rows.items():
+            if doc_id in own or not writer:
+                continue
+            # The 026 settlement view page links its report as
+            # travel_report_view.php?doc_id=<026 doc_id>&pop=Y - no approve_type (live
+            # read 2026-11-03..09), unlike the domestic view's &approve_type=AppFrm-023.
+            pg.goto(f"{base}/Document/travel_report_view.php?doc_id={doc_id}&pop=Y",
+                    wait_until="networkidle", timeout=30000)
+            texts[doc_id] = pg.evaluate("() => document.body.innerText")
+    finally:
+        pg.close()
+    return texts, own
+
+
 KINDS = {
     "domestic_travel_report": (_fetch_domestic_report_texts, parse_domestic_report, _REPORT_NON_TEXT),
+    # Reuses parse_domestic_report/_REPORT_SECTIONS - confirmed live 2026-11-09 against 9
+    # colleagues' real overseas report text (read via their AppFrm-026 settlement's own
+    # link to travel_report_view.php): every section parsed non-empty for all 9 docs, so
+    # the overseas report page's labels do match the domestic ones. Per parse_domestic_report's
+    # own docstring, {} only happens when the "Date of Report 20YY-MM-DD" line is missing
+    # entirely; if a future refresh ever hit an overseas page with that line present but
+    # different section labels, it would NOT come back as {} - it would come back with
+    # some sections present and others silently missing (caught the same way
+    # test_baseline_gate.py's test_field_with_too_few_precedents_is_unavailable catches a
+    # changed label: too few precedents for that section, not a silent miscount).
+    "overseas_travel_report": (_fetch_overseas_report_texts, parse_domestic_report, _REPORT_NON_TEXT),
 }
 
 

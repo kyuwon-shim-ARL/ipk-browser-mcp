@@ -421,8 +421,14 @@ describe("ACCOUNT_ATTACHMENTS_REQUIRED (card_expense_rd, delegates to attachment
 });
 
 describe("NO_REPORT_FOR_DAY_TRIP (travel = domestic travel report)", () => {
+  // M1 (code review 2026-11-09): this pre-navigation check only fires for an EXPLICIT
+  // report_kind: 'domestic' - when report_kind is omitted, the request's real form code
+  // (and so whether this is actually domestic or overseas) is resolved only via the
+  // network lookup in FORM_NAV_CONFIG.travel.beforeNavigate, which re-applies this exact
+  // rule once that's known. See the "report_kind omitted" tests below.
   const report = (over: Record<string, unknown> = {}) => ({
     form_type: "travel",
+    report_kind: "domestic",
     pdoc_id: "299953",
     purpose: "x".repeat(100),
     schedule: "x".repeat(100),
@@ -449,6 +455,16 @@ describe("NO_REPORT_FOR_DAY_TRIP (travel = domestic travel report)", () => {
   });
   it("does not fire for other form types", () => {
     expect(checkOrgPolicy(travel({ start_date: "2026-09-14", end_date: "2026-09-14" })).map((x) => x.rule)).not.toContain("NO_REPORT_FOR_DAY_TRIP");
+  });
+  it("does not fire for report_kind 'overseas' (not an established pattern for overseas trips)", () => {
+    expect(checkOrgPolicy(report({ report_kind: "overseas", end_date: "2026-09-14" })).map((x) => x.rule)).not.toContain("NO_REPORT_FOR_DAY_TRIP");
+  });
+  it("does not fire for report_kind 'standalone'", () => {
+    expect(checkOrgPolicy(report({ report_kind: "standalone", end_date: "2026-09-14" })).map((x) => x.rule)).not.toContain("NO_REPORT_FOR_DAY_TRIP");
+  });
+  it("does not fire pre-navigation when report_kind is omitted (M1) - the real kind is only known after the network lookup resolves it", () => {
+    const { report_kind, ...withoutKind } = report({ end_date: "2026-09-14" });
+    expect(checkOrgPolicy(withoutKind).map((x) => x.rule)).not.toContain("NO_REPORT_FOR_DAY_TRIP");
   });
 });
 

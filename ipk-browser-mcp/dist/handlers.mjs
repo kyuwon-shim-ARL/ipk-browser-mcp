@@ -6294,10 +6294,10 @@ var ORG_POLICY = [
   },
   {
     id: "NO_REPORT_FOR_DAY_TRIP",
-    standard: "A domestic travel report (form_type 'travel', written onto the approved AppFrm-023 request at travel_report_write.php) is only filed for trips of 2 nights (2\uBC153\uC77C) or more - across the person's 15 domestic trips, all 5 of >=2 nights have a report and all 9 same-day trips do not, no exceptions.",
-    passes: "start_date/end_date are absent (nothing to compute yet), or span 2 nights or more.",
+    standard: "A domestic travel report (form_type 'travel', written onto the approved AppFrm-023 request at travel_report_write.php) is only filed for trips of 2 nights (2\uBC153\uC77C) or more - across the person's 15 domestic trips, all 5 of >=2 nights have a report and all 9 same-day trips do not, no exceptions. This is a domestic-only pattern; it has not been established for overseas trips, so it is not applied to them.",
+    passes: "start_date/end_date are absent (nothing to compute yet), report_kind is not 'domestic', or the span is 2 nights or more.",
     check(params) {
-      if (String(params.form_type) !== "travel") return null;
+      if (String(params.form_type) !== "travel" || params.report_kind !== "domestic") return null;
       if (!params.start_date || !params.end_date) return null;
       const nights = nightsBetween(String(params.start_date), String(params.end_date));
       if (Number.isNaN(nights) || nights >= 2) return null;
@@ -6760,6 +6760,16 @@ function checkWorkingRows(rows) {
 }
 
 // src/forms/travel-report.ts
+function normalizeFormCode(hrefOrHtml) {
+  const m = hrefOrHtml.match(/approve_type=AppFrm-(\d+)/i);
+  return m ? `AppFrm-${m[1]}` : null;
+}
+function isApproveType023(href) {
+  return /approve_type=AppFrm-023\b/i.test(href);
+}
+function isApproveType022(href) {
+  return /approve_type=AppFrm-022\b/i.test(href);
+}
 var REPORT_CONTENT_FIELDS = ["purpose_field", "agenda_field", "result_field", "discuss_field", "conclusion_field"];
 function reportIsEmpty(fields) {
   return REPORT_CONTENT_FIELDS.every((k) => !(fields[k] ?? "").trim());
@@ -6775,7 +6785,7 @@ async function readReportContentFields(frame) {
   }, REPORT_CONTENT_FIELDS);
 }
 function pickApprovedTravelRequest(hrefs) {
-  const relevant = hrefs.filter((h) => /approve_type=AppFrm-023\b/.test(h) || /approve_type=AppFrm-026\b/.test(h));
+  const relevant = hrefs.filter((h) => isApproveType023(h) || isApproveType022(h));
   if (relevant.length === 0) {
     return { error: "no approved travel request found for this person in the lookup window", candidates: 0 };
   }
@@ -6787,7 +6797,7 @@ function pickApprovedTravelRequest(hrefs) {
   if (!docId) {
     return { error: "matched one approved travel request but could not read its doc_id from the link", candidates: 1 };
   }
-  const formCode = /approve_type=AppFrm-026\b/.test(href) ? "AppFrm-026" : "AppFrm-023";
+  const formCode = normalizeFormCode(href);
   return { docId, formCode };
 }
 async function findOwnApprovedTravelRequest(page, opts) {
@@ -6799,13 +6809,13 @@ async function findOwnApprovedTravelRequest(page, opts) {
   await page.goto(listUrl, { waitUntil: "domcontentloaded", timeout: 3e4 });
   await page.waitForTimeout(1500);
   const hrefs = await page.mainFrame().$$eval("a[href*='doc_id=']", (as) => as.map((a) => a.getAttribute("href") || ""));
-  const relevant = hrefs.filter((h) => /approve_type=AppFrm-023\b/.test(h) || /approve_type=AppFrm-026\b/.test(h));
+  const relevant = hrefs.filter((h) => isApproveType023(h) || isApproveType022(h));
   if (relevant.length === 0) {
     return { error: "no approved travel request found for this person in the lookup window", candidates: 0 };
   }
   const withEmptyReport = [];
   for (const href of relevant) {
-    if (/approve_type=AppFrm-026\b/.test(href)) {
+    if (isApproveType022(href)) {
       withEmptyReport.push(href);
       continue;
     }
@@ -7526,7 +7536,7 @@ var FORM_REGISTRY = {
   leave: { appFrmCode: "AppFrm-073", templateFile: "AppFrm-073.json", status: "implemented", description: "\uD734\uAC00\uC2E0\uCCAD" },
   expense: { appFrmCode: "AppFrm-020", templateFile: "AppFrm-020.json", status: "implemented", description: "\uACBD\uBE44\uC9C0\uCD9C" },
   working: { appFrmCode: "AppFrm-074", templateFile: "AppFrm-074.json", status: "implemented", description: "\uD734\uC77C\uADFC\uBB34" },
-  travel: { appFrmCode: "AppFrm-076", templateFile: "AppFrm-076.json", status: "implemented", description: "\uCD9C\uC7A5\uBCF4\uACE0" },
+  travel: { appFrmCode: "AppFrm-076", templateFile: "AppFrm-076.json", status: "implemented", description: "\uCD9C\uC7A5\uBCF4\uACE0 (\uAD6D\uB0B4/\uD574\uC678\uB294 \uC2B9\uC778\uB41C \uC2E0\uCCAD\uC11C AppFrm-023/AppFrm-022\uC5D0 \uC791\uC131, standalone\uC740 AppFrm-076)" },
   travel_request: { appFrmCode: "AppFrm-023", templateFile: "AppFrm-023.json", status: "implemented", description: "\uCD9C\uC7A5\uC2E0\uCCAD" },
   budget_transfer: { appFrmCode: "AppFrm-039", templateFile: "AppFrm-039.json", status: "implemented", description: "\uC608\uC0B0\uC804\uC6A9(R&D)" },
   // Wave 2 form types (implemented)
@@ -7535,7 +7545,7 @@ var FORM_REGISTRY = {
   card_expense: { appFrmCode: "AppFrm-020", templateFile: "AppFrm-020.json", status: "implemented", description: "\uCE74\uB4DC\uACBD\uBE44" },
   card_expense_rd: { appFrmCode: "AppFrm-021", templateFile: "AppFrm-021.json", status: "implemented", description: "R&D \uCE74\uB4DC\uACBD\uBE44 (mker)" },
   seminar: { appFrmCode: "AppFrm-043", templateFile: "AppFrm-043.json", status: "implemented", description: "\uC138\uBBF8\uB098\uACF5\uC2DC" },
-  overseas_travel: { appFrmCode: "AppFrm-026", templateFile: "AppFrm-026.json", status: "implemented", description: "\uD574\uC678\uCD9C\uC7A5" }
+  overseas_travel: { appFrmCode: "AppFrm-026", templateFile: "AppFrm-026.json", status: "implemented", description: "\uD574\uC678\uCD9C\uC7A5\uC815\uC0B0 (settlement; \uD574\uC678\uCD9C\uC7A5 \uC2E0\uCCAD\uC11C\uB294 AppFrm-022)" }
 };
 
 // src/tools/ipk-submit.ts
@@ -8098,13 +8108,13 @@ var ipkSubmitFormSchema = {
   details: external_exports.string().optional().describe("Details. English only - Korean text is refused before the form is touched."),
   budget_type: external_exports.string().optional().describe("expense/travel_request budget type: 01=General, 02=R&D"),
   // Travel fields (domestic report, written onto the approved AppFrm-023 request)
-  title: external_exports.string().optional().describe("overseas report (AppFrm-076) subject. Not used by the domestic report, which has no subject field."),
+  title: external_exports.string().optional().describe("standalone report (AppFrm-076) subject. Not used by the domestic/overseas report (both write onto the approved request and have no subject field)."),
   organization: external_exports.string().optional().describe("Organization/institution"),
   attendees: external_exports.string().optional().describe("Attendees"),
   schedule: external_exports.string().optional().describe("Schedule details"),
-  request_doc_id: external_exports.string().optional().describe("travel: doc_id of the already-approved travel request this reports on. Auto-looked-up from this person's own approved AppFrm-023/AppFrm-026 documents (optionally narrowed by keyword) when omitted and exactly one match exists; refused (not guessed) when 0 or >1 match."),
+  request_doc_id: external_exports.string().optional().describe("travel: doc_id of the already-approved travel request this reports on. Auto-looked-up from this person's own approved AppFrm-023 (domestic)/AppFrm-022 (overseas) documents (optionally narrowed by keyword) when omitted and exactly one match exists; refused (not guessed) when 0 or >1 match."),
   request_keyword: external_exports.string().optional().describe("travel: keyword to narrow the request_doc_id auto-lookup (e.g. 'RAPID'), passed to document_list.php's own search."),
-  report_kind: external_exports.enum(["domestic", "overseas"]).optional().describe("travel: 'domestic' (default) writes onto the approved AppFrm-023 request at travel_report_write.php. 'overseas' uses the standalone AppFrm-076 form instead. Auto-detected as 'overseas' when the resolved request is AppFrm-026."),
+  report_kind: external_exports.enum(["domestic", "overseas", "standalone"]).optional().describe("travel: 'domestic' (default) writes onto the approved AppFrm-023 request at travel_report_write.php. 'overseas' writes onto the approved AppFrm-022 request at the SAME endpoint, without &approve_type (the URL the AppFrm-026 settlement's own JS opens). The request's real form code is always resolved against the groupware itself (never guessed from this param) - a mismatch between an explicit report_kind and that resolved code is refused (REPORT_KIND_MISMATCH), and a request that resolves to neither AppFrm-023 nor AppFrm-022 is refused (REQUEST_FORM_CODE_UNRESOLVED). The report page itself is refused with PERMISSION_DENIED if it shows a permission-deny dialog on load, or REPORT_PAGE_UNAVAILABLE if it loads but lacks the expected fields/Check_Form/URL (its field set for the overseas case is not fully confirmed against the domestic one). 'standalone' uses the separate AppFrm-076 form instead, only when explicitly asked. Auto-detected as 'domestic' or 'overseas' from the resolved request's real form code; 'standalone' is never auto-detected."),
   persons_met: external_exports.string().optional().describe("travel (domestic report): who was met / contact info for this trip - the counterparty, never this person's own name. Left blank (with a warning) if omitted."),
   overwrite_report: external_exports.boolean().optional().describe("travel (domestic report): the linked request already has a report written (its content fields are non-empty) - pass true to replace it. Refused otherwise (REPORT_ALREADY_EXISTS) rather than silently overwriting."),
   // Budget transfer fields
@@ -8153,7 +8163,8 @@ var ipkSubmitFormSchema = {
   material_published: external_exports.enum(["Y", "N", ""]).optional().describe("Q3: Material published?"),
   collaborator_approval: external_exports.enum(["Y", ""]).optional().describe("Q4: Collaborator approval obtained?"),
   contains_confidential: external_exports.enum(["N", ""]).optional().describe("Q5: Contains IPK confidential info?"),
-  // Overseas travel fields (AppFrm-026)
+  // Overseas travel settlement fields (AppFrm-026) - the overseas travel REQUEST is a
+  // different form, AppFrm-022, not wired as its own form_type (see FORM_NAV_CONFIG.travel).
   country: external_exports.string().optional().describe("Destination country and city"),
   conference_name: external_exports.string().optional().describe("Conference or organization name"),
   travel_start: external_exports.string().optional().describe("Departure date (YYYY-MM-DD)"),
@@ -8177,7 +8188,7 @@ var ipkSubmitFormSchema = {
   reimbursement: external_exports.number().optional().describe("Amount to reimburse traveler (KRW)"),
   corp_card_no: external_exports.string().optional().describe("Corporate card number (XXXX-XXXX-XXXX-XXXX)")
 };
-var ipkSubmitFormDescription = "Submit a form in IPK groupware. All 11 form types are fully implemented: leave (\uD734\uAC00/AppFrm-073), expense (\uACBD\uBE44/AppFrm-020), working (\uD734\uC77C\uADFC\uBB34/AppFrm-074), travel (\uCD9C\uC7A5\uBCF4\uACE0/AppFrm-076), travel_request (\uCD9C\uC7A5\uC2E0\uCCAD/AppFrm-023), budget_transfer (\uC608\uC0B0\uC804\uC6A9/AppFrm-039), card_expense (\uCE74\uB4DC\uACBD\uBE44/AppFrm-020), travel_settlement (\uCD9C\uC7A5\uC815\uC0B0/AppFrm-054), leave_return (\uB300\uCCB4\uD734\uC77C\uBC18\uB0A9/AppFrm-028), seminar (\uC138\uBBF8\uB098\uACF5\uC2DC/AppFrm-043), overseas_travel (\uD574\uC678\uCD9C\uC7A5/AppFrm-026). By default saves as draft (draft_only=true); a draft is reported only after it is found in the Drafts list (SUBMITTED_NOT_DRAFT / DRAFT_NOT_CONFIRMED otherwise). card_expense_rd (AppFrm-021, mker=Y) is never submitted by this tool, and is saved only through a one-time per-transaction authorization. draft_only=true returns a no-save preview that fills and checks the form with the form's own validation; draft_only=false is refused outright (CARD_ER_NO_SUBMIT), regardless of confirm_submit/IPK_ALLOW_SUBMIT. allow_card_er_save=true runs the form's own [Draft] link only when ~/.config/ipk-browser-mcp/card-er-draft-authorizations.json has an entry for this appr_no+trseq (consumed before the click), and reports SUBMITTED_NOT_DRAFT if the server filed it anyway (as it did with doc 302098 on 2026-10-23); otherwise CARD_ER_SAVE_REFUSED and the person presses [Draft]/[Request] themselves. dry_run=true is safe to use on any wired form type (leave, working, travel_request, travel [domestic/overseas], travel_settlement, budget_transfer, expense, card_expense, card_expense_rd): it fills and checks the form exactly as a real call would, then stops before any save/draft/submit action - never creates, modifies or overwrites a document. NO_FINAL_SUBMIT: draft_only=false is refused unless confirm_submit=true AND env IPK_ALLOW_SUBMIT=1 (and for card_expense_rd it is refused outright regardless, CARD_ER_NO_SUBMIT). Even unlocked, this tool still only saves a draft and returns a no_final_submit note with the click path - it never performs the final approval-request click itself. For budget_transfer, use transfer_type='rnd' (AppFrm-039, default) or transfer_type='general' (AppFrm-053). Required params per form_type: leave: leave_type, start_date, end_date; expense: budget_code, amount, reason; working: reason, rows ([{date, hours}], weekend/holiday overtime - AppFrm-074, hours 1-12, weekly total <=12); travel: purpose, start_date, end_date (domestic default - writes onto the approved AppFrm-023 request at travel_report_write.php; request_doc_id auto-looked-up if omitted; 0-night trips and reports with purpose/agenda/result under 100 chars are refused; pass report_kind='overseas' for the standalone AppFrm-076 form instead, which also needs title/destination); travel_request: budget_code, title, destination, start_date, end_date; budget_transfer: from_account, to_account, amount, reason; card_expense: budget_code, amount, reason; travel_settlement: budget_code, title, destination, start_date, end_date; leave_return: leave_type, start_date, end_date; seminar: title, date, location; overseas_travel: budget_code, title, destination, start_date, end_date, purpose. Error recovery: NOT_LOGGED_IN\u2192call ipk_login first; FRAME_NOT_FOUND\u2192call ipk_navigate first; CONFIRMATION_REQUIRED\u2192set draft_only=true for safe draft mode; POLICY_VIOLATION/FORM_RULE_VIOLATION\u2192read the violations list, nothing was written; SESSION_EXPIRING\u2192re-login.";
+var ipkSubmitFormDescription = "Submit a form in IPK groupware. All 11 form types are fully implemented: leave (\uD734\uAC00/AppFrm-073), expense (\uACBD\uBE44/AppFrm-020), working (\uD734\uC77C\uADFC\uBB34/AppFrm-074), travel (\uCD9C\uC7A5\uBCF4\uACE0 - domestic/overseas on the approved request AppFrm-023/AppFrm-022, standalone AppFrm-076), travel_request (\uCD9C\uC7A5\uC2E0\uCCAD/AppFrm-023), budget_transfer (\uC608\uC0B0\uC804\uC6A9/AppFrm-039), card_expense (\uCE74\uB4DC\uACBD\uBE44/AppFrm-020), travel_settlement (\uCD9C\uC7A5\uC815\uC0B0/AppFrm-054), leave_return (\uB300\uCCB4\uD734\uC77C\uBC18\uB0A9/AppFrm-028), seminar (\uC138\uBBF8\uB098\uACF5\uC2DC/AppFrm-043), overseas_travel (\uD574\uC678\uCD9C\uC7A5\uC815\uC0B0/AppFrm-026, the overseas settlement). By default saves as draft (draft_only=true); a draft is reported only after it is found in the Drafts list (SUBMITTED_NOT_DRAFT / DRAFT_NOT_CONFIRMED otherwise). card_expense_rd (AppFrm-021, mker=Y) is never submitted by this tool, and is saved only through a one-time per-transaction authorization. draft_only=true returns a no-save preview that fills and checks the form with the form's own validation; draft_only=false is refused outright (CARD_ER_NO_SUBMIT), regardless of confirm_submit/IPK_ALLOW_SUBMIT. allow_card_er_save=true runs the form's own [Draft] link only when ~/.config/ipk-browser-mcp/card-er-draft-authorizations.json has an entry for this appr_no+trseq (consumed before the click), and reports SUBMITTED_NOT_DRAFT if the server filed it anyway (as it did with doc 302098 on 2026-10-23); otherwise CARD_ER_SAVE_REFUSED and the person presses [Draft]/[Request] themselves. dry_run=true is safe to use on any wired form type (leave, working, travel_request, travel [domestic/overseas], travel_settlement, budget_transfer, expense, card_expense, card_expense_rd): it fills and checks the form exactly as a real call would, then stops before any save/draft/submit action - never creates, modifies or overwrites a document. NO_FINAL_SUBMIT: draft_only=false is refused unless confirm_submit=true AND env IPK_ALLOW_SUBMIT=1 (and for card_expense_rd it is refused outright regardless, CARD_ER_NO_SUBMIT). Even unlocked, this tool still only saves a draft and returns a no_final_submit note with the click path - it never performs the final approval-request click itself. For budget_transfer, use transfer_type='rnd' (AppFrm-039, default) or transfer_type='general' (AppFrm-053). Required params per form_type: leave: leave_type, start_date, end_date; expense: budget_code, amount, reason; working: reason, rows ([{date, hours}], weekend/holiday overtime - AppFrm-074, hours 1-12, weekly total <=12); travel: purpose, start_date, end_date (domestic default - writes onto the approved AppFrm-023 request at travel_report_write.php; request_doc_id auto-looked-up if omitted, auto-detecting domestic/overseas from the request's REAL form code, verified against the groupware; reports with purpose/agenda/result under 100 chars are refused for BOTH domestic and overseas [report_kind='overseas', writes onto the approved AppFrm-022 request at the same endpoint] - travel_report_write.php's own Check_Form() enforces this regardless of which request it's attached to; the 0-night/1-night refusal is domestic-only and is NOT applied to overseas; pass report_kind='standalone' for the separate AppFrm-076 form instead, which also needs title/destination, only when explicitly asked); travel_request: budget_code, title, destination, start_date, end_date; budget_transfer: from_account, to_account, amount, reason; card_expense: budget_code, amount, reason; travel_settlement: budget_code, title, destination, start_date, end_date; leave_return: leave_type, start_date, end_date; seminar: title, date, location; overseas_travel: budget_code, title, destination, start_date, end_date, purpose. Error recovery: NOT_LOGGED_IN\u2192call ipk_login first; FRAME_NOT_FOUND\u2192call ipk_navigate first; CONFIRMATION_REQUIRED\u2192set draft_only=true for safe draft mode; POLICY_VIOLATION/FORM_RULE_VIOLATION\u2192read the violations list, nothing was written; SESSION_EXPIRING\u2192re-login.";
 function attachmentSlotRefusal(params) {
   const v = checkAttachmentSlot(params);
   if (v.length === 0) return null;
@@ -8250,14 +8261,57 @@ async function findApprovedTravelRequestByDocNumber(page, opts) {
   }
   return { docId: docIds[0] };
 }
+async function resolveTravelRequestFormCode(page, opts) {
+  const origin = new URL(opts.baseUrl).origin;
+  const ymd2 = (d) => d.toISOString().slice(0, 10);
+  const e = /* @__PURE__ */ new Date();
+  const s = new Date(e.getTime() - (opts.sinceDays ?? 365) * 864e5);
+  const listUrl = `${origin}/Document/document_list.php?type=approved&s_date=${ymd2(s)}&e_date=${ymd2(e)}&keyword=&writer=Y&title=Y&contents=Y&attachment=Y`;
+  await page.goto(listUrl, { waitUntil: "domcontentloaded", timeout: 3e4 });
+  await page.waitForTimeout(1500);
+  const hrefs = await page.mainFrame().$$eval("a[href*='doc_id=']", (as) => as.map((a) => a.getAttribute("href") || ""));
+  const own = hrefs.find((h) => new RegExp(`\\bdoc_id=${opts.docId}\\b`).test(h));
+  let code = own ? normalizeFormCode(own) : void 0;
+  if (!code) {
+    await page.goto(`${origin}/Document/document_view.php?doc_id=${encodeURIComponent(opts.docId)}&pop_view=y`, {
+      waitUntil: "domcontentloaded",
+      timeout: 3e4
+    }).catch(() => void 0);
+    await page.waitForTimeout(1e3);
+    const viewHrefs = await page.mainFrame().$$eval("a[href*='doc_id=']", (as) => as.map((a) => a.getAttribute("href") || "")).catch(() => []);
+    const selfHref = viewHrefs.find((h) => new RegExp(`\\bdoc_id=${opts.docId}\\b`).test(h));
+    code = selfHref ? normalizeFormCode(selfHref) : void 0;
+  }
+  if (!code) {
+    return { error: `could not resolve the approve_type (form code) of request ${opts.docId} from either the approved-documents list or its own view page - nothing was written` };
+  }
+  if (code !== "AppFrm-023" && code !== "AppFrm-022") {
+    return { error: `request ${opts.docId} resolves to ${code}, not AppFrm-023 (domestic) or AppFrm-022 (overseas) - refusing to write a travel report onto it` };
+  }
+  return { formCode: code };
+}
 var FORM_NAV_CONFIG = {
   travel: {
-    // Resolves request_doc_id (explicit or auto-looked-up) and the domestic/overseas
-    // route before any page is loaded, same reasoning as travel_request's precedent
-    // lookup below: this needs the network, so it can't be the sync `validate` hook.
+    listenForPermissionDialog: true,
+    // Resolves request_doc_id (explicit or auto-looked-up) and the domestic/overseas/
+    // standalone route before any page is loaded, same reasoning as travel_request's
+    // precedent lookup below: this needs the network, so it can't be the sync `validate`
+    // hook. 'standalone' is only ever explicit (report_kind param) - it is never what
+    // the auto-lookup resolves to, since a matched request is always AppFrm-023 or
+    // AppFrm-022 (see pickApprovedTravelRequest). The resolved formCode is ALWAYS real
+    // groupware data (either from the auto-lookup's own href, or from
+    // resolveTravelRequestFormCode for an explicit request_doc_id) - never guessed from
+    // report_kind, which is checked against it instead (REPORT_KIND_MISMATCH).
     beforeNavigate: async (page, params, config) => {
       let docId = params.request_doc_id ? String(params.request_doc_id) : void 0;
-      let formCode = params.report_kind === "overseas" ? "AppFrm-026" : "AppFrm-023";
+      if (docId !== void 0 && !/^\d+$/.test(docId)) {
+        audit({ action: "refusal", code: "INVALID_REQUEST_DOC_ID", field: "request_doc_id", ok: false });
+        return {
+          code: "INVALID_REQUEST_DOC_ID",
+          message: `request_doc_id must be a plain numeric doc_id (got '${docId}') - nothing was written.`
+        };
+      }
+      let formCode;
       if (!docId) {
         const found = await findOwnApprovedTravelRequest(page, {
           baseUrl: config.baseUrl,
@@ -8267,13 +8321,38 @@ var FORM_NAV_CONFIG = {
           audit({ action: "refusal", code: "TRAVEL_REQUEST_NOT_FOUND", field: "request_doc_id", ok: false });
           return {
             code: "TRAVEL_REQUEST_NOT_FOUND",
-            message: `${found.error}. Pass request_doc_id explicitly (the approved AppFrm-023/AppFrm-026 document this reports on).`
+            message: `${found.error}. Pass request_doc_id explicitly (the approved AppFrm-023/AppFrm-022 document this reports on).`
           };
         }
         docId = found.docId;
-        if (params.report_kind !== "domestic") formCode = found.formCode;
+        formCode = found.formCode;
+      } else {
+        const resolved = await resolveTravelRequestFormCode(page, { baseUrl: config.baseUrl, docId });
+        if ("error" in resolved) {
+          audit({ action: "refusal", code: "REQUEST_FORM_CODE_UNRESOLVED", field: "request_doc_id", ok: false });
+          return { code: "REQUEST_FORM_CODE_UNRESOLVED", message: resolved.error };
+        }
+        formCode = resolved.formCode;
       }
-      const kind = params.report_kind === "overseas" || formCode === "AppFrm-026" ? "overseas" : "domestic";
+      const resolvedKind = formCode === "AppFrm-022" ? "overseas" : "domestic";
+      if ((params.report_kind === "domestic" || params.report_kind === "overseas") && params.report_kind !== resolvedKind) {
+        audit({ action: "refusal", code: "REPORT_KIND_MISMATCH", field: "report_kind", ok: false });
+        return {
+          code: "REPORT_KIND_MISMATCH",
+          message: `report_kind '${params.report_kind}' was given, but request ${docId} resolves to ${formCode} (${resolvedKind}). Pass report_kind='${resolvedKind}' or omit it.`
+        };
+      }
+      const kind = params.report_kind === "standalone" ? "standalone" : resolvedKind;
+      if (kind === "domestic" && params.start_date && params.end_date) {
+        const nights = Math.round((new Date(String(params.end_date)).getTime() - new Date(String(params.start_date)).getTime()) / 864e5);
+        if (!Number.isNaN(nights) && nights < 2) {
+          audit({ action: "refusal", code: "NO_REPORT_FOR_DAY_TRIP", field: "start_date,end_date", ok: false });
+          return {
+            code: "POLICY_VIOLATION",
+            message: `[NO_REPORT_FOR_DAY_TRIP] start_date/end_date span ${nights} night(s); a domestic travel report is only filed for 2 nights (2\uBC153\uC77C) or more - a same-day or 1-night trip does not get one. Nothing was written to the form.`
+          };
+        }
+      }
       TRAVEL_REPORT_ROUTE.set(params, { kind, requestDocId: docId });
     },
     customUrl: (params, config) => {
@@ -8281,6 +8360,9 @@ var FORM_NAV_CONFIG = {
       const origin = new URL(config.baseUrl).origin;
       if (route?.kind === "domestic") {
         return `${origin}/Document/travel_report_write.php?doc_id=${encodeURIComponent(route.requestDocId)}&approve_type=AppFrm-023&pop=Y`;
+      }
+      if (route?.kind === "overseas") {
+        return `${origin}/Document/travel_report_write.php?doc_id=${encodeURIComponent(route.requestDocId)}&pop=Y`;
       }
       return `${origin}/Document/document_write.php?approve_type=AppFrm-076&pdoc_id=${encodeURIComponent(route?.requestDocId ?? "")}`;
     },
@@ -8483,19 +8565,46 @@ async function handleIpkSubmitForm(sessionManager, config, params) {
     if (navConfig?.customUrl) {
       const url = navConfig.customUrl(params, config);
       const waitSel = navConfig.waitSelector ?? "form input, form select";
-      const mainFrame = page.frame("main_menu");
-      if (mainFrame) {
-        await mainFrame.goto(url, { timeout: config.navTimeoutMs });
-        await mainFrame.waitForLoadState("load");
-        await mainFrame.waitForSelector(waitSel, { state: "attached", timeout: 5e3 }).catch(() => null);
-        frame = mainFrame;
-      } else {
-        await page.goto(url, { waitUntil: "domcontentloaded", timeout: config.navTimeoutMs });
-        frame = page.mainFrame();
-        await frame.waitForSelector(waitSel, { state: "attached", timeout: 5e3 }).catch(() => null);
+      const listenForPermissionDialog = !!navConfig.listenForPermissionDialog;
+      let permissionDialogMessage = null;
+      const onDialog = (d) => {
+        const msg = typeof d?.message === "function" ? d.message() : String(d?.message ?? "");
+        if (/permission|권한|deny/i.test(msg)) permissionDialogMessage = msg.replace(/\s+/g, " ").trim();
+        if (typeof d?.dismiss === "function") d.dismiss().catch(() => {
+        });
+        else if (typeof d?.accept === "function") d.accept().catch(() => {
+        });
+      };
+      if (listenForPermissionDialog) page.on("dialog", onDialog);
+      let navError;
+      try {
+        const mainFrame = page.frame("main_menu");
+        if (mainFrame) {
+          await mainFrame.goto(url, { timeout: config.navTimeoutMs });
+          await mainFrame.waitForLoadState("load");
+          await mainFrame.waitForSelector(waitSel, { state: "attached", timeout: 5e3 }).catch(() => null);
+          frame = mainFrame;
+        } else {
+          await page.goto(url, { waitUntil: "domcontentloaded", timeout: config.navTimeoutMs });
+          frame = page.mainFrame();
+          await frame.waitForSelector(waitSel, { state: "attached", timeout: 5e3 }).catch(() => null);
+        }
+        sessionManager.touchActivity();
+        await page.waitForTimeout(navConfig.waitMs ?? 2e3);
+      } catch (err) {
+        navError = err;
+      } finally {
+        if (listenForPermissionDialog) page.off("dialog", onDialog);
       }
-      sessionManager.touchActivity();
-      await page.waitForTimeout(navConfig.waitMs ?? 2e3);
+      if (listenForPermissionDialog && permissionDialogMessage) {
+        audit({ action: "refusal", code: "PERMISSION_DENIED", field: formType, ok: false });
+        return textResult({
+          error: true,
+          code: "PERMISSION_DENIED",
+          message: `The groupware refused this navigation with a permission dialog: "${permissionDialogMessage}". Nothing was written.`
+        });
+      }
+      if (navError) throw navError;
     } else {
       frame = await navigateToForm(page, formType, config);
       if (!frame) {
@@ -8861,18 +8970,43 @@ async function submitTravel(page, frame, sessionManager, config, params, mode) {
   if (!route) {
     throw new Error("TRAVEL_ROUTE_UNRESOLVED: request_doc_id/report_kind were not resolved before navigation - this is a bug, not a caller error.");
   }
-  if (route.kind === "domestic") {
-    return submitDomesticTravelReport(page, frame, sessionManager, config, params, route.requestDocId);
+  if (route.kind === "domestic" || route.kind === "overseas") {
+    return submitTravelReportOnRequest(page, frame, sessionManager, config, params, route.requestDocId, route.kind);
   }
-  return submitOverseasTravelReport(page, frame, sessionManager, config, params, route.requestDocId, mode);
+  return submitStandaloneTravelReport(page, frame, sessionManager, config, params, route.requestDocId, mode);
 }
-async function submitDomesticTravelReport(page, frame, sessionManager, config, params, requestDocId) {
+async function submitTravelReportOnRequest(page, frame, sessionManager, config, params, requestDocId, kind) {
   const userInfo = sessionManager.getUserInfo();
   const profile = loadProfile() ?? void 0;
   const reportPost = process.env.IPK_USER_POSITION || "";
   const reportLeader = profile?.approval_line?.group_leader || process.env.IPK_GROUP_LEADER || "";
   const userDept = userInfo.dept || process.env.IPK_USER_DEPT || "";
   const fields = buildDomesticReportFields(params, userInfo, { reportPost, reportLeader, userDept }, todayStr());
+  const requiredFieldNames = Array.from(/* @__PURE__ */ new Set([...Object.keys(fields), ...REPORT_CONTENT_FIELDS]));
+  const availability = await frame.evaluate((names) => {
+    const missing = names.filter((n) => !document.querySelector(`[name="${n}"]`));
+    return { missing, hasCheckForm: typeof window.Check_Form === "function" };
+  }, requiredFieldNames);
+  const frameUrl = typeof frame.url === "function" ? frame.url() : "";
+  let urlOk = false;
+  try {
+    const u = new URL(frameUrl);
+    urlOk = u.pathname.endsWith("/travel_report_write.php") && u.searchParams.get("doc_id") === requestDocId;
+  } catch {
+    urlOk = false;
+  }
+  if (availability.missing.length > 0 || !availability.hasCheckForm || !urlOk) {
+    audit({ action: "refusal", code: "REPORT_PAGE_UNAVAILABLE", field: "requestDocId", ok: false });
+    const reasons = [];
+    if (availability.missing.length > 0) reasons.push(`missing field(s): ${availability.missing.join(", ")}`);
+    if (!availability.hasCheckForm) reasons.push("Check_Form is not a function on this page");
+    if (!urlOk) reasons.push(`frame URL '${frameUrl}' is not travel_report_write.php?doc_id=${requestDocId}`);
+    return textResult({
+      error: true,
+      code: "REPORT_PAGE_UNAVAILABLE",
+      message: `The report page for request ${requestDocId} (${kind}) is not usable: ${reasons.join("; ")}. Likely a permission-deny page (not owned by this session) or, for an overseas report, a field-set mismatch (not fully confirmed whether AppFrm-022's write page matches the domestic one). Nothing was written.`
+    });
+  }
   const existing = await readReportContentFields(frame);
   if (!reportIsEmpty(existing) && params.overwrite_report !== true && !params.dry_run) {
     const filled = REPORT_CONTENT_FIELDS.filter((k) => (existing[k] ?? "").trim().length > 0).map((k) => `${k} (${existing[k].length} chars)`);
@@ -8903,7 +9037,7 @@ async function submitDomesticTravelReport(page, frame, sessionManager, config, p
       error: false,
       data: {
         ...preview,
-        report_kind: "domestic",
+        report_kind: kind,
         attached_to_doc_id: requestDocId,
         // Lengths of whatever was already on this request before this (never-saved) fill -
         // the overwrite guard is skipped under dry_run since nothing is written to protect.
@@ -8914,7 +9048,8 @@ async function submitDomesticTravelReport(page, frame, sessionManager, config, p
   }
   const { dialogs } = await submitTravelReportDraft(page, frame);
   const origin = new URL(config.baseUrl).origin;
-  await page.goto(`${origin}/Document/travel_report_write.php?doc_id=${encodeURIComponent(requestDocId)}&approve_type=AppFrm-023&pop=Y`, {
+  const reloadUrl = kind === "domestic" ? `${origin}/Document/travel_report_write.php?doc_id=${encodeURIComponent(requestDocId)}&approve_type=AppFrm-023&pop=Y` : `${origin}/Document/travel_report_write.php?doc_id=${encodeURIComponent(requestDocId)}&pop=Y`;
+  await page.goto(reloadUrl, {
     waitUntil: "domcontentloaded",
     timeout: config.navTimeoutMs
   });
@@ -8929,6 +9064,17 @@ async function submitDomesticTravelReport(page, frame, sessionManager, config, p
     return out;
   }, Object.keys(fields));
   const saved = Object.entries(fields).every(([k, v]) => afterReload[k] === v);
+  if (!saved) {
+    audit({ action: "refusal", code: "DRAFT_NOT_CONFIRMED", field: "requestDocId", ok: false });
+    return textResult({
+      error: true,
+      code: "DRAFT_NOT_CONFIRMED",
+      message: `Report was filled and Check_Form('D') was called, but re-reading request ${requestDocId} (${kind}) afterward did not show all the values saved - check manually before assuming anything was written.` + (dialogs.length ? ` The form said: ${dialogs.join(" / ")}` : ""),
+      attached_to_doc_id: requestDocId,
+      report_kind: kind,
+      overwritten_old_lengths: overwrittenLengths
+    });
+  }
   return textResult({
     error: false,
     data: {
@@ -8938,15 +9084,15 @@ async function submitDomesticTravelReport(page, frame, sessionManager, config, p
       attached_to_doc_id: requestDocId,
       mode: "draft",
       formType: "travel",
-      report_kind: "domestic",
-      saved_confirmed: saved,
+      report_kind: kind,
+      saved_confirmed: true,
       overwritten_old_lengths: overwrittenLengths,
       warning: warnings.length > 0 ? warnings.join(" | ") : void 0,
-      message: saved ? `Domestic travel report draft saved onto approved request ${requestDocId}.` : `Report was filled and Check_Form('D') was called, but re-reading the page afterward did not show all the values saved - check manually.` + (dialogs.length ? ` The form said: ${dialogs.join(" / ")}` : "")
+      message: `${kind === "domestic" ? "Domestic" : "Overseas"} travel report draft saved onto approved request ${requestDocId}.`
     }
   });
 }
-function readOverseasTravelReportPrefill() {
+function readStandaloneTravelReportPrefill() {
   const val = (sel) => document.querySelector(sel)?.value ?? "";
   return {
     subject: val('input[name="subject"]'),
@@ -8962,7 +9108,7 @@ function readOverseasTravelReportPrefill() {
     result_field: val('.validate[name="result_field"]')
   };
 }
-async function submitOverseasTravelReport(page, frame, sessionManager, config, params, requestDocId, mode) {
+async function submitStandaloneTravelReport(page, frame, sessionManager, config, params, requestDocId, mode) {
   const userInfo = sessionManager.getUserInfo();
   const pdocValue = await frame.evaluate(() => {
     const el = document.querySelector('select[name="pdoc_id"]');
@@ -8986,7 +9132,7 @@ async function submitOverseasTravelReport(page, frame, sessionManager, config, p
   const reportPost = process.env.IPK_USER_POSITION || "";
   const reportLeader = process.env.IPK_GROUP_LEADER || "";
   const userDept = userInfo.dept || process.env.IPK_USER_DEPT || "";
-  const prefill = await frame.evaluate(readOverseasTravelReportPrefill).catch(() => ({}));
+  const prefill = await frame.evaluate(readStandaloneTravelReportPrefill).catch(() => ({}));
   const keep = (paramKey, schemaKey, fallback) => !params[paramKey] && prefill[schemaKey] ? prefill[schemaKey] : fallback;
   const travelSchema = {
     subject: { type: "text", dom_name: "subject", required: true },
@@ -9045,7 +9191,7 @@ async function submitOverseasTravelReport(page, frame, sessionManager, config, p
       docId,
       mode,
       formType: "travel",
-      report_kind: "overseas",
+      report_kind: "standalone",
       subject: title,
       message: docId ? `Travel ${mode === "draft" ? "draft saved" : "submitted"} (doc_id: ${docId})` : `Travel ${mode} completed`
     }
@@ -12491,7 +12637,7 @@ var actions = Object.fromEntries(
     return [name, { name, purpose: firstSentence(t.description), description: t.description, schema: t.schema, safety: ACTION_SAFETY[name], handler: t.handler }];
   })
 );
-var localVersion = true ? "0.2.1" : "0.0.0";
+var localVersion = true ? "0.2.2" : "0.0.0";
 function withUpdateNotice(def) {
   return {
     ...def,

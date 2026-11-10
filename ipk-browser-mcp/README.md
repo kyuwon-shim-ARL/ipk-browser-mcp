@@ -68,14 +68,14 @@ npm run build
 | `leave` | AppFrm-073 | 휴가신청 | `leave_type`, `start_date`, `end_date` |
 | `expense` | AppFrm-020 | 경비지출 | `budget_code`, `amount`, `reason` |
 | `working` | AppFrm-074 | 휴일근무 | `reason`, `rows` ([{date, hours}]) |
-| `travel` | AppFrm-076 | 출장보고 | `title`, `destination`, `start_date`, `end_date` |
+| `travel` | AppFrm-023 (domestic, default) / AppFrm-022 (overseas, `report_kind: "overseas"`) / AppFrm-076 (standalone, `report_kind: "standalone"` only) | 출장보고 | `purpose`, `start_date`, `end_date` (domestic/overseas - written onto the approved request; `title`/`destination` only for standalone) |
 | `travel_request` | AppFrm-023 | 출장신청 | `budget_code`, `title`, `destination`, `start_date`, `end_date` |
 | `budget_transfer` | AppFrm-039 | 예산전용 | `from_account`, `to_account`, `amount`, `reason` |
 | `card_expense` | AppFrm-020 | 카드경비 | `budget_code`, `amount`, `reason` |
 | `travel_settlement` | AppFrm-054 | 출장정산 | `budget_code`, `title`, `destination`, `start_date`, `end_date` |
 | `leave_return` | AppFrm-028 | 대체휴일반납 | `leave_type`, `start_date`, `end_date` |
 | `seminar` | AppFrm-043 | 세미나공시 | `title`, `date`, `location` |
-| `overseas_travel` | AppFrm-026 | 해외출장 | `budget_code`, `title`, `destination`, `start_date`, `end_date`, `purpose` |
+| `overseas_travel` | AppFrm-026 | 해외출장정산 (settlement; the overseas travel REQUEST is AppFrm-022, not its own `form_type`) | `budget_code`, `title`, `destination`, `start_date`, `end_date`, `purpose` |
 
 ## 5. Examples
 
@@ -94,9 +94,14 @@ npm run build
 { "form_type": "working", "reason": "Nextflow based urban metagenomic surveillance pipeline optimization", "rows": [{ "date": "2026-04-12", "hours": 2 }] }
 ```
 
-### Travel Report
+### Travel Report (domestic - written onto the approved AppFrm-023 request)
 ```json
-{ "form_type": "travel", "title": "Conference Report", "destination": "Seoul", "start_date": "2026-04-15", "end_date": "2026-04-16" }
+{ "form_type": "travel", "request_doc_id": "299953", "purpose": "Conference attendance", "schedule": "Day 1: sessions; Day 2: networking", "reason": "Shared findings with the team", "start_date": "2026-04-15", "end_date": "2026-04-17" }
+```
+
+### Travel Report (overseas - written onto the approved AppFrm-022 request, same endpoint)
+```json
+{ "form_type": "travel", "report_kind": "overseas", "request_doc_id": "400100", "purpose": "Conference attendance", "schedule": "Day 1: sessions; Day 2: networking", "reason": "Shared findings with the team", "start_date": "2026-04-15", "end_date": "2026-04-17" }
 ```
 
 ### Travel Request

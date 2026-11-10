@@ -202,6 +202,66 @@ def test_itinerary_header_row_is_not_counted_in_the_baseline():
     assert max(b.lengths["itinerary"]) == 300
 
 
+# ---------------------------------------------------------------- overseas_travel_report kind
+
+
+def test_overseas_travel_report_kind_is_registered():
+    from baseline_gate import KINDS
+    assert "overseas_travel_report" in KINDS
+
+
+def test_overseas_travel_report_reuses_the_domestic_parser_and_checks_the_same_way():
+    """Same parse_domestic_report/_REPORT_SECTIONS - confirmed live 2026-11-09 against 9
+    colleagues' real overseas report text (see baseline_gate.py's KINDS comment); this
+    test only exercises the mechanics with synthetic report-shaped text."""
+    b = baseline_from_texts("overseas_travel_report", colleague_texts())
+    fields = {"purpose_field": "p" * 200, "agenda_field": "a" * 250, "result_field": "r" * 250,
+              "other_field": "o" * 90, "conclusion_field": "c" * 170}
+    assert check(fields, b) == []
+    v = check({"purpose_field": "p" * 900, "agenda_field": "a" * 250}, b)
+    assert len(v) == 1 and "purpose_field" in v[0]
+
+
+def test_overseas_fetcher_does_not_raise_when_no_own_docs_match():
+    """Unlike _fetch_domestic_report_texts, an empty `own` list is expected (the user
+    has 0 own AppFrm-026 documents) and must not be mistaken for a misread writer
+    column - see _fetch_overseas_report_texts's docstring."""
+    from baseline_gate import _fetch_overseas_report_texts
+
+    class _FakeFrame:
+        def goto(self, *a, **kw):
+            pass
+
+        def evaluate(self, *a, **kw):
+            return {"any_rows": False, "matched": []}  # no rows found on any page - as if nothing matched the keyword
+
+    class _FakePage:
+        def frame(self, *_a, **_kw):
+            return _FakeFrame()
+
+    class _FakeContext:
+        def new_page(self):
+            class _P:
+                def goto(self, *a, **kw):
+                    pass
+
+                def evaluate(self, *a, **kw):
+                    return ""
+
+                def close(self):
+                    pass
+            return _P()
+
+    class _FakeGw:
+        BASE_URL = "https://gw.ip-korea.org"
+        page = _FakePage()
+        context = _FakeContext()
+
+    texts, own = _fetch_overseas_report_texts(_FakeGw(), "Kyuwon Shim")
+    assert own == []
+    assert texts == {}
+
+
 @pytest.mark.parametrize("text", ["과제NN2606-0001로 지원", "NN2606–0001", "nn2606-0001", "[NN 2606-0001]"])
 def test_budget_code_spellings_are_caught(text):
     assert any("budget code" in v for v in check({"purpose_field": text}, _b()))
@@ -262,3 +322,58 @@ def test_script_is_found_after_cd(tmp_path):
     (tmp_path / "sub").mkdir()
     (tmp_path / "sub" / "submit_y.py").write_text("pg.evaluate(\"Check_Form('D')\")\n")
     assert resolve_script("submit_y.py", tmp_path, "cd sub && python3 submit_y.py") == tmp_path / "sub" / "submit_y.py"
+
+
+# ---------------------------------------------------------------- M4 (code review 2026-11-09): pagination
+
+
+def test_pagination_does_not_stop_on_a_page_with_zero_matched_rows():
+    """page 1: rows exist but none match the target approve_type (e.g. a run of leave
+    docs for this keyword) - must NOT stop pagination. page 2: a matching row. page 3:
+    genuinely empty (no rows at all) - stops there. Exercises both fetchers' identical
+    any_rows/matched pagination logic (M4)."""
+    from baseline_gate import _fetch_domestic_report_texts
+
+    pages = [
+        {"any_rows": True, "matched": []},  # page 1: non-target rows only
+        {"any_rows": True, "matched": [["501", "Colleague A"], ["502", "Kyuwon Shim"]]},  # page 2: a real match + own doc
+        {"any_rows": False, "matched": []},  # page 3: genuinely empty - stop here
+    ]
+    call_count = {"n": 0}
+
+    class _FakeFrame:
+        def goto(self, *a, **kw):
+            pass
+
+        def evaluate(self, *a, **kw):
+            i = call_count["n"]
+            call_count["n"] += 1
+            return pages[i] if i < len(pages) else {"any_rows": False, "matched": []}
+
+    class _FakePage:
+        def frame(self, *_a, **_kw):
+            return _FakeFrame()
+
+    class _FakeContext:
+        def new_page(self):
+            class _P:
+                def goto(self, *a, **kw):
+                    pass
+
+                def evaluate(self, *a, **kw):
+                    return "Date of Report 2026-01-01\nTravel Purpose\nreport text\nItinerary\n"
+
+                def close(self):
+                    pass
+            return _P()
+
+    class _FakeGw:
+        BASE_URL = "https://gw.ip-korea.org"
+        page = _FakePage()
+        context = _FakeContext()
+
+    texts, own = _fetch_domestic_report_texts(_FakeGw(), "Kyuwon Shim", keywords=("x",))
+    # page 2's match (doc 501, after page 1's zero-match page) must have been reached -
+    # the bug this guards against is stopping at page 1 and never seeing it.
+    assert "501" in texts
+    assert call_count["n"] == 3  # stopped exactly at the genuinely empty page 3, not before

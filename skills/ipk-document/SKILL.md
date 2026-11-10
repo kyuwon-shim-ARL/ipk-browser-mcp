@@ -24,17 +24,22 @@ Identify the form from the user's keywords:
 |----------|-----------|-------------|-------------|
 | 출장신청, 학회, 컨퍼런스 (before trip) | `travel_request` | AppFrm-023 | 출장신청 |
 | 출장정산, 정산 | `travel_settlement` | AppFrm-054 | 출장정산 |
-| 출장보고 (after trip) | `travel` | AppFrm-076 | 출장보고 |
+| 출장보고 (after trip) | `travel` | written onto AppFrm-023 (domestic) / AppFrm-022 (overseas); AppFrm-076 only if explicitly `report_kind: "standalone"` | 출장보고 |
 | 휴가, 연차, 반차, 대휴 | `leave` | AppFrm-073 | 휴가신청 |
 | 복귀, 휴가복귀 | `leave_return` | AppFrm-028 | 대체휴일반납 |
 | 카드, 법인카드, 영수증 | `card_expense` | AppFrm-020 | 카드경비 |
 | 경비, 비용 | `expense` | AppFrm-020 | 경비지출 |
 | 야근, 휴일근무 | `working` | AppFrm-074 | 야근/휴일근무 |
 | 세미나, 학회발표 | `seminar` | AppFrm-043 | 세미나공시 |
-| 해외출장, 해외 | `overseas_travel` | AppFrm-026 | 해외출장 |
+| 해외출장, 해외 (정산/settlement) | `overseas_travel` | AppFrm-026 | 해외출장정산 (overseas SETTLEMENT, not the request - see below) |
 | 예산, 전용, 예산전용 | `budget_transfer` | AppFrm-039 | 예산전용(R&D) |
 
 If ambiguous (e.g. just "출장"), ask whether it's 신청(before)/보고(after)/정산(reimbursement).
+
+**해외출장 신청 (overseas travel REQUEST) is AppFrm-022** - it is not wired as its own
+`form_type` in this plugin; it only matters internally as the request a `travel` report
+(`report_kind: "overseas"`) attaches to. Do not confuse it with `overseas_travel`
+(AppFrm-026, the settlement) above.
 
 ### Step 2: Inspect Form (When Needed)
 

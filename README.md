@@ -59,7 +59,7 @@ Or invoke the conversational `/ipk-browser-mcp:ipk-document` (문서작성) skil
 | `/ipk-browser-mcp:ipk-card-er` | Corporate card expense report (AppFrm-021) |
 | `/ipk-browser-mcp:ipk-leave` | Leave / half-day / hourly leave request (AppFrm-073) |
 | `/ipk-browser-mcp:ipk-overtime` | Weekend/holiday work application (AppFrm-074) |
-| `/ipk-browser-mcp:ipk-travel` | Travel request / travel report (AppFrm-023 / AppFrm-076) |
+| `/ipk-browser-mcp:ipk-travel` | Travel request (AppFrm-023) / travel report (written onto the approved AppFrm-023 domestic or AppFrm-022 overseas request; AppFrm-076 standalone, explicit only) |
 
 ## Updating the Plugin
 
@@ -97,7 +97,9 @@ Bump `version` in `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json
 | R&D Expense Report | `expense` | AppFrm-021 |
 | Holiday/Weekend Work Application | `working` | AppFrm-074 |
 | Travel Request | `travel_request` | AppFrm-023 |
-| Travel Report | `travel` | AppFrm-076 |
+| Travel Report (domestic, written onto the approved AppFrm-023 request) | `travel` | AppFrm-023 |
+| Travel Report (overseas, written onto the approved AppFrm-022 request, same endpoint) | `travel` (`report_kind: "overseas"`) | AppFrm-022 |
+| Travel Report (standalone, explicit only) | `travel` (`report_kind: "standalone"`) | AppFrm-076 |
 | Budget Transfer (R&D) | `budget_transfer` | AppFrm-039 |
 | Budget Transfer (General) | `budget_transfer` | AppFrm-053 |
 
